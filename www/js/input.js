@@ -27,7 +27,8 @@ addEventListener('keydown', (e) => {
     toast(walkStyle === 'step' ? 'Walk B: feet up and down' : 'Walk A: long strides');
   }
   if (e.code === 'Escape') {
-    if (!$('pmenu').hidden) closePlayerMenu();
+    if (!$('menu').hidden) closeMenu();
+    else if (!$('pmenu').hidden) closePlayerMenu();
     else if (!$('info').hidden) $('info').hidden = true;
     else if (!$('pop').hidden) closePop();
     else if (!$('inv').hidden) toggleInv();

@@ -22,8 +22,11 @@
         <small id="wowner"></small>
       </div>
       <div class="coords" id="coords"></div>
-      <div class="gold" id="gold" aria-label="Gold">
-        <canvas id="goldIcon" width="32" height="32"></canvas><span id="goldN">0</span>
+      <div class="topr">
+        <div class="gold" id="gold" aria-label="Gold">
+          <canvas id="goldIcon" width="32" height="32"></canvas><span id="goldN">0</span>
+        </div>
+        <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
       </div>
       <div class="hotbar" id="hotbar" role="toolbar" aria-label="Hotbar"></div>
       <div class="pad l">
@@ -97,6 +100,20 @@
         </div>
       </section>
 
+      <section class="win menu" id="menu" hidden role="dialog" aria-label="Menu">
+        <header>
+          <div class="tabs" role="tablist">
+            <button data-tab="profile" role="tab">Profile</button
+            ><button data-tab="worlds" role="tab">Worlds</button
+            ><button data-tab="friends" role="tab">Friends</button
+            ><button data-tab="email" role="tab">Email</button
+            ><button data-tab="settings" role="tab">Settings</button>
+          </div>
+          <button class="x" id="menux" aria-label="Close menu">X</button>
+        </header>
+        <div class="menubody" id="menuBody"></div>
+      </section>
+
       <div class="start" id="start">
         <div class="win">
           <h1>BALBTOPIA</h1>
@@ -124,6 +141,7 @@
     <script src="js/farming.js"></script>
     <script src="js/worlds.js"></script>
     <script src="js/native.js"></script>
+    <script src="js/menu.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

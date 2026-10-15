@@ -65,7 +65,19 @@ function loadWorld(name) {
 }
 function savePlayer() {
   const s = store();
-  s.player = { name: playerName, skin, inv, gold: P.gold, equipped, world: worldName, walkStyle };
+  s.player = {
+    name: playerName,
+    skin,
+    inv,
+    gold: P.gold,
+    equipped,
+    world: worldName,
+    walkStyle,
+    xp,
+    level,
+    playDays,
+    settings,
+  };
   putStore(s);
 }
 function loadPlayer() {
@@ -77,6 +89,10 @@ function loadPlayer() {
   for (const it of p.inv || []) if (ITEMS[it.id]) inv.push(it);
   if (!inv.some((s) => s.id === 'wrench')) inv.unshift({ id: 'wrench', qty: 1 });
   P.gold = p.gold || 0;
+  xp = p.xp || 0;
+  level = p.level || 1;
+  playDays = p.playDays || [];
+  Object.assign(settings, p.settings || {});
   Object.assign(equipped, p.equipped || {});
   worldName = p.world || START_WORLD;
   if (p.walkStyle) walkStyle = p.walkStyle;

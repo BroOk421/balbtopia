@@ -76,6 +76,7 @@ function act() {
         fg[i] = 0;
         dmg[i] = 0;
         if (y > 0) uproot(x, y - 1);
+        addXP(1);
         if (Math.random() < (BLOCK_DROP_CHANCE[id] ?? 1)) spawnDrop(id, x * TS + 16, y * TS + 16);
         if (id === 'world_lock') {
           worldOwner = null;

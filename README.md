@@ -41,7 +41,7 @@ Gumagana lang kapag nasa app; sa browser, walang ginagawa ang mga ito.
 |---|---|
 | Full screen at landscape | Itinatago ang status bar at naka-lock sa pahiga |
 | `Native.haptic('light' / 'medium' / 'heavy')` | Vibrate: suntok, nasirang block, tama ng lava |
-| Back button ng Android | Isinasara muna ang bukas na window (player menu, info, bag, worlds); kapag wala, ilalagay sa background ang app |
+| Back button ng Android | Isinasara muna ang bukas na window (menu, player menu, info, bag, worlds); kapag wala, ilalagay sa background ang app |
 | Pag-pause ng app | Sine-save ang world at player bago isara ng phone |
 
 Naka-on ang on-screen controls (◀ ▶ ▲ at BAG) sa app. App ID: `com.brook421.balbtopia` (nasa `capacitor.config.json`).
@@ -108,6 +108,14 @@ Iisa ang global scope ng mga JS file at mahalaga ang pagkakasunod sa `index.html
 | Usok kapag tinatamaan ang block | `actions.js`: `smoke(x, y, ilan, lakas)`; kulay sa `render.js`: `SMOKE` |
 | Bagong item | magdagdag sa `ITEMS` sa `config.js` at ang image sa `assets.js` |
 | Kulay ng UI | `css/style.css`, sa `:root` |
+| Menu (burger sa kanang itaas) | `index.html` (`#menu`) at `menu.js` (isang function bawat tab: `profile`, `worldsTab`, `friends`, `email`, `settingsTab`) |
+| XP na kailangan bawat level | `menu.js`: `xpNeed = (lv) => 40 + lv * 20` |
+| XP bawat gawain | `addXP(n)`: sira ng block 1 (`actions.js`), tanim 1, splice 2, ani 2 + bunga (`farming.js`) |
+| Kulay ng skin squares sa Profile | `config.js`: `SWATCH` |
+| Default na settings | `menu.js`: `settings = { vibrate: true, coords: true }` |
+| Laki ng popups | `css/style.css`: `.win` (`width: min(90vw, 400px)`) at `.menu` |
+| Taas ng listahan bago mag-scroll | `css/style.css`: `.mlist` at `.wlist` (`max-height`) |
+| Laki ng bilog na buttons sa phone | `css/style.css`: `#pj`, `#bag`, `.pad` sa `@media (max-height: 520px)` |
 
 ## Pagtatanim
 

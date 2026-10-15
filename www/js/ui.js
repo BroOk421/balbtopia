@@ -301,6 +301,8 @@ function buildStart() {
   $('play').onclick = () => {
     playerName = $('pname').value || playerName;
     $('start').hidden = true;
+    markPlayDay();
+    applySettings();
     enterWorld(worldName || START_WORLD);
     renderBars();
     updateGold();

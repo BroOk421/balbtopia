@@ -20,13 +20,14 @@ const Native = (() => {
   // small vibration: 'light' for a punch, 'medium' for a broken block, 'heavy' for lava
   function haptic(style = 'light') {
     const h = plug('Haptics');
-    if (h) safe(h.impact({ style: style.toUpperCase() }));
+    if (h && settings.vibrate) safe(h.impact({ style: style.toUpperCase() }));
   }
 
   // Android back button: close the top window first; on the plain game screen, send the app to the background
   function onBack() {
-    const open = ['pmenu', 'info', 'pop', 'worlds', 'inv'].find((id) => !$(id).hidden);
-    if (open === 'pmenu') closePlayerMenu();
+    const open = ['menu', 'pmenu', 'info', 'pop', 'worlds', 'inv'].find((id) => !$(id).hidden);
+    if (open === 'menu') closeMenu();
+    else if (open === 'pmenu') closePlayerMenu();
     else if (open === 'info') $('info').hidden = true;
     else if (open === 'pop') closePop();
     else if (open === 'worlds') closeWorlds();

@@ -16,6 +16,7 @@ function plant(x, y, seedItem) {
   trees.set(at(x, y), { seed: from, planted: Date.now(), fruit: randFruit(), spliced: false });
   takeItem(seedItem);
   smoke(x, y, 4, 0.6);
+  addXP(1);
 }
 const randFruit = () => TREE_FRUIT[0] + Math.floor(Math.random() * (TREE_FRUIT[1] - TREE_FRUIT[0] + 1));
 
@@ -32,6 +33,7 @@ function splice(x, y, seedItem) {
   Object.assign(t, { seed: result, planted: Date.now(), fruit: randFruit(), spliced: true });
   takeItem(seedItem);
   smoke(x, y, 10, 1.1);
+  addXP(2);
   toast(ITEMS[was].name + ' + ' + ITEMS[from].name + ' = ' + treeName(result) + '!');
 }
 
@@ -47,6 +49,7 @@ function punchTree(x, y) {
   }
   trees.delete(i);
   smoke(x, y, 8, 1.2);
+  addXP(2 + t.fruit);
   burst(x, y, -2, 10);
   for (let k = 0; k < t.fruit; k++)
     spawnDrop(t.seed, x * TS + 8 + Math.random() * 16, y * TS + 10 + Math.random() * 10);

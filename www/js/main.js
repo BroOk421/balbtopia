@@ -4,7 +4,7 @@ function loop(ts) {
   const dt = Math.min(0.05, (ts - (last || ts)) / 1000);
   last = ts;
   now += dt * 1000;
-  if ($('start').hidden && $('worlds').hidden) {
+  if ($('start').hidden && $('worlds').hidden && $('menu').hidden) {
     let t = dt;
     while (t > 0) {
       const h = Math.min(1 / 120, t);
