@@ -1,0 +1,12 @@
+{
+  "id": "hair_spiky_black",
+  "slot": "hair",
+  "layer": 6,
+  "file": "hair_spiky_black.png",
+  "offset": {
+    "x": -54,
+    "y": -51
+  },
+  "followsUpperBody": true,
+  "note": "offset is relative to the skin frame top-left (237x431). Add the frame bodyOffsetY too."
+}

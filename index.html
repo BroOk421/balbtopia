@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Balbtopia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rubik:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="wrap">
+      <canvas id="c" aria-label="Game world"></canvas>
+      <div class="hint" id="hint">
+        <b>BALBTOPIA</b><br />Walk <kbd>A</kbd><kbd>D</kbd> · Jump <kbd>W</kbd>/<kbd>Space</kbd> · Punch or
+        place: click a block · Bag <kbd>B</kbd> · Hotbar <kbd>1</kbd>–<kbd>0</kbd> · Stand in the door and
+        click it to change world
+      </div>
+      <div class="wname" id="wname">
+        <span id="wnameT">START</span><img class="wlock" id="wlock" hidden alt="Locked" />
+        <small id="wowner"></small>
+      </div>
+      <div class="coords" id="coords"></div>
+      <div class="gold" id="gold" aria-label="Gold">
+        <canvas id="goldIcon" width="32" height="32"></canvas><span id="goldN">0</span>
+      </div>
+      <div class="hotbar" id="hotbar" role="toolbar" aria-label="Hotbar"></div>
+      <div class="pad l">
+        <button id="pl" aria-label="Walk left">◀</button><button id="pr" aria-label="Walk right">▶</button>
+      </div>
+      <div class="pad r"><button id="pj" aria-label="Jump">▲</button></div>
+      <button class="bag" id="bag" aria-label="Open inventory">BAG</button>
+
+      <section class="win" id="inv" hidden aria-label="Inventory">
+        <header>
+          <h2>INVENTORY</h2>
+          <span class="count" id="count"></span
+          ><button class="x" id="invx" aria-label="Close inventory">X</button>
+        </header>
+        <div class="grid" id="grid"></div>
+        <div class="wearing">
+          <span>Wearing:</span>
+          <div class="eslot" id="eq_hair" title="Hair"></div>
+          <div class="eslot" id="eq_feet" title="Feet"></div>
+          <span id="eqName">Nothing</span>
+        </div>
+      </section>
+      <div class="pop" id="pop" hidden role="menu">
+        <div class="ttl" id="popTitle"></div>
+        <button id="aUse" role="menuitem">Use</button>
+        <button id="aDrop" class="drop" role="menuitem">Drop</button>
+        <button id="aInfo" role="menuitem">Info</button>
+      </div>
+      <div class="win info" id="info" hidden role="dialog" aria-label="Item info">
+        <div class="big" id="infoIcon"></div>
+        <div>
+          <h3 id="infoName"></h3>
+          <p id="infoDesc"></p>
+        </div>
+        <dl id="infoDl"></dl>
+        <button class="btn" id="infoOk">Close</button>
+      </div>
+
+      <section class="win worlds" id="worlds" hidden aria-label="Worlds">
+        <header>
+          <h2>WORLDS</h2>
+          <button class="x" id="wx" aria-label="Close and stay here">X</button>
+        </header>
+        <form id="wform" autocomplete="off">
+          <label for="wq">Go to a world, or type a new name to create one</label>
+          <div class="wsearch">
+            <input id="wq" name="wq" maxlength="16" placeholder="WORLD NAME" spellcheck="false" />
+            <button class="btn" id="wgo" type="submit">GO</button>
+          </div>
+          <p class="werr" id="werr" role="alert"></p>
+        </form>
+        <ul class="wlist" id="wlist"></ul>
+        <button class="wstay" id="wstay">Stay in this world</button>
+      </section>
+
+      <section class="win pmenu" id="pmenu" hidden role="dialog" aria-label="Player menu">
+        <header>
+          <img id="pmAvatar" alt="" />
+          <div>
+            <h2 id="pmName"></h2>
+            <small id="pmWorld"></small>
+          </div>
+        </header>
+        <div class="pmbtns">
+          <button id="pmTrade">Trade</button>
+          <button id="pmFriend">Add Friend</button>
+          <button id="pmMessage">Message</button>
+          <button id="pmEmail">Email</button>
+          <button id="pmGift">Gift</button>
+          <button id="pmClose" class="close">Close</button>
+        </div>
+      </section>
+
+      <div class="start" id="start">
+        <div class="win">
+          <h1>BALBTOPIA</h1>
+          <p>Pick your skin colour. Hair and a World Lock are waiting in your bag.</p>
+          <label class="pname" for="pname"
+            >Your name
+            <input id="pname" maxlength="16" spellcheck="false" autocomplete="off" />
+          </label>
+          <div class="looks" id="looks"></div>
+          <button class="btn" id="play">PLAY</button>
+        </div>
+      </div>
+      <div class="toast" id="toast" hidden></div>
+    </div>
+
+    <script src="js/assets.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/world.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/actions.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/farming.js"></script>
+    <script src="js/worlds.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
