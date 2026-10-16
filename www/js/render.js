@@ -43,7 +43,15 @@ function resize() {
   const dpr = Math.min(2, devicePixelRatio || 1);
   cv.width = Math.round(innerWidth * dpr);
   cv.height = Math.round(innerHeight * dpr);
-  Z = Math.max(1, Math.round(Math.min(cv.height / (15 * TS), cv.width / (13 * TS))));
+  // phones and tablets (touch) see about 9 tiles top to bottom; desktops about 15
+  const touch = document.body.classList.contains('touch') || matchMedia('(pointer: coarse)').matches;
+  const far = touch
+    ? Math.max(2, Math.round(cv.height / (9 * TS)))
+    : Math.max(1, Math.round(Math.min(cv.height / (15 * TS), cv.width / (13 * TS))));
+  // Settings → Camera: 0 is the farthest view (the default); each step brings it closer,
+  // but never so close that fewer than about 4 tiles fit top to bottom
+  const near = Math.max(far, Math.floor(cv.height / (4 * TS)));
+  Z = Math.min(far + ((typeof settings !== 'undefined' && settings.zoom) || 0), near);
   g.imageSmoothingEnabled = false;
 }
 addEventListener('resize', resize);
@@ -327,8 +335,8 @@ function render() {
     }
   for (let i = 0; i < bgDmg.length; i++) if (bgDmg[i] && now - dmgT[i] > 5000) bgDmg[i] = 0;
   // drops
-  // main door (2 tiles tall), drawn in front of the wall and behind the player
-  g.drawImage(doorSprite(), ox + door.x * T, oy + (door.y - 1) * T, T, T * 2);
+  // main door (1 tile), drawn in front of the wall and behind the player
+  g.drawImage(doorSprite(), ox + door.x * T, oy + door.y * T, T, T);
   drawTrees(ox, oy, T);
   // holding the wrench: a wrench shows inside every World Lock; click it for the lock's settings
   if (hand === 'wrench')
@@ -407,6 +415,7 @@ function render() {
   }
   drawSmoke(ox, oy);
   drawPlaces(ox, oy, T);
+  drawFlyers(ox, oy);
   // particles & floating text
   for (const p of parts) {
     g.fillStyle = p.c;
@@ -561,38 +570,22 @@ function lockSprite() {
   );
   return (LOCKC = c);
 }
-// main door: dark frame, light panels, gold knob, EXIT sign
+// main door, one tile: a plain wooden door with a cream panel and a gold knob
 const DOOR_ART = [
   'KKKKKKKKKKKKKKKK',
-  'KRRRRRRRRRRRRRRK',
-  'KWWWWWWWWWWWWWWK',
-  'KEEEWEWEWEWEEEWK',
-  'KEWWWEWEWEWWEWWK',
-  'KEEWWWEWWEWWEWWK',
-  'KEWWWEWEWEWWEWWK',
-  'KEEEWEWEWEWWEWWK',
-  'KWWWWWWWWWWWWWWK',
-  'KRRRRRRRRRRRRRRK',
   'KFFFFFFFFFFFFFFK',
   'KFDDDDDDDDDDDDFK',
   'KFDPPPPPPPPPPDFK',
   'KFDPLLLLLLLLPDFK',
   'KFDPLpppppppPDFK',
   'KFDPLpppppppPDFK',
-  'KFDPLpppppppPDFK',
   'KFDPPPPPPPPPPDFK',
-  'KFDDDDDDDDDDDDFK',
-  'KFDPPPPPPPPPPDFK',
-  'KFDPLLLLLLLLPDFK',
   'KFDPLpppppppPDFK',
   'KFDPLpppppNNPDFK',
   'KFDPLpppppNNPDFK',
   'KFDPLpppppppPDFK',
-  'KFDPLpppppppPDFK',
   'KFDPPPPPPPPPPDFK',
   'KFDDDDDDDDDDDDFK',
-  'KFDDDDDDDDDDDDFK',
-  'KFFFFFFFFFFFFFFK',
   'KFFFFFFFFFFFFFFK',
   'KKKKKKKKKKKKKKKK',
 ];
@@ -601,7 +594,7 @@ function doorSprite() {
   if (DOORC) return DOORC;
   const c = document.createElement('canvas');
   c.width = 32;
-  c.height = 64;
+  c.height = 32;
   const x = c.getContext('2d'),
     map = {
       K: '#140c08',

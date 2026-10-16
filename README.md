@@ -87,6 +87,8 @@ Iisa ang global scope ng mga JS file at mahalaga ang pagkakasunod sa `index.html
 | Gusto mong baguhin | Saan |
 |---|---|
 | Laki ng character | `config.js`: `const CHAR_H = 32` (32 = isang tile); hitbox sa `player.js` (`w`, `h`) |
+| Lapit ng camera | Sa laro: *Menu → Settings → Camera* (Far hanggang Near). Sa code: `render.js` → `resize()` (pinakamalayong kita: `9 * TS` sa phone, `15 * TS` sa computer) at `ZOOM_MAX` sa `menu.js` |
+| Kulay ng balat | Pinipili sa *Menu → Profile*; ang unang kulay sa `SKINS` (`config.js`) ang default ng bagong player |
 | Bilis ng lakad | `physics.js`: `const target = dir * 160` |
 | Taas ng talon | `physics.js`: `P.vy = -545` |
 | Gravity | `physics.js`: `P.vy + 1550 * dt` |
@@ -211,11 +213,11 @@ Ang code ay nasa `www/js/net.js` (lahat ng online), `www/js/auth.js` (login scre
 ### Paglalaro kasama ang iba
 
 - **Wrench sa ibang player** (i-click sila o ang wrench sa tabi ng pangalan nila):
-  - **Trade**: magpapadala ng request; kapag tinanggap, bubukas ang trade window. Maglagay ng items (pindutin ang item para tanggalin), tapos parehong pindutin ang **Accept**. Kapag may nagbago sa offer, babalik sa hindi pa accepted.
+  - **Trade**: magpapadala ng request; kapag tinanggap, bubukas ang trade window. Maglagay ng items (pindutin ang item para tanggalin), tapos parehong pindutin ang **Accept**. Kapag may nagbago sa offer, babalik sa hindi pa accepted. Pagkatapos, lilipad ang mga item papunta sa bagong may-ari.
   - **Add Friend**: kapag tinanggap, makikita sila sa *Menu → Friends*, kung online sila at saang world (may **Go** para sumunod).
   - **Message**: pribadong mensahe; lalabas ito bilang speech bubble sa ulo mo sa screen nila.
   - **Email**: naka-save sa Supabase, kaya matatanggap kahit offline sila. Nasa *Menu → Email*, at may pulang numero sa menu button kapag may bago.
-  - **Gift**: pumili ng item (o gold) at ilan. Babalik sa bag mo kapag puno ang bag nila o hindi dumating.
+  - **Gift**: pumili ng item (o gold) at ilan. Lilipad ang item (may pangalan at dami) papunta sa tumanggap, at makikita rin ito ng iba sa world. Babalik sa bag mo kapag puno ang bag nila o hindi dumating.
   - **Allow building here**: kapag ikaw ang owner ng world, mabilis na pagbigay o pagtanggal ng access.
 - **Suntok sa player**: kapag kamay ang hawak mo at sinuntok mo ang ibang player, mapapaatras sila at uurong ka rin nang kaunti.
 - **Paglalagay ng block**: lalabas agad ang braso sa block at manginginig nang kaunti ang kamay, saka mawawala pagkalipas ng 1.5 segundo (o kapag naglakad ka). Oras nito: `PLACE_POSE` sa `config.js`; lakas ng atras: `KNOCKBACK`.

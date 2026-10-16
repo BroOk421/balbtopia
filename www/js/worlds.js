@@ -204,7 +204,7 @@ function onDoor() {
   return (
     P.x < door.x * TS + TS - 4 &&
     P.x + P.w > door.x * TS + 4 &&
-    P.y + P.h > (door.y - 1) * TS &&
+    P.y + P.h > door.y * TS &&
     P.y < (door.y + 1) * TS
   );
 }

@@ -269,20 +269,6 @@ $('inv').addEventListener('click', (e) => {
 
 // start screen
 function buildStart() {
-  const L = $('looks');
-  for (const s of SKINS) {
-    const b = document.createElement('button');
-    b.className = 'look';
-    b.id = 'look_' + s;
-    b.setAttribute('aria-pressed', String(s === skin));
-    b.innerHTML = `<img src="${A['skin_' + s + '_open']}" alt=""><span>${s}</span>`;
-    b.setAttribute('aria-label', s + ' skin');
-    b.onclick = () => {
-      skin = s;
-      L.querySelectorAll('.look').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    };
-    L.appendChild(b);
-  }
   $('play').onclick = async () => {
     if (!account || $('play').disabled) return;
     $('play').disabled = true;

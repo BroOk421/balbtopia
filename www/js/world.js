@@ -66,7 +66,7 @@ function genWorld(name = START_WORLD) {
   door.y = SURF - 1;
   fg[at(door.x, SURF)] = BEDROCK;
 }
-const isDoorTile = (x, y) => x === door.x && (y === door.y || y === door.y - 1);
+const isDoorTile = (x, y) => x === door.x && y === door.y; // the main door is one tile
 const solidAt = (x, y) => {
   if (x < 0 || x >= WW) return true;
   if (y < 0) return false;

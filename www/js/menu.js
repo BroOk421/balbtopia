@@ -4,7 +4,7 @@
 let xp = 0, // XP inside the current level
   level = 1,
   playDays = []; // dates played, like '2026-10-15'
-const settings = { vibrate: true, coords: true };
+const settings = { vibrate: true, coords: true, zoom: 0 }; // zoom: camera steps closer than the farthest view
 
 const xpNeed = (lv) => 40 + lv * 20; // XP needed to go from level lv to lv+1
 // XP for playing: breaking blocks, planting, splicing and harvesting
@@ -30,7 +30,9 @@ function markPlayDay() {
 }
 function applySettings() {
   $('coords').hidden = !settings.coords;
+  resize(); // camera zoom
 }
+const ZOOM_MAX = 3;
 
 // ---------- window ----------
 let menuTab = 'profile';
@@ -136,8 +138,11 @@ function settingsTab(el) {
         <button data-v="step" role="radio">Steps</button><button data-v="stride" role="radio">Strides</button>
       </div>
     </div>
+    <div class="set">
+      <span>Camera</span>
+      <span class="zoom"><small>Far</small><input type="range" id="sZoom" min="0" max="${ZOOM_MAX}" step="1" aria-label="Camera distance" /><small>Near</small></span>
+    </div>
     <label class="set"><span>Vibration ${Native.isApp ? '' : '<small>(phone app)</small>'}</span><input type="checkbox" id="sVib" /></label>
-    <label class="set"><span>Show coordinates</span><input type="checkbox" id="sCoords" /></label>
     <div class="set"><span>Account <span class="acct">${playerName}</span></span>
       <span class="nrow"><button type="button" id="sLogout">Log out</button></span>
     </div>`;
@@ -150,16 +155,16 @@ function settingsTab(el) {
     };
   });
   const vib = el.querySelector('#sVib'),
-    co = el.querySelector('#sCoords');
+    zm = el.querySelector('#sZoom');
+  zm.value = settings.zoom || 0;
+  zm.oninput = () => {
+    settings.zoom = Math.max(0, Math.min(ZOOM_MAX, Number(zm.value) || 0));
+    resize();
+  };
+  zm.onchange = () => savePlayer();
   vib.checked = settings.vibrate;
-  co.checked = settings.coords;
   vib.onchange = () => {
     settings.vibrate = vib.checked;
-    savePlayer();
-  };
-  co.onchange = () => {
-    settings.coords = co.checked;
-    applySettings();
     savePlayer();
   };
   el.querySelector('#sLogout').onclick = logout;

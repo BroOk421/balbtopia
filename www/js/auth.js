@@ -174,10 +174,6 @@ function showPlayBox() {
   $('authBox').hidden = true;
   $('playBox').hidden = false;
   $('who').textContent = playerName;
-  // reflect the loaded skin on the skin picker
-  document
-    .querySelectorAll('#looks .look')
-    .forEach((x) => x.setAttribute('aria-pressed', String(x.id === 'look_' + skin)));
 }
 function initAuth() {
   document.querySelectorAll('.atabs button').forEach((b) => (b.onclick = () => setAuthMode(b.dataset.mode)));

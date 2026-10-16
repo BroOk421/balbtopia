@@ -230,6 +230,7 @@ const Net = (() => {
         }
       })
       .on('broadcast', { event: 'tiles' }, ({ payload }) => applyTiles(payload))
+      .on('broadcast', { event: 'fly' }, ({ payload }) => N.onFly && N.onFly(payload))
       .on('broadcast', { event: 'sync_req' }, ({ payload }) => onSyncReq(payload))
       .on('broadcast', { event: 'sync' }, ({ payload }) => onSync(payload))
       .on('presence', { event: 'leave' }, ({ key }) => {
@@ -311,6 +312,8 @@ const Net = (() => {
   N.sendPunch = (x, y, kind) => {
     if (N.me) send('punch', { id: N.me.id, x: Math.round(x), y: Math.round(y), k: kind || undefined });
   };
+  // a gift or trade happened here: everyone else in the world sees the items fly
+  N.sendFly = (from, to, items) => send('fly', { from, to, items });
   // you punched another player: they get knocked back on their screen
   N.hit = (r, dir) => {
     if (!N.me) return;

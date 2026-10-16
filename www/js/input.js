@@ -100,4 +100,11 @@ function hold(id, code, jump) {
 hold('pl', 'ArrowLeft');
 hold('pr', 'ArrowRight');
 hold('pj', 'Space', true);
-addEventListener('touchstart', () => document.body.classList.add('touch'), { once: true, passive: true });
+addEventListener(
+  'touchstart',
+  () => {
+    document.body.classList.add('touch');
+    resize(); // closer camera on phones
+  },
+  { once: true, passive: true },
+);

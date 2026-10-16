@@ -65,6 +65,66 @@ const needOnline = () => {
   return false;
 };
 
+// ---------- flying items (gifts and trades) ----------
+// the item's icon and "3 Dirt" fly in an arc from the giver to whoever gets it, following them if they move
+const flyers = []; // { id, qty, from: () => {x,y}, to: () => {x,y}, t0, dur }
+const posOf = (who) => () =>
+  who === 'me'
+    ? { x: P.x + P.w / 2, y: P.y + P.h * 0.35 }
+    : (() => {
+        const r = Net.remotes.get(who);
+        return r ? { x: r.x + r.w / 2, y: r.y + r.h * 0.35 } : null;
+      })();
+// from / to: 'me' or another player's id; items: [{ id, qty }]
+function flyItems(from, to, items, broadcast) {
+  const a = posOf(from),
+    b = posOf(to);
+  if (!a() || !b()) return; // they aren't in this world
+  items.forEach((x, k) => flyers.push({ id: x.id, qty: x.qty, from: a, to: b, t0: now + k * 160, dur: 900 }));
+  // let everyone else in the world see it too
+  if (broadcast && Net.me) Net.sendFly(from === 'me' ? Net.me.id : from, to === 'me' ? Net.me.id : to, items);
+}
+// someone else's gift or trade (we're only watching)
+Net.onFly = (p) => {
+  const me = Net.me && Net.me.id;
+  if (!p || p.from === me || p.to === me) return;
+  flyItems(p.from, p.to, cleanOffer(p.items), false);
+};
+function drawFlyers(ox, oy) {
+  for (let k = flyers.length - 1; k >= 0; k--) {
+    const f = flyers[k],
+      u = (now - f.t0) / f.dur;
+    if (u < 0) continue;
+    const a = f.from(),
+      b = f.to();
+    if (!a || !b || u >= 1) {
+      if (b && u >= 1)
+        for (let n = 0; n < 8; n++)
+          parts.push({ x: b.x, y: b.y, vx: (Math.random() - 0.5) * 140, vy: -60 - Math.random() * 120, life: 0.4, c: n % 2 ? '#fff6c8' : '#ffd23f', s: 2 });
+      flyers.splice(k, 1);
+      continue;
+    }
+    const e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, // ease in-out
+      lift = Math.sin(Math.PI * u) * (28 + Math.hypot(b.x - a.x, b.y - a.y) * 0.25),
+      x = a.x + (b.x - a.x) * e,
+      y = a.y + (b.y - a.y) * e - lift,
+      s = 13 * (1 + Math.sin(Math.PI * u) * 0.25);
+    g.save();
+    g.globalAlpha = u > 0.85 ? (1 - u) / 0.15 : 1;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(iconCanvas(f.id), ox + (x - s / 2) * Z, oy + (y - s / 2) * Z, s * Z, s * Z);
+    g.font = `${5 * Z}px "Press Start 2P", monospace`;
+    g.textAlign = 'center';
+    g.lineWidth = 2 * Z;
+    g.strokeStyle = 'rgba(20,10,30,.9)';
+    const label = f.qty + ' ' + itemName(f.id);
+    g.strokeText(label, ox + x * Z, oy + (y - s / 2 - 3) * Z);
+    g.fillStyle = '#ffd23f';
+    g.fillText(label, ox + x * Z, oy + (y - s / 2 - 3) * Z);
+    g.restore();
+  }
+}
+
 // ---------- bag helpers ----------
 const have = (id) => (id === 'gold' ? P.gold : inv.filter((s) => s.id === id).reduce((n, s) => n + s.qty, 0));
 const itemName = (id) => (id === 'gold' ? 'Gold' : ITEMS[id] ? ITEMS[id].name : id);
@@ -295,6 +355,7 @@ function sendGift(o, id, qty) {
   pendingGifts.set(gid, {
     id,
     qty,
+    to: o.id,
     name: o.name,
     t: setTimeout(() => giftBack(gid, "The gift didn't arrive, it's back in your bag"), 10000),
   });
@@ -318,6 +379,7 @@ Net.onLobby('gift', (p) => {
   if (!giveN(id, qty)) return Net.lsend('gift_no', p.from, { gid: p.gid, full: 1 });
   savePlayer();
   Net.lsend('gift_ok', p.from, { gid: p.gid });
+  flyItems(p.from, 'me', [{ id, qty }], false);
   toast(name + ' sent you ' + qty + ' ' + itemName(id) + '!');
   Native.haptic('medium');
 });
@@ -327,6 +389,7 @@ Net.onLobby('gift_ok', (p) => {
   clearTimeout(g.t);
   pendingGifts.delete(p.gid);
   savePlayer();
+  flyItems('me', g.to, [{ id: g.id, qty: g.qty }], true);
   toast(g.name + ' got your gift');
 });
 Net.onLobby('gift_no', (p) => giftBack(p.gid, p.full ? "Their bag is full. The gift is back in your bag" : "Gift refused, it's back in your bag"));
@@ -454,6 +517,8 @@ function tryFinishTrade() {
   for (const x of T.mine) takeN(x.id, x.qty);
   for (const x of T.theirs) giveN(x.id, x.qty);
   savePlayer();
+  flyItems('me', T.with, T.mine, true); // each side tells the world about its own items
+  flyItems(T.with, 'me', T.theirs, false);
   Native.haptic('medium');
   endTrade('Trade done with ' + T.name + '!');
 }

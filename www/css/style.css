@@ -1590,3 +1590,24 @@ button:focus-visible {
 .toast {
   z-index: 9;
 }
+
+/* the world name, its lock and the X / Y coordinates are not shown on screen */
+.wname,
+.coords {
+  display: none !important;
+}
+
+/* Settings → Camera slider */
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.zoom small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.zoom input {
+  width: 120px;
+  accent-color: var(--glow);
+}

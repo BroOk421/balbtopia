@@ -21,11 +21,7 @@ const P = {
   hitT: 0, // seconds left of the 'got hit' blink
   say: null, // {text, t} speech bubble
 };
-let skin = 'tan';
-try {
-  const s = localStorage.getItem('balbtopia.skin');
-  if (SKINS.includes(s)) skin = s;
-} catch (e) {}
+let skin = SKINS[0]; // new players start with the first colour; change it in Menu → Profile
 const equipped = { feet: null, hair: null };
 const SLOTNAME = { hair: 'hair', feet: 'feet' };
 // a new account starts with the wrench and one World Lock (the fist is always in hotbar slot 1)
