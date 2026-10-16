@@ -3,8 +3,8 @@
 const P = {
   x: 12 * TS,
   y: (SURF - 2) * TS,
-  w: 18,
-  h: 50,
+  w: 11,
+  h: 29,
   vx: 0,
   vy: 0,
   face: 1,
@@ -16,6 +16,10 @@ const P = {
   walkPh: 0,
   gold: 0,
   punch: null, // {t, x, y} while the fist is flying out
+  place: null, // {t, x, y} arm held out after placing a block
+  kbT: 0, // knockback: seconds left without control
+  hitT: 0, // seconds left of the 'got hit' blink
+  say: null, // {text, t} speech bubble
 };
 let skin = 'tan';
 try {
@@ -24,9 +28,9 @@ try {
 } catch (e) {}
 const equipped = { feet: null, hair: null };
 const SLOTNAME = { hair: 'hair', feet: 'feet' };
+// a new account starts with the wrench and one World Lock (the fist is always in hotbar slot 1)
 const inv = [
   { id: 'wrench', qty: 1 },
-  { id: 'hair_spiky_black', qty: 1 },
   { id: 'world_lock', qty: 1 },
 ];
 let hand = 'fist';

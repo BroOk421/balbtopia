@@ -130,32 +130,85 @@ function fistSprite(name) {
   );
   return (FISTS[name] = c);
 }
-function drawPunch(cx, top, sc, ox, oy) {
-  const pu = P.punch,
-    e = punchReach(pu.t);
+// one character (you or another player): body, walk cycle, punch arm, clothing and name tag
+function drawCharacter(c, ox, oy) {
+  const style = c.style === 'stride' ? 'stride' : 'step';
+  const fr = c.ground ? (c.walking ? 'open' : frameAt(now + (c.blink || 0))) : 'open';
+  const wkey = style === 'step' ? 'walkstep_' : 'walk_';
+  const canWalk = !!IMG[wkey + c.skin + '_0'],
+    wf = Math.floor(c.walkPh) % 12;
+  const walking = c.walking && canWalk;
+  const punching = !!(c.punch || c.place);
+  const im = punching
+      ? IMG['punch_' + c.skin]
+      : walking
+        ? IMG[wkey + c.skin + '_' + wf]
+        : IMG['skin_' + c.skin + '_' + fr],
+    sc = CHAR_H / FR.h;
+  const bodyDy = walking && !punching ? WALK_BOB[style][wf] / 2 : 0; // in sprite px (scaled by sc)
+  // skins without walk frames yet fall back to a small bounce
+  const bob = c.walking && !canWalk ? -Math.abs(Math.sin(now / 70)) * 2.2 : 0;
+  const cx = Math.round(ox + (c.x + c.w / 2) * Z),
+    top = Math.round(oy + (c.y + c.h - CHAR_H + FOOT_SINK + bob * CHAR_S) * Z);
+  // the stretched arm is drawn first so the body overlaps it
+  if (punching) drawPunch(c, cx, top, sc, ox, oy);
+  g.save();
+  g.translate(cx, 0);
+  g.scale(c.face, 1);
+  if (c.hurt > 0 && Math.floor(now / 80) % 2) g.globalAlpha = 0.55;
+  g.imageSmoothingEnabled = true;
+  g.drawImage(im, (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
+  const eq = c.equipped || {};
+  for (const slot of ['feet', 'hair']) {
+    const id = eq[slot];
+    if (!id || !ITEMS[id]) continue;
+    const it = ITEMS[id],
+      h = IMG[it.sprite];
+    g.drawImage(
+      h,
+      (-FR.w / 2 + it.off.x) * sc * Z,
+      top + (it.off.y + (it.slot === 'hair' ? bodyDy : 0)) * sc * Z,
+      h.width * sc * Z,
+      h.height * sc * Z,
+    );
+  }
+  g.restore();
+  g.imageSmoothingEnabled = false;
+  // name tag just above the head (or above the hair when wearing some)
+  const headTop = top + Math.min(4, eq.hair && ITEMS[eq.hair] ? ITEMS[eq.hair].off.y + 16 : 4) * sc * Z;
+  const tagW = drawNameTag(c.name, cx, headTop - 5 * Z);
+  if (c.say) drawBubble(c.say.text, cx, headTop - 15 * Z, Math.min(1, c.say.t * 2));
+  return { cx, headTop, tagW };
+}
+// the arm: a punch flies out and back; after placing a block (c.place) it is simply out,
+// with the hand giving a quick shake at the start, like in Growtopia
+function drawPunch(c, cx, top, sc, ox, oy) {
+  const pu = c.punch || c.place,
+    e = c.punch ? punchReach(pu.t) : 1;
   // shoulder of the arm on the side the player faces
-  const shX = cx + P.face * (90 - FR.w / 2) * sc * Z,
+  const shX = cx + c.face * (90 - FR.w / 2) * sc * Z,
     shY = top + 122 * sc * Z;
-  const tx = ox + pu.x * Z,
-    ty = oy + pu.y * Z;
+  const wob = c.punch ? 0 : Math.sin(pu.t * 60) * 2.4 * CHAR_S * Z * (pu.t < 0.35 ? 1 : 0.35 * (1 - pu.t / PLACE_POSE));
+  const tx = ox + pu.x * Z + wob * 0.4,
+    ty = oy + pu.y * Z + wob;
   const fx = shX + (tx - shX) * e,
     fy = shY + (ty - shY) * e;
-  const col = ARM_COLOR[skin];
+  const col = ARM_COLOR[c.skin];
   const L = Math.max(1, Math.hypot(fx - shX, fy - shY)),
     dx = (fx - shX) / L,
     dy = (fy - shY) / L;
   // normal that points up on screen: the bicep bulges on this side
   let nx = -dy,
     ny = dx;
-  if (ny > 0 || (ny === 0 && nx * P.face < 0)) {
+  if (ny > 0 || (ny === 0 && nx * c.face < 0)) {
     nx = -nx;
     ny = -ny;
   }
   // thick arm with a dark outline and a soft shade along the underside
-  const w = 6.2 * Z;
+  const w = 6.2 * CHAR_S * Z;
   g.lineCap = 'round';
   g.strokeStyle = '#120c0c';
-  g.lineWidth = w * 2 + 3 * Z;
+  g.lineWidth = w * 2 + 3 * CHAR_S * Z;
   g.beginPath();
   g.moveTo(shX, shY);
   g.lineTo(fx, fy);
@@ -176,12 +229,12 @@ function drawPunch(cx, top, sc, ox, oy) {
   g.lineTo(fx + nx * w * 0.5, fy + ny * w * 0.5);
   g.stroke();
   // closed fist at the end, growing as it reaches out, knuckles leading
-  const f = fistSprite(skin),
-    size = (2.1 + 1.2 * e) * Z;
+  const f = fistSprite(c.skin),
+    size = (2.1 + 1.2 * e) * CHAR_S * Z;
   g.save();
   g.translate(fx, fy);
   g.rotate(Math.atan2(dy, dx));
-  g.scale(1, (Math.abs(dx) > 0.05 ? dx < 0 : P.face < 0) ? -1 : 1); // keep the thumb on top
+  g.scale(1, (Math.abs(dx) > 0.05 ? dx < 0 : c.face < 0) ? -1 : 1); // keep the thumb on top
   g.imageSmoothingEnabled = false;
   g.drawImage(f, -f.width * size * 0.55, (-f.height * size) / 2, f.width * size, f.height * size);
   g.restore();
@@ -277,6 +330,18 @@ function render() {
   // main door (2 tiles tall), drawn in front of the wall and behind the player
   g.drawImage(doorSprite(), ox + door.x * T, oy + (door.y - 1) * T, T, T * 2);
   drawTrees(ox, oy, T);
+  // holding the wrench: a wrench shows inside every World Lock; click it for the lock's settings
+  if (hand === 'wrench')
+    for (let i = 0; i < fg.length; i++) {
+      if (fg[i] !== LOCK) continue;
+      const px = ox + (i % WW) * T,
+        py = oy + ((i / WW) | 0) * T;
+      if (px < -T || py < -T || px > cv.width || py > cv.height) continue;
+      const s = T * (0.56 + Math.sin(now / 260) * 0.04);
+      g.fillStyle = 'rgba(20,10,30,.45)';
+      g.fillRect(px + T * 0.18, py + T * 0.18, T * 0.64, T * 0.64);
+      g.drawImage(wrenchSprite(), px + (T - s) / 2, py + (T - s) / 2, s, s);
+    }
   // floating drops: bob up and down; picked up by walking into them
   for (const d of drops) {
     const bob = Math.sin(now / 380 + d.ph) * 2.5,
@@ -301,63 +366,47 @@ function render() {
       g.fillText(d.qty, x + (s / 2) * Z, y + (s / 2) * Z);
     }
   }
-  // player
-  const fr = P.ground ? (P.walkT > 0 ? 'open' : frameAt(now)) : 'open';
-  const wkey = walkStyle === 'step' ? 'walkstep_' : 'walk_';
-  const canWalk = !!IMG[wkey + skin + '_0'],
-    wf = Math.floor(P.walkPh) % 12;
-  const walking = P.walkT > 0 && canWalk;
-  const punching = !!P.punch;
-  const im = punching
-      ? IMG['punch_' + skin]
-      : walking
-        ? IMG[wkey + skin + '_' + wf]
-        : IMG['skin_' + skin + '_' + fr],
-    sc = 56 / FR.h;
-  const bodyDy = walking && !punching ? WALK_BOB[walkStyle][wf] / 2 : 0;
-  // skins without walk frames yet fall back to a small bounce
-  const bob = P.walkT > 0 && !canWalk ? -Math.abs(Math.sin(P.walkT * 14)) * 2.2 : 0;
-  const cx = Math.round(ox + (P.x + P.w / 2) * Z),
-    top = Math.round(oy + (P.y + P.h - 56 + FOOT_SINK + bob) * Z);
-  // the stretched arm is drawn first so the body overlaps it
-  if (punching) drawPunch(cx, top, sc, ox, oy);
-  g.save();
-  g.translate(cx, 0);
-  g.scale(P.face, 1);
-  if (P.hurt > 0 && Math.floor(now / 80) % 2) g.globalAlpha = 0.55;
-  g.imageSmoothingEnabled = true;
-  g.drawImage(im, (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
-  for (const slot of ['feet', 'hair']) {
-    const id = equipped[slot];
-    if (!id) continue;
-    const it = ITEMS[id],
-      h = IMG[it.sprite];
-    g.drawImage(
-      h,
-      (-FR.w / 2 + it.off.x) * sc * Z,
-      top + (it.off.y + (it.slot === 'hair' ? bodyDy : 0)) * sc * Z,
-      h.width * sc * Z,
-      h.height * sc * Z,
-    );
-  }
-  g.restore();
-  g.imageSmoothingEnabled = false;
-  // name tag just above the head (or above the hair when wearing some)
-  const headTop = top + Math.min(4, equipped.hair ? ITEMS[equipped.hair].off.y + 16 : 4) * sc * Z;
-  const tagW = drawNameTag(playerName, cx, headTop - 5 * Z);
-  // holding the wrench: a small wrench appears next to the name; click it (or the player) for the player menu
-  if (hand === 'wrench') {
-    const ws = 9 * Z,
-      wx = cx + tagW / 2 + 2 * Z,
-      wy = headTop - 5 * Z - ws + Z;
-    g.drawImage(wrenchSprite(), wx, wy, ws, ws);
-    wrenchHit = { x: (wx - ox) / Z, y: (wy - oy) / Z, s: ws / Z };
-  } else wrenchHit = null;
+  // other players in this world (online), then you on top
+  // holding the wrench: a small wrench shows next to each other player's name; click it (or them) for their menu
+  if (typeof Net !== 'undefined')
+    for (const r of Net.remotes.values()) {
+      const m = drawCharacter(r, ox, oy);
+      if (hand === 'wrench') {
+        const ws = 9 * Z,
+          wx = m.cx + m.tagW / 2 + 2 * Z,
+          wy = m.headTop - 5 * Z - ws + Z;
+        g.drawImage(wrenchSprite(), wx, wy, ws, ws);
+        r.wrenchHit = { x: (wx - ox) / Z, y: (wy - oy) / Z, s: ws / Z };
+      } else r.wrenchHit = null;
+    }
+  const me = drawCharacter(
+    {
+      x: P.x,
+      y: P.y,
+      w: P.w,
+      h: P.h,
+      face: P.face,
+      skin,
+      style: walkStyle,
+      walking: P.walkT > 0,
+      walkPh: P.walkPh,
+      ground: P.ground,
+      punch: P.punch,
+      hurt: Math.max(P.hurt, P.hitT > 0 ? 0.3 : 0),
+      equipped,
+      name: playerName,
+      place: P.place,
+      say: P.say,
+    },
+    ox,
+    oy,
+  );
   if (P.hurt > 0) {
     g.fillStyle = `rgba(255,60,30,${P.hurt * 0.25})`;
     g.fillRect(0, 0, cv.width, cv.height);
   }
   drawSmoke(ox, oy);
+  drawPlaces(ox, oy, T);
   // particles & floating text
   for (const p of parts) {
     g.fillStyle = p.c;
@@ -645,7 +694,49 @@ function drawEdges(m, px, py, T, [k, hi, lo], c = g, u = Z) {
   c.fillStyle = lo;
   if (m & 4) c.fillRect(px, py + T - 4 * u, T, 2 * u);
 }
-let wrenchHit = null; // where the wrench next to the name is, in world pixels
+// a freshly placed block: a white flash over the tile and a square that pops outwards
+function drawPlaces(ox, oy, T) {
+  for (let k = places.length - 1; k >= 0; k--) {
+    const p = places[k],
+      u = (now - p.t0) / 260;
+    if (u >= 1) {
+      places.splice(k, 1);
+      continue;
+    }
+    const px = ox + p.x * T,
+      py = oy + p.y * T,
+      grow = T * 0.35 * u;
+    g.fillStyle = `rgba(255,255,255,${0.45 * (1 - u)})`;
+    g.fillRect(px, py, T, T);
+    g.lineWidth = Z * (2 - u);
+    g.strokeStyle = `rgba(255,240,200,${1 - u})`;
+    g.strokeRect(px - grow / 2, py - grow / 2, T + grow, T + grow);
+  }
+}
+// speech bubble above a player's name (messages)
+function drawBubble(text, x, y, a) {
+  g.font = `${6 * Z}px "Press Start 2P", monospace`;
+  const t = text.length > 34 ? text.slice(0, 33) + '…' : text,
+    w = g.measureText(t).width + 8 * Z,
+    h = 12 * Z;
+  g.globalAlpha = a;
+  g.fillStyle = '#fffaf0';
+  g.strokeStyle = '#1c1033';
+  g.lineWidth = Z;
+  g.beginPath();
+  g.roundRect(x - w / 2, y - h, w, h, 3 * Z);
+  g.moveTo(x - 3 * Z, y);
+  g.lineTo(x, y + 3 * Z);
+  g.lineTo(x + 3 * Z, y);
+  g.fill();
+  g.stroke();
+  g.fillStyle = '#1c1033';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(t, x, y - h / 2 + Z * 0.5);
+  g.textBaseline = 'alphabetic';
+  g.globalAlpha = 1;
+}
 function drawNameTag(name, x, y) {
   g.font = `${6 * Z}px "Press Start 2P", monospace`;
   const w = g.measureText(name).width;

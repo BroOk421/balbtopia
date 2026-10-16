@@ -11,3 +11,7 @@ android/capacitor-cordova-android-plugins/build/
 *.apk
 *.aab
 *.keystore
+
+# Supabase settings: kept out of git (see .env.example)
+.env
+www/js/online-config.js

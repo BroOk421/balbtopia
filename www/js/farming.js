@@ -15,6 +15,7 @@ function plant(x, y, seedItem) {
   const from = ITEMS[seedItem].from;
   trees.set(at(x, y), { seed: from, planted: Date.now(), fruit: randFruit(), spliced: false });
   takeItem(seedItem);
+  startPlace(x * TS + 16, y * TS + 24);
   smoke(x, y, 4, 0.6);
   addXP(1);
 }

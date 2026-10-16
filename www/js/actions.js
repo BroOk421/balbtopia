@@ -17,21 +17,64 @@ function startPunch(wx, wy) {
   const cx = P.x + P.w / 2;
   if (Math.abs(wx - cx) > 2) P.face = wx > cx ? 1 : -1;
   P.punch = { t: 0, x: wx, y: wy };
+  Net.sendPunch(wx, wy);
+}
+// placing (Growtopia style): the arm is out at once, the hand gives a little shake,
+// and the pose stays for PLACE_POSE seconds (or until you walk)
+function startPlace(wx, wy) {
+  const cx = P.x + P.w / 2;
+  if (Math.abs(wx - cx) > 2) P.face = wx > cx ? 1 : -1;
+  P.punch = null;
+  P.place = { t: 0, x: wx, y: wy, sx: P.x, sy: P.y };
+  Net.sendPunch(wx, wy, 'place');
+}
+// punching another player: they get knocked back
+function punchPlayer(r) {
+  const tx = r.x + r.w / 2,
+    ty = r.y + r.h * 0.45,
+    dir = Math.sign(tx - (P.x + P.w / 2)) || P.face;
+  startPunch(tx, ty);
+  Net.hit(r, dir); // only they move; you stay put
+  shake = Math.max(shake, 1.5);
+  Native.haptic('light');
+  for (let k = 0; k < 6; k++)
+    parts.push({ x: tx - dir * 4, y: ty, vx: -dir * (40 + Math.random() * 90), vy: -40 - Math.random() * 120, life: 0.35, c: k % 2 ? '#fff6c8' : '#ffd23f', s: 2 });
+}
+// another player punched you: fly back a bit (away from them) with a small hop
+function gotHit(p) {
+  const d = p.d || (Math.random() < 0.5 ? -1 : 1);
+  P.vx = d * KNOCKBACK;
+  if (P.ground) P.vy = -180;
+  P.kbT = 0.28;
+  P.hitT = 0.35;
+  P.face = -d; // look back at whoever hit you
+  P.place = null;
+  shake = Math.max(shake, 3);
+  Native.haptic('medium');
 }
 function overlapsPlayer(tx, ty) {
   return P.x < tx * TS + TS && P.x + P.w > tx * TS && P.y < ty * TS + TS && P.y + P.h > ty * TS;
 }
 function act() {
-  // wrench: click the player or the wrench next to their name to open the player menu
+  // wrench: click another player (or the wrench next to their name) to open their player menu
   if (hand === 'wrench') {
-    const onPlayer = ptr.x > P.x - 4 && ptr.x < P.x + P.w + 4 && ptr.y > P.y - 14 && ptr.y < P.y + P.h + 4;
-    const w = wrenchHit,
-      onWrench = w && ptr.x > w.x - 2 && ptr.x < w.x + w.s + 2 && ptr.y > w.y - 2 && ptr.y < w.y + w.s + 2;
-    if (onPlayer || onWrench) openPlayerMenu();
+    const t = tileUnder();
+    if (inW(t.x, t.y) && fg[at(t.x, t.y)] === LOCK) return openLockWin();
+    const other = Net.playerAt(ptr.x, ptr.y);
+    if (other) return openPlayerMenu(other);
+    const onSelf = ptr.x > P.x - 4 && ptr.x < P.x + P.w + 4 && ptr.y > P.y - 14 && ptr.y < P.y + P.h + 4;
+    if (onSelf)
+      toast(Net.online ? 'Use the wrench on another player' : 'The wrench works on other players (online)');
     return;
   }
   const { x, y } = tileUnder();
   if (!inW(x, y) || !inReach(x, y)) return;
+  const held = ITEMS[hand];
+  // fists (or anything that isn't placed) on another player: punch them
+  if (hand === 'fist' || !held || held.kind === 'clothing') {
+    const r = Net.bodyAt(ptr.x, ptr.y);
+    if (r) return punchPlayer(r);
+  }
   // clicking the main door opens the world list, but only while standing in it
   if (isDoorTile(x, y)) {
     if (onDoor()) openWorlds();
@@ -42,20 +85,28 @@ function act() {
     it = ITEMS[hand];
   // trees: a seed in hand splices, anything else punches (harvest when ripe)
   if (trees.has(i)) {
-    if (it && it.kind === 'seed') splice(x, y, hand);
-    else {
+    if (it && it.kind === 'seed') {
+      if (canEdit()) splice(x, y, hand);
+    } else {
       startPunch(ptr.x, ptr.y);
-      punchTree(x, y);
+      if (canEdit()) punchTree(x, y);
     }
     return;
   }
   // seeds are planted on top of a block
   if (it && it.kind === 'seed' && canPlant(x, y)) {
-    plant(x, y, hand);
+    if (canEdit()) plant(x, y, hand);
     return;
   }
   if (hand === 'fist' || !it || it.kind === 'clothing' || it.kind === 'seed') {
     startPunch(ptr.x, ptr.y);
+    // the World Lock: only the owner may break it, even players with access can't
+    if (fg[i] === LOCK && !isOwner()) {
+      toast('Only ' + worldOwner + ' can break this World Lock');
+      shake = Math.max(shake, 2.5);
+      return;
+    }
+    if ((fg[i] || bg[i]) && !canEdit()) return;
     if (fg[i]) {
       const b = BLOCK[fg[i]];
       if (b.hits === Infinity) {
@@ -80,6 +131,8 @@ function act() {
         if (Math.random() < (BLOCK_DROP_CHANCE[id] ?? 1)) spawnDrop(id, x * TS + 16, y * TS + 16);
         if (id === 'world_lock') {
           worldOwner = null;
+          setLockCfg(null);
+          $('lockwin').hidden = true;
           updateWorldLabel();
           toast(worldName + ' is unlocked');
           saveWorld();
@@ -108,6 +161,7 @@ function act() {
     }
     return;
   }
+  if ((it.kind === 'block' && it.block !== LOCK) || it.kind === 'background') if (!canEdit()) return;
   if (it.kind === 'block') {
     if (fg[i] || trees.has(i) || (BLOCK[it.block].solid !== false && overlapsPlayer(x, y))) return;
     if (isDoorTile(x, y)) {
@@ -120,6 +174,7 @@ function act() {
         return;
       }
       worldOwner = playerName;
+      setLockCfg(null);
       updateWorldLabel();
       toast(worldName + ' is now yours!');
       smoke(x, y, 10, 1.3);
@@ -127,13 +182,27 @@ function act() {
     fg[i] = it.block;
     vari[i] = Math.floor(Math.random() * 3);
     takeItem(hand);
-    thunk = 1;
+    placeFx(x, y, it.block, true);
   } else if (it.kind === 'background') {
     if (bg[i] || isDoorTile(x, y)) return;
     bg[i] = 1;
     takeItem(hand);
+    placeFx(x, y, -1, true);
+  }
+}
+// placing a block: the arm pops out to it (see startPlace), with dust, chips and a quick flash
+// (mine = you placed it: also does the pose and buzzes; other players' blocks only get the effects)
+const places = []; // { x, y, t0 } flashes drawn by render.js
+function placeFx(x, y, t, mine) {
+  if (mine) {
+    startPlace(x * TS + 16, y * TS + 16);
+    Native.haptic('light');
+    shake = Math.max(shake, 1.2);
     thunk = 1;
   }
+  smoke(x, y, 5, 0.7);
+  burst(x, y, t, 7);
+  places.push({ x, y, t0: now });
 }
 function burst(x, y, t, n) {
   const col =

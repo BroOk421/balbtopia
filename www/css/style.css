@@ -1111,3 +1111,482 @@ button:focus-visible {
   color: var(--night);
   cursor: pointer;
 }
+
+/* login / register */
+.atabs {
+  display: flex;
+  max-width: 280px;
+  margin: 6px auto 14px;
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.atabs button {
+  flex: 1;
+  font-family: var(--pixel);
+  font-size: 9px;
+  padding: 9px 6px;
+  border: 0;
+  background: var(--slot);
+  color: var(--muted);
+  cursor: pointer;
+}
+.atabs button[aria-selected='true'] {
+  background: var(--glow);
+  color: var(--night);
+}
+.authf .pname {
+  margin-bottom: 10px;
+}
+.authf input[type='password'] {
+  text-transform: none;
+}
+.remember {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.authf .werr {
+  max-width: 280px;
+  margin: 0 auto 8px;
+}
+.anote {
+  font-size: 12px !important;
+  margin: 10px 0 0 !important;
+  opacity: 0.8;
+}
+.alink {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-family: var(--body);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.alink:hover {
+  color: var(--ink);
+}
+.acct {
+  font-family: var(--pixel);
+  font-size: 9px;
+  color: var(--sun);
+}
+
+/* ---------- unread mail badge on the menu button ---------- */
+.burger {
+  position: relative;
+}
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--danger);
+  color: #fff;
+  font: 8px/16px var(--pixel);
+  border: 2px solid var(--night);
+}
+
+/* ---------- shared bits for the new windows ---------- */
+.dlgbtns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.btn:disabled {
+  opacity: 0.5;
+}
+.lfield {
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.lfield input,
+.lfield textarea {
+  font: 14px var(--body);
+  padding: 8px 9px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--ink);
+  resize: vertical;
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.lfield input:focus,
+.lfield textarea:focus {
+  outline: 2px solid var(--sun);
+  outline-offset: 1px;
+}
+.dtext {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* ---------- World Lock window ---------- */
+.lockwin {
+  z-index: 6;
+  width: min(92vw, 380px);
+}
+.lockwin header img {
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+}
+.lockwin small {
+  font-size: 12px;
+  color: var(--sun);
+}
+.ldesc {
+  font-size: 14px;
+  line-height: 1.45;
+  background: var(--slot);
+  border-radius: 4px;
+  padding: 9px 10px;
+  margin: 0 0 10px;
+}
+.ldesc i {
+  color: var(--muted);
+}
+.lstate {
+  font-family: var(--pixel);
+  font-size: 9px;
+  color: var(--danger);
+  margin: 0;
+}
+.lstate.ok {
+  color: #9be36b;
+}
+.lcheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.lcheck input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--glow);
+}
+.dim {
+  opacity: 0.45;
+}
+.lacc {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.lacc li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--pixel);
+  font-size: 8px;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  padding: 5px 7px;
+}
+.lacc li.none {
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--muted);
+}
+.lacc button {
+  background: none;
+  border: 0;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+.ladd input {
+  flex: 1;
+  width: auto;
+}
+.lhere {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  margin-top: 8px;
+}
+.lhere small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.lhere button {
+  font-family: var(--pixel);
+  font-size: 7px;
+  padding: 5px 7px;
+  border-radius: 4px;
+  border: 2px dashed var(--line);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* ---------- dialog (questions, message, email, gift) ---------- */
+.dlg {
+  z-index: 8;
+  width: min(90vw, 360px);
+}
+.dlg h2 {
+  margin-bottom: 10px;
+}
+.pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+  max-height: 34vh;
+  overflow: auto;
+  margin-bottom: 8px;
+}
+.pcell {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px;
+}
+.pcell img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.pcell small {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font: 7px var(--pixel);
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--night);
+}
+.pcell[aria-pressed='true'] {
+  border-color: var(--sun);
+  box-shadow: 0 0 0 2px var(--sun);
+}
+.pname2 {
+  font-size: 13px;
+  color: var(--sun);
+  margin: 0 0 8px;
+}
+
+/* ---------- trade window ---------- */
+.trade {
+  z-index: 6;
+  width: min(94vw, 520px);
+}
+.trade .count {
+  font-size: 12px;
+}
+.tcols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.tside {
+  background: var(--slot);
+  border-radius: 5px;
+  padding: 4px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tside .mlabel em {
+  font-style: normal;
+  color: #9be36b;
+}
+.tslots {
+  display: grid;
+  gap: 5px;
+  min-height: 92px;
+  align-content: start;
+}
+.tcell {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--plum);
+  color: var(--ink);
+  font-size: 12px;
+  text-align: left;
+}
+.tcell[data-k] {
+  cursor: pointer;
+}
+.tcell[data-k]:hover {
+  border-color: var(--danger);
+}
+.tcell img {
+  width: 26px;
+  height: 26px;
+  image-rendering: pixelated;
+}
+.tcell b {
+  font: 9px var(--pixel);
+  color: var(--sun);
+}
+.tnone {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 6px 0;
+}
+.trade .wstay {
+  margin-top: auto;
+}
+@media (max-width: 420px) {
+  .tcols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- friends and email in the menu ---------- */
+.frow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+}
+.fdot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #6d5f80;
+}
+.fdot.on {
+  background: #6bdc4f;
+  box-shadow: 0 0 6px #6bdc4f;
+}
+.fn {
+  font: 9px var(--pixel);
+}
+.fw {
+  font-size: 12px;
+  color: var(--muted);
+}
+.fbtns {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.fbtns button,
+.msgrow button,
+.mbody button {
+  font: 7px var(--pixel);
+  padding: 6px 7px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--glow);
+  color: var(--night);
+  cursor: pointer;
+}
+.fbtns button[data-a='rm'] {
+  background: transparent;
+  color: var(--danger);
+  border-color: transparent;
+}
+.mrow {
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+}
+.mrow.unread {
+  border-color: var(--glow);
+}
+.mhead {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+}
+.mhead b {
+  font: 8px var(--pixel);
+  color: var(--sun);
+}
+.mhead span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mhead small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.mrow.unread .mhead span {
+  font-weight: 500;
+}
+.mbody {
+  padding: 0 10px 10px;
+}
+.mbody p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.msgrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  background: var(--slot);
+  font-size: 13px;
+}
+.msgrow b {
+  font: 8px var(--pixel);
+  color: var(--sun);
+  white-space: nowrap;
+}
+.msgrow span {
+  flex: 1;
+}
+.toast {
+  z-index: 9;
+}

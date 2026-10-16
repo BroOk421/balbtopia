@@ -1,0 +1,26 @@
+{
+  "_help": [
+    "Balbtopia farming: how long each tree takes to grow, and which two seeds splice into a new tree.",
+    "Splicing: plant a seed, then plant a second seed on the young tree (before it is ripe).",
+    "seeds and result use item ids: dirt, cave, rock, lava, grass, dark_cave.",
+    "The order of the two seeds doesn't matter. A result needs a tree of its own (listed in trees).",
+    "Edit this file, then reload the game. Bad lines are skipped and shown in the browser console."
+  ],
+  "trees": {
+    "dirt": { "growSeconds": 30 },
+    "cave": { "growSeconds": 30 },
+    "grass": { "growSeconds": 45 },
+    "rock": { "growSeconds": 60 },
+    "lava": { "growSeconds": 60 },
+    "dark_cave": { "growSeconds": 60 }
+  },
+  "splices": [
+    { "seeds": ["dirt", "dirt"], "result": "grass", "note": "Two soils grow something green" },
+    { "seeds": ["cave", "dirt"], "result": "dark_cave", "note": "Soil packed onto the cave wall" },
+    { "seeds": ["cave", "rock"], "result": "dark_cave", "note": "A quicker way to Dark Cave if you have rock" },
+    { "seeds": ["dirt", "rock"], "result": "cave", "note": "Soil and stone make the cave wall" },
+    { "seeds": ["dirt", "lava"], "result": "rock", "note": "Lava cools into stone on the soil" },
+    { "seeds": ["rock", "rock"], "result": "lava", "note": "Squeeze stone hard enough and it melts" },
+    { "seeds": ["grass", "lava"], "result": "dirt", "note": "Burnt grass turns back into soil" }
+  ]
+}

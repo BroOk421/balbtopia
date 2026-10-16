@@ -6,6 +6,7 @@ function boot() {
   if (--pending === 0) ready();
 }
 function loadAssets() {
+  loadFarming();
   for (const k in A) {
     pending++;
     const im = new Image();
@@ -100,14 +101,14 @@ const ITEMS = {
     name: 'Grass',
     kind: 'block',
     block: GRASS,
-    desc: 'A short tuft of grass to decorate the ground. You can walk through it. Comes from a Grass Tree (Dirt Seed + Dirt Seed).',
+    desc: 'A short tuft of grass to decorate the ground. You can walk through it. Comes from a Grass Tree.',
     rarity: 'Common',
   },
   dark_cave: {
     name: 'Dark Cave',
     kind: 'block',
     block: DARK,
-    desc: 'A solid block of deep, dark cave rock. Comes from a Dark Cave Tree (Dirt Seed + Cave Background Seed).',
+    desc: 'A solid block of deep, dark cave rock. Comes from a Dark Cave Tree.',
     rarity: 'Uncommon',
   },
   grass_seed: {
@@ -128,14 +129,14 @@ const ITEMS = {
     name: 'Dirt Seed',
     kind: 'seed',
     from: 'dirt',
-    desc: 'Plant it on top of a block to grow a Dirt Tree. Plant another Dirt Seed on the young tree for Grass, or a Cave Background Seed for Dark Cave.',
+    desc: 'Plant it on top of a block to grow a Dirt Tree. Plant another seed on the young tree to splice it (see Combines).',
     rarity: 'Common',
   },
   cave_seed: {
     name: 'Cave Background Seed',
     kind: 'seed',
     from: 'cave',
-    desc: 'Plant it on top of a block to grow a Cave Background Tree. Combine it with a Dirt Seed for Dark Cave.',
+    desc: 'Plant it on top of a block to grow a Cave Background Tree. Splice it with another seed (see Combines).',
     rarity: 'Common',
   },
   rock_seed: {
@@ -180,10 +181,54 @@ const SEED_COLOR = {
 const TREE_TIME = { dirt: 30, cave: 30, grass: 45, rock: 60, lava: 60, dark_cave: 60 };
 const TREE_FRUIT = [1, 4]; // blocks a ripe tree gives (min, max)
 // splicing: plant a second seed onto a young tree to combine them
-const SPLICE = { 'dirt+dirt': 'grass', 'cave+dirt': 'dark_cave' };
+// built-in recipes; data/farming.json replaces them when the game is served (npm run serve, the app, GitHub Pages)
+const SPLICE = {
+  'dirt+dirt': 'grass',
+  'cave+dirt': 'dark_cave',
+  'cave+rock': 'dark_cave',
+  'dirt+rock': 'cave',
+  'dirt+lava': 'rock',
+  'rock+rock': 'lava',
+  'grass+lava': 'dirt',
+};
+// read data/farming.json (tree grow times and splice recipes); keeps the built-in ones if it can't
+function loadFarming() {
+  pending++;
+  fetch('data/farming.json', { cache: 'no-cache' })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+    .then((j) => {
+      const hasTree = (id) => TREE_TIME[id] !== undefined && SEED_COLOR[id] && ITEMS[id + '_seed'];
+      for (const [id, t] of Object.entries(j.trees || {})) {
+        const s = Number(t && t.growSeconds);
+        if (hasTree(id) && s > 0) TREE_TIME[id] = s;
+        else console.warn('farming.json: skipped tree "' + id + '"');
+      }
+      if (Array.isArray(j.splices)) {
+        const next = {};
+        for (const r of j.splices) {
+          const ss = Array.isArray(r && r.seeds) ? r.seeds.map(String) : [];
+          if (ss.length !== 2 || !ss.every(hasTree) || !hasTree(r.result)) {
+            console.warn('farming.json: skipped splice', r);
+            continue;
+          }
+          const k = ss.sort().join('+');
+          if (next[k]) console.warn('farming.json: ' + k + ' is listed twice, using the first one');
+          else next[k] = r.result;
+        }
+        for (const k in SPLICE) delete SPLICE[k];
+        Object.assign(SPLICE, next);
+      }
+    })
+    .catch((e) => console.warn('farming.json not loaded (' + e.message + '), using the built-in recipes'))
+    .finally(boot);
+}
 const START_WORLD = 'START';
-const FOOT_SINK = 3; // pixels the feet sink into the ground so the player doesn't look like floating
+const CHAR_H = 32; // drawn height of the character in world pixels (one tile = TS)
+const CHAR_S = CHAR_H / 56; // scale vs. the old 56px character, for arm/fist sizes
+const FOOT_SINK = 2; // pixels the feet sink into the ground so the player doesn't look like floating
 const PUNCH_TIME = 0.22; // seconds for one punch (out and back)
+const PLACE_POSE = 1.5; // seconds the arm stays out after placing a block (Growtopia style)
+const KNOCKBACK = 300; // how hard a punch from another player pushes you (px/s)
 const DROP_SIZE = 11; // size of a floating drop in world pixels
 const GOLD_CHANCE = 0.05; // 5% chance that breaking a block also drops gold
 const GOLD_AMOUNT = [1, 3]; // how much gold one drop gives (min, max)

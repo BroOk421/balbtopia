@@ -26,7 +26,7 @@
         <div class="gold" id="gold" aria-label="Gold">
           <canvas id="goldIcon" width="32" height="32"></canvas><span id="goldN">0</span>
         </div>
-        <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+        <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span><b class="badge" id="badge" hidden></b></button>
       </div>
       <div class="hotbar" id="hotbar" role="toolbar" aria-label="Hotbar"></div>
       <div class="pad l">
@@ -96,6 +96,7 @@
           <button id="pmMessage">Message</button>
           <button id="pmEmail">Email</button>
           <button id="pmGift">Gift</button>
+          <button id="pmAccess" hidden>Allow building here</button>
           <button id="pmClose" class="close">Close</button>
         </div>
       </section>
@@ -117,18 +118,88 @@
       <div class="start" id="start">
         <div class="win">
           <h1>BALBTOPIA</h1>
-          <p>Pick your skin colour. Hair and a World Lock are waiting in your bag.</p>
-          <label class="pname" for="pname"
-            >Your name
-            <input id="pname" maxlength="16" spellcheck="false" autocomplete="off" />
-          </label>
-          <div class="looks" id="looks"></div>
-          <button class="btn" id="play">PLAY</button>
+          <div id="authBox">
+            <div class="atabs" role="tablist">
+              <button type="button" data-mode="login" role="tab" aria-selected="true">Log in</button
+              ><button type="button" data-mode="register" role="tab" aria-selected="false">Register</button>
+            </div>
+            <form id="authF" class="authf" autocomplete="off" novalidate>
+              <label class="pname" for="aUser"
+                >Username
+                <input id="aUser" maxlength="16" spellcheck="false" autocomplete="username" />
+              </label>
+              <label class="pname" for="aPass"
+                >Password
+                <input id="aPass" type="password" maxlength="64" autocomplete="current-password" />
+              </label>
+              <label class="pname" for="aPass2" id="aPass2L" hidden
+                >Confirm password
+                <input id="aPass2" type="password" maxlength="64" autocomplete="new-password" />
+              </label>
+              <label class="remember"><input type="checkbox" id="aRemember" checked /> Stay logged in</label>
+              <p class="werr" id="aErr" role="alert"></p>
+              <button class="btn" id="aGo" type="submit">LOG IN</button>
+              <p class="anote" id="aNote">Accounts are saved on this device only.</p>
+            </form>
+          </div>
+          <div id="playBox" hidden>
+            <p>Welcome, <b id="who"></b>! Pick your skin colour. A wrench and a World Lock are waiting in your bag.</p>
+            <div class="looks" id="looks"></div>
+            <button class="btn" id="play">PLAY</button>
+            <button class="alink" id="logout2" type="button">Not you? Log out</button>
+          </div>
         </div>
       </div>
+      <section class="win lockwin" id="lockwin" hidden role="dialog" aria-label="World Lock">
+        <header>
+          <img id="lockIcon" alt="" />
+          <div>
+            <h2>WORLD LOCK</h2>
+            <small id="lockBy"></small>
+          </div>
+        </header>
+        <div id="lockBody"></div>
+        <div class="dlgbtns">
+          <button class="btn ghost" id="lockClose" type="button">Close</button>
+          <button class="btn" id="lockSave" type="button">Save</button>
+        </div>
+      </section>
+
+      <!-- one small window for questions, messages, emails and gifts (filled by social.js) -->
+      <section class="win dlg" id="dlg" hidden role="dialog" aria-labelledby="dlgTitle">
+        <h2 id="dlgTitle"></h2>
+        <div id="dlgBody"></div>
+        <div class="dlgbtns" id="dlgBtns"></div>
+      </section>
+
+      <section class="win trade" id="trade" hidden role="dialog" aria-label="Trade">
+        <header>
+          <h2>TRADE</h2>
+          <span class="count" id="tradeWith"></span>
+        </header>
+        <div class="tcols">
+          <div class="tside">
+            <p class="mlabel">You offer <em id="tMyOk" hidden>✓ Accepted</em></p>
+            <div class="tslots" id="tMine"></div>
+            <button class="wstay" id="tAdd" type="button">+ Add item</button>
+          </div>
+          <div class="tside">
+            <p class="mlabel"><span id="tTheirName"></span> offers <em id="tTheirOk" hidden>✓ Accepted</em></p>
+            <div class="tslots" id="tTheirs"></div>
+          </div>
+        </div>
+        <p class="mnote" id="tNote">Add items, then both press Accept.</p>
+        <div class="dlgbtns">
+          <button class="btn ghost" id="tCancel" type="button">Cancel</button>
+          <button class="btn" id="tAccept" type="button">Accept</button>
+        </div>
+      </section>
+
       <div class="toast" id="toast" hidden></div>
     </div>
 
+    <script src="js/vendor/supabase.js"></script>
+    <script src="js/online-config.js"></script>
     <script src="js/assets.js"></script>
     <script src="js/config.js"></script>
     <script src="js/world.js"></script>
@@ -139,7 +210,11 @@
     <script src="js/render.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/farming.js"></script>
+    <script src="js/net.js"></script>
+    <script src="js/lock.js"></script>
+    <script src="js/social.js"></script>
     <script src="js/worlds.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/native.js"></script>
     <script src="js/menu.js"></script>
     <script src="js/main.js"></script>

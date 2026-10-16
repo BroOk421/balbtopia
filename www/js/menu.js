@@ -59,7 +59,7 @@ function renderMenu() {
     .forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === menuTab)));
   const body = $('menuBody');
   body.innerHTML = '';
-  ({ profile, worlds: worldsTab, friends, email, settings: settingsTab })[menuTab](body);
+  ({ profile, worlds: worldsTab, friends: friendsTab, email: mailTab, settings: settingsTab })[menuTab](body);
 }
 
 // ---------- tabs ----------
@@ -103,6 +103,13 @@ function worldsTab(el) {
   el.innerHTML = `<p class="mlabel">Your worlds <span>${list.length}</span></p><ul class="mlist" id="mworlds"></ul>
     <p class="mnote">Make a new world at the main door: stand in it and click it.</p>`;
   const ul = el.querySelector('#mworlds');
+  if (Net.online && !worldsTab.busy) {
+    worldsTab.busy = true;
+    Net.refreshWorlds().then((ch) => {
+      if (ch && !$('menu').hidden && menuTab === 'worlds') renderMenu();
+      worldsTab.busy = false;
+    });
+  }
   for (const w of list) {
     const li = document.createElement('li'),
       here = w.name === worldName;
@@ -115,22 +122,12 @@ function worldsTab(el) {
     }</button>`;
     li.firstChild.onclick = () => {
       closeMenu();
-      if (!here) {
-        enterWorld(w.name);
-        toast('Entered ' + w.name);
-      }
+      if (!here) enterWorld(w.name).then((ok) => ok && toast('Entered ' + w.name));
     };
     ul.appendChild(li);
   }
 }
-function friends(el) {
-  el.innerHTML = `<p class="mlabel">Friends <span>0</span></p>
-    <div class="empty"><b>No friends yet</b>Hold the wrench and click another player, then pick Add Friend. Friends need online play, which isn't in the game yet.</div>`;
-}
-function email(el) {
-  el.innerHTML = `<p class="mlabel">Inbox <span>0</span></p>
-    <div class="empty"><b>No mail</b>Messages and gifts from other players will show up here once online play is added.</div>`;
-}
+// Friends and Email tabs are in social.js (friendsTab, mailTab)
 function settingsTab(el) {
   el.innerHTML = `
     <div class="set">
@@ -141,9 +138,9 @@ function settingsTab(el) {
     </div>
     <label class="set"><span>Vibration ${Native.isApp ? '' : '<small>(phone app)</small>'}</span><input type="checkbox" id="sVib" /></label>
     <label class="set"><span>Show coordinates</span><input type="checkbox" id="sCoords" /></label>
-    <form class="set" id="sNameF"><label for="sName">Name</label>
-      <span class="nrow"><input id="sName" maxlength="16" spellcheck="false" autocomplete="off" /><button type="submit">Save</button></span>
-    </form>`;
+    <div class="set"><span>Account <span class="acct">${playerName}</span></span>
+      <span class="nrow"><button type="button" id="sLogout">Log out</button></span>
+    </div>`;
   el.querySelectorAll('.seg button').forEach((b) => {
     b.setAttribute('aria-checked', String(b.dataset.v === walkStyle));
     b.onclick = () => {
@@ -153,8 +150,7 @@ function settingsTab(el) {
     };
   });
   const vib = el.querySelector('#sVib'),
-    co = el.querySelector('#sCoords'),
-    nm = el.querySelector('#sName');
+    co = el.querySelector('#sCoords');
   vib.checked = settings.vibrate;
   co.checked = settings.coords;
   vib.onchange = () => {
@@ -166,13 +162,5 @@ function settingsTab(el) {
     applySettings();
     savePlayer();
   };
-  nm.value = playerName;
-  nm.oninput = () => (nm.value = nm.value.replace(/[^A-Za-z0-9_]/g, '').slice(0, 16));
-  el.querySelector('#sNameF').onsubmit = (e) => {
-    e.preventDefault();
-    if (!nm.value) return toast('Name needs at least one letter or number');
-    playerName = nm.value;
-    savePlayer();
-    toast('Name saved');
-  };
+  el.querySelector('#sLogout').onclick = logout;
 }

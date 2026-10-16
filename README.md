@@ -63,7 +63,17 @@ www/js/physics.js       lakad, talon, banggaan, lava, drops
 www/js/render.js        pag-drawing: parallax background, blocks, character, effects
 www/js/ui.js            inventory, hotbar, pop-up (Use/Drop/Info), start screen
 www/js/worlds.js        pag-save at pag-load (localStorage), pagpasok sa world, World Lock, listahan ng worlds sa pinto
+www/js/auth.js          login at register: online gamit ang Supabase, o local sa device kapag walang key
+www/js/net.js           online: Supabase accounts, cloud saves, at ibang player sa world (realtime)
+www/js/lock.js          World Lock: description, sino ang pwedeng mag-build, at ang lock window
+www/js/social.js        trade, friends, message, email at gift (galing sa wrench)
+www/js/online-config.js Supabase URL at anon key; ginagawa ng `npm run config` mula sa `.env` (wala sa git)
+.env.example            kopyahin bilang `.env` at ilagay ang Supabase URL at key
+scripts/make-config.js  gumagawa ng online-config.js mula sa `.env` o sa GitHub Secrets
+www/js/vendor/          Supabase library
+supabase/schema.sql     tables at security rules na ipe-paste sa Supabase SQL Editor
 www/js/farming.js       pagtatanim ng seeds, paglaki ng puno, splicing, pag-ani
+www/data/farming.json   oras ng paglaki ng bawat puno at lahat ng splice na kombinasyon
 www/js/native.js        mga function para sa mobile app (Capacitor)
 www/js/main.js          game loop; huling nilo-load, at ito ang nagsisimula ng lahat
 www/assets/             ang mga image na ginagamit ng game
@@ -76,6 +86,7 @@ Iisa ang global scope ng mga JS file at mahalaga ang pagkakasunod sa `index.html
 
 | Gusto mong baguhin | Saan |
 |---|---|
+| Laki ng character | `config.js`: `const CHAR_H = 32` (32 = isang tile); hitbox sa `player.js` (`w`, `h`) |
 | Bilis ng lakad | `physics.js`: `const target = dir * 160` |
 | Taas ng talon | `physics.js`: `P.vy = -545` |
 | Gravity | `physics.js`: `P.vy + 1550 * dt` |
@@ -122,18 +133,102 @@ Iisa ang global scope ng mga JS file at mahalaga ang pagkakasunod sa `index.html
 - Hawakan ang seed (hotbar o bag → Hold), tapos i-click ang bakanteng tile na may block sa ilalim.
 - Lumalaki ang puno mula sapling hanggang kasing laki ng tile, may berdeng bar habang bata pa. Tuloy ang paglaki kahit nasa ibang world ka.
 - Kapag hinog na, may maliliit na block sa dahon. Suntukin para makuha ang 1 hanggang 4 na block, may tsansa ng seed at gold.
-- **Splicing**: habang bata pa ang puno, i-click ito habang may hawak na ibang seed.
-  - Dirt Seed + Dirt Seed = **Grass** (maikling damo, mga 10% ng tile, nadadaanan)
-  - Dirt Seed + Cave Background Seed = **Dark Cave**
+- **Splicing**: habang bata pa ang puno, i-click ito habang may hawak na ibang seed. Nasa **`www/data/farming.json`** ang lahat ng kombinasyon:
+
+| Seed + Seed | Lalabas |
+|---|---|
+| Dirt + Dirt | **Grass** (maikling damo, nadadaanan) |
+| Cave Background + Dirt | **Dark Cave** |
+| Cave Background + Rock | **Dark Cave** |
+| Dirt + Rock | **Cave Background** |
+| Dirt + Lava | **Rock** |
+| Rock + Rock | **Lava** |
+| Grass + Lava | **Dirt** |
+
 - Kapag sinira ang block sa ilalim ng puno, babalik sa iyo ang seed.
-- Mga setting sa `config.js`: `TREE_TIME` (segundo ng paglaki), `TREE_FRUIT` (ilang block), `SPLICE` (mga kombinasyon). Itsura ng puno: `TREE_ART` sa `farming.js`.
+- Sa Info ng isang seed (bag → Info), makikita ang "Combines": lahat ng kombinasyong kasama ang seed na iyon.
+
+### Pag-edit ng `farming.json`
+
+```json
+{ "seeds": ["dirt", "rock"], "result": "cave", "note": "pang-paliwanag lang" }
+```
+
+- `seeds`: dalawang item id. Hindi mahalaga ang pagkakasunod. Pwede: `dirt`, `cave`, `rock`, `lava`, `grass`, `dark_cave`.
+- `result`: ang punong lalabas. Kailangang may sariling puno ito (nasa `trees`).
+- `trees` → `growSeconds`: ilang segundo bago mahinog ang bawat puno.
+- I-reload ang game pagkatapos mag-edit. Nilalaktawan ang maling linya at ipinapakita sa browser console (F12).
+- Binabasa ang file kapag naka-serve ang game (`npm run serve`, ang app, o GitHub Pages). Kapag dinoble-click lang ang `index.html`, hindi ito mababasa ng browser, kaya ang kopyang nasa `SPLICE` sa `config.js` ang gagamitin (pareho ang laman).
+- Iba pang setting sa `config.js`: `TREE_FRUIT` (ilang block ang bunga), `SEED_CHANCE` (tsansa ng seed). Itsura ng puno: `TREE_ART` sa `farming.js`.
+- Para magdagdag ng bagong klase ng puno (bagong block), kailangan ng item sa `ITEMS`, seed (`<id>_seed`), kulay sa `SEED_COLOR`, at linya sa `trees`.
 
 ## Worlds at pag-save
 
 - Bawat world ay may **main door**. Tumayo sa pinto at i-click ito para lumabas ang listahan ng worlds.
 - Mag-type ng pangalan (letra at numero, hanggang 16) para pumunta o gumawa ng bagong world.
-- **World Lock**: ilagay sa world na wala pang lock, at magiging iyo ito. Kapag sinira mo, unlocked ulit ang world.
-- Naka-save ang worlds, bag, gold, suot at skin sa **localStorage** ng browser na ito (`balbtopia.v1`). Kapag binura ang data ng browser, mawawala rin. Sa multiplayer, papalitan ito ng server at database.
+- **World Lock**: ilagay sa world na wala pang lock, at magiging iyo ito. Ikaw lang (owner) ang makakasira nito; kapag sinira mo, unlocked ulit ang world.
+  - Hawakan ang **wrench** at i-click ang lock (may wrench na lalabas sa loob nito) para sa settings: **description**, **Everyone can build** (access sa lahat), at listahan ng **players na pwedeng mag-build** (i-type ang username, o pindutin ang pangalan ng nasa world).
+  - Ang may access ay pwedeng maglagay at sumira ng kahit ano, maliban sa lock. Ang walang access ay "This world is locked by …" lang ang makukuha.
+  - Ang ibang player na nag-wrench sa lock ay makikita ang "World by", ang description, at kung pwede silang mag-build.
+- **Offline** (walang Supabase key): naka-save ang worlds, bag, gold, suot at skin sa **localStorage** ng browser na ito (`balbtopia.v1`). Kapag binura ang data ng browser, mawawala rin.
+- **Online** (may Supabase key): naka-save lahat sa Supabase, kaya pareho ang account at mga world kahit saang device. Tingnan ang "Online gamit ang Supabase" sa ibaba.
+
+## Online gamit ang Supabase
+
+Kapag naka-set up, may **online na login at register**, iisa ang save mo kahit saang phone o computer, at **makikita mo ang ibang player** sa parehong world. Kita mo ang lakad, talon at suntok nila, pati ang mga block na sinisira o inilalagay nila. Kapag walang key sa `online-config.js`, offline mode pa rin, gaya ng dati.
+
+### Pag-setup (mga 5 minuto, libre)
+
+1. Gumawa ng account sa [supabase.com](https://supabase.com) at pindutin ang **New project**. Kahit anong pangalan at password; piliin ang region na pinakamalapit, gaya ng Singapore.
+2. **Patayin ang "Confirm email".** Pumunta sa *Authentication → Sign In / Providers → Email* at i-off ang **Confirm email**, tapos Save. Username lang ang hinihingi ng game, kaya walang totoong email na mapapadalhan. Kapag naka-on ito, lalabas ang **"email rate limit exceeded"** pagkatapos ng 1–2 register, kasi mga 2 email lang bawat oras ang kaya ng libreng email ng Supabase. Kung nangyari na, i-off ito, burahin ang mga user sa *Authentication → Users*, at subukan ulit.
+3. **Gawin ang tables.** Pumunta sa *SQL Editor → New query*, i-paste ang buong laman ng `supabase/schema.sql`, at pindutin ang **Run**.
+4. **Kunin ang URL at key.** Sa *Project Settings → API* (o *Connect*), kopyahin ang **Project URL** at ang **anon public** key.
+5. **Ilagay sa `.env`.** Kopyahin ang `.env.example` at gawing `.env` (nasa pinakaitaas na folder, katabi ng `package.json`), tapos punan:
+
+```
+SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_...
+```
+
+6. **Gawin ang config:** `npm run config`. Gagawin nito ang `www/js/online-config.js` mula sa `.env`. Kusa na rin itong tumatakbo sa `npm run serve`, `npm run sync` at `npm run apk`. Kapag binago mo ang `.env`, patakbuhin ulit.
+7. **Para sa GitHub Pages at APK sa Actions:** sa GitHub repo, pumunta sa *Settings → Secrets and variables → Actions → New repository secret* at gumawa ng dalawa: `SUPABASE_URL` at `SUPABASE_ANON_KEY`. Doon na kukunin ng Actions ang config tuwing magpu-push ka.
+
+**Tungkol sa security.** Hindi isinasama sa GitHub ang `.env` at `www/js/online-config.js` (nasa `.gitignore`), kaya hindi makikita ang key sa repo mo. Pero dahil sa browser tumatakbo ang game, nasa files pa rin ng game ang anon/publishable key, at makikita ito ng sinumang mag-inspect. Normal ito sa Supabase. Ang talagang nagpoprotekta ay ang mga patakaran sa `supabase/schema.sql`. **Huwag kailanman ilagay ang secret o service_role key** sa `.env` ng game; tatanggihan iyon ng `npm run config`.
+
+Kung naka-commit na dati ang `www/js/online-config.js` na may key, alisin ito sa git: `git rm --cached www/js/online-config.js`, tapos i-commit.
+
+### Paano ito gumagana
+
+| Bahagi | Saan |
+|---|---|
+| Login at register | Supabase Auth. Ginagawang `username@players.balbtopia.app` ang username sa likod, kaya hindi pwedeng magkapareho ang username |
+| Save ng player (bag, skin, gold, level) | table na `players`, isang row bawat account |
+| Mga world | table na `worlds`; sine-save tuwing ilang segundo kapag may nagbago |
+| Ibang player sa world | Supabase Realtime: channel na `world:PANGALAN` (posisyon mga 10 beses bawat segundo, suntok, at pagbabago sa blocks) |
+
+Ang code ay nasa `www/js/net.js` (lahat ng online), `www/js/auth.js` (login screen) at `www/js/online-config.js` (URL at key, ginagawa ng `scripts/make-config.js` mula sa `.env`). Kasama sa `www/js/vendor/supabase.js` ang Supabase library (v2.110.0), kaya hindi na ito kailangang i-download mula sa CDN.
+
+### Paglalaro kasama ang iba
+
+- **Wrench sa ibang player** (i-click sila o ang wrench sa tabi ng pangalan nila):
+  - **Trade**: magpapadala ng request; kapag tinanggap, bubukas ang trade window. Maglagay ng items (pindutin ang item para tanggalin), tapos parehong pindutin ang **Accept**. Kapag may nagbago sa offer, babalik sa hindi pa accepted.
+  - **Add Friend**: kapag tinanggap, makikita sila sa *Menu → Friends*, kung online sila at saang world (may **Go** para sumunod).
+  - **Message**: pribadong mensahe; lalabas ito bilang speech bubble sa ulo mo sa screen nila.
+  - **Email**: naka-save sa Supabase, kaya matatanggap kahit offline sila. Nasa *Menu → Email*, at may pulang numero sa menu button kapag may bago.
+  - **Gift**: pumili ng item (o gold) at ilan. Babalik sa bag mo kapag puno ang bag nila o hindi dumating.
+  - **Allow building here**: kapag ikaw ang owner ng world, mabilis na pagbigay o pagtanggal ng access.
+- **Suntok sa player**: kapag kamay ang hawak mo at sinuntok mo ang ibang player, mapapaatras sila at uurong ka rin nang kaunti.
+- **Paglalagay ng block**: lalabas agad ang braso sa block at manginginig nang kaunti ang kamay, saka mawawala pagkalipas ng 1.5 segundo (o kapag naglakad ka). Oras nito: `PLACE_POSE` sa `config.js`; lakas ng atras: `KNOCKBACK`.
+
+Kailangan ng table na `mail` para sa Email; nasa `supabase/schema.sql` na ito, kaya **patakbuhin ulit ang buong `schema.sql`** sa SQL Editor kung na-setup mo na dati.
+
+### Mga limitasyon sa ngayon
+
+- **Ang drops ay sa iyo lang.** Ikaw lang ang nakakakita ng item na nahulog mula sa block na sinira mo, kaya walang agawan.
+- **Sa browser ang patakaran.** Ang browser ng player ang nagpapasya kung pwedeng sirain ang block, at kahit sinong naka-login ay kayang baguhin ang world sa database. Pang-laro ito kasama ang mga kaibigan; kung magiging public, kailangan ng sariling game server para iwas-cheat.
+- **Free plan ng Supabase**: sapat para sa maliit na grupo. Bawat player ay nagpapadala ng mga 10 mensahe bawat segundo habang gumagalaw.
+- Ang trade, gift at mga patakaran ng lock ay sinusunod ng browser ng bawat player, hindi ng server. Pang-barkada ito; para sa public na game, kailangan ng sariling server para iwas-cheat.
+- Hindi nalilipat sa online account ang offline save na nasa device.
 
 ## Pwede ba itong i-online?
 
@@ -144,9 +239,9 @@ Oo, pero dalawang magkaibang bagay ang "online".
 - **GitHub Pages**: i-push sa GitHub repo, tapos Settings → Pages.
 - **Vercel** o **Cloudflare Pages**: pareho, connect sa GitHub.
 
-Sariling world ang makukuha ng bawat player, at hindi pa ito nase-save.
+Kapag walang Supabase key, sariling world sa sariling device ang makukuha ng bawat player.
 
-**2. Multiplayer na parang Growtopia (sabay-sabay sa iisang world).** Kailangan nito ng server:
+**2. Multiplayer na parang Growtopia (sabay-sabay sa iisang world).** Mayroon na nito gamit ang Supabase (tingnan sa itaas). Para sa mas seryosong public na game, ito ang kailangan:
 - **Game server**, halimbawa Node.js na may WebSocket (Socket.IO o Colyseus). Ito ang may hawak ng world at nagpapasa ng galaw ng bawat player sa lahat.
 - **Database** para sa world, inventory at account, halimbawa PostgreSQL, MongoDB o Supabase.
 - **Hosting na kayang magpatakbo ng server**, tulad ng Railway, Render o Fly.io. Hindi ito kaya ng Netlify o GitHub Pages lang.

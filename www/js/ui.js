@@ -10,31 +10,23 @@ function updateGold(pop) {
   }
 }
 // ---------- player menu (opened with the wrench) ----------
-function openPlayerMenu() {
+// other: another player in this world (online), or nothing for yourself
+let pmOther = null;
+function openPlayerMenu(other) {
   ptr.down = false;
-  const m = $('pmenu');
-  $('pmName').textContent = playerName;
-  $('pmWorld').textContent = 'in ' + worldName + (worldOwner === playerName ? ' · owner' : '');
-  $('pmAvatar').src = A['skin_' + skin + '_open'];
+  pmOther = other || null;
+  const m = $('pmenu'),
+    name = other ? other.name : playerName;
+  $('pmName').textContent = name;
+  $('pmWorld').textContent = 'in ' + worldName + (worldOwner === name ? ' · owner' : '');
+  $('pmAvatar').src = A['skin_' + (other ? other.skin : skin) + '_open'];
   m.hidden = false;
   $('pmTrade').focus();
 }
 function closePlayerMenu() {
   $('pmenu').hidden = true;
 }
-// these need a second player; the game is single player for now
-const PM_SOLO = {
-  pmTrade: 'Trading needs another player in your world',
-  pmFriend: "You can't add yourself as a friend",
-  pmMessage: 'Messages need another player online',
-  pmEmail: 'Email needs another player to send to',
-  pmGift: 'Gifts need another player to receive them',
-};
-for (const id in PM_SOLO)
-  $(id).onclick = () => {
-    toast(PM_SOLO[id]);
-    closePlayerMenu();
-  };
+// Trade, Add Friend, Message, Email, Gift: see social.js
 $('pmClose').onclick = closePlayerMenu;
 function toast(msg) {
   const t = $('toast');
@@ -209,7 +201,7 @@ $('aDrop').onclick = () => {
     return;
   }
   // floats in front of the player; can be picked up again after a moment
-  spawnDrop(id, P.x + P.w / 2 + P.face * 30, P.y + P.h - 16, 1, 1.2);
+  spawnDrop(id, P.x + P.w / 2 + P.face * 22, P.y + P.h - 10, 1, 1.2);
   takeItem(id);
   toast('Dropped ' + ITEMS[id].name);
   closePop();
@@ -291,19 +283,15 @@ function buildStart() {
     };
     L.appendChild(b);
   }
-  $('pname').value = playerName;
-  $('pname').addEventListener('input', () => {
-    const v = $('pname')
-      .value.replace(/[^A-Za-z0-9_]/g, '')
-      .slice(0, 16);
-    if (v !== $('pname').value) $('pname').value = v;
-  });
-  $('play').onclick = () => {
-    playerName = $('pname').value || playerName;
+  $('play').onclick = async () => {
+    if (!account || $('play').disabled) return;
+    $('play').disabled = true;
+    const ok = await enterWorld(worldName || START_WORLD);
+    $('play').disabled = false;
+    if (!ok) return;
     $('start').hidden = true;
     markPlayDay();
     applySettings();
-    enterWorld(worldName || START_WORLD);
     renderBars();
     updateGold();
     toast('Welcome to ' + worldName + '!');
@@ -312,11 +300,11 @@ function buildStart() {
 }
 function ready() {
   drawCoin($('goldIcon').getContext('2d'));
-  if (!loadPlayer()) playerName = 'Balb' + Math.floor(100 + Math.random() * 900);
   updateGold();
   genWorld(worldName);
   resize();
   buildStart();
+  initAuth();
   renderBars();
   const vw = cv.width / Z,
     vh = cv.height / Z;

@@ -12,9 +12,12 @@ const NAME_RE = /^[A-Z0-9]{1,16}$/;
 // ---------- storage (localStorage, wrapped so the game still runs without it) ----------
 function store() {
   try {
-    return JSON.parse(localStorage.getItem(SAVE_KEY)) || { worlds: {}, player: null };
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+    s.worlds = s.worlds || {};
+    s.players = s.players || {};
+    return s;
   } catch (e) {
-    return { worlds: {}, player: null };
+    return { worlds: {}, players: {} };
   }
 }
 function putStore(s) {
@@ -35,37 +38,46 @@ const fromB64 = (b, into) => {
   for (let i = 0; i < into.length; i++) into[i] = s.charCodeAt(i);
 };
 
-function saveWorld() {
-  if (!inWorld) return;
-  const s = store();
-  s.worlds[worldName] = {
+function worldData() {
+  return {
     fg: toB64(fg),
     bg: toB64(bg),
     vari: toB64(vari),
     door: [door.x, door.y],
     owner: worldOwner,
+    lock: lockCfg,
     trees: [...trees].map(([i, t]) => [i, t.seed, t.planted, t.fruit, t.spliced ? 1 : 0]),
     visited: Date.now(),
   };
-  putStore(s);
 }
-function loadWorld(name) {
-  const w = store().worlds[name];
-  if (!w) return false;
+function applyWorld(w) {
   fromB64(w.fg, fg);
   fromB64(w.bg, bg);
   fromB64(w.vari, vari);
   door.x = w.door[0];
   door.y = w.door[1];
   worldOwner = w.owner || null;
+  setLockCfg(w.lock);
   trees.clear();
   for (const [i, seed, planted, fruit, sp] of w.trees || [])
     if (TREE_TIME[seed]) trees.set(i, { seed, planted, fruit, spliced: !!sp });
+}
+function saveWorld(force) {
+  if (!inWorld) return;
+  const w = worldData();
+  if (Net.online) return Net.saveWorld(worldName, w, force);
+  const s = store();
+  s.worlds[worldName] = w;
+  putStore(s);
+}
+function loadWorld(name) {
+  const w = store().worlds[name];
+  if (!w) return false;
+  applyWorld(w);
   return true;
 }
-function savePlayer() {
-  const s = store();
-  s.player = {
+function playerData() {
+  return {
     name: playerName,
     skin,
     inv,
@@ -77,12 +89,10 @@ function savePlayer() {
     level,
     playDays,
     settings,
+    friends: myFriends,
   };
-  putStore(s);
 }
-function loadPlayer() {
-  const p = store().player;
-  if (!p) return false;
+function applyPlayer(p) {
   playerName = p.name || playerName;
   if (SKINS.includes(p.skin)) skin = p.skin;
   inv.length = 0;
@@ -96,9 +106,25 @@ function loadPlayer() {
   Object.assign(equipped, p.equipped || {});
   worldName = p.world || START_WORLD;
   if (p.walkStyle) walkStyle = p.walkStyle;
+  myFriends.length = 0;
+  for (const f of p.friends || []) if (f && f.id && f.name) myFriends.push({ id: f.id, name: String(f.name).slice(0, 16) });
+}
+function savePlayer() {
+  if (!account) return; // nobody logged in yet
+  if (Net.online) return Net.savePlayer(playerData());
+  const s = store();
+  s.players[account] = playerData();
+  putStore(s);
+}
+// local saves only; online saves are loaded in auth.js
+function loadPlayer() {
+  const p = account && store().players[account];
+  if (!p) return false;
+  applyPlayer(p);
   return true;
 }
 function listWorlds() {
+  if (Net.online) return Net.worldList;
   const w = store().worlds;
   return Object.keys(w)
     .map((n) => ({ name: n, owner: w[n].owner, visited: w[n].visited || 0 }))
@@ -106,14 +132,30 @@ function listWorlds() {
 }
 
 // ---------- entering a world ----------
-function enterWorld(name) {
+// online, the world is fetched first; returns false (and stays put) when that fails
+async function enterWorld(name) {
+  let w = null;
+  if (Net.online) {
+    Net.loading = true;
+    try {
+      w = await Net.loadWorld(name);
+    } catch (e) {
+      Net.loading = false;
+      console.error(e);
+      toast(Net.dbError(e));
+      return false;
+    }
+    Net.loading = false;
+  }
   if (inWorld) saveWorld();
   worldName = name;
   worldOwner = null;
-  if (!loadWorld(name)) {
+  if (w) applyWorld(w);
+  else if (Net.online || !loadWorld(name)) {
     genWorld(name);
     trees.clear();
     worldOwner = null;
+    setLockCfg(null);
   }
   dmg.fill(0);
   bgDmg.fill(0);
@@ -127,9 +169,14 @@ function enterWorld(name) {
   cam.x = Math.max(0, Math.min(WW * TS - vw, P.x - vw / 2));
   cam.y = P.y - vh * 0.55;
   inWorld = true;
-  saveWorld();
+  Net.joinWorld(name);
+  Net.lobbyWorld(name);
+  $('lockwin').hidden = true;
+  if (worldOwner && lockCfg.desc) setTimeout(() => toast(worldOwner + "'s world: " + lockCfg.desc), 1700);
+  saveWorld(true);
   savePlayer();
   updateWorldLabel();
+  return true;
 }
 function updateWorldLabel() {
   $('wnameT').textContent = worldName;
@@ -168,6 +215,7 @@ function openWorlds() {
   $('wq').value = '';
   $('werr').textContent = '';
   renderWorldList();
+  if (Net.online) Net.refreshWorlds().then((ch) => ch && !$('worlds').hidden && renderWorldList());
   setTimeout(() => $('wq').focus(), 0);
 }
 function closeWorlds() {
@@ -205,11 +253,10 @@ function goWorld(raw) {
     $('werr').textContent = 'Use 1 to 16 letters or numbers, no spaces.';
     return;
   }
-  const isNew = !store().worlds[name];
+  const isNew = !listWorlds().some((w) => w.name === name);
   closeWorlds();
   if (name !== worldName) {
-    enterWorld(name);
-    toast(isNew ? 'Created world ' + name : 'Entered ' + name);
+    enterWorld(name).then((ok) => ok && toast(isNew ? 'Created world ' + name : 'Entered ' + name));
   }
 }
 $('wq').addEventListener('input', () => {

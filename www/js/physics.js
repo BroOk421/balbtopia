@@ -29,9 +29,16 @@ function step(dt) {
   const dir = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
   const target = dir * 160,
     acc = P.ground ? 14 : 8;
-  P.vx += (target - P.vx) * Math.min(1, acc * dt);
-  if (Math.abs(P.vx) < 2 && !dir) P.vx = 0;
-  if (dir) P.face = dir;
+  // knocked back: you can't steer for a moment, you just slide out
+  if (P.kbT > 0) {
+    P.kbT -= dt;
+    P.vx *= Math.pow(0.02, dt);
+  } else {
+    P.vx += (target - P.vx) * Math.min(1, acc * dt);
+    if (Math.abs(P.vx) < 2 && !dir) P.vx = 0;
+    if (dir) P.face = dir;
+  }
+  if (P.hitT > 0) P.hitT -= dt;
   P.coyote = P.ground ? 0.09 : Math.max(0, P.coyote - dt);
   P.buf = Math.max(0, P.buf - dt);
   if (P.buf > 0 && P.coyote > 0) {
@@ -113,6 +120,13 @@ function step(dt) {
     P.punch.t += dt;
     if (P.punch.t >= PUNCH_TIME) P.punch = null;
   }
+  // the arm stays out after placing, but only while you stand still (moving would stretch it)
+  if (P.place) {
+    P.place.t += dt;
+    if (P.place.t >= PLACE_POSE || Math.abs(P.x - P.place.sx) > 1.5 || Math.abs(P.y - P.place.sy) > 1.5 || P.kbT > 0)
+      P.place = null;
+  }
+  if (P.say && (P.say.t -= dt) <= 0) P.say = null;
   for (let k = puffs.length - 1; k >= 0; k--) {
     puffs[k].t += dt;
     if (puffs[k].t >= puffs[k].life) puffs.splice(k, 1);

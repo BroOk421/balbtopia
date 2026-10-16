@@ -4,7 +4,7 @@ function loop(ts) {
   const dt = Math.min(0.05, (ts - (last || ts)) / 1000);
   last = ts;
   now += dt * 1000;
-  if ($('start').hidden && $('worlds').hidden && $('menu').hidden) {
+  if ($('start').hidden && $('worlds').hidden && $('menu').hidden && !Net.loading) {
     let t = dt;
     while (t > 0) {
       const h = Math.min(1 / 120, t);
@@ -28,6 +28,7 @@ function loop(ts) {
   cam.x = Math.max(0, Math.min(WW * TS - vw, cam.x));
   cam.y = Math.max(-vh * 0.3, Math.min(WH * TS - vh, cam.y));
   shake = Math.max(0, shake - dt * 20);
+  Net.tick(dt);
   render();
   $('coords').textContent = `X ${Math.floor((P.x + P.w / 2) / TS)}  Y ${Math.floor((P.y + P.h - 1) / TS)}`;
   requestAnimationFrame(loop);

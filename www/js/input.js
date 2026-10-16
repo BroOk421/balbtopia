@@ -9,7 +9,11 @@ const cv = $('c'),
 addEventListener('keydown', (e) => {
   if (!$('start').hidden) return;
   // typing in a text box (world name, player name) is not game input
-  if (e.target && e.target.tagName === 'INPUT') return;
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  if (e.code === 'Escape') {
+    if (!$('dlg').hidden) return closeDialog();
+    if (!$('lockwin').hidden) return closeLockWin();
+  }
   if (!$('worlds').hidden) {
     if (e.code === 'Escape') $('wstay').click();
     return;

@@ -25,8 +25,10 @@ const Native = (() => {
 
   // Android back button: close the top window first; on the plain game screen, send the app to the background
   function onBack() {
-    const open = ['menu', 'pmenu', 'info', 'pop', 'worlds', 'inv'].find((id) => !$(id).hidden);
-    if (open === 'menu') closeMenu();
+    const open = ['dlg', 'lockwin', 'menu', 'pmenu', 'info', 'pop', 'worlds', 'inv'].find((id) => !$(id).hidden);
+    if (open === 'dlg') closeDialog();
+    else if (open === 'lockwin') closeLockWin();
+    else if (open === 'menu') closeMenu();
     else if (open === 'pmenu') closePlayerMenu();
     else if (open === 'info') $('info').hidden = true;
     else if (open === 'pop') closePop();
