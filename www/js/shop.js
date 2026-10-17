@@ -163,6 +163,8 @@ const SHOP = [
   { id: 'diamond_pickaxe', gold: 30000, cat: 'tools' },
   { id: 'black_diamond_pickaxe', gold: 75000, cat: 'tools' },
   { id: 'angel_wings', gold: 25000, cat: 'wear' },
+  { id: 'tiny_angel_wings', gold: 10000, cat: 'wear' },
+  { id: 'golden_wings', gold: 60000, cat: 'wear' },
 ];
 
 // ---------- art ----------

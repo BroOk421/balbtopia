@@ -602,14 +602,7 @@ function render() {
       drawIcon('gold', (-s / 2) * Z, (-s / 2) * Z, s * Z);
       g.restore();
     } else drawIcon(d.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
-    if (d.qty > 1) {
-      g.font = `${6 * Z}px "Press Start 2P", monospace`;
-      g.textAlign = 'right';
-      g.fillStyle = '#1c1033';
-      g.fillText(d.qty, x + (s / 2 + 1) * Z, y + (s / 2 + 1) * Z);
-      g.fillStyle = '#fff';
-      g.fillText(d.qty, x + (s / 2) * Z, y + (s / 2) * Z);
-    }
+    // floating drops show no number, only the item
     g.globalAlpha = 1;
     if (locked) {
       const f = Math.min(1, Math.max(0, (Date.now() - d.born) / DROP_LOCK_MS)),

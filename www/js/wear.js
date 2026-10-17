@@ -80,7 +80,9 @@ const WEAR = [
   { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', art: 'long_black', behind: 'long_black_back', iconBox: [-10, -10, 150, 170], desc: 'Long, shiny black hair.' },
   { id: 'princess_hair', name: 'Princess Hair', slot: 'hair', art: 'princess', behind: 'princess_back', iconBox: [-10, -30, 150, 190], desc: 'Long golden hair with a pink bow.' },
   // from the Shop
-  { id: 'angel_wings', name: 'Angel Wings', slot: 'back', art: 'angel_wings', rarity: 'Legendary', shop: true, iconBox: [-60, 30, 238, 150], desc: 'Soft white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'angel_wings', name: 'Angel Wings', slot: 'back', art: 'angel_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-60, 110, 238, 150], desc: 'Soft white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'golden_wings', name: 'Golden Wings', slot: 'back', art: 'golden_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-100, 80, 318, 260], desc: 'Huge shining golden wings, with two small golden wings below them. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'tiny_angel_wings', name: 'Tiny Angel Wings', slot: 'back', art: 'tiny_angel_wings', rarity: 'Epic', shop: true, wings: true, iconBox: [0, 150, 118, 90], desc: 'Teeny little white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'laser_eyes', name: 'Laser Eyes', slot: 'face', art: 'laser_eyes', rarity: 'Epic', desc: 'Glowing red eyes. Every punch fires a laser from your eyes, and you reach one tile further.' },
 ];
 const WEAR_BY_ID = {};
@@ -228,6 +230,75 @@ function artCanvas(paint, f = 0) {
   return c;
 }
 const K = '#120c0c';
+// wing colours: fill, shading, feather lines
+const WING_WHITE = ['#ffffff', '#e2eaf6', '#c4d2e8'],
+  WING_GOLD = ['#ffd23f', '#f0b020', '#b87a0c'];
+// a pair of curved wings, one out the back and one out the front (art space: the body is 0..118 wide).
+// col: WING_* colours; sc: size; y: shoulder height; inset: how far in from the body's sides;
+// tilt: extra turn down; shine: little white sparkles on the feathers.
+// f 0: wings up and open; f 1: the down-stroke, tips swept low
+function wingPair({ x, f }, col, sc, y, inset = 0, tilt = 0, shine = false) {
+  const wing = () => {
+    x.beginPath();
+    x.moveTo(0, 6);
+    x.bezierCurveTo(10, -40, 60, -86, 118, -84); // top edge, up to the tip
+    // the lower edge: five rounded feathers back to the shoulder
+    x.quadraticCurveTo(116, -62, 104, -52);
+    x.quadraticCurveTo(108, -32, 90, -26);
+    x.quadraticCurveTo(92, -6, 70, -4);
+    x.quadraticCurveTo(68, 16, 46, 12);
+    x.quadraticCurveTo(38, 28, 18, 22);
+    x.quadraticCurveTo(6, 24, 0, 6);
+    x.closePath();
+  };
+  for (const side of [-1, 1]) {
+    x.save();
+    x.translate(side < 0 ? 40 + inset : 78 - inset, y);
+    x.scale(side * sc, sc);
+    x.rotate((f ? 0.5 : -0.12) + tilt);
+    if (f) x.scale(1, 0.85);
+    wing();
+    x.lineJoin = 'round';
+    x.strokeStyle = K;
+    x.lineWidth = Math.min(10, 6.2 / sc);
+    x.stroke();
+    x.fillStyle = col[0];
+    x.fill();
+    // soft shading and feather lines
+    x.save();
+    x.clip();
+    x.fillStyle = col[1];
+    x.beginPath();
+    x.moveTo(0, 6);
+    x.bezierCurveTo(30, -20, 70, -40, 120, -60);
+    x.lineTo(120, 40);
+    x.lineTo(0, 40);
+    x.fill();
+    x.strokeStyle = col[2];
+    x.lineWidth = Math.min(6, 2.7 / sc);
+    x.lineCap = 'round';
+    for (const [ex, ey] of [[96, -50], [80, -24], [58, -4], [34, 12]]) {
+      x.beginPath();
+      x.moveTo(8, 4);
+      x.quadraticCurveTo(ex * 0.5, ey * 0.2 - 10, ex, ey);
+      x.stroke();
+    }
+    if (shine) {
+      x.fillStyle = '#fff8d0';
+      for (const [px, py, r] of [[70, -58, 5], [40, -30, 3.5], [96, -70, 3], [52, -8, 3]]) {
+        x.beginPath();
+        x.moveTo(px, py - r * 2);
+        x.lineTo(px + r * 0.6, py);
+        x.lineTo(px, py + r * 2);
+        x.lineTo(px - r * 0.6, py);
+        x.closePath();
+        x.fill();
+      }
+    }
+    x.restore();
+    x.restore();
+  }
+}
 const WEAR_ART = {
   top_hat: ({ R, E }) => {
     E(66, 10, 58, 9, K);
@@ -415,57 +486,13 @@ const WEAR_ART = {
     E(78, -12, 7, 7, '#d03a80');
   },
   princess_back: (h) => longHairBack(h, '#c8941a', '#f2c840'),
-  angel_wings: ({ x, f }) => {
-    // one curved wing (shoulder at 0,0, growing out to +x), drawn out the back and out the front.
-    // f 0: wings up and open; f 1: the down-stroke, tips swept low
-    const wing = () => {
-      x.beginPath();
-      x.moveTo(0, 6);
-      x.bezierCurveTo(10, -40, 60, -86, 118, -84); // top edge, up to the tip
-      // the lower edge: five rounded feathers back to the shoulder
-      x.quadraticCurveTo(116, -62, 104, -52);
-      x.quadraticCurveTo(108, -32, 90, -26);
-      x.quadraticCurveTo(92, -6, 70, -4);
-      x.quadraticCurveTo(68, 16, 46, 12);
-      x.quadraticCurveTo(38, 28, 18, 22);
-      x.quadraticCurveTo(6, 24, 0, 6);
-      x.closePath();
-    };
-    for (const side of [-1, 1]) {
-      x.save();
-      x.translate(side < 0 ? 40 : 78, 110);
-      x.scale(side * 0.88, 0.88);
-      x.rotate(f ? 0.5 : -0.12);
-      if (f) x.scale(1, 0.85);
-      wing();
-      x.lineJoin = 'round';
-      x.strokeStyle = K;
-      x.lineWidth = 7;
-      x.stroke();
-      x.fillStyle = '#ffffff';
-      x.fill();
-      // soft shading and feather lines
-      x.save();
-      x.clip();
-      x.fillStyle = '#e2eaf6';
-      x.beginPath();
-      x.moveTo(0, 6);
-      x.bezierCurveTo(30, -20, 70, -40, 120, -60);
-      x.lineTo(120, 40);
-      x.lineTo(0, 40);
-      x.fill();
-      x.strokeStyle = '#c4d2e8';
-      x.lineWidth = 3;
-      x.lineCap = 'round';
-      for (const [ex, ey] of [[96, -50], [80, -24], [58, -4], [34, 12]]) {
-        x.beginPath();
-        x.moveTo(8, 4);
-        x.quadraticCurveTo(ex * 0.5, ey * 0.2 - 10, ex, ey);
-        x.stroke();
-      }
-      x.restore();
-      x.restore();
-    }
+  angel_wings: (h) => wingPair(h, WING_WHITE, 0.88, 110),
+  // tiny white wings at the shoulder blades
+  tiny_angel_wings: (h) => wingPair(h, WING_WHITE, 0.4, 112, 10),
+  // big golden wings, with a pair of small golden wings below them
+  golden_wings: (h) => {
+    wingPair(h, WING_GOLD, 0.62, 150, 6, 0.75); // the small ones, lower down, pointing out and down
+    wingPair(h, WING_GOLD, 1.2, 104, 0, 0, true);
   },
   backpack: ({ R }) => {
     R(2, 104, 38, 56, K);
@@ -524,7 +551,7 @@ function drawBehind(c, top, sc, dy) {
     hw = WEAR_BY_ID[eq.hair];
   if (hw && hw.behind) drawWearArt(eq.hair, top, sc, dy, 0, hw.behind);
   if (eq.back) {
-    const flap = eq.back === 'angel_wings' ? (c.ground ? Math.floor(now / 700) % 2 : Math.floor(now / 90) % 2) : undefined;
+    const flap = (WEAR_BY_ID[eq.back] || {}).wings ? (c.ground ? Math.floor(now / 700) % 2 : Math.floor(now / 90) % 2) : undefined;
     drawWearArt(eq.back, top, sc, dy, flap);
     if (eq.back === 'jetpack' && !c.ground) drawJetFlame(top, sc, dy);
   }

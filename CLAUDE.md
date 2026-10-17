@@ -65,6 +65,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   everyone else (builders with access and "everyone can build" worlds too) sees them see-through with a ring
   that fills up and can take them 60 s after they fell out of a block or were dropped; you can always take
   what you dropped yourself (`canTakeDrop`).
+- Floating drops show no number, only the item picture.
 - Drops within a few pixels fly into the player (vacuum animation) before going into the bag. Gold: only the
   coin icon pops in the counter.
 - Angry face while punching/breaking (`ANGRY_TIME`), seen by others too.
@@ -143,8 +144,11 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   The Shovel has its own pixel art in the same style (`shovelSprite`: egg-shaped blade). Tool sparkles are slow-rising twinkling "+" particles (`plus: true`, no gravity). Bare fists still stretch out (`drawPunch`).
 - Long hair (Long Brown Hair = Grass + Wooden Table, Long Black Hair = Black Block + Portcullis, Princess Hair in
   the Shop): a `behind` drawing goes behind the body (`drawBehind`), the front part over the head.
-- Angel Wings (Shop, back slot): `WING_JUMPS` (1) extra jump in the air; it comes back only when you land.
-  Wings flap fast in the air, slowly on the ground. Wear art canvases have `ART_PAD` (110 px) room around the body so wings are never cut off.
+- Wings (Shop, back slot, `wings: true` in `WEAR`): Angel Wings (25,000), Tiny Angel Wings (10,000, small white
+  wings at the shoulder blades), Golden Wings (60,000, big gold wings with sparkles plus a pair of small gold wings
+  lower down, pointing out). All drawn by `wingPair` (colours `WING_WHITE` / `WING_GOLD`, size, height, tilt).
+  Every pair gives `WING_JUMPS` (1) extra jump in the air; it comes back only when you land.
+  Wings flap fast in the air, slowly on the ground. Prices were picked by Claude (owner gave none). Wear art canvases have `ART_PAD` (110 px) room around the body so wings are never cut off.
 - Cyclopean Visor and Laser Eyes (`LASER_FACE`): punches become a laser and reach one tile further (in Growtopia
   the Cyclopean Visor changes the punch and adds a tile of reach). Neither is sold in the Shop any more; the long
   hairs aren't either (all recipes now).
