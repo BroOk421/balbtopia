@@ -6,6 +6,14 @@
 //   p        position, facing, walking, skin and clothes, about 10 times a second
 //   punch    someone threw a punch at a point
 //   tiles    blocks, backgrounds, trees or the world owner changed
+//   drop     a floating drop appeared (or got bigger)
+//   take     someone picked a floating drop up
+//   sign     someone wrote on a sign
+//   vend     a Vending Machine was filled, priced, emptied or bought from
+//   show     a Display Box got or lost its item, or a Mannequin was dressed (k: 'd' or 'm')
+//   chat     someone said something to everyone in the world (Chat button)
+//   clear    the owner used Clear World
+//   die      someone died (their ghost flies up, then they come back at the door)
 //   sync_req a player just arrived; someone already here answers with...
 //   sync     ...the full world as they see it
 // Presence tells us when someone leaves.
@@ -117,20 +125,38 @@ const Net = (() => {
     if (error) throw error;
     return data ? data.data : null;
   };
+  // one save at a time; while one is on its way, only the newest waiting save is kept and goes next,
+  // so an older save can never arrive after a newer one (that used to undo outfit changes)
+  let playerBusy = false,
+    playerNext = null;
   N.savePlayer = (d) => {
     if (!N.me) return;
     const j = JSON.stringify(d);
     if (j === lastPlayer) return;
     lastPlayer = j;
+    playerNext = { d, j };
+    if (!playerBusy) sendPlayer();
+  };
+  function sendPlayer() {
+    const job = playerNext;
+    playerNext = null;
+    if (!job || !N.me) return;
+    playerBusy = true;
     sb.from('players')
-      .upsert({ id: N.me.id, username: N.me.name, data: d, updated_at: new Date().toISOString() })
+      .upsert({ id: N.me.id, username: N.me.name, data: job.d, updated_at: new Date().toISOString() })
       .then(({ error }) => {
         if (error) {
-          lastPlayer = '';
+          if (lastPlayer === job.j) lastPlayer = '';
           console.error('save player', error);
         }
+      })
+      .catch((e) => console.error('save player', e))
+      .finally(() => {
+        playerBusy = false;
+        sendPlayer();
       });
-  };
+  }
+  N.savingPlayer = () => playerBusy || !!playerNext;
   const lastWorld = {};
   // returns { ...world } or null when the world doesn't exist yet; throws when offline
   N.loadWorld = async (name) => {
@@ -158,13 +184,12 @@ const Net = (() => {
   // the list at the main door and in the menu; returns true when it changed
   N.refreshWorlds = async () => {
     try {
-      const { data, error } = await sb
-        .from('worlds')
-        .select('name,owner,updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(100);
+      // jam: the world's jammers, read out of its saved data (older servers: without it)
+      const q = (cols) => sb.from('worlds').select(cols).order('updated_at', { ascending: false }).limit(100);
+      let { data, error } = await q('name,owner,updated_at,jam:data->jam');
+      if (error) ({ data, error } = await q('name,owner,updated_at'));
       if (error) throw error;
-      const list = data.map((r) => ({ name: r.name, owner: r.owner, visited: Date.parse(r.updated_at) || 0 }));
+      const list = data.map((r) => ({ name: r.name, owner: r.owner, visited: Date.parse(r.updated_at) || 0, jam: r.jam || null }));
       const changed = JSON.stringify(list) !== JSON.stringify(N.worldList);
       N.worldList = list;
       return changed;
@@ -183,7 +208,8 @@ const Net = (() => {
     snapVari = null,
     snapTrees = new Map(),
     snapOwner = null,
-    snapLock = '';
+    snapLock = '',
+    snapDoor = '';
   const treeKey = (t) => t.seed + '|' + t.planted + '|' + t.fruit + '|' + (t.spliced ? 1 : 0);
   function snapshot() {
     snapFg = fg.slice();
@@ -192,6 +218,7 @@ const Net = (() => {
     snapTrees = new Map([...trees].map(([i, t]) => [i, treeKey(t)]));
     snapOwner = worldOwner;
     snapLock = JSON.stringify(lockCfg);
+    snapDoor = door.x + ',' + door.y;
   }
   const send = (event, payload) => {
     if (ch && joined) ch.send({ type: 'broadcast', event, payload });
@@ -219,6 +246,7 @@ const Net = (() => {
         } else {
           r.punch = { t: 0, x: payload.x, y: payload.y };
           r.place = null;
+          r.angry = ANGRY_TIME;
         }
       })
       .on('broadcast', { event: 'hit' }, ({ payload }) => {
@@ -230,6 +258,19 @@ const Net = (() => {
         }
       })
       .on('broadcast', { event: 'tiles' }, ({ payload }) => applyTiles(payload))
+      .on('broadcast', { event: 'drop' }, ({ payload }) => netDrop(payload))
+      .on('broadcast', { event: 'take' }, ({ payload }) => payload && netTake(payload.u, payload.by))
+      .on('broadcast', { event: 'vend' }, ({ payload }) => N.onVend && N.onVend(payload))
+      .on('broadcast', { event: 'show' }, ({ payload }) => N.onShow && N.onShow(payload))
+      .on('broadcast', { event: 'sign' }, ({ payload }) => N.onSign && N.onSign(payload))
+      .on('broadcast', { event: 'chat' }, ({ payload }) => payload && N.onChat && N.onChat(payload))
+      .on('broadcast', { event: 'clear' }, () => {
+        if (snapFg) clearWorldTiles();
+      })
+      .on('broadcast', { event: 'die' }, ({ payload }) => {
+        const r = payload && N.remotes.get(payload.id);
+        if (r) r.dead = { t: 0 };
+      })
       .on('broadcast', { event: 'fly' }, ({ payload }) => N.onFly && N.onFly(payload))
       .on('broadcast', { event: 'sync_req' }, ({ payload }) => onSyncReq(payload))
       .on('broadcast', { event: 'sync' }, ({ payload }) => onSync(payload))
@@ -278,7 +319,8 @@ const Net = (() => {
       skin: SKINS.includes(p.s) ? p.s : 'tan',
       style: p.st,
       name: String(p.n || 'Player').slice(0, 16),
-      equipped: { hair: p.h || null, feet: p.ft || null },
+      equipped: p.eq && typeof p.eq === 'object' ? { ...p.eq } : { hair: p.h || null, feet: p.ft || null },
+      hand: typeof p.hd === 'string' ? p.hd : 'fist',
       hurt: p.hu ? 0.3 : 0,
       seen: now,
     });
@@ -301,6 +343,8 @@ const Net = (() => {
       g: P.ground ? 1 : 0,
       h: equipped.hair,
       ft: equipped.feet,
+      eq: equipped, // everything worn
+      hd: hand, // what's in the hand (tools show)
       hu: P.hurt > 0 || P.hitT > 0 ? 1 : 0,
     };
     const j = JSON.stringify(p);
@@ -312,6 +356,34 @@ const Net = (() => {
   N.sendPunch = (x, y, kind) => {
     if (N.me) send('punch', { id: N.me.id, x: Math.round(x), y: Math.round(y), k: kind || undefined });
   };
+  // floating drops: everyone in the world sees the same ones
+  N.sendDrop = (d) => {
+    if (N.me)
+      send('drop', { u: d.uid, id: d.id, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined });
+  };
+  N.sendDie = () => {
+    if (N.me) send('die', { id: N.me.id });
+  };
+  N.takeDrop = (u) => {
+    if (N.me) send('take', { u, by: N.me.id });
+  };
+  N.sendVend = (i, v) => {
+    if (N.me) send('vend', { i, v });
+  };
+  N.sendShow = (i, k, v) => {
+    if (N.me) send('show', { i, k, v });
+  };
+  N.sendSign = (i, text) => {
+    if (N.me) send('sign', { i, text });
+  };
+  N.sendChat = (text) => {
+    if (N.me) send('chat', { id: N.me.id, n: playerName, text });
+  };
+  N.sendClear = () => {
+    if (N.me) send('clear', {});
+  };
+  // after a big change everyone makes the same way (Clear World): don't send it tile by tile
+  N.resnap = () => snapshot();
   // a gift or trade happened here: everyone else in the world sees the items fly
   N.sendFly = (from, to, items) => send('fly', { from, to, items });
   // you punched another player: they get knocked back on their screen
@@ -352,6 +424,11 @@ const Net = (() => {
       msg.o = worldOwner;
       snapOwner = worldOwner;
     }
+    // the main door moved (Door Mover)
+    if (door.x + ',' + door.y !== snapDoor) {
+      msg.d = [door.x, door.y];
+      snapDoor = door.x + ',' + door.y;
+    }
     const lk = JSON.stringify(lockCfg);
     if (lk !== snapLock) {
       msg.lk = lockCfg;
@@ -369,7 +446,7 @@ const Net = (() => {
         burst(x, y, fg[i], 10);
         smoke(x, y, 8, 1.3);
       } else if (!fg[i] && f) placeFx(x, y, f, false);
-      else if (!bg[i] && b && !f) placeFx(x, y, -1, false);
+      else if (!bg[i] && b && !f) placeFx(x, y, (BGS[b] || BGS[1]).fx, false);
       else if (bg[i] && !b && !f) smoke(x, y, 6, 1);
       fg[i] = snapFg[i] = f;
       bg[i] = snapBg[i] = b;
@@ -386,6 +463,13 @@ const Net = (() => {
         snapTrees.set(i, treeKey(tree));
       }
     }
+    if (Array.isArray(m.d) && inW(m.d[0], m.d[1])) {
+      smoke(door.x, door.y, 8, 1);
+      door.x = m.d[0];
+      door.y = m.d[1];
+      snapDoor = door.x + ',' + door.y;
+      smoke(door.x, door.y, 10, 1.3);
+    }
     if ('o' in m) {
       worldOwner = snapOwner = m.o || null;
       updateWorldLabel();
@@ -400,13 +484,14 @@ const Net = (() => {
     if (!inWorld || !p || p.from === N.me.id) return;
     clearTimeout(syncTimer);
     // whoever answers first wins; the others see the answer and stay quiet
-    syncTimer = setTimeout(() => send('sync', { to: p.from, w: worldData() }), 60 + Math.random() * 400);
+    // now: our clock, so they can line up how old each drop is with theirs
+    syncTimer = setTimeout(() => send('sync', { to: p.from, w: worldData(), now: Date.now() }), 60 + Math.random() * 400);
   }
   function onSync(p) {
     clearTimeout(syncTimer);
     if (!p || p.to !== N.me.id || synced) return;
     synced = true;
-    applyWorld(p.w);
+    applyWorld(p.w, p.now ? Date.now() - p.now : 0);
     snapshot();
     updateWorldLabel();
   }
@@ -419,11 +504,20 @@ const Net = (() => {
         N.remotes.delete(id);
         continue;
       }
-      const k = Math.min(1, dt * 12);
+      // dead: stay where they fell until the ghost is gone, then show up where they really are (the door)
+      if (r.dead && (r.dead.t += dt) >= DEATH_TIME) {
+        r.dead = null;
+        r.x = r.tx;
+        r.y = r.ty;
+        r.spawnT = SPAWN_FADE;
+      }
+      if (r.spawnT > 0) r.spawnT -= dt;
+      const k = r.dead ? 0 : Math.min(1, dt * 12);
       r.x += (r.tx - r.x) * k;
       r.y += (r.ty - r.y) * k;
       if (r.walking) r.walkPh += dt * (r.style === 'stride' ? 10 : 13);
       if (r.punch && (r.punch.t += dt) >= PUNCH_TIME) r.punch = null;
+      if (r.angry > 0) r.angry -= dt;
       if (r.place && ((r.place.t += dt) >= PLACE_POSE || r.walking || Math.abs(r.tx - r.place.sx) > 1.5 || Math.abs(r.ty - r.place.sy) > 1.5)) r.place = null;
       if (r.say && (r.say.t -= dt) <= 0) r.say = null;
       if (r.shove) {

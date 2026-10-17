@@ -26,6 +26,8 @@
         <div class="gold" id="gold" aria-label="Gold">
           <canvas id="goldIcon" width="32" height="32"></canvas><span id="goldN">0</span>
         </div>
+        <button class="shopbtn" id="shopBtn" aria-label="Shop">SHOP</button>
+        <button class="chatbtn" id="chatBtn" aria-label="Chat"><span class="cb"></span>CHAT</button>
         <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span><b class="badge" id="badge" hidden></b></button>
       </div>
       <div class="hotbar" id="hotbar" role="toolbar" aria-label="Hotbar"></div>
@@ -44,8 +46,8 @@
         <div class="grid" id="grid"></div>
         <div class="wearing">
           <span>Wearing:</span>
-          <div class="eslot" id="eq_hair" title="Hair"></div>
-          <div class="eslot" id="eq_feet" title="Feet"></div>
+          <div class="eslots" id="eqSlots"></div>
+          <button class="trashbtn" id="trashBtn" type="button" title="Trash: click it, then click an item to throw it away"><span class="can"></span>TRASH</button>
           <span id="eqName">Nothing</span>
         </div>
       </section>
@@ -64,6 +66,16 @@
         <dl id="infoDl"></dl>
         <button class="btn" id="infoOk">Close</button>
       </div>
+
+      <section class="win shop" id="shop" hidden role="dialog" aria-label="Shop">
+        <header>
+          <h2>SHOP</h2>
+          <span class="shopgold"><canvas id="shopCoin" width="32" height="32"></canvas><span id="shopGold">0</span></span>
+          <button class="x" id="shopx" aria-label="Close shop">X</button>
+        </header>
+        <div class="stabs" id="shopTabs" role="tablist" aria-label="Shop categories"></div>
+        <div class="slist" id="shopList" role="tabpanel"></div>
+      </section>
 
       <section class="win worlds" id="worlds" hidden aria-label="Worlds">
         <header>
@@ -201,6 +213,7 @@
     <script src="js/online-config.js"></script>
     <script src="js/assets.js"></script>
     <script src="js/config.js"></script>
+    <script src="js/blocks.js"></script>
     <script src="js/world.js"></script>
     <script src="js/player.js"></script>
     <script src="js/input.js"></script>
@@ -213,6 +226,11 @@
     <script src="js/lock.js"></script>
     <script src="js/social.js"></script>
     <script src="js/worlds.js"></script>
+    <script src="js/shop.js"></script>
+    <script src="js/signs.js"></script>
+    <script src="js/wear.js"></script>
+    <script src="js/vend.js"></script>
+    <script src="js/display.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/native.js"></script>
     <script src="js/menu.js"></script>

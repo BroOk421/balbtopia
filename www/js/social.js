@@ -617,3 +617,60 @@ function mailTab(el) {
     });
   }
 }
+
+// ---------- world chat (the CHAT button next to SHOP) ----------
+// Same pop-up as a message from the wrench, but it goes to everyone in this world:
+// it shows as a speech bubble over your head and in their chat list.
+const chatLog = []; // { name, text, mine } for this world, newest last
+function openChat() {
+  if (!inWorld) return;
+  for (const k in keys) keys[k] = false;
+  ptr.down = false;
+  const rows = chatLog
+    .slice(-30)
+    .map((m) => `<li class="${m.mine ? 'me' : ''}"><b>${esc(m.name)}:</b> ${esc(m.text)}</li>`)
+    .join('');
+  const body = dialog(
+    'CHAT · ' + worldName,
+    `<ul class="chatlog" id="chatLog">${rows}</ul>
+     <div class="chatrow"><input id="chatText" maxlength="120" placeholder="Say something…" autocomplete="off" enterkeyhint="send" /></div>`,
+    [
+      { label: 'Close', cls: 'ghost', run: () => {} },
+      { label: 'Send', run: (b) => sendChat(b.querySelector('#chatText').value) },
+    ],
+  );
+  const input = body.querySelector('#chatText'),
+    log = body.querySelector('#chatLog');
+  log.scrollTop = log.scrollHeight;
+  // focus right away (inside the tap) so the phone keyboard comes up
+  input.focus();
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (sendChat(input.value) !== false) closeDialog();
+    }
+  };
+}
+function sendChat(raw) {
+  const text = String(raw || '').trim().slice(0, 120);
+  if (!text) return false;
+  P.say = { text, t: 4 };
+  chatLog.push({ name: playerName, text, mine: true });
+  if (chatLog.length > 60) chatLog.shift();
+  Net.sendChat(text);
+}
+Net.onChat = (p) => {
+  const text = String(p.text || '').slice(0, 120),
+    name = String(p.n || 'Player').slice(0, 16);
+  if (!text) return;
+  const r = Net.remotes.get(p.id);
+  if (r) r.say = { text, t: 5 };
+  chatLog.push({ name, text, mine: false });
+  if (chatLog.length > 60) chatLog.shift();
+  const log = $('dlg').hidden ? null : document.getElementById('chatLog');
+  if (log) {
+    log.insertAdjacentHTML('beforeend', `<li><b>${esc(name)}:</b> ${esc(text)}</li>`);
+    log.scrollTop = log.scrollHeight;
+  } else toast(name + ': ' + text);
+};
+$('chatBtn').onclick = openChat;

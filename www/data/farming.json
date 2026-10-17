@@ -2,8 +2,11 @@
   "_help": [
     "Balbtopia farming: how long each tree takes to grow, and which two seeds splice into a new tree.",
     "Splicing: plant a seed, then plant a second seed on the young tree (before it is ripe).",
-    "seeds and result use item ids: dirt, cave, rock, lava, grass, dark_cave.",
+    "seeds and result use item ids (dirt, cave, rock, lava, grass, dark_cave, door, sign, wood_block, ...). The new ones are listed in js/blocks.js.",
     "The order of the two seeds doesn't matter. A result needs a tree of its own (listed in trees).",
+    "source: growtopia = the real Growtopia recipe, balbtopia = only in this game.",
+    "growtopiaNotInGameYet: real Growtopia recipes that use our seeds but make an item the game doesn't have yet.",
+    "The game ignores that list. When you add the item (with its seed and tree), move its line up into splices.",
     "Edit this file, then reload the game. Bad lines are skipped and shown in the browser console."
   ],
   "trees": {
@@ -12,15 +15,605 @@
     "grass": { "growSeconds": 45 },
     "rock": { "growSeconds": 60 },
     "lava": { "growSeconds": 60 },
-    "dark_cave": { "growSeconds": 60 }
+    "dark_cave": { "growSeconds": 60 },
+    "door": { "growSeconds": 60 },
+    "sign": { "growSeconds": 60 },
+    "lava_rock": { "growSeconds": 68 },
+    "wood_block": { "growSeconds": 60 },
+    "glass_pane": { "growSeconds": 60 },
+    "bricks": { "growSeconds": 60 },
+    "daisy": { "growSeconds": 60 },
+    "mushroom": { "growSeconds": 60 },
+    "rose": { "growSeconds": 60 },
+    "crappy_sign": { "growSeconds": 60 },
+    "happy_joy_plaque": { "growSeconds": 60 },
+    "rock_background": { "growSeconds": 60 },
+    "wooden_background": { "growSeconds": 60 },
+    "torch": { "growSeconds": 90 },
+    "amber_glass": { "growSeconds": 90 },
+    "brown_block": { "growSeconds": 90 },
+    "black_block": { "growSeconds": 90 },
+    "green_block": { "growSeconds": 90 },
+    "red_block": { "growSeconds": 90 },
+    "grey_block": { "growSeconds": 90 },
+    "mud_glob": { "growSeconds": 90 },
+    "super_crate_box": { "growSeconds": 90 },
+    "pointy_sign": { "growSeconds": 90 },
+    "wooden_platform": { "growSeconds": 90 },
+    "stone_wall": { "growSeconds": 90 },
+    "evil_bricks": { "growSeconds": 90 },
+    "red_hair": { "growSeconds": 90 },
+    "aqua_block": { "growSeconds": 90 },
+    "white_block": { "growSeconds": 90 },
+    "yellow_block": { "growSeconds": 90 },
+    "red_bricks": { "growSeconds": 90 },
+    "brick_background": { "growSeconds": 90 },
+    "wooden_table": { "growSeconds": 90 },
+    "window": { "growSeconds": 90 },
+    "flowery_wallpaper": { "growSeconds": 90 },
+    "poppy": { "growSeconds": 90 },
+    "grimstone": { "growSeconds": 90 },
+    "red_wood_wall": { "growSeconds": 90 },
+    "barn_block": { "growSeconds": 90 },
+    "toilet": { "growSeconds": 90 },
+    "bush": { "growSeconds": 90 },
+    "romantic_bushes": { "growSeconds": 120 },
+    "orange_block": { "growSeconds": 120 },
+    "blueberry": { "growSeconds": 120 },
+    "blue_block": { "growSeconds": 120 },
+    "purple_block": { "growSeconds": 120 },
+    "glass_block": { "growSeconds": 120 },
+    "red_glass_block": { "growSeconds": 120 },
+    "bubble_wrap": { "growSeconds": 120 },
+    "wooden_window": { "growSeconds": 120 },
+    "stripey_wallpaper": { "growSeconds": 120 },
+    "dark_grey_block": { "growSeconds": 120 },
+    "dark_green_block": { "growSeconds": 120 },
+    "dark_brown_block": { "growSeconds": 120 },
+    "dark_red_block": { "growSeconds": 120 },
+    "sidewalk": { "growSeconds": 120 },
+    "tiger_block": { "growSeconds": 120 },
+    "dark_yellow_block": { "growSeconds": 150 },
+    "dark_aqua_block": { "growSeconds": 150 },
+    "dark_blue_block": { "growSeconds": 150 },
+    "dark_orange_block": { "growSeconds": 150 },
+    "dark_purple_block": { "growSeconds": 150 },
+    "polka_dot_block": { "growSeconds": 150 },
+    "rainbow_block": { "growSeconds": 180 },
+    "blue_glass_block": { "growSeconds": 150 },
+    "neon_lights": { "growSeconds": 180 },
+    "dreamstone_block": { "growSeconds": 180 },
+    "cloudstone_block": { "growSeconds": 180 },
+    "ceramic_tile": { "growSeconds": 180 },
+    "ice": { "growSeconds": 180 },
+    "bathtub": { "growSeconds": 150 },
+    "water_bucket": { "growSeconds": 150 },
+    "wooden_chair": { "growSeconds": 150 },
+    "orange": { "growSeconds": 150 },
+    "lollipop": { "growSeconds": 180 },
+    "apple": { "growSeconds": 150 },
+    "cherry": { "growSeconds": 180 },
+    "tomato": { "growSeconds": 150 },
+    "dungeon_door": { "growSeconds": 150 },
+    "barrel": { "growSeconds": 180 },
+    "picket_fence": { "growSeconds": 180 },
+    "olde_timey_radio": { "growSeconds": 180 },
+    "bed": { "growSeconds": 180 },
+    "school_desk": { "growSeconds": 180 },
+    "clouds": { "growSeconds": 240 },
+    "blue_star_wallpaper": { "growSeconds": 150 },
+    "checker_wallpaper": { "growSeconds": 180 },
+    "staircase": { "growSeconds": 180 },
+    "lattice_background": { "growSeconds": 180 },
+    "dresser": { "growSeconds": 180 },
+    "house_entrance": { "growSeconds": 180 },
+    "bookcase": { "growSeconds": 240 },
+    "magic_bacon_wallpaper": { "growSeconds": 240 },
+    "art_wall": { "growSeconds": 300 },
+    "aqua_wallpaper": { "growSeconds": 300 },
+    "black_wallpaper": { "growSeconds": 300 },
+    "blue_wallpaper": { "growSeconds": 300 },
+    "brown_wallpaper": { "growSeconds": 300 },
+    "green_wallpaper": { "growSeconds": 300 },
+    "grey_wallpaper": { "growSeconds": 300 },
+    "orange_wallpaper": { "growSeconds": 300 },
+    "purple_wallpaper": { "growSeconds": 300 },
+    "red_wallpaper": { "growSeconds": 300 },
+    "white_wallpaper": { "growSeconds": 300 },
+    "yellow_wallpaper": { "growSeconds": 300 },
+    "rustic_fence": { "growSeconds": 240 },
+    "note_block": { "growSeconds": 240 },
+    "checkpoint": { "growSeconds": 240 },
+    "plumbing": { "growSeconds": 240 },
+    "copper_plumbing": { "growSeconds": 300 },
+    "streetlamp": { "growSeconds": 300 },
+    "hanging_guytrap": { "growSeconds": 300 },
+    "venus_guytrap": { "growSeconds": 300 },
+    "screen_door": { "growSeconds": 240 },
+    "hospital_bed": { "growSeconds": 300 },
+    "barn_door": { "growSeconds": 240 },
+    "big_old_sideways_arrow": { "growSeconds": 240 },
+    "secret_passage": { "growSeconds": 300 },
+    "ice_crust_block": { "growSeconds": 300 },
+    "seaweed": { "growSeconds": 240 },
+    "das_red_balloon": { "growSeconds": 300 },
+    "danger_sign": { "growSeconds": 240 },
+    "biohazard_sign": { "growSeconds": 300 },
+    "death_spikes": { "growSeconds": 300 },
+    "cactus": { "growSeconds": 300 },
+    "stalactite": { "growSeconds": 300 },
+    "portcullis": { "growSeconds": 300 },
+    "steel_block": { "growSeconds": 360 },
+    "golden_block": { "growSeconds": 420 },
+    "boombox": { "growSeconds": 360 },
+    "tan_shirt": { "growSeconds": 240 },
+    "cargo_shorts": { "growSeconds": 240 },
+    "stinky_socks": { "growSeconds": 240 },
+    "shallot_mustache": { "growSeconds": 240 },
+    "santa_pants": { "growSeconds": 240 },
+    "black_pants": { "growSeconds": 240 },
+    "boots": { "growSeconds": 240 },
+    "hot_head": { "growSeconds": 240 },
+    "tuxedo": { "growSeconds": 240 },
+    "top_hat": { "growSeconds": 240 },
+    "shades": { "growSeconds": 240 },
+    "red_riding_hood": { "growSeconds": 240 },
+    "santa_hat": { "growSeconds": 240 },
+    "referee_shirt": { "growSeconds": 240 },
+    "afro": { "growSeconds": 240 },
+    "green_shirt": { "growSeconds": 240 },
+    "green_blouse": { "growSeconds": 240 },
+    "green_skirt": { "growSeconds": 240 },
+    "red_coat": { "growSeconds": 240 },
+    "biker_stache": { "growSeconds": 240 },
+    "brown_hair": { "growSeconds": 240 },
+    "brown_shoes": { "growSeconds": 240 },
+    "pigtails": { "growSeconds": 240 },
+    "x_ray_specs": { "growSeconds": 240 },
+    "ski_cap": { "growSeconds": 240 },
+    "patent_leather_shoes": { "growSeconds": 240 },
+    "flashlight": { "growSeconds": 300 },
+    "pencil": { "growSeconds": 300 },
+    "blonde_bombshell": { "growSeconds": 240 },
+    "rooster_hat": { "growSeconds": 240 },
+    "gold_rimmed_glasses": { "growSeconds": 240 },
+    "white_beard": { "growSeconds": 240 },
+    "froghat": { "growSeconds": 240 },
+    "jeans": { "growSeconds": 240 },
+    "baseball_cap": { "growSeconds": 240 },
+    "santa_vest": { "growSeconds": 240 },
+    "cyclopean_visor": { "growSeconds": 240 },
+    "big_glasses": { "growSeconds": 240 },
+    "messy_auburn_tresses": { "growSeconds": 240 },
+    "just_one_boxing_glove": { "growSeconds": 300 },
+    "backpack": { "growSeconds": 240 },
+    "tv_head": { "growSeconds": 240 },
+    "grey_hair_bun": { "growSeconds": 240 },
+    "old_timey_hat": { "growSeconds": 240 },
+    "hot_pink_highlights": { "growSeconds": 240 },
+    "unicorn_hair": { "growSeconds": 240 },
+    "purple_mohawk": { "growSeconds": 240 },
+    "smarty_pants": { "growSeconds": 240 },
+    "plain_white_tee": { "growSeconds": 240 },
+    "clown_pants": { "growSeconds": 240 },
+    "tie_dyed_shirt": { "growSeconds": 240 },
+    "sexy_boxers": { "growSeconds": 240 },
+    "wedding_dress": { "growSeconds": 240 },
+    "spikey_hair": { "growSeconds": 240 },
+    "sword": { "growSeconds": 300 },
+    "jetpack": { "growSeconds": 240 },
+    "checkered_pajamas": { "growSeconds": 240 },
+    "bridal_veil": { "growSeconds": 240 },
+    "purple_thong": { "growSeconds": 240 },
+    "pickaxe": { "growSeconds": 300 },
+    "gamblers_visor": { "growSeconds": 240 },
+    "long_brown_hair": { "growSeconds": 240 },
+    "long_black_hair": { "growSeconds": 240 },
+    "laser_eyes": { "growSeconds": 300 },
+    "princess_hair": { "growSeconds": 300 }
   },
   "splices": [
-    { "seeds": ["dirt", "dirt"], "result": "grass", "note": "Two soils grow something green" },
-    { "seeds": ["cave", "dirt"], "result": "dark_cave", "note": "Soil packed onto the cave wall" },
-    { "seeds": ["cave", "rock"], "result": "dark_cave", "note": "A quicker way to Dark Cave if you have rock" },
-    { "seeds": ["dirt", "rock"], "result": "cave", "note": "Soil and stone make the cave wall" },
-    { "seeds": ["dirt", "lava"], "result": "rock", "note": "Lava cools into stone on the soil" },
-    { "seeds": ["rock", "rock"], "result": "lava", "note": "Squeeze stone hard enough and it melts" },
-    { "seeds": ["grass", "lava"], "result": "dirt", "note": "Burnt grass turns back into soil" }
+    { "seeds": ["dirt", "rock"], "result": "grass", "source": "growtopia", "note": "Grass = Dirt + Rock"
+    },
+    { "seeds": ["cave", "dirt"], "result": "door", "source": "growtopia", "note": "Door = Dirt + Cave Background"
+    },
+    { "seeds": ["cave", "rock"], "result": "sign", "source": "growtopia", "note": "Sign = Cave Background + Rock"
+    },
+    { "seeds": ["cave", "lava"], "result": "lava_rock", "source": "growtopia", "note": "Lava Rock = Cave Background + Lava"
+    },
+    { "seeds": ["dirt", "lava"], "result": "wood_block", "source": "growtopia", "note": "Wood Block = Dirt + Lava"
+    },
+    { "seeds": ["lava", "rock"], "result": "glass_pane", "source": "growtopia", "note": "Glass Pane = Rock + Lava"
+    },
+    { "seeds": ["grass", "rock"], "result": "bricks", "source": "growtopia", "note": "Bricks = Grass + Rock"
+    },
+    { "seeds": ["dirt", "grass"], "result": "daisy", "source": "growtopia", "note": "Daisy = Dirt + Grass"
+    },
+    { "seeds": ["cave", "grass"], "result": "mushroom", "source": "growtopia", "note": "Mushroom = Cave Background + Grass"
+    },
+    { "seeds": ["grass", "lava"], "result": "rose", "source": "growtopia", "note": "Rose = Grass + Lava"
+    },
+    { "seeds": ["dirt", "door"], "result": "crappy_sign", "source": "growtopia", "note": "Crappy Sign = Dirt + Door"
+    },
+    { "seeds": ["cave", "door"], "result": "happy_joy_plaque", "source": "growtopia", "note": "Happy Joy Plaque = Cave Background + Door"
+    },
+    { "seeds": ["door", "rock"], "result": "rock_background", "source": "growtopia", "note": "Rock Background = Door + Rock"
+    },
+    { "seeds": ["door", "grass"], "result": "wooden_background", "source": "growtopia", "note": "Wooden Background = Door + Grass"
+    },
+    { "seeds": ["lava", "sign"], "result": "torch", "source": "growtopia", "note": "Torch = Lava + Sign"
+    },
+    { "seeds": ["dirt", "glass_pane"], "result": "amber_glass", "source": "growtopia", "note": "Amber Glass = Dirt + Glass Pane"
+    },
+    { "seeds": ["bricks", "dirt"], "result": "brown_block", "source": "growtopia", "note": "Brown Block = Dirt + Bricks"
+    },
+    { "seeds": ["bricks", "cave"], "result": "black_block", "source": "growtopia", "note": "Black Block = Cave Background + Bricks"
+    },
+    { "seeds": ["bricks", "grass"], "result": "green_block", "source": "growtopia", "note": "Green Block = Grass + Bricks"
+    },
+    { "seeds": ["bricks", "lava"], "result": "red_block", "source": "growtopia", "note": "Red Block = Lava + Bricks"
+    },
+    { "seeds": ["bricks", "rock"], "result": "grey_block", "source": "growtopia", "note": "Grey Block = Rock + Bricks"
+    },
+    { "seeds": ["daisy", "dirt"], "result": "mud_glob", "source": "growtopia", "note": "Mud Glob = Dirt + Daisy"
+    },
+    { "seeds": ["dirt", "sign"], "result": "super_crate_box", "source": "growtopia", "note": "Super Crate Box = Dirt + Sign"
+    },
+    { "seeds": ["door", "sign"], "result": "pointy_sign", "source": "growtopia", "note": "Pointy Sign = Door + Sign"
+    },
+    { "seeds": ["grass", "wood_block"], "result": "wooden_platform", "source": "growtopia", "note": "Wooden Platform = Grass + Wood Block"
+    },
+    { "seeds": ["grey_block", "rock"], "result": "stone_wall", "source": "growtopia", "note": "Stone Wall = Rock + Grey Block"
+    },
+    { "seeds": ["black_block", "lava"], "result": "evil_bricks", "source": "growtopia", "note": "Evil Bricks = Lava + Black Block"
+    },
+    { "seeds": ["grass", "red_block"], "result": "red_hair", "source": "growtopia", "note": "Red Hair = Grass + Red Block"
+    },
+    { "seeds": ["bricks", "glass_pane"], "result": "aqua_block", "source": "growtopia", "note": "Aqua Block = Bricks + Glass Pane"
+    },
+    { "seeds": ["bricks", "mushroom"], "result": "white_block", "source": "growtopia", "note": "White Block = Bricks + Mushroom"
+    },
+    { "seeds": ["bricks", "daisy"], "result": "yellow_block", "source": "growtopia", "note": "Yellow Block = Bricks + Daisy"
+    },
+    { "seeds": ["bricks", "red_block"], "result": "red_bricks", "source": "growtopia", "note": "Red Bricks = Bricks + Red Block"
+    },
+    { "seeds": ["black_block", "bricks"], "result": "brick_background", "source": "growtopia", "note": "Brick Background = Black Block + Bricks"
+    },
+    { "seeds": ["wood_block", "wooden_platform"], "result": "wooden_table", "source": "growtopia", "note": "Wooden Table = Wood Block + Wooden Platform"
+    },
+    { "seeds": ["glass_pane", "wooden_background"], "result": "window", "source": "growtopia", "note": "Window = Glass Pane + Wooden Background"
+    },
+    { "seeds": ["daisy", "wooden_background"], "result": "flowery_wallpaper", "source": "growtopia", "note": "Flowery Wallpaper = Daisy + Wooden Background"
+    },
+    { "seeds": ["daisy", "rose"], "result": "poppy", "source": "growtopia", "note": "Poppy = Daisy + Rose"
+    },
+    { "seeds": ["grass", "stone_wall"], "result": "grimstone", "source": "growtopia", "note": "Grimstone = Grass + Stone Wall"
+    },
+    { "seeds": ["red_block", "wooden_background"], "result": "red_wood_wall", "source": "growtopia", "note": "Red Wood Wall = Red Block + Wooden Background"
+    },
+    { "seeds": ["red_block", "super_crate_box"], "result": "barn_block", "source": "growtopia", "note": "Barn Block = Red Block + Super Crate Box"
+    },
+    { "seeds": ["brown_block", "crappy_sign"], "result": "toilet", "source": "growtopia", "note": "Toilet = Brown Block + Crappy Sign"
+    },
+    { "seeds": ["poppy", "rose"], "result": "bush", "source": "growtopia", "note": "Bush = Poppy + Rose"
+    },
+    { "seeds": ["bush", "rose"], "result": "romantic_bushes", "source": "growtopia", "note": "Romantic Bushes = Bush + Rose"
+    },
+    { "seeds": ["bricks", "poppy"], "result": "orange_block", "source": "growtopia", "note": "Orange Block = Bricks + Poppy"
+    },
+    { "seeds": ["bush", "mushroom"], "result": "blueberry", "source": "growtopia", "note": "Blueberry = Bush + Mushroom"
+    },
+    { "seeds": ["blueberry", "bricks"], "result": "blue_block", "source": "growtopia", "note": "Blue Block = Blueberry + Bricks"
+    },
+    { "seeds": ["blue_block", "red_block"], "result": "purple_block", "source": "growtopia", "note": "Purple Block = Blue Block + Red Block"
+    },
+    { "seeds": ["aqua_block", "glass_pane"], "result": "glass_block", "source": "growtopia", "note": "Glass Block = Aqua Block + Glass Pane"
+    },
+    { "seeds": ["glass_block", "red_block"], "result": "red_glass_block", "source": "growtopia", "note": "Red Glass Block = Glass Block + Red Block"
+    },
+    { "seeds": ["blueberry", "glass_pane"], "result": "bubble_wrap", "source": "growtopia", "note": "Bubble Wrap = Blueberry + Glass Pane"
+    },
+    { "seeds": ["window", "wooden_background"], "result": "wooden_window", "source": "growtopia", "note": "Wooden Window = Window + Wooden Background"
+    },
+    { "seeds": ["aqua_block", "green_block"], "result": "stripey_wallpaper", "source": "growtopia", "note": "Stripey Wallpaper = Aqua Block + Green Block"
+    },
+    { "seeds": ["grey_block", "grimstone"], "result": "dark_grey_block", "source": "growtopia", "note": "Dark Grey Block = Grey Block + Grimstone"
+    },
+    { "seeds": ["green_block", "grimstone"], "result": "dark_green_block", "source": "growtopia", "note": "Dark Green Block = Green Block + Grimstone"
+    },
+    { "seeds": ["brown_block", "grimstone"], "result": "dark_brown_block", "source": "growtopia", "note": "Dark Brown Block = Brown Block + Grimstone"
+    },
+    { "seeds": ["grimstone", "red_block"], "result": "dark_red_block", "source": "growtopia", "note": "Dark Red Block = Grimstone + Red Block"
+    },
+    { "seeds": ["grey_block", "red_bricks"], "result": "sidewalk", "source": "growtopia", "note": "Sidewalk = Grey Block + Red Bricks"
+    },
+    { "seeds": ["black_block", "orange_block"], "result": "tiger_block", "source": "growtopia", "note": "Tiger Block = Black Block + Orange Block"
+    },
+    { "seeds": ["grimstone", "yellow_block"], "result": "dark_yellow_block", "source": "growtopia", "note": "Dark Yellow Block = Grimstone + Yellow Block"
+    },
+    { "seeds": ["aqua_block", "grimstone"], "result": "dark_aqua_block", "source": "growtopia", "note": "Dark Aqua Block = Aqua Block + Grimstone"
+    },
+    { "seeds": ["blue_block", "grimstone"], "result": "dark_blue_block", "source": "growtopia", "note": "Dark Blue Block = Blue Block + Grimstone"
+    },
+    { "seeds": ["grimstone", "orange_block"], "result": "dark_orange_block", "source": "growtopia", "note": "Dark Orange Block = Grimstone + Orange Block"
+    },
+    { "seeds": ["grimstone", "purple_block"], "result": "dark_purple_block", "source": "growtopia", "note": "Dark Purple Block = Grimstone + Purple Block"
+    },
+    { "seeds": ["toilet", "white_block"], "result": "bathtub", "source": "growtopia", "note": "Bathtub = Toilet + White Block"
+    },
+    { "seeds": ["orange_block", "white_block"], "result": "polka_dot_block", "source": "growtopia", "note": "Polka Dot Block = Orange Block + White Block"
+    },
+    { "seeds": ["orange_block", "purple_block"], "result": "rainbow_block", "source": "growtopia", "note": "Rainbow Block = Orange Block + Purple Block"
+    },
+    { "seeds": ["blue_block", "glass_block"], "result": "blue_glass_block", "source": "growtopia", "note": "Blue Glass Block = Blue Block + Glass Block"
+    },
+    { "seeds": ["glass_block", "purple_block"], "result": "neon_lights", "source": "growtopia", "note": "Neon Lights = Glass Block + Purple Block"
+    },
+    { "seeds": ["aqua_block", "toilet"], "result": "water_bucket", "source": "growtopia", "note": "Water Bucket = Aqua Block + Toilet"
+    },
+    { "seeds": ["toilet", "wooden_platform"], "result": "wooden_chair", "source": "growtopia", "note": "Wooden Chair = Toilet + Wooden Platform"
+    },
+    { "seeds": ["bush", "poppy"], "result": "orange", "source": "growtopia", "note": "Orange = Bush + Poppy"
+    },
+    { "seeds": ["blueberry", "purple_block"], "result": "lollipop", "source": "growtopia", "note": "Lollipop = Blueberry + Purple Block"
+    },
+    { "seeds": ["blueberry", "red_bricks"], "result": "apple", "source": "growtopia", "note": "Apple = Blueberry + Red Bricks"
+    },
+    { "seeds": ["blueberry", "dark_red_block"], "result": "cherry", "source": "growtopia", "note": "Cherry = Blueberry + Dark Red Block"
+    },
+    { "seeds": ["mud_glob", "red_bricks"], "result": "tomato", "source": "growtopia", "note": "Tomato = Mud Glob + Red Bricks"
+    },
+    { "seeds": ["amber_glass", "blue_block"], "result": "blue_star_wallpaper", "source": "growtopia", "note": "Blue Star Wallpaper = Amber Glass + Blue Block"
+    },
+    { "seeds": ["door", "window"], "result": "dungeon_door", "source": "growtopia", "note": "Dungeon Door = Door + Window"
+    },
+    { "seeds": ["evil_bricks", "window"], "result": "checker_wallpaper", "source": "growtopia", "note": "Checker Wallpaper = Evil Bricks + Window"
+    },
+    { "seeds": ["red_wood_wall", "wooden_platform"], "result": "staircase", "source": "growtopia", "note": "Staircase = Red Wood Wall + Wooden Platform"
+    },
+    { "seeds": ["dungeon_door", "super_crate_box"], "result": "barrel", "source": "growtopia", "note": "Barrel = Dungeon Door + Super Crate Box"
+    },
+    { "seeds": ["white_block", "wooden_chair"], "result": "picket_fence", "source": "growtopia", "note": "Picket Fence = White Block + Wooden Chair"
+    },
+    { "seeds": ["dungeon_door", "toilet"], "result": "olde_timey_radio", "source": "growtopia", "note": "Olde Timey Radio = Dungeon Door + Toilet"
+    },
+    { "seeds": ["mushroom", "wooden_chair"], "result": "bed", "source": "growtopia", "note": "Bed = Mushroom + Wooden Chair"
+    },
+    { "seeds": ["orange_block", "wooden_chair"], "result": "school_desk", "source": "growtopia", "note": "School Desk = Orange Block + Wooden Chair"
+    },
+    { "seeds": ["bed", "orange_block"], "result": "dreamstone_block", "source": "growtopia", "note": "Dreamstone Block = Bed + Orange Block"
+    },
+    { "seeds": ["aqua_block", "dreamstone_block"], "result": "cloudstone_block", "source": "growtopia", "note": "Cloudstone Block = Aqua Block + Dreamstone Block"
+    },
+    { "seeds": ["dreamstone_block", "toilet"], "result": "ceramic_tile", "source": "growtopia", "note": "Ceramic Tile = Dreamstone Block + Toilet"
+    },
+    { "seeds": ["cloudstone_block", "glass_block"], "result": "clouds", "source": "growtopia", "note": "Clouds = Cloudstone Block + Glass Block"
+    },
+    { "seeds": ["cloudstone_block", "glass_pane"], "result": "ice", "source": "growtopia", "note": "Ice = Cloudstone Block + Glass Pane"
+    },
+    { "seeds": ["wooden_background", "wooden_chair"], "result": "lattice_background", "source": "growtopia", "note": "Lattice Background = Wooden Background + Wooden Chair"
+    },
+    { "seeds": ["dungeon_door", "wooden_table"], "result": "dresser", "source": "growtopia", "note": "Dresser = Dungeon Door + Wooden Table"
+    },
+    { "seeds": ["door", "dungeon_door"], "result": "house_entrance", "source": "growtopia", "note": "House Entrance = Door + Dungeon Door"
+    },
+    { "seeds": ["dresser", "rainbow_block"], "result": "bookcase", "source": "growtopia", "note": "Bookcase = Dresser + Rainbow Block"
+    },
+    { "seeds": ["house_entrance", "rainbow_block"], "result": "magic_bacon_wallpaper", "source": "growtopia", "note": "Magic Bacon Wallpaper = House Entrance + Rainbow Block"
+    },
+    { "seeds": ["magic_bacon_wallpaper", "rainbow_block"], "result": "art_wall", "source": "growtopia", "note": "Art Wall = Magic Bacon Wallpaper + Rainbow Block"
+    },
+    { "seeds": ["crappy_sign", "picket_fence"], "result": "rustic_fence", "source": "growtopia", "note": "Rustic Fence = Crappy Sign + Picket Fence"
+    },
+    { "seeds": ["blue_block", "olde_timey_radio"], "result": "note_block", "source": "growtopia", "note": "Note Block = Blue Block + Olde Timey Radio"
+    },
+    { "seeds": ["bubble_wrap", "cloudstone_block"], "result": "checkpoint", "source": "growtopia", "note": "Checkpoint = Bubble Wrap + Cloudstone Block"
+    },
+    { "seeds": ["bathtub", "green_block"], "result": "plumbing", "source": "growtopia", "note": "Plumbing = Bathtub + Green Block"
+    },
+    { "seeds": ["orange_block", "plumbing"], "result": "copper_plumbing", "source": "growtopia", "note": "Copper Plumbing = Orange Block + Plumbing"
+    },
+    { "seeds": ["neon_lights", "plumbing"], "result": "streetlamp", "source": "growtopia", "note": "Streetlamp = Neon Lights + Plumbing"
+    },
+    { "seeds": ["aqua_block", "magic_bacon_wallpaper"], "result": "aqua_wallpaper", "source": "growtopia", "note": "Aqua Wallpaper = Aqua Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["black_block", "magic_bacon_wallpaper"], "result": "black_wallpaper", "source": "growtopia", "note": "Black Wallpaper = Black Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["blue_block", "magic_bacon_wallpaper"], "result": "blue_wallpaper", "source": "growtopia", "note": "Blue Wallpaper = Blue Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["brown_block", "magic_bacon_wallpaper"], "result": "brown_wallpaper", "source": "growtopia", "note": "Brown Wallpaper = Brown Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["green_block", "magic_bacon_wallpaper"], "result": "green_wallpaper", "source": "growtopia", "note": "Green Wallpaper = Green Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["grey_block", "magic_bacon_wallpaper"], "result": "grey_wallpaper", "source": "growtopia", "note": "Grey Wallpaper = Grey Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["magic_bacon_wallpaper", "orange_block"], "result": "orange_wallpaper", "source": "growtopia", "note": "Orange Wallpaper = Orange Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["magic_bacon_wallpaper", "purple_block"], "result": "purple_wallpaper", "source": "growtopia", "note": "Purple Wallpaper = Purple Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["magic_bacon_wallpaper", "red_block"], "result": "red_wallpaper", "source": "growtopia", "note": "Red Wallpaper = Red Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["magic_bacon_wallpaper", "white_block"], "result": "white_wallpaper", "source": "growtopia", "note": "White Wallpaper = White Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["magic_bacon_wallpaper", "yellow_block"], "result": "yellow_wallpaper", "source": "growtopia", "note": "Yellow Wallpaper = Yellow Block + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["magic_bacon_wallpaper", "rose"], "result": "hanging_guytrap", "source": "growtopia", "note": "Hanging Guytrap = Magic Bacon Wallpaper + Rose"
+    },
+    { "seeds": ["daisy", "magic_bacon_wallpaper"], "result": "venus_guytrap", "source": "growtopia", "note": "Venus Guytrap = Daisy + Magic Bacon Wallpaper"
+    },
+    { "seeds": ["door", "lattice_background"], "result": "screen_door", "source": "growtopia", "note": "Screen Door = Door + Lattice Background"
+    },
+    { "seeds": ["bed", "screen_door"], "result": "hospital_bed", "source": "growtopia", "note": "Hospital Bed = Bed + Screen Door"
+    },
+    { "seeds": ["barn_block", "door"], "result": "barn_door", "source": "growtopia", "note": "Barn Door = Barn Block + Door"
+    },
+    { "seeds": ["orange_block", "pointy_sign"], "result": "big_old_sideways_arrow", "source": "growtopia", "note": "Big Old Sideways Arrow = Orange Block + Pointy Sign"
+    },
+    { "seeds": ["big_old_sideways_arrow", "wood_block"], "result": "secret_passage", "source": "growtopia", "note": "Secret Passage = Big Old Sideways Arrow + Wood Block"
+    },
+    { "seeds": ["glass_block", "water_bucket"], "result": "ice_crust_block", "source": "growtopia", "note": "Ice Crust Block = Glass Block + Water Bucket"
+    },
+    { "seeds": ["bush", "water_bucket"], "result": "seaweed", "source": "growtopia", "note": "Seaweed = Bush + Water Bucket"
+    },
+    { "seeds": ["bubble_wrap", "red_block"], "result": "das_red_balloon", "source": "growtopia", "note": "Das Red Balloon = Bubble Wrap + Red Block"
+    },
+    { "seeds": ["lava", "pointy_sign"], "result": "danger_sign", "source": "growtopia", "note": "Danger Sign = Lava + Pointy Sign"
+    },
+    { "seeds": ["danger_sign", "orange_block"], "result": "biohazard_sign", "source": "growtopia", "note": "Biohazard Sign = Danger Sign + Orange Block"
+    },
+    { "seeds": ["danger_sign", "rock_background"], "result": "death_spikes", "source": "growtopia", "note": "Death Spikes = Danger Sign + Rock Background"
+    },
+    { "seeds": ["bush", "death_spikes"], "result": "cactus", "source": "growtopia", "note": "Cactus = Bush + Death Spikes"
+    },
+    { "seeds": ["dark_cave", "death_spikes"], "result": "stalactite", "source": "growtopia", "note": "Stalactite = Dark Cave + Death Spikes"
+    },
+    { "seeds": ["death_spikes", "dungeon_door"], "result": "portcullis", "source": "growtopia", "note": "Portcullis = Death Spikes + Dungeon Door"
+    },
+    { "seeds": ["portcullis", "purple_block"], "result": "steel_block", "source": "growtopia", "note": "Steel Block = Portcullis + Purple Block"
+    },
+    { "seeds": ["steel_block", "yellow_block"], "result": "golden_block", "source": "growtopia", "note": "Golden Block = Steel Block + Yellow Block"
+    },
+    { "seeds": ["black_block", "steel_block"], "result": "boombox", "source": "growtopia", "note": "Boombox = Black Block + Steel Block"
+    },
+    { "seeds": ["dirt", "rock_background"], "result": "tan_shirt", "source": "growtopia", "note": "Tan Shirt = Dirt + Rock Background"
+    },
+    { "seeds": ["dirt", "wood_block"], "result": "cargo_shorts", "source": "growtopia", "note": "Cargo Shorts = Dirt + Wood Block"
+    },
+    { "seeds": ["dirt", "mushroom"], "result": "stinky_socks", "source": "growtopia", "note": "Stinky Socks = Dirt + Mushroom"
+    },
+    { "seeds": ["grass", "mushroom"], "result": "shallot_mustache", "source": "growtopia", "note": "Shallot Mustache = Grass + Mushroom"
+    },
+    { "seeds": ["grey_block", "lava"], "result": "santa_pants", "source": "growtopia", "note": "Santa Pants = Grey Block + Lava"
+    },
+    { "seeds": ["black_block", "door"], "result": "black_pants", "source": "growtopia", "note": "Black Pants = Black Block + Door"
+    },
+    { "seeds": ["black_block", "rock"], "result": "boots", "source": "growtopia", "note": "Boots = Black Block + Rock"
+    },
+    { "seeds": ["lava", "red_block"], "result": "hot_head", "source": "growtopia", "note": "Hot Head = Lava + Red Block"
+    },
+    { "seeds": ["grey_block", "rose"], "result": "tuxedo", "source": "growtopia", "note": "Tuxedo = Grey Block + Rose"
+    },
+    { "seeds": ["black_block", "mushroom"], "result": "top_hat", "source": "growtopia", "note": "Top Hat = Black Block + Mushroom"
+    },
+    { "seeds": ["black_block", "glass_pane"], "result": "shades", "source": "growtopia", "note": "Shades = Black Block + Glass Pane"
+    },
+    { "seeds": ["mushroom", "red_block"], "result": "red_riding_hood", "source": "growtopia", "note": "Red Riding Hood = Mushroom + Red Block"
+    },
+    { "seeds": ["red_block", "white_block"], "result": "santa_hat", "source": "growtopia", "note": "Santa Hat = Red Block + White Block"
+    },
+    { "seeds": ["black_block", "white_block"], "result": "referee_shirt", "source": "growtopia", "note": "Referee Shirt = Black Block + White Block"
+    },
+    { "seeds": ["black_block", "bush"], "result": "afro", "source": "growtopia", "note": "Afro = Black Block + Bush"
+    },
+    { "seeds": ["grass", "green_block"], "result": "green_shirt", "source": "growtopia", "note": "Green Shirt = Grass + Green Block"
+    },
+    { "seeds": ["bush", "green_block"], "result": "green_blouse", "source": "growtopia", "note": "Green Blouse = Bush + Green Block"
+    },
+    { "seeds": ["green_block", "poppy"], "result": "green_skirt", "source": "growtopia", "note": "Green Skirt = Green Block + Poppy"
+    },
+    { "seeds": ["bush", "red_block"], "result": "red_coat", "source": "growtopia", "note": "Red Coat = Bush + Red Block"
+    },
+    { "seeds": ["brown_block", "grass"], "result": "biker_stache", "source": "growtopia", "note": "Biker Stache = Brown Block + Grass"
+    },
+    { "seeds": ["brown_block", "dirt"], "result": "brown_hair", "source": "growtopia", "note": "Brown Hair = Brown Block + Dirt"
+    },
+    { "seeds": ["brown_block", "cave"], "result": "brown_shoes", "source": "growtopia", "note": "Brown Shoes = Brown Block + Cave Background"
+    },
+    { "seeds": ["daisy", "orange_block"], "result": "pigtails", "source": "growtopia", "note": "Pigtails = Daisy + Orange Block"
+    },
+    { "seeds": ["glass_pane", "white_block"], "result": "x_ray_specs", "source": "growtopia", "note": "X-Ray Specs = Glass Pane + White Block"
+    },
+    { "seeds": ["blue_block", "mushroom"], "result": "ski_cap", "source": "growtopia", "note": "Ski Cap = Blue Block + Mushroom"
+    },
+    { "seeds": ["brick_background", "grey_block"], "result": "patent_leather_shoes", "source": "growtopia", "note": "Patent Leather Shoes = Brick Background + Grey Block"
+    },
+    { "seeds": ["black_block", "yellow_block"], "result": "flashlight", "source": "growtopia", "note": "Flashlight = Black Block + Yellow Block"
+    },
+    { "seeds": ["wood_block", "yellow_block"], "result": "pencil", "source": "growtopia", "note": "Pencil = Wood Block + Yellow Block"
+    },
+    { "seeds": ["grass", "yellow_block"], "result": "blonde_bombshell", "source": "growtopia", "note": "Blonde Bombshell = Grass + Yellow Block"
+    },
+    { "seeds": ["white_block", "yellow_block"], "result": "rooster_hat", "source": "growtopia", "note": "Rooster Hat = White Block + Yellow Block"
+    },
+    { "seeds": ["window", "yellow_block"], "result": "gold_rimmed_glasses", "source": "growtopia", "note": "Gold-Rimmed Glasses = Window + Yellow Block"
+    },
+    { "seeds": ["bush", "white_block"], "result": "white_beard", "source": "growtopia", "note": "White Beard = Bush + White Block"
+    },
+    { "seeds": ["aqua_block", "bush"], "result": "froghat", "source": "growtopia", "note": "Froghat = Aqua Block + Bush"
+    },
+    { "seeds": ["aqua_block", "rock"], "result": "jeans", "source": "growtopia", "note": "Jeans = Aqua Block + Rock"
+    },
+    { "seeds": ["bush", "wooden_platform"], "result": "baseball_cap", "source": "growtopia", "note": "Baseball Cap = Bush + Wooden Platform"
+    },
+    { "seeds": ["lava", "white_block"], "result": "santa_vest", "source": "growtopia", "note": "Santa Vest = Lava + White Block"
+    },
+    { "seeds": ["red_block", "window"], "result": "cyclopean_visor", "source": "growtopia", "note": "Cyclopean Visor = Red Block + Window"
+    },
+    { "seeds": ["window", "wooden_window"], "result": "big_glasses", "source": "growtopia", "note": "Big Glasses = Window + Wooden Window"
+    },
+    { "seeds": ["crappy_sign", "red_bricks"], "result": "messy_auburn_tresses", "source": "growtopia", "note": "Messy Auburn Tresses = Crappy Sign + Red Bricks"
+    },
+    { "seeds": ["blueberry", "red_block"], "result": "just_one_boxing_glove", "source": "growtopia", "note": "Just One Boxing Glove = Blueberry + Red Block"
+    },
+    { "seeds": ["bed", "super_crate_box"], "result": "backpack", "source": "growtopia", "note": "Backpack = Bed + Super Crate Box"
+    },
+    { "seeds": ["olde_timey_radio", "wood_block"], "result": "tv_head", "source": "growtopia", "note": "TV Head = Olde Timey Radio + Wood Block"
+    },
+    { "seeds": ["grey_block", "olde_timey_radio"], "result": "grey_hair_bun", "source": "growtopia", "note": "Grey Hair Bun = Grey Block + Olde Timey Radio"
+    },
+    { "seeds": ["brown_block", "olde_timey_radio"], "result": "old_timey_hat", "source": "growtopia", "note": "Old-Timey Hat = Brown Block + Olde Timey Radio"
+    },
+    { "seeds": ["black_block", "neon_lights"], "result": "hot_pink_highlights", "source": "growtopia", "note": "Hot Pink Highlights = Black Block + Neon Lights"
+    },
+    { "seeds": ["picket_fence", "rainbow_block"], "result": "unicorn_hair", "source": "growtopia", "note": "Unicorn Hair = Picket Fence + Rainbow Block"
+    },
+    { "seeds": ["picket_fence", "purple_block"], "result": "purple_mohawk", "source": "growtopia", "note": "Purple Mohawk = Picket Fence + Purple Block"
+    },
+    { "seeds": ["rainbow_block", "white_wallpaper"], "result": "smarty_pants", "source": "growtopia", "note": "Smarty Pants = Rainbow Block + White Wallpaper"
+    },
+    { "seeds": ["white_block", "white_wallpaper"], "result": "plain_white_tee", "source": "growtopia", "note": "Plain White Tee = White Block + White Wallpaper"
+    },
+    { "seeds": ["happy_joy_plaque", "polka_dot_block"], "result": "clown_pants", "source": "growtopia", "note": "Clown Pants = Happy Joy Plaque + Polka Dot Block"
+    },
+    { "seeds": ["checker_wallpaper", "polka_dot_block"], "result": "tie_dyed_shirt", "source": "growtopia", "note": "Tie Dyed Shirt = Checker Wallpaper + Polka Dot Block"
+    },
+    { "seeds": ["polka_dot_block", "rose"], "result": "sexy_boxers", "source": "growtopia", "note": "Sexy Boxers = Polka Dot Block + Rose"
+    },
+    { "seeds": ["rose", "white_wallpaper"], "result": "wedding_dress", "source": "growtopia", "note": "Wedding Dress = Rose + White Wallpaper"
+    },
+    { "seeds": ["death_spikes", "yellow_block"], "result": "spikey_hair", "source": "growtopia", "note": "Spikey Hair = Death Spikes + Yellow Block"
+    },
+    { "seeds": ["death_spikes", "rock_background"], "result": "sword", "source": "growtopia", "note": "Sword = Death Spikes + Rock Background"
+    },
+    { "seeds": ["lava", "steel_block"], "result": "jetpack", "source": "growtopia", "note": "Jetpack = Lava + Steel Block"
+    },
+    { "seeds": ["bed", "checker_wallpaper"], "result": "checkered_pajamas", "source": "growtopia", "note": "Checkered Pajamas = Bed + Checker Wallpaper"
+    },
+    { "seeds": ["screen_door", "white_block"], "result": "bridal_veil", "source": "growtopia", "note": "Bridal Veil = Screen Door + White Block"
+    },
+    { "seeds": ["danger_sign", "purple_block"], "result": "purple_thong", "source": "growtopia", "note": "Purple Thong = Danger Sign + Purple Block"
+    },
+    { "seeds": ["cave", "portcullis"], "result": "pickaxe", "source": "growtopia", "note": "Pickaxe = Cave Background + Portcullis"
+    },
+    { "seeds": ["glass_block", "green_block"], "result": "gamblers_visor", "source": "growtopia", "note": "Gambler's Visor = Glass Block + Green Block"
+    },
+    { "seeds": ["grass", "wooden_table"], "result": "long_brown_hair", "source": "growtopia", "note": "Long Brown Hair = Grass + Wooden Table"
+    },
+    { "seeds": ["black_block", "portcullis"], "result": "long_black_hair", "source": "growtopia", "note": "Long Black Hair = Black Block + Portcullis"
+    },
+    { "seeds": ["dirt", "dirt"], "result": "grass", "source": "balbtopia", "note": "Two soils grow something green"
+    },
+    { "seeds": ["rock", "rock"], "result": "lava", "source": "balbtopia", "note": "Squeeze stone hard enough and it melts"
+    },
+    { "seeds": ["cave", "cave"], "result": "dark_cave", "source": "balbtopia", "note": "Two cave walls make it darker (Dark Cave can't be spliced in Growtopia)"
+    },
+    { "seeds": ["cyclopean_visor", "neon_lights"], "result": "laser_eyes", "source": "balbtopia", "note": "Laser Eyes = Cyclopean Visor + Neon Lights (not in Growtopia)"
+    },
+    { "seeds": ["long_brown_hair", "yellow_block"], "result": "princess_hair", "source": "balbtopia", "note": "Princess Hair = Long Brown Hair + Yellow Block (not in Growtopia)"
+    }
+  ],
+  "growtopiaNotInGameYet": [
+    { "seeds": ["super_crate_box", "white_block"], "result": "sheet_music_blank", "name": "Sheet Music: Blank", "why": "music item"
+    }
   ]
 }

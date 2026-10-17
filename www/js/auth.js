@@ -107,6 +107,7 @@ function signIn(id) {
   if (!a) return false;
   account = id;
   playerName = a.name;
+  setWorn(null); // a new account with no save wears nothing
   loadPlayer();
   playerName = a.name; // the username is the name shown above the player
   return true;
@@ -117,6 +118,7 @@ async function signInOnline() {
   playerName = Net.me.name;
   try {
     const p = await Net.loadPlayer();
+    setWorn(null);
     if (p) applyPlayer(p);
   } catch (e) {
     console.error(e);
@@ -135,7 +137,9 @@ async function logout() {
   }
   setSession(null);
   if (Net.online) {
-    await new Promise((r) => setTimeout(r, 400)); // let the last save go out
+    // let the last save go out (up to 3 seconds)
+    for (let t = 0; t < 30 && Net.savingPlayer && Net.savingPlayer(); t++) await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 200));
     await Net.signOut();
   }
   location.reload(); // simplest way to start clean for the next player

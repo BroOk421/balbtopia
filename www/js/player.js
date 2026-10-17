@@ -19,6 +19,13 @@ const P = {
   place: null, // {t, x, y} arm held out after placing a block
   kbT: 0, // knockback: seconds left without control
   hitT: 0, // seconds left of the 'got hit' blink
+  angry: 0, // seconds left of the angry face (punching and breaking)
+  hp: LAVA_HP, // lava burns left before you die
+  healT: 0, // seconds until the hearts come back
+  dead: null, // {t} while dead (see die in physics.js)
+  spawnT: 0, // seconds left of fading back in at the door
+  airJ: 0, // jumps left in the air (Angel Wings)
+  cp: null, // {x, y} of the Checkpoint you'll come back to in this world
   say: null, // {text, t} speech bubble
 };
 let skin = SKINS[0]; // new players start with the first colour; change it in Menu → Profile
@@ -34,16 +41,32 @@ const puffs = [],
   drops = [],
   parts = [],
   floats = [];
+// how many bag slots are open at this level
+const bagSize = () => Math.min(BAG_MAX, BAG_FREE + BAG_STEP * Math.max(0, level - BAG_LEVEL + 1));
+// the level that opens bag slot i (0-based)
+const slotLevel = (i) => BAG_LEVEL + Math.floor((i - BAG_FREE) / BAG_STEP);
+const isGM = () => GM_USERS.includes(String(playerName).toLowerCase());
+// adds n of an item: tops up stacks that aren't full, then fills new slots, MAXSTACK per slot.
+// Adds nothing (and returns false) when it all doesn't fit.
 function addItem(id, n = 1) {
-  let s = inv.find((s) => s.id === id && s.qty < MAXSTACK);
-  if (s) {
-    s.qty += n;
-  } else {
-    if (inv.length >= 24) {
-      toast('Bag is full');
-      return false;
-    }
-    inv.push({ id, qty: n });
+  const room =
+    inv.filter((s) => s.id === id).reduce((r, s) => r + Math.max(0, MAXSTACK - s.qty), 0) +
+    Math.max(0, bagSize() - inv.length) * MAXSTACK;
+  if (n > room) {
+    toast(bagSize() < BAG_MAX ? 'Bag is full. Level up to open more slots' : 'Bag is full');
+    return false;
+  }
+  for (const s of inv) {
+    if (n <= 0) break;
+    if (s.id !== id || s.qty >= MAXSTACK) continue;
+    const k = Math.min(n, MAXSTACK - s.qty);
+    s.qty += k;
+    n -= k;
+  }
+  while (n > 0) {
+    const k = Math.min(n, MAXSTACK);
+    inv.push({ id, qty: k });
+    n -= k;
   }
   renderBars();
   return true;

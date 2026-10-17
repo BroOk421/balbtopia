@@ -69,7 +69,9 @@ function drawBg() {
     w = 1620 * s,
     h = 971 * s;
   const surfY = Math.round(-cam.y * Z + SURF * TS * Z);
-  const bottom = Math.max(h * 0.75, Math.min(cv.height + h * 0.2, surfY + h * 0.22)),
+  // the picture's bottom never comes up above the bottom of the screen: when you go deep, the hills
+  // follow you down (with their own curves) instead of leaving a gap
+  const bottom = Math.max(cv.height, Math.min(cv.height + h * 0.2, surfY + h * 0.22)),
     top = bottom - h;
   g.fillStyle = 'rgb(78,44,169)';
   g.fillRect(0, 0, cv.width, Math.ceil(top) + 1);
@@ -138,10 +140,219 @@ function fistSprite(name) {
   );
   return (FISTS[name] = c);
 }
+// angry face while punching: slanted brows pressing on narrowed eyes and a frown.
+// Painted in the body sprite's own pixels (118x215, facing right) and laid over the face.
+// colours sampled from each skin: [face, brows, mouth]
+const FACE_COLOR = {
+  porcelain: ['#fccdab', '#3b2119', '#925b3f'],
+  peach: ['#f1b585', '#381d13', '#8c5031'],
+  tan: ['#dda077', '#341912', '#81472c'],
+  honey: ['#c68765', '#2e150f', '#733b25'],
+  brown: ['#9e6344', '#250f0a', '#5c2c19'],
+  deep: ['#6b4130', '#190a07', '#3e1d11'],
+};
+const ANGRY = {};
+function angryFace(skin) {
+  if (ANGRY[skin]) return ANGRY[skin];
+  const [face, brow, mouth] = FACE_COLOR[skin] || FACE_COLOR.tan,
+    c = document.createElement('canvas');
+  c.width = FR.w;
+  c.height = FR.h;
+  const x = c.getContext('2d'),
+    poly = (col, pts) => {
+      x.fillStyle = col;
+      x.beginPath();
+      pts.forEach(([px, py], k) => (k ? x.lineTo(px, py) : x.moveTo(px, py)));
+      x.closePath();
+      x.fill();
+    };
+  // hide the calm brows and the flat mouth
+  x.fillStyle = face;
+  x.fillRect(52, 42, 20, 9);
+  x.fillRect(89, 42, 16, 9);
+  x.fillRect(67, 91, 18, 7);
+  // eyelids come down at the inner corners (the eyes look narrow and mad)
+  poly(face, [[41, 50], [73, 50], [73, 67], [41, 59]]);
+  poly(face, [[82, 50], [110, 50], [110, 59], [82, 67]]);
+  poly(brow, [[41, 56], [73, 63], [73, 69], [41, 61]]);
+  poly(brow, [[82, 63], [110, 56], [110, 61], [82, 69]]);
+  // thick brows slanting down towards the nose
+  poly(brow, [[45, 41], [51, 38], [75, 52], [72, 59]]);
+  poly(brow, [[80, 59], [78, 52], [104, 38], [108, 43]]);
+  // frown: a little upside-down U
+  x.fillStyle = mouth;
+  x.fillRect(71, 91, 10, 3);
+  x.fillRect(68, 93, 4, 4);
+  x.fillRect(80, 93, 4, 4);
+  return (ANGRY[skin] = c);
+}
+// dead and weak: eyes shut (the closed frame), worried brows, a wobbly mouth and a drop of sweat
+const WEAK = {};
+function weakFace(skin) {
+  if (WEAK[skin]) return WEAK[skin];
+  const [face, brow, mouth] = FACE_COLOR[skin] || FACE_COLOR.tan,
+    c = document.createElement('canvas');
+  c.width = FR.w;
+  c.height = FR.h;
+  const x = c.getContext('2d'),
+    poly = (col, pts) => {
+      x.fillStyle = col;
+      x.beginPath();
+      pts.forEach(([px, py], k) => (k ? x.lineTo(px, py) : x.moveTo(px, py)));
+      x.closePath();
+      x.fill();
+    };
+  x.fillStyle = face;
+  x.fillRect(52, 42, 20, 9);
+  x.fillRect(89, 42, 16, 9);
+  x.fillRect(67, 91, 18, 7);
+  poly(brow, [[47, 47], [70, 38], [72, 43], [48, 52]]);
+  poly(brow, [[85, 43], [87, 38], [107, 47], [106, 52]]);
+  x.fillStyle = mouth;
+  [[69, 95], [72, 93], [75, 95], [78, 93], [81, 95]].forEach(([mx, my]) => x.fillRect(mx, my, 3, 3));
+  // sweat drop on the temple
+  poly('#1c3f66', [[100, 52], [95, 64], [97, 69], [104, 69], [106, 64]]);
+  poly('#8fd3ff', [[100, 56], [97, 64], [99, 67], [103, 67], [104, 64]]);
+  x.fillStyle = '#ffffff';
+  x.fillRect(99, 61, 2, 3);
+  return (WEAK[skin] = c);
+}
+// the ghost: the weak, eyes-shut body washed pale
+const GHOST = {};
+function ghostSprite(skin) {
+  if (GHOST[skin]) return GHOST[skin];
+  const c = document.createElement('canvas');
+  c.width = FR.w;
+  c.height = FR.h;
+  const x = c.getContext('2d');
+  x.drawImage(IMG['skin_' + skin + '_closed'], 0, 0);
+  x.drawImage(weakFace(skin), 0, 0);
+  x.globalCompositeOperation = 'source-atop';
+  x.fillStyle = 'rgba(235,245,255,.5)';
+  x.fillRect(0, 0, c.width, c.height);
+  return (GHOST[skin] = c);
+}
+// one angel wing, pointing up and out to the right (mirrored for the left one)
+const WING_ART = [
+  '.........KKK',
+  '.......KKWWK',
+  '.....KKWWWWK',
+  '....KWWWWWBK',
+  '...KWWWWWBK.',
+  '..KWWWWWBBK.',
+  '.KWWWWBBKK..',
+  'KWWWWBBK....',
+  'KWWBBKK.....',
+  '.KKKK.......',
+];
+let WINGC;
+function wingSprite() {
+  if (WINGC) return WINGC;
+  const c = document.createElement('canvas');
+  c.width = WING_ART[0].length;
+  c.height = WING_ART.length;
+  const x = c.getContext('2d'),
+    map = { K: '#3a4a66', W: '#ffffff', B: '#c8dcf5' };
+  WING_ART.forEach((row, j) =>
+    [...row].forEach((ch, i) => {
+      if (map[ch]) {
+        x.fillStyle = map[ch];
+        x.fillRect(i, j, 1, 1);
+      }
+    }),
+  );
+  return (WINGC = c);
+}
+// face items, hair and hats on a body drawn at (0, top) facing right, after the transform is set
+function drawWorn(c, top, sc, dy = 0) {
+  const eq = c.equipped || {};
+  if (eq.face) drawWearArt(eq.face, top, sc, dy);
+  const hid = eq.hair;
+  if (hid && ITEMS[hid]) {
+    const it = ITEMS[hid];
+    if (it.sprite) {
+      const h = itemImg(it.sprite);
+      g.drawImage(h, (-FR.w / 2 + it.off.x) * sc * Z, top + (it.off.y + dy) * sc * Z, h.width * sc * Z, h.height * sc * Z);
+    }
+    if (WEAR_BY_ID[hid] && WEAR_BY_ID[hid].art) drawWearArt(hid, top, sc, dy);
+  }
+  if (eq.hat) drawWearArt(eq.hat, top, sc, dy);
+}
+// dying: the body sags, tips over and fades out, while a pale ghost with flapping wings and a halo floats up
+function drawDead(c, ox, oy) {
+  const t = c.dead.t,
+    sc = CHAR_H / FR.h,
+    W = FR.w * sc * Z,
+    H = FR.h * sc * Z;
+  const cx = Math.round(ox + (c.x + c.w / 2) * Z),
+    feet = Math.round(oy + (c.y + c.h + FOOT_SINK) * Z);
+  const sag = Math.min(1, t / 0.35),
+    fade = 1 - Math.min(1, Math.max(0, (t - 0.45) / 1.1));
+  g.imageSmoothingEnabled = true;
+  if (fade > 0) {
+    g.save();
+    g.translate(cx, feet);
+    g.scale(c.face, 1);
+    g.rotate(-0.24 * sag);
+    g.scale(1 + 0.05 * sag, 1 - 0.1 * sag);
+    g.globalAlpha = fade;
+    drawBehind(c, -H, sc, 0);
+    g.drawImage(outfitBody(IMG['skin_' + c.skin + '_closed'], 'skin_' + c.skin + '_closed', c.equipped || {}), -W / 2, -H, W, H);
+    g.drawImage(weakFace(c.skin), -W / 2, -H, W, H);
+    drawWorn(c, -H, sc);
+    g.restore();
+  }
+  const gt = (t - 0.3) / (DEATH_TIME - 0.3);
+  if (gt > 0 && gt < 1) {
+    const rise = gt * TS * 1.6 * Z,
+      ga = Math.min(1, gt * 5) * (1 - gt * gt * gt),
+      gs = 0.8,
+      gx = cx + Math.sin(t * 5) * 2 * Z,
+      gy = feet - rise + Math.sin(now / 140) * Z;
+    g.save();
+    g.translate(gx, gy);
+    g.globalAlpha = ga * 0.9;
+    // wings at the shoulders, flapping
+    const flap = Math.sin(now / 65),
+      ws = 13 * Z;
+    g.imageSmoothingEnabled = false;
+    for (const side of [-1, 1]) {
+      g.save();
+      g.translate(side * W * 0.16 * gs, -H * gs * 0.5);
+      g.scale(side, 0.7 + 0.3 * flap);
+      g.drawImage(wingSprite(), 0, -ws * 0.85, ws, ws * 0.85);
+      g.restore();
+    }
+    g.imageSmoothingEnabled = true;
+    g.save();
+    g.scale(c.face * gs, gs);
+    g.drawImage(ghostSprite(c.skin), -W / 2, -H, W, H);
+    // the ghost keeps its clothes, a little see-through
+    g.globalAlpha = ga * 0.8;
+    drawWorn(c, -H, sc);
+    g.restore();
+    // halo
+    g.strokeStyle = '#ffd23f';
+    g.lineWidth = 1.4 * Z;
+    g.beginPath();
+    g.ellipse(0, -H * gs * 1.04, 5.5 * Z, 1.7 * Z, 0, 0, Math.PI * 2);
+    g.stroke();
+    g.restore();
+  }
+  g.imageSmoothingEnabled = false;
+  g.globalAlpha = Math.max(0, fade);
+  const headTop = feet - H + 4 * sc * Z,
+    tagW = drawNameTag(c.name, cx, headTop - 4 * Z);
+  g.globalAlpha = 1;
+  return { cx, headTop, tagW };
+}
 // one character (you or another player): body, walk cycle, punch arm, clothing and name tag
 function drawCharacter(c, ox, oy) {
+  if (c.dead) return drawDead(c, ox, oy);
   const style = c.style === 'stride' ? 'stride' : 'step';
-  const fr = c.ground ? (c.walking ? 'open' : frameAt(now + (c.blink || 0))) : 'open';
+  const angry = c.angry > 0;
+  // no blinking while angry: the eyes stay open under the angry lids
+  const fr = c.ground && !c.walking && !angry ? frameAt(now + (c.blink || 0)) : 'open';
   const wkey = style === 'step' ? 'walkstep_' : 'walk_';
   const canWalk = !!IMG[wkey + c.skin + '_0'],
     wf = Math.floor(c.walkPh) % 12;
@@ -158,34 +369,40 @@ function drawCharacter(c, ox, oy) {
   const bob = c.walking && !canWalk ? -Math.abs(Math.sin(now / 70)) * 2.2 : 0;
   const cx = Math.round(ox + (c.x + c.w / 2) * Z),
     top = Math.round(oy + (c.y + c.h - CHAR_H + FOOT_SINK + bob * CHAR_S) * Z);
-  // the stretched arm is drawn first so the body overlaps it
-  if (punching) drawPunch(c, cx, top, sc, ox, oy);
+  const eq = c.equipped || {},
+    dy = punching ? 0 : bodyDy,
+    tool = heldTool(c.hand);
+  // with a tool the arm just swings it (drawn after the body); bare hands stretch out (drawn first)
+  const swinging = !!(tool && c.punch && c.hand !== 'wrench');
+  if (punching && !swinging) drawPunch(c, cx, top, sc, ox, oy);
   g.save();
   g.translate(cx, 0);
   g.scale(c.face, 1);
   if (c.hurt > 0 && Math.floor(now / 80) % 2) g.globalAlpha = 0.55;
+  // just came back at the door: fade in
+  if (c.spawnT > 0) g.globalAlpha *= 1 - c.spawnT / SPAWN_FADE;
   g.imageSmoothingEnabled = true;
-  g.drawImage(im, (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
-  const eq = c.equipped || {};
-  for (const slot of ['feet', 'hair']) {
-    const id = eq[slot];
-    if (!id || !ITEMS[id]) continue;
-    const it = ITEMS[id],
-      h = IMG[it.sprite];
-    g.drawImage(
-      h,
-      (-FR.w / 2 + it.off.x) * sc * Z,
-      top + (it.off.y + (it.slot === 'hair' ? bodyDy : 0)) * sc * Z,
-      h.width * sc * Z,
-      h.height * sc * Z,
-    );
-  }
+  // back items and the back of long hair sit behind the body
+  drawBehind(c, top, sc, dy);
+  // swinging a tool: the body without its back arm (that arm swings); else the normal frame
+  const body = swinging ? noBackArm(c.skin) : im,
+    frameKey = swinging ? 'noarm_' + c.skin : punching ? 'punch_' + c.skin : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
+  g.drawImage(outfitBody(body, frameKey, eq), (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
+  if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  drawWorn(c, top, sc, dy);
+  // a tool in the front hand (when punching, it is drawn at the fist instead)
+  if (tool && !punching && c.hand !== 'wrench') drawHeldTool(c.hand, top, sc, 0, c.skin, im, frameKey);
   g.restore();
+  if (swinging) drawToolSwing(c, cx, top, sc, ox, oy);
+  // Laser Eyes: every punch is a laser
+  if (laserFace(eq) && c.punch) drawLaser(c, cx, top, sc, ox, oy);
   g.imageSmoothingEnabled = false;
   // name tag just above the head (or above the hair when wearing some)
-  const headTop = top + Math.min(4, eq.hair && ITEMS[eq.hair] ? ITEMS[eq.hair].off.y + 16 : 4) * sc * Z;
-  const tagW = drawNameTag(c.name, cx, headTop - 5 * Z);
-  if (c.say) drawBubble(c.say.text, cx, headTop - 15 * Z, Math.min(1, c.say.t * 2));
+  // name tag above the head, above the hair or the hat
+  const hairTop = eq.hair && ITEMS[eq.hair] && ITEMS[eq.hair].off ? ITEMS[eq.hair].off.y + 16 : eq.hair === 'afro' ? -40 : 4;
+  const headTop = top + Math.min(4, hairTop, eq.hat ? (eq.hat === 'top_hat' ? -52 : -26) : 4) * sc * Z;
+  const tagW = drawNameTag(c.name, cx, headTop - 4 * Z);
+  if (c.say) drawBubble(c.say.text, cx, headTop - 11 * Z, Math.min(1, c.say.t * 2));
   return { cx, headTop, tagW };
 }
 // the arm: a punch flies out and back; after placing a block (c.place) it is simply out,
@@ -236,6 +453,20 @@ function drawPunch(c, cx, top, sc, ox, oy) {
   g.moveTo(shX + nx * w * 0.5, shY + ny * w * 0.5);
   g.lineTo(fx + nx * w * 0.5, fy + ny * w * 0.5);
   g.stroke();
+  // holding a tool: it swings at the end of the arm instead of the bare fist
+  const tl = c.hand !== 'wrench' && heldTool(c.hand);
+  if (tl) {
+    const sz = (14 + 4 * e) * Z,
+      ts = toolSprite(c.hand);
+    g.save();
+    g.translate(fx, fy);
+    g.rotate(Math.atan2(dy, dx) + Math.PI / 4 - (c.face < 0 && Math.abs(dx) < 0.05 ? Math.PI / 2 : 0));
+    if (dx < 0) g.scale(1, -1);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(ts, -sz * 0.3, -sz * 0.7, sz, sz);
+    g.restore();
+    return;
+  }
   // closed fist at the end, growing as it reaches out, knuckles leading
   const f = fistSprite(c.skin),
     size = (2.1 + 1.2 * e) * CHAR_S * Z;
@@ -298,7 +529,7 @@ function render() {
       if (!bg[i] || fg[i]) continue;
       const px = ox + x * T,
         py = oy + y * T;
-      g.drawImage(IMG.tile_cave, px, py, T, T);
+      g.drawImage(bgImage(bg[i]), px, py, T, T);
       g.fillStyle = 'rgba(8,4,2,.32)';
       if (y > 0 && fg[at(x, y - 1)]) g.fillRect(px, py, T, T * 0.22);
       if (x > 0 && fg[at(x - 1, y)]) g.fillRect(px, py, T * 0.16, T);
@@ -312,11 +543,13 @@ function render() {
         t = fg[i];
       if (!t) continue;
       const b = BLOCK[t];
-      if (b.art === 'lock') g.drawImage(lockSprite(), ox + x * T, oy + y * T, T, T);
+      if (b.art === 'lock') g.drawImage(lockSprite(b.id), ox + x * T, oy + y * T, T, T);
       else if (b.art === 'grass') {
         // short grass tuft on the bottom of the tile (walk-through decoration)
         g.drawImage(grassTuft(), ox + x * T, oy + y * T, T, T);
-      } else if (b.art === 'dark') {
+      } else if (b.art === 'door') g.drawImage(woodDoorSprite(), ox + x * T, oy + y * T, T, T);
+      else if (b.art === 'tex' || b.art === 'deco' || b.art === 'vend' || b.art === 'disp' || b.art === 'mann') drawNewBlock(b, x, y, ox + x * T, oy + y * T, T);
+      else if (b.art === 'dark') {
         g.drawImage(darkTile(), ox + x * T, oy + y * T, T, T);
         drawEdges(maskOf(x, y), ox + x * T, oy + y * T, T, ['#07040b', '#4a3a5c', '#160f1e']);
       } else {
@@ -330,18 +563,19 @@ function render() {
       if (dmg[i]) {
         if (now - dmgT[i] > 5000) {
           dmg[i] = 0;
-        } else drawCrack(ox + x * T, oy + y * T, T, dmg[i] / b.hits);
+        } else drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b));
       }
     }
   for (let i = 0; i < bgDmg.length; i++) if (bgDmg[i] && now - dmgT[i] > 5000) bgDmg[i] = 0;
   // drops
+  drawMannequins(ox, oy, T);
   // main door (1 tile), drawn in front of the wall and behind the player
   g.drawImage(doorSprite(), ox + door.x * T, oy + door.y * T, T, T);
   drawTrees(ox, oy, T);
   // holding the wrench: a wrench shows inside every World Lock; click it for the lock's settings
   if (hand === 'wrench')
     for (let i = 0; i < fg.length; i++) {
-      if (fg[i] !== LOCK) continue;
+      if (!isLockT(fg[i])) continue;
       const px = ox + (i % WW) * T,
         py = oy + ((i / WW) | 0) * T;
       if (px < -T || py < -T || px > cv.width || py > cv.height) continue;
@@ -356,6 +590,9 @@ function render() {
       s = DROP_SIZE,
       x = ox + d.x * Z,
       y = oy + (d.y + bob) * Z;
+    // a drop this visitor can't take yet: see-through, with a ring that fills up over the minute
+    const locked = !canTakeDrop(d);
+    if (locked) g.globalAlpha = 0.6;
     if (d.id === 'gold') {
       // gold spins like a coin
       const sx = Math.max(0.15, Math.abs(Math.cos(now / 220 + d.ph)));
@@ -373,6 +610,32 @@ function render() {
       g.fillStyle = '#fff';
       g.fillText(d.qty, x + (s / 2) * Z, y + (s / 2) * Z);
     }
+    g.globalAlpha = 1;
+    if (locked) {
+      const f = Math.min(1, Math.max(0, (Date.now() - d.born) / DROP_LOCK_MS)),
+        rr = (s / 2 + 2.5) * Z;
+      g.lineWidth = Z;
+      g.strokeStyle = 'rgba(20,10,30,.55)';
+      g.beginPath();
+      g.arc(x, y, rr, 0, Math.PI * 2);
+      g.stroke();
+      g.strokeStyle = '#ffd23f';
+      g.beginPath();
+      g.arc(x, y, rr, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2);
+      g.stroke();
+    }
+  }
+  // drops flying into whoever picked them up
+  for (const v of vacs) {
+    const u = Math.min(1, v.t / VAC_TIME),
+      e = u * u,
+      w = v.to || P,
+      tx = w.x + w.w / 2,
+      ty = w.y + w.h * 0.45,
+      s = DROP_SIZE * (1 - 0.6 * u),
+      x = ox + (v.x + (tx - v.x) * e) * Z,
+      y = oy + (v.y + (ty - v.y) * e - Math.sin(u * Math.PI) * 6) * Z;
+    drawIcon(v.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
   }
   // other players in this world (online), then you on top
   // holding the wrench: a small wrench shows next to each other player's name; click it (or them) for their menu
@@ -382,7 +645,7 @@ function render() {
       if (hand === 'wrench') {
         const ws = 9 * Z,
           wx = m.cx + m.tagW / 2 + 2 * Z,
-          wy = m.headTop - 5 * Z - ws + Z;
+          wy = m.headTop - 4 * Z - ws + Z;
         g.drawImage(wrenchSprite(), wx, wy, ws, ws);
         r.wrenchHit = { x: (wx - ox) / Z, y: (wy - oy) / Z, s: ws / Z };
       } else r.wrenchHit = null;
@@ -400,6 +663,10 @@ function render() {
       walkPh: P.walkPh,
       ground: P.ground,
       punch: P.punch,
+      angry: P.angry,
+      hand,
+      dead: P.dead,
+      spawnT: P.spawnT,
       hurt: Math.max(P.hurt, P.hitT > 0 ? 0.3 : 0),
       equipped,
       name: playerName,
@@ -415,11 +682,26 @@ function render() {
   }
   drawSmoke(ox, oy);
   drawPlaces(ox, oy, T);
+  drawSignBubble(ox, oy);
   drawFlyers(ox, oy);
   // particles & floating text
   for (const p of parts) {
     g.fillStyle = p.c;
-    g.fillRect(ox + p.x * Z, oy + p.y * Z, p.s * Z, p.s * Z);
+    if (p.plus) {
+      // a twinkling "+": grows in, then shrinks away
+      const u = 1 - p.life / p.life0,
+        k = Math.sin(Math.PI * u) * (0.75 + 0.25 * Math.sin(now / 90 + p.x)),
+        r = Math.max(0.5, p.s * k) * Z,
+        t = Math.max(1, Z * 0.6),
+        x = ox + p.x * Z,
+        y = oy + p.y * Z;
+      g.globalAlpha = Math.min(1, p.life * 1.5);
+      g.fillRect(x - r, y - t / 2, r * 2, t);
+      g.fillRect(x - t / 2, y - r, t, r * 2);
+      g.fillStyle = '#ffffff';
+      g.fillRect(x - t / 2, y - t / 2, t, t);
+      g.globalAlpha = 1;
+    } else g.fillRect(ox + p.x * Z, oy + p.y * Z, p.s * Z, p.s * Z);
   }
   g.font = `${8 * Z}px "Press Start 2P", monospace`;
   g.textAlign = 'center';
@@ -455,17 +737,20 @@ function iconCanvas(id) {
   const x = c.getContext('2d');
   x.imageSmoothingEnabled = false;
   const it = ITEMS[id];
-  if (id === 'gold') drawCoin(x);
+  const nw = it && it.kind !== 'seed' && newIcon(id);
+  if (nw) x.drawImage(nw, 0, 0, 32, 32);
+  else if (id === 'gold') drawCoin(x);
   else if (id === 'wrench') x.drawImage(wrenchSprite(), 0, 0);
   else if (it.kind === 'seed') drawPixels(x, SEED_ART, seedMap(it.from), 2);
-  else if (id === 'world_lock') x.drawImage(lockSprite(), 0, 0, 32, 32);
+  else if (it.block && BLOCK[it.block].lock) x.drawImage(lockSprite(id), 0, 0, 32, 32);
+  else if (id === 'door') x.drawImage(woodDoorSprite(), 0, 0);
   else if (id === 'grass') {
     x.drawImage(grassTuft(), 0, -18, 32, 32);
     x.drawImage(grassTuft(), 0, -12, 32, 32);
   } else if (id === 'dark_cave') {
     x.drawImage(darkTile(), 0, 0);
     drawEdges(15, 0, 0, 32, ['#07040b', '#4a3a5c', '#160f1e'], x, 1);
-  } else if (it.kind === 'clothing') x.drawImage(IMG[it.icon], 0, 0, 32, 32);
+  } else if (it.kind === 'clothing') x.drawImage(itemImg(it.icon), 0, 0, 32, 32);
   else if (id === 'cave') x.drawImage(IMG.tile_cave, 0, 0);
   else {
     const k = { dirt: 'tile_dirt_0', rock: 'tile_stone', lava: 'tile_lava_0' }[id];
@@ -557,18 +842,25 @@ const LOCK_ART = [
   'KBBBBBBBBBBBBBBK',
   'KKKKKKKKKKKKKKKK',
 ];
-let LOCKC;
-function lockSprite() {
-  if (LOCKC) return LOCKC;
+// the same padlock in three kinds: gold World Lock, icy Diamond Lock, purple-black Black Diamond Lock
+const LOCK_COLORS = {
+  world_lock: { K: '#14101c', B: '#3a3350', b: '#2a2440', G: '#c9c9d6', Y: '#ffd23f', O: '#d48a12', W: '#fff4b8' },
+  diamond_lock: { K: '#0c1a26', B: '#2a5a7a', b: '#1a3a52', G: '#e0faff', Y: '#7fe8ff', O: '#2fa8d8', W: '#ffffff' },
+  black_diamond_lock: { K: '#050308', B: '#2a2240', b: '#120e1c', G: '#a99cff', Y: '#3a3058', O: '#16121f', W: '#c8b8ff' },
+};
+const LOCKS = {};
+function lockSprite(kind = 'world_lock') {
+  if (LOCKS[kind]) return LOCKS[kind];
   const c = document.createElement('canvas');
   c.width = c.height = 32;
-  drawPixels(
-    c.getContext('2d'),
-    LOCK_ART,
-    { K: '#14101c', B: '#3a3350', b: '#2a2440', G: '#c9c9d6', Y: '#ffd23f', O: '#d48a12', W: '#fff4b8' },
-    2,
-  );
-  return (LOCKC = c);
+  const x = c.getContext('2d');
+  drawPixels(x, LOCK_ART, LOCK_COLORS[kind] || LOCK_COLORS.world_lock, 2);
+  // gems: a little sparkle on the diamond kinds
+  if (kind !== 'world_lock') {
+    x.fillStyle = kind === 'diamond_lock' ? '#ffffff' : '#d8ccff';
+    for (const [i, j] of [[25, 4], [24, 5], [26, 5], [25, 6], [6, 22], [5, 23], [7, 23], [6, 24]]) x.fillRect(i, j, 1, 1);
+  }
+  return (LOCKS[kind] = c);
 }
 // main door, one tile: a plain wooden door with a cream panel and a gold knob
 const DOOR_ART = [
@@ -589,25 +881,12 @@ const DOOR_ART = [
   'KFFFFFFFFFFFFFFK',
   'KKKKKKKKKKKKKKKK',
 ];
-let DOORC;
-function doorSprite() {
-  if (DOORC) return DOORC;
+let DOORC, WDOORC;
+function paintDoor(map) {
   const c = document.createElement('canvas');
   c.width = 32;
   c.height = 32;
-  const x = c.getContext('2d'),
-    map = {
-      K: '#140c08',
-      R: '#7a1f1f',
-      W: '#c63a2a',
-      E: '#fff1d0',
-      F: '#5a3a20',
-      D: '#3a2414',
-      P: '#f2e6cc',
-      L: '#fffaf0',
-      p: '#e6d6b4',
-      N: '#ffd23f',
-    };
+  const x = c.getContext('2d');
   DOOR_ART.forEach((row, j) =>
     [...row].forEach((ch, i) => {
       if (map[ch]) {
@@ -616,7 +895,30 @@ function doorSprite() {
       }
     }),
   );
-  return (DOORC = c);
+  return c;
+}
+function doorSprite() {
+  return (DOORC ||= paintDoor({
+    K: '#140c08',
+    F: '#5a3a20',
+    D: '#3a2414',
+    P: '#f2e6cc',
+    L: '#fffaf0',
+    p: '#e6d6b4',
+    N: '#ffd23f',
+  }));
+}
+// the Door item (from a Door Tree): same shape as the main door, but all wood
+function woodDoorSprite() {
+  return (WDOORC ||= paintDoor({
+    K: '#140c08',
+    F: '#6b4424',
+    D: '#3a2414',
+    P: '#a86c3c',
+    L: '#c98a52',
+    p: '#93582f',
+    N: '#ffd23f',
+  }));
 }
 // green grass layer for the top of a Grass block (32x32, transparent below)
 let GRASSC;
@@ -731,12 +1033,12 @@ function drawBubble(text, x, y, a) {
   g.globalAlpha = 1;
 }
 function drawNameTag(name, x, y) {
-  g.font = `${6 * Z}px "Press Start 2P", monospace`;
+  g.font = `${3 * Z}px "Press Start 2P", monospace`;
   const w = g.measureText(name).width;
   g.textAlign = 'center';
   g.textBaseline = 'bottom';
   g.lineJoin = 'round';
-  g.lineWidth = 2.5 * Z;
+  g.lineWidth = 1.4 * Z;
   g.strokeStyle = 'rgba(20,10,30,.85)';
   g.strokeText(name, x, y);
   g.fillStyle = '#ffffff';

@@ -3,10 +3,13 @@
 function updateGold(pop) {
   $('goldN').textContent = P.gold.toLocaleString();
   if (pop) {
+    // restart the coin's pop every time (even when gold comes in quickly)
     const el = $('gold');
-    el.classList.add('pop');
+    el.classList.remove('coinpop');
+    void el.offsetWidth;
+    el.classList.add('coinpop');
     clearTimeout(updateGold.t);
-    updateGold.t = setTimeout(() => el.classList.remove('pop'), 160);
+    updateGold.t = setTimeout(() => el.classList.remove('coinpop'), 420);
   }
 }
 // ---------- player menu (opened with the wrench) ----------
@@ -53,6 +56,7 @@ function selectHand(id) {
   }
   hand = id;
   renderBars();
+  savePlayer(); // what you hold is kept too
 }
 function toggleEquip(id) {
   const sl = ITEMS[id].slot;
@@ -64,6 +68,7 @@ function toggleEquip(id) {
     toast('Wearing ' + ITEMS[id].name);
   }
   renderBars();
+  savePlayer(); // what you wear is kept: logging out and back in shows the same outfit
 }
 function renderBars() {
   const hb = $('hotbar');
@@ -92,7 +97,11 @@ function renderBars() {
       b.setAttribute('aria-label', ITEMS[id].name);
     }
     b.insertAdjacentHTML('afterbegin', `<span class="k">${(k + 1) % 10}</span>`);
-    if (id) b.onclick = () => selectHand(id);
+    if (id)
+      b.onclick = () => {
+        if (doubleTap('hb' + k) && LOCK_TIERS.includes(id)) return compressLock(id);
+        selectHand(id);
+      };
     hb.appendChild(b);
   });
   if (!$('inv').hidden) renderInv();
@@ -101,12 +110,22 @@ let sel = -1;
 function renderInv() {
   const gr = $('grid');
   gr.innerHTML = '';
-  for (let i = 0; i < 24; i++) {
+  const open = bagSize();
+  for (let i = 0; i < BAG_MAX; i++) {
     const s = inv[i],
       b = document.createElement('button');
-    b.className = 'cell' + (s ? ' has' : '') + (i === sel ? ' sel' : '');
+    b.className = 'cell' + (s ? ' has' : '') + (i === sel ? ' sel' : '') + (i >= open ? ' locked' : '');
     b.id = 'slot' + i;
-    if (s) {
+    if (i >= open) {
+      // locked: opens at a higher level
+      b.innerHTML = `<span class="lk"></span><span class="lv">Lv ${slotLevel(i)}</span>`;
+      b.setAttribute('aria-label', 'Locked slot, opens at level ' + slotLevel(i));
+      b.tabIndex = -1;
+      b.onclick = (e) => {
+        e.stopPropagation();
+        toast('This slot opens at level ' + slotLevel(i) + ' (you are level ' + level + ')');
+      };
+    } else if (s) {
       const it = ITEMS[s.id];
       const ic = iconCanvas(s.id).cloneNode();
       ic.getContext('2d').drawImage(iconCanvas(s.id), 0, 0);
@@ -118,6 +137,12 @@ function renderInv() {
       b.setAttribute('aria-label', it.name + ' x' + s.qty);
       b.onclick = (e) => {
         e.stopPropagation();
+        if (trashMode) return askTrash(i);
+        // double-click a stack of locks: 100 of them become the next kind
+        if (doubleTap('slot' + i) && LOCK_TIERS.includes(s.id)) {
+          closePop();
+          return compressLock(s.id);
+        }
         openPop(i);
       };
     } else {
@@ -126,14 +151,72 @@ function renderInv() {
     }
     gr.appendChild(b);
   }
-  $('count').textContent = inv.length + ' / 24';
-  const worn = [];
-  for (const sl of ['hair', 'feet']) {
-    const id = equipped[sl];
-    $('eq_' + sl).innerHTML = id ? `<img src="${A[ITEMS[id].icon]}" alt="">` : '';
-    if (id) worn.push(ITEMS[id].name);
+  $('count').textContent = inv.length + ' / ' + open;
+  $('grid').classList.toggle('trashing', trashMode);
+  $('trashBtn').classList.toggle('on', trashMode);
+  // what you wear: one box per slot; click one to take it off
+  const worn = [],
+    box = $('eqSlots');
+  box.innerHTML = '';
+  for (const sl of WEAR_SLOTS) {
+    const id = equipped[sl],
+      b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'eslot' + (id ? ' on' : '');
+    b.title = SLOT_NAME[sl] + (id ? ': ' + ITEMS[id].name + ' (click to take off)' : '');
+    if (id && ITEMS[id]) {
+      b.appendChild(iconCanvas(id).cloneNode());
+      b.lastChild.getContext('2d').drawImage(iconCanvas(id), 0, 0);
+      b.onclick = () => toggleEquip(id);
+      worn.push(ITEMS[id].name);
+    } else b.innerHTML = `<small>${SLOT_NAME[sl]}</small>`;
+    box.appendChild(b);
   }
   $('eqName').textContent = worn.length ? worn.join(', ') : 'Nothing';
+}
+// ---------- trash: click TRASH, then an item, then confirm ----------
+let trashMode = false;
+$('trashBtn').onclick = (e) => {
+  e.stopPropagation();
+  trashMode = !trashMode;
+  closePop();
+  renderInv();
+  if (trashMode) toast('Click the item you want to throw away');
+};
+function askTrash(i) {
+  const s = inv[i];
+  if (!s) return;
+  const it = ITEMS[s.id];
+  if (s.id === 'wrench') return toast("You can't throw away your Wrench");
+  const body = dialog(
+    'THROW AWAY?',
+    `<div class="vend"><div class="vrow"><div class="vpic"></div><div><b>${esc(it.name)}</b><br>You have ${s.qty.toLocaleString()}</div></div>
+      ${s.qty > 1 ? `<label class="lfield">How many<div class="vline"><input id="trashQty" type="number" min="1" max="${s.qty}" value="${s.qty}" inputmode="numeric" /></div></label>` : ''}
+      <p class="dmsg">Are you sure? Thrown away items are gone for good.</p></div>`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => {} },
+      {
+        label: 'Throw away',
+        cls: 'danger',
+        run: (b) => {
+          const q = b.querySelector('#trashQty'),
+            n = Math.max(1, Math.min(s.qty, Math.floor(q ? Number(q.value) || 0 : 1)));
+          if (!inv.includes(s)) return;
+          s.qty -= n;
+          if (s.qty <= 0) {
+            inv.splice(inv.indexOf(s), 1);
+            if (hand === s.id && !inv.some((o) => o.id === s.id)) hand = 'fist';
+            if (it.slot && equipped[it.slot] === s.id && !inv.some((o) => o.id === s.id)) equipped[it.slot] = null;
+          }
+          trashMode = false;
+          renderBars();
+          savePlayer();
+          toast('Threw away ' + n.toLocaleString() + ' ' + it.name);
+        },
+      },
+    ],
+  );
+  body.querySelector('.vpic').appendChild(shopPic(s.id));
 }
 function toggleInv() {
   const w = $('inv');
@@ -144,6 +227,7 @@ function toggleInv() {
     f && f.focus();
   } else {
     w.hidden = true;
+    trashMode = false;
     closePop();
     $('info').hidden = true;
   }
@@ -184,9 +268,13 @@ $('aUse').onclick = () => {
   if (!s) return;
   const it = ITEMS[s.id];
   if (it.kind === 'clothing') toggleEquip(s.id);
-  else {
+  else if (s.id === 'clear_world') {
+    closePop();
+    $('inv').hidden = true;
+    return askClearWorld();
+  } else {
     hand = hand === s.id ? 'fist' : s.id;
-    toast(hand === 'fist' ? 'Back to fist' : 'Holding ' + it.name);
+    toast(hand === 'fist' ? 'Back to fist' : hand === 'door_mover' ? 'Click where the door should go' : 'Holding ' + it.name);
     renderBars();
   }
   closePop();
@@ -195,13 +283,13 @@ $('aDrop').onclick = () => {
   const s = inv[sel];
   if (!s) return;
   const id = s.id;
-  if (ITEMS[id].kind === 'tool') {
+  if (id === 'wrench') {
     toast("You can't drop your " + ITEMS[id].name);
     closePop();
     return;
   }
   // floats in front of the player; can be picked up again after a moment
-  spawnDrop(id, P.x + P.w / 2 + P.face * 22, P.y + P.h - 10, 1, 1.2);
+  spawnDrop(id, P.x + P.w / 2 + P.face * 22, P.y + P.h - 10, 1, 1.2, playerName);
   takeItem(id);
   toast('Dropped ' + ITEMS[id].name);
   closePop();
@@ -286,6 +374,7 @@ function buildStart() {
 }
 function ready() {
   drawCoin($('goldIcon').getContext('2d'));
+  drawCoin($('shopCoin').getContext('2d'));
   updateGold();
   genWorld(worldName);
   resize();

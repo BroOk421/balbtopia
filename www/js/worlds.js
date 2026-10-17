@@ -47,10 +47,19 @@ function worldData() {
     owner: worldOwner,
     lock: lockCfg,
     trees: [...trees].map(([i, t]) => [i, t.seed, t.planted, t.fruit, t.spliced ? 1 : 0]),
+    jam: jamInfo(), // jammers placed here (Signal Jammer hides the world from the list)
+    signs: [...signs].filter(([i]) => isSignT(fg[i])), // [tile, text] of every sign with writing
+    rv: worldRV, // RECIPES world only: the recipe list it was built from
+    disp: [...displays].filter(([i]) => isDispT(fg[i])), // [tile, item] in every Display Box
+    mann: [...manns].filter(([i]) => isMannT(fg[i])), // [tile, { slot: item }] worn by every Mannequin
+    vends: [...vends].filter(([i]) => isVendT(fg[i])), // [tile, machine] of every Vending Machine
+    // floating drops stay in the world: [uid, item, qty, x, y, dropped at (ms), dropped by]
+    drops: drops.slice(-MAX_DROPS).map((d) => [d.uid, d.id, d.qty, Math.round(d.x), Math.round(d.y), d.born, d.by || 0]),
     visited: Date.now(),
   };
 }
-function applyWorld(w) {
+// skew: how far our clock is ahead of the clock that wrote w (for the age of drops)
+function applyWorld(w, skew = 0) {
   fromB64(w.fg, fg);
   fromB64(w.bg, bg);
   fromB64(w.vari, vari);
@@ -61,6 +70,19 @@ function applyWorld(w) {
   trees.clear();
   for (const [i, seed, planted, fruit, sp] of w.trees || [])
     if (TREE_TIME[seed]) trees.set(i, { seed, planted, fruit, spliced: !!sp });
+  signs.clear();
+  for (const [i, text] of Array.isArray(w.signs) ? w.signs : []) if (Number.isInteger(i)) setSign(i, text);
+  worldRV = w.rv || null;
+  displays.clear();
+  for (const [i, id] of Array.isArray(w.disp) ? w.disp : []) if (Number.isInteger(i)) setDisplay(i, id);
+  manns.clear();
+  for (const [i, m] of Array.isArray(w.mann) ? w.mann : []) if (Number.isInteger(i)) setMann(i, m);
+  vends.clear();
+  for (const [i, v] of Array.isArray(w.vends) ? w.vends : []) if (Number.isInteger(i)) setVend(i, v);
+  drops.length = 0;
+  for (const [uid, id, qty, x, y, born, by] of w.drops || [])
+    if (typeof uid === 'string' && (id === 'gold' || ITEMS[id]) && qty > 0)
+      drops.push({ uid, id, qty, x, y, age: 1, minAge: 0, ph: Math.random() * 6.28, born: (+born || 0) + skew, by: by || null });
 }
 function saveWorld(force) {
   if (!inWorld) return;
@@ -83,6 +105,7 @@ function playerData() {
     inv,
     gold: P.gold,
     equipped,
+    hand, // the tool or block in your hand
     world: worldName,
     walkStyle,
     xp,
@@ -91,6 +114,15 @@ function playerData() {
     settings,
     friends: myFriends,
   };
+}
+// what you wear, from a save: every slot is emptied first (so nothing carries over from another account),
+// then each saved item goes back on if it still exists, fits that slot and is still in the bag
+function setWorn(saved) {
+  for (const k in equipped) equipped[k] = null;
+  for (const [sl, id] of Object.entries(saved || {})) {
+    const it = id && ITEMS[id];
+    if (it && it.kind === 'clothing' && it.slot === sl && inv.some((s) => s.id === id)) equipped[sl] = id;
+  }
 }
 function applyPlayer(p) {
   playerName = p.name || playerName;
@@ -103,7 +135,9 @@ function applyPlayer(p) {
   level = p.level || 1;
   playDays = p.playDays || [];
   Object.assign(settings, p.settings || {});
-  Object.assign(equipped, p.equipped || {});
+  setWorn(p.equipped);
+  // the held item comes back if it is still in the bag (wearables are worn, not held)
+  hand = p.hand && p.hand !== 'fist' && ITEMS[p.hand] && ITEMS[p.hand].kind !== 'clothing' && inv.some((s) => s.id === p.hand) ? p.hand : 'fist';
   worldName = p.world || START_WORLD;
   if (p.walkStyle) walkStyle = p.walkStyle;
   myFriends.length = 0;
@@ -123,11 +157,16 @@ function loadPlayer() {
   applyPlayer(p);
   return true;
 }
+// RECIPES is always in the list, even before anyone has opened it
+const withRecipes = (list) =>
+  list.some((w) => w.name === RECIPES_WORLD) ? list : [...list, { name: RECIPES_WORLD, owner: GM_USERS[0], visited: 0 }];
 function listWorlds() {
-  if (Net.online) return Net.worldList;
+  if (Net.online) return withRecipes(Net.worldList.filter(listedWorld));
   const w = store().worlds;
   return Object.keys(w)
-    .map((n) => ({ name: n, owner: w[n].owner, visited: w[n].visited || 0 }))
+    .map((n) => ({ name: n, owner: w[n].owner, visited: w[n].visited || 0, jam: w[n].jam }))
+    .filter(listedWorld)
+    .concat(store().worlds[RECIPES_WORLD] ? [] : [{ name: RECIPES_WORLD, owner: GM_USERS[0], visited: 0 }])
     .sort((a, b) => b.visited - a.visited);
 }
 
@@ -150,16 +189,25 @@ async function enterWorld(name) {
   if (inWorld) saveWorld();
   worldName = name;
   worldOwner = null;
+  drops.length = 0; // the world's own drops come back with it (applyWorld)
   if (w) applyWorld(w);
   else if (Net.online || !loadWorld(name)) {
     genWorld(name);
     trees.clear();
+    signs.clear();
+    vends.clear();
+    displays.clear();
+    manns.clear();
+    worldRV = null;
     worldOwner = null;
     setLockCfg(null);
   }
+  // the RECIPES world is built by the game, and rebuilt when the recipe list changes
+  if (name === RECIPES_WORLD && worldRV !== recipesVersion()) buildRecipesWorld();
   dmg.fill(0);
   bgDmg.fill(0);
-  drops.length = puffs.length = parts.length = floats.length = 0;
+  puffs.length = parts.length = floats.length = vacs.length = chatLog.length = 0;
+  P.cp = null;
   P.x = door.x * TS + TS / 2 - P.w / 2;
   P.y = (door.y + 1) * TS - P.h;
   P.vx = P.vy = 0;
@@ -194,6 +242,12 @@ setInterval(() => {
 addEventListener('pagehide', () => {
   if (inWorld) {
     saveWorld();
+    savePlayer();
+  }
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && account) {
+    if (inWorld) saveWorld();
     savePlayer();
   }
 });

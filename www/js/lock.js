@@ -40,7 +40,7 @@ function closeLockWin() {
 function renderLockWin() {
   const own = isOwner(),
     el = $('lockBody');
-  $('lockIcon').src = lockSprite().toDataURL();
+  $('lockIcon').src = lockSprite((BLOCK[fg.find(isLockT)] || {}).id).toDataURL();
   $('lockBy').textContent = worldOwner ? worldName + ' by ' + worldOwner : worldName;
   if (!own) {
     const me = hasAccess(playerName);

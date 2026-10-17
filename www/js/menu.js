@@ -13,7 +13,9 @@ function addXP(n) {
   while (xp >= xpNeed(level)) {
     xp -= xpNeed(level);
     level++;
-    toast('Level up! You are now level ' + level);
+    const opened = level >= BAG_LEVEL && level < BAG_LEVEL + (BAG_MAX - BAG_FREE) / BAG_STEP;
+    toast('Level up! You are now level ' + level + (opened ? ' · +' + BAG_STEP + ' bag slots' : ''));
+    if (!$('inv').hidden) renderInv();
     Native.haptic('medium');
   }
   if (!$('menu').hidden && menuTab === 'profile') renderMenu();
@@ -82,7 +84,13 @@ function profile(el) {
       </div>
     </div>
     <p class="mlabel">Skin</p>
-    <div class="swatches" role="radiogroup" aria-label="Skin colour"></div>`;
+    <div class="swatches" role="radiogroup" aria-label="Skin colour"></div>
+    <button class="btn spawnbtn" id="spawnBtn" type="button">SPAWN · go back to the door</button>`;
+  // stuck somewhere? die on the spot and come back at the main door (or your Checkpoint)
+  el.querySelector('#spawnBtn').onclick = () => {
+    closeMenu();
+    if (inWorld && !P.dead) die('spawn');
+  };
   const sw = el.querySelector('.swatches');
   for (const s of SKINS) {
     const b = document.createElement('button');

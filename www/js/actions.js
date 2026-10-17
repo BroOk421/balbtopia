@@ -9,14 +9,16 @@ function playerTile() {
 }
 // a square of REACH tiles around that tile (up, down, left and right)
 function inReach(tx, ty) {
-  const p = playerTile();
-  return Math.abs(tx - p.x) <= REACH && Math.abs(ty - p.y) <= REACH;
+  const p = playerTile(),
+    r = REACH + (laserFace(equipped) ? 1 : 0); // Cyclopean Visor / Laser Eyes reach one tile further
+  return Math.abs(tx - p.x) <= r && Math.abs(ty - p.y) <= r;
 }
 // the fist shoots out to the clicked point and grows (bare hands, no pickaxe yet)
 function startPunch(wx, wy) {
   const cx = P.x + P.w / 2;
   if (Math.abs(wx - cx) > 2) P.face = wx > cx ? 1 : -1;
   P.punch = { t: 0, x: wx, y: wy };
+  P.angry = ANGRY_TIME; // punching and breaking make an angry face
   Net.sendPunch(wx, wy);
 }
 // placing (Growtopia style): the arm is out at once, the hand gives a little shake,
@@ -34,6 +36,10 @@ function punchPlayer(r) {
     ty = r.y + r.h * 0.45,
     dir = Math.sign(tx - (P.x + P.w / 2)) || P.face;
   startPunch(tx, ty);
+  if (jammed(PUNCH_JAMMER)) {
+    toast("A Punch Jammer is on: you can't punch players here");
+    return;
+  }
   Net.hit(r, dir); // only they move; you stay put
   shake = Math.max(shake, 1.5);
   Native.haptic('light');
@@ -42,6 +48,7 @@ function punchPlayer(r) {
 }
 // another player punched you: fly back a bit (away from them) with a small hop
 function gotHit(p) {
+  if (jammed(PUNCH_JAMMER)) return;
   const d = p.d || (Math.random() < 0.5 ? -1 : 1);
   P.vx = d * KNOCKBACK;
   if (P.ground) P.vy = -180;
@@ -56,10 +63,15 @@ function overlapsPlayer(tx, ty) {
   return P.x < tx * TS + TS && P.x + P.w > tx * TS && P.y < ty * TS + TS && P.y + P.h > ty * TS;
 }
 function act() {
+  if (P.dead) return;
   // wrench: click another player (or the wrench next to their name) to open their player menu
   if (hand === 'wrench') {
     const t = tileUnder();
-    if (inW(t.x, t.y) && fg[at(t.x, t.y)] === LOCK) return openLockWin();
+    if (inW(t.x, t.y) && isLockT(fg[at(t.x, t.y)])) return openLockWin();
+    if (inW(t.x, t.y) && isSignT(fg[at(t.x, t.y)])) return editSign(t.x, t.y);
+    if (inW(t.x, t.y) && isVendT(fg[at(t.x, t.y)])) return openVend(t.x, t.y);
+    if (inW(t.x, t.y) && isDispT(fg[at(t.x, t.y)])) return openDisplay(t.x, t.y);
+    if (inW(t.x, t.y) && isMannT(fg[at(t.x, t.y)])) return openMannequin(t.x, t.y);
     const other = Net.playerAt(ptr.x, ptr.y);
     if (other) return openPlayerMenu(other);
     const onSelf = ptr.x > P.x - 4 && ptr.x < P.x + P.w + 4 && ptr.y > P.y - 14 && ptr.y < P.y + P.h + 4;
@@ -68,10 +80,13 @@ function act() {
     return;
   }
   const { x, y } = tileUnder();
+  // bought in the Shop: these work anywhere in the world you can see
+  if (hand === 'door_mover') return inW(x, y) && moveDoor(x, y);
+  if (hand === 'clear_world') return askClearWorld();
   if (!inW(x, y) || !inReach(x, y)) return;
   const held = ITEMS[hand];
   // fists (or anything that isn't placed) on another player: punch them
-  if (hand === 'fist' || !held || held.kind === 'clothing') {
+  if (hand === 'fist' || !held || held.kind === 'clothing' || held.kind === 'tool') {
     const r = Net.bodyAt(ptr.x, ptr.y);
     if (r) return punchPlayer(r);
   }
@@ -98,17 +113,30 @@ function act() {
     if (canEdit()) plant(x, y, hand);
     return;
   }
-  if (hand === 'fist' || !it || it.kind === 'clothing' || it.kind === 'seed') {
+  if (hand === 'fist' || !it || it.kind === 'clothing' || it.kind === 'seed' || it.kind === 'tool') {
     startPunch(ptr.x, ptr.y);
     // the World Lock: only the owner may break it, even players with access can't
-    if (fg[i] === LOCK && !isOwner()) {
+    if (isLockT(fg[i]) && !isOwner()) {
       toast('Only ' + worldOwner + ' can break this World Lock');
       shake = Math.max(shake, 2.5);
       return;
     }
     if ((fg[i] || bg[i]) && !canEdit()) return;
+    // a Vending Machine with items or World Locks inside can't be broken
+    if (isVendT(fg[i]) && vendBusy(i)) {
+      toast('Empty the Vending Machine first (wrench it)');
+      shake = Math.max(shake, 2);
+      return;
+    }
+    // a Display Box with an item, or a dressed Mannequin, can't be broken either
+    if (showBusy(i)) {
+      toast(isDispT(fg[i]) ? 'Take the item out of the Display Box first (wrench it)' : 'Take the clothes off the Mannequin first (wrench it)');
+      shake = Math.max(shake, 2);
+      return;
+    }
     if (fg[i]) {
-      const b = BLOCK[fg[i]];
+      const b = BLOCK[fg[i]],
+        need = hitsNeeded(b);
       if (b.hits === Infinity) {
         shake = 4;
         toast('Bedrock is too hard to break');
@@ -117,19 +145,23 @@ function act() {
       dmg[i]++;
       dmgT[i] = now;
       shake = 2.5;
-      Native.haptic(dmg[i] >= b.hits ? 'medium' : 'light');
+      Native.haptic(dmg[i] >= need ? 'medium' : 'light');
       burst(x, y, fg[i], 3);
       smoke(x, y, 5, 1);
-      if (dmg[i] >= b.hits) {
+      toolSparkles(heldTool(hand), x * TS + 16, y * TS + 16, 5, 24);
+      if (dmg[i] >= need) {
         burst(x, y, fg[i], 12);
         smoke(x, y, 11, 1.6);
         const id = b.id;
+        vends.delete(i);
+        displays.delete(i);
+        manns.delete(i);
         fg[i] = 0;
         dmg[i] = 0;
         if (y > 0) uproot(x, y - 1);
         addXP(1);
         if (Math.random() < (BLOCK_DROP_CHANCE[id] ?? 1)) spawnDrop(id, x * TS + 16, y * TS + 16);
-        if (id === 'world_lock') {
+        if (b.lock) {
           worldOwner = null;
           setLockCfg(null);
           $('lockwin').hidden = true;
@@ -148,27 +180,30 @@ function act() {
       bgDmg[i]++;
       dmgT[i] = now;
       shake = 1.5;
-      burst(x, y, -1, 3);
+      burst(x, y, (BGS[bg[i]] || BGS[1]).fx, 3);
       smoke(x, y, 4, 0.9);
-      if (bgDmg[i] >= 2) {
+      const t = heldTool(hand);
+      toolSparkles(t, x * TS + 16, y * TS + 16, 3, 24);
+      if (bgDmg[i] >= (t && t.bonus && !t.dirtOnly ? 1 : 2)) {
+        const bk = BGS[bg[i]] || BGS[1];
+        burst(x, y, bk.fx, 10);
         bg[i] = 0;
         bgDmg[i] = 0;
-        burst(x, y, -1, 10);
         smoke(x, y, 9, 1.4);
-        spawnDrop('cave', x * TS + 16, y * TS + 16);
-        dropSeed('cave', x, y);
+        spawnDrop(bk.id, x * TS + 16, y * TS + 16);
+        dropSeed(bk.id, x, y);
       }
     }
     return;
   }
-  if ((it.kind === 'block' && it.block !== LOCK) || it.kind === 'background') if (!canEdit()) return;
+  if ((it.kind === 'block' && !isLockT(it.block)) || it.kind === 'background') if (!canEdit()) return;
   if (it.kind === 'block') {
     if (fg[i] || trees.has(i) || (BLOCK[it.block].solid !== false && overlapsPlayer(x, y))) return;
     if (isDoorTile(x, y)) {
       toast("Can't build on the main door");
       return;
     }
-    if (it.block === LOCK) {
+    if (isLockT(it.block)) {
       if (worldOwner) {
         toast('This world already has a World Lock');
         return;
@@ -185,9 +220,9 @@ function act() {
     placeFx(x, y, it.block, true);
   } else if (it.kind === 'background') {
     if (bg[i] || isDoorTile(x, y)) return;
-    bg[i] = 1;
+    bg[i] = it.bg || 1;
     takeItem(hand);
-    placeFx(x, y, -1, true);
+    placeFx(x, y, (BGS[bg[i]] || BGS[1]).fx, true);
   }
 }
 // placing a block: the arm pops out to it (see startPlace), with dust, chips and a quick flash
@@ -205,13 +240,18 @@ function placeFx(x, y, t, mine) {
   places.push({ x, y, t0: now });
 }
 function burst(x, y, t, n) {
-  const col =
-    t === -2
+  const col = Array.isArray(t)
+    ? t
+    : BLOCK[t] && BLOCK[t].fx
+      ? BLOCK[t].fx
+      : t === -2
       ? ['#4caf3a', '#2a6e22', '#6b4424']
       : t === GRASS
         ? ['#4caf3a', '#93582f', '#784424']
         : t === DARK
           ? ['#2c2236', '#4a3a5c', '#160f1e']
+          : t === DOOR
+            ? ['#a86c3c', '#6b4424', '#c98a52']
           : t === -1
             ? ['#35231a', '#412c21', '#2a1b14']
             : t === ROCK
@@ -261,14 +301,56 @@ function dropSeed(id, x, y) {
   if (Math.random() < (SEED_CHANCE[id] || 0))
     spawnDrop(id + '_seed', x * TS + 16 + (Math.random() < 0.5 ? -6 : 6), y * TS + 20);
 }
-function spawnDrop(id, x, y, qty = 1, minAge = 0.25) {
-  const near = drops.find((d) => d.id === id && Math.hypot(d.x - x, d.y - y) < 10);
+// every drop has an id (uid) so all players in the world see the same drop, a time it was
+// dropped (born, ms since 1970) and, when a player dropped it from their bag, who (by)
+let dropSeq = 0;
+const newDropId = () =>
+  (Net.me ? Net.me.id.slice(0, 8) : 'local') + '-' + Date.now().toString(36) + '-' + (dropSeq++).toString(36);
+function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
+  const near = drops.find((d) => d.id === id && (d.by || null) === by && Math.hypot(d.x - x, d.y - y) < 10);
   if (near) {
     near.qty += qty;
+    near.born = Date.now(); // more fell on it: the minute starts again
+    Net.sendDrop(near);
     return;
   }
-  drops.push({ id, qty, x, y, age: 0, minAge, ph: Math.random() * 6.28 });
+  const d = { uid: newDropId(), id, qty, x, y, age: 0, minAge, ph: Math.random() * 6.28, born: Date.now(), by };
+  drops.push(d);
+  Net.sendDrop(d);
 }
+// may this player pick the drop up? In a locked world: the owner and players with access always;
+// visitors only after nobody took it for DROP_LOCK_MS (or when they dropped it themselves)
+function canTakeDrop(d) {
+  return hasAccess(playerName) || (!!d.by && lc(d.by) === lc(playerName)) || Date.now() - d.born >= DROP_LOCK_MS;
+}
+const dropWait = (d) => Math.max(1, Math.ceil((DROP_LOCK_MS - (Date.now() - d.born)) / 1000));
+let dropHintT = -1e9;
+function dropHint(d) {
+  if (now - dropHintT < 2500) return;
+  dropHintT = now;
+  toast('This belongs to ' + worldOwner + "'s world. You can take it in " + dropWait(d) + 's');
+}
+// another player dropped something (or a drop got bigger); a: how many ms ago it was dropped
+function netDrop(p) {
+  if (!p || typeof p.u !== 'string' || !(p.id === 'gold' || ITEMS[p.id])) return;
+  const qty = Math.max(1, Math.min(9999, p.q | 0)),
+    born = Date.now() - Math.max(0, +p.a || 0),
+    d = drops.find((d) => d.uid === p.u);
+  if (d) Object.assign(d, { qty, born });
+  else
+    drops.push({ uid: p.u, id: p.id, qty, x: +p.x || 0, y: +p.y || 0, age: 0, minAge: 0.25, ph: Math.random() * 6.28, born, by: p.b || null });
+}
+// another player picked a drop up: it flies to them
+function netTake(u, by) {
+  const k = drops.findIndex((d) => d.uid === u);
+  if (k < 0) return;
+  const d = drops.splice(k, 1)[0],
+    r = Net.remotes.get(by);
+  if (r) vacs.push({ id: d.id, qty: d.qty, x: d.x, y: d.y, t: 0, to: r });
+}
+// drops being sucked up: they fly into whoever took them, shrinking (drawn by render.js)
+const vacs = [];
+const VAC_TIME = 0.22;
 function floatText(x, y, s) {
   floats.push({ x: x * TS + 16, y: y * TS, s, life: 1.1 });
 }

@@ -15,7 +15,7 @@ function loop(ts) {
       actT -= dt;
       if (actT <= 0) {
         act();
-        actT = 0.24;
+        actT = (heldTool(hand) && heldTool(hand).rate) || 0.24; // fancy pickaxes swing faster
       }
     }
   }
