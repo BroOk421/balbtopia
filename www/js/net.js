@@ -272,6 +272,7 @@ const Net = (() => {
         if (r) r.dead = { t: 0 };
       })
       .on('broadcast', { event: 'fly' }, ({ payload }) => N.onFly && N.onFly(payload))
+      .on('broadcast', { event: 'kick' }, ({ payload }) => payload && N.onKick && N.onKick(payload))
       .on('broadcast', { event: 'sync_req' }, ({ payload }) => onSyncReq(payload))
       .on('broadcast', { event: 'sync' }, ({ payload }) => onSync(payload))
       .on('presence', { event: 'leave' }, ({ key }) => {
@@ -378,6 +379,11 @@ const Net = (() => {
   };
   N.sendChat = (text) => {
     if (N.me) send('chat', { id: N.me.id, n: playerName, text });
+  };
+  // the world owner sends a player (to: their id, or '*' for everyone) back to the door (k 'spawn')
+  // or out of the world (k 'out')
+  N.sendKick = (to, k) => {
+    if (N.me) send('kick', { to, k, n: playerName });
   };
   N.sendClear = () => {
     if (N.me) send('clear', {});

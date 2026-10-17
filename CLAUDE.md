@@ -61,9 +61,10 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 
 ## Features added (Oct 2026)
 
-- Drops are shared online and saved with the world. In a locked world, visitors without access see drops
-  (see-through, with a ring that fills up) but can take them only after 60 s untouched; the owner and players
-  with access can take them at once; you can always take what you dropped yourself.
+- Drops are shared online and saved with the world. In a locked world only the owner takes drops at once;
+  everyone else (builders with access and "everyone can build" worlds too) sees them see-through with a ring
+  that fills up and can take them 60 s after they fell out of a block or were dropped; you can always take
+  what you dropped yourself (`canTakeDrop`).
 - Drops within a few pixels fly into the player (vacuum animation) before going into the bag. Gold: only the
   coin icon pops in the counter.
 - Angry face while punching/breaking (`ANGRY_TIME`), seen by others too.
@@ -85,8 +86,17 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Door Mover and Clear World only work in a world you own.
 - GM: `tae123` gets everything in the Shop for free, the World Lock packs too.
 - `addItem` splits big amounts into stacks of `MAXSTACK` (200) and adds nothing if it all doesn't fit.
-- 100 World Locks → double-click → 1 Diamond Lock; 100 Diamond Locks → 1 Black Diamond Lock. All three lock a world.
-  There is no way back from a Diamond Lock to World Locks yet (Growtopia has one; offered, not asked for).
+- Double-click a lock in the bag or hotbar (`lockTap` in shop.js): with 100 or more (and a bigger kind exists),
+  100 become 1 of the next kind (World → Diamond → Black Diamond); with fewer than 100, one breaks into 100 of the
+  kind below (99 Diamond Locks → 98 + 100 World Locks). A Black Diamond Lock always breaks into 100 Diamond Locks.
+  All three lock a world.
+- Quantity pop-up (`askQty` in social.js: −, +, MAX, Cancel/Confirm, Enter confirms): Drop from the bag
+  (`dropItem` in ui.js) and picking an item for a trade or gift (`pickItem`) ask how many when you have more than one.
+- Kick (World Lock window, owner only): "Players in this world" with Spawn (back to the main door, not a
+  Checkpoint) and Kick (out of the world, to START; in START itself it is the same as Spawn) per player,
+  plus Spawn all / Kick all, each with a confirm. Realtime `kick` event { to: id or '*', k: 'spawn'|'out', n };
+  a player only obeys it when `n` is this world's owner (`Net.onKick`, `toDoor` in lock.js). No ban yet:
+  a kicked player can walk back in.
 - Bag: 80 slots, 8 per row. 24 open from the start; from level 10, each level opens 2 more (all 80 at level 37).
   Locked slots show a padlock and the level that opens them. The grid scrolls.
 - Scrollbars everywhere are gold and rounded (global `::-webkit-scrollbar` rules at the end of style.css; Firefox gets
@@ -156,5 +166,5 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Stripe checkout for World Lock packs (needs a server: e.g. a Supabase Edge Function that creates the Checkout
   Session and a webhook that adds the locks to the player).
 - Clothing items from `growtopiaNotInGameYet` (need sprites and more equip slots: shirt, pants, face, hat, back).
-- Breaking a Diamond Lock back into 100 World Locks.
+- Ban from a world for a while (kick only sends players away; they can come back).
 - Moving GM checks and purchases to the server so they can't be faked.

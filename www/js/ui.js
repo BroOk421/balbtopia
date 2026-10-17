@@ -99,7 +99,7 @@ function renderBars() {
     b.insertAdjacentHTML('afterbegin', `<span class="k">${(k + 1) % 10}</span>`);
     if (id)
       b.onclick = () => {
-        if (doubleTap('hb' + k) && LOCK_TIERS.includes(id)) return compressLock(id);
+        if (doubleTap('hb' + k) && LOCK_TIERS.includes(id)) return lockTap(id);
         selectHand(id);
       };
     hb.appendChild(b);
@@ -138,10 +138,10 @@ function renderInv() {
       b.onclick = (e) => {
         e.stopPropagation();
         if (trashMode) return askTrash(i);
-        // double-click a stack of locks: 100 of them become the next kind
+        // double-click a lock: 100 become the next kind, or one breaks into 100 of the kind below
         if (doubleTap('slot' + i) && LOCK_TIERS.includes(s.id)) {
           closePop();
-          return compressLock(s.id);
+          return lockTap(s.id);
         }
         openPop(i);
       };
@@ -283,17 +283,22 @@ $('aDrop').onclick = () => {
   const s = inv[sel];
   if (!s) return;
   const id = s.id;
-  if (id === 'wrench') {
-    toast("You can't drop your " + ITEMS[id].name);
-    closePop();
-    return;
-  }
-  // floats in front of the player; can be picked up again after a moment
-  spawnDrop(id, P.x + P.w / 2 + P.face * 22, P.y + P.h - 10, 1, 1.2, playerName);
-  takeItem(id);
-  toast('Dropped ' + ITEMS[id].name);
   closePop();
+  if (id === 'wrench') return toast("You can't drop your " + ITEMS[id].name);
+  // more than one: ask how many first (Confirm / Cancel)
+  const n = have(id);
+  if (n > 1) return askQty('DROP', id, n, 'Drop', (q) => dropItem(id, q));
+  dropItem(id, 1);
 };
+// floats in front of the player; can be picked up again after a moment
+function dropItem(id, q) {
+  q = Math.min(q, have(id));
+  if (q < 1) return;
+  takeN(id, q);
+  spawnDrop(id, P.x + P.w / 2 + P.face * 22, P.y + P.h - 10, q, 1.2, playerName);
+  savePlayer();
+  toast('Dropped ' + (q > 1 ? q.toLocaleString() + ' ' : '') + ITEMS[id].name);
+}
 $('aInfo').onclick = () => {
   const s = inv[sel];
   if (!s) return;

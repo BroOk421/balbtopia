@@ -152,11 +152,11 @@ function giveN(id, n) {
   return addItem(id, n);
 }
 // pick something from your bag: calls back with (id, qty)
+// tap an item; if you have more than one, a quantity pop-up asks how many (Confirm / Cancel)
 function pickItem(title, cb) {
   const ids = [...new Set(inv.map((s) => s.id))].filter(tradable);
   if (P.gold > 0) ids.unshift('gold');
   if (!ids.length) return toast('Your bag has nothing to give');
-  let sel = ids[0];
   const body = dialog(
     title,
     `<div class="pick">${ids
@@ -165,28 +165,62 @@ function pickItem(title, cb) {
           `<button type="button" class="pcell" data-id="${id}" title="${esc(itemName(id))}"><img src="${iconCanvas(id).toDataURL()}" alt=""><small>${have(id)}</small></button>`,
       )
       .join('')}</div>
-     <p class="pname2" id="pkName"></p>
-     <label class="lfield" for="pkQty">How many <input id="pkQty" type="number" min="1" value="1" /></label>`,
+     <p class="pname2">Tap an item to choose it</p>`,
+    [{ label: 'Cancel', cls: 'ghost', run: () => {} }],
+  );
+  body.querySelectorAll('.pcell').forEach(
+    (c) =>
+      (c.onclick = () => {
+        const id = c.dataset.id,
+          n = have(id);
+        if (n <= 1) {
+          closeDialog();
+          return cb(id, 1);
+        }
+        askQty(title, id, n, 'Confirm', (q) => cb(id, q));
+      }),
+  );
+}
+// how many? a pop-up with the item, a number box (−, +, MAX), Cancel and a confirm button
+// calls back with a whole number from 1 to max
+function askQty(title, id, max, okLabel, cb) {
+  const body = dialog(
+    title,
+    `<div class="vend"><div class="vrow"><div class="vpic"></div><div><b>${esc(itemName(id))}</b><br>You have ${max.toLocaleString()}</div></div>
+      <div class="lfield">How many<div class="vline qline">
+        <button type="button" class="btn ghost" data-d="-1" aria-label="One less">−</button>
+        <input id="qtyN" type="number" min="1" max="${max}" value="${max}" inputmode="numeric" aria-label="How many" />
+        <button type="button" class="btn ghost" data-d="1" aria-label="One more">+</button>
+        <button type="button" class="btn ghost" data-max>MAX</button>
+      </div></div></div>`,
     [
       { label: 'Cancel', cls: 'ghost', run: () => {} },
       {
-        label: 'OK',
+        label: okLabel,
         run: (b) => {
-          const q = Math.floor(Number(b.querySelector('#pkQty').value));
+          const q = Math.floor(Number(b.querySelector('#qtyN').value));
           if (!(q >= 1)) return toast('Pick how many'), false;
-          if (q > have(sel)) return toast('You only have ' + have(sel)), false;
-          cb(sel, q);
+          if (q > max) return toast('You only have ' + max.toLocaleString()), false;
+          cb(q);
         },
       },
     ],
   );
-  const mark = () => {
-    body.querySelectorAll('.pcell').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.id === sel)));
-    body.querySelector('#pkName').textContent = itemName(sel) + ' · you have ' + have(sel);
-    body.querySelector('#pkQty').max = have(sel);
+  body.querySelector('.vpic').appendChild(shopPic(id));
+  const input = body.querySelector('#qtyN'),
+    clamp = (v) => Math.max(1, Math.min(max, Math.floor(Number(v) || 1)));
+  body.querySelectorAll('[data-d]').forEach((btn) => (btn.onclick = () => (input.value = clamp(Number(input.value) + Number(btn.dataset.d)))));
+  body.querySelector('[data-max]').onclick = () => (input.value = max);
+  input.onblur = () => (input.value = clamp(input.value));
+  // Enter confirms
+  input.onkeydown = (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $('dlgBtns').lastChild.click();
+    }
   };
-  body.querySelectorAll('.pcell').forEach((c) => (c.onclick = () => ((sel = c.dataset.id), mark())));
-  mark();
+  setTimeout(() => input.select(), 40);
 }
 
 // ---------- player menu buttons ----------

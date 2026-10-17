@@ -64,6 +64,7 @@ function renderLockWin() {
       <form class="nrow ladd" id="lAddF"><input id="lAdd" maxlength="16" placeholder="USERNAME" spellcheck="false" autocomplete="off" /><button type="submit">Add</button></form>
       ${here.length ? `<div class="lhere"><small>In this world:</small>${here.map((n) => `<button data-add="${esc(n)}">+ ${esc(n)}</button>`).join('')}</div>` : ''}
     </div>
+    ${kickHtml()}
     <p class="mnote">Only you can break this lock.</p>`;
   const keep = () => {
     lockCfg.desc = $('lDesc').value.slice(0, 120);
@@ -89,6 +90,13 @@ function renderLockWin() {
         renderLockWin();
       }),
   );
+  el.querySelectorAll('[data-kick]').forEach(
+    (b) =>
+      (b.onclick = () => {
+        keep();
+        askKick(b.dataset.kick, b.dataset.k);
+      }),
+  );
   $('lAdd').oninput = () => ($('lAdd').value = $('lAdd').value.replace(/[^A-Za-z0-9_]/g, '').slice(0, 16));
   $('lAddF').onsubmit = (e) => {
     e.preventDefault();
@@ -99,6 +107,76 @@ function renderLockWin() {
     giveAccess(n);
     renderLockWin();
   };
+}
+// ---------- kick: the owner sends players back to the door (Spawn) or out of the world (Kick) ----------
+function kickHtml() {
+  const list = [...Net.remotes.values()].filter((r) => r.name && lc(r.name) !== lc(playerName));
+  return `<p class="mlabel">Players in this world <span>${list.length}</span></p>
+    ${
+      list.length
+        ? `<ul class="lkick">${list
+            .map(
+              (r) =>
+                `<li><span>${esc(r.name)}</span><button type="button" data-kick="${esc(r.id)}" data-k="spawn">Spawn</button><button type="button" class="out" data-kick="${esc(r.id)}" data-k="out">Kick</button></li>`,
+            )
+            .join('')}</ul>
+          <div class="lkall"><button type="button" data-kick="*" data-k="spawn">Spawn all</button><button type="button" class="out" data-kick="*" data-k="out">Kick all</button></div>`
+        : `<p class="mnote">${Net.online ? 'Nobody else is here right now.' : 'Kicking players needs online play.'}</p>`
+    }`;
+}
+function askKick(to, k) {
+  if (!isOwner()) return;
+  const all = to === '*',
+    r = all ? null : Net.remotes.get(to);
+  if (!all && !r) return toast('That player already left'), renderLockWin();
+  const who = all ? 'everyone in ' + worldName : r.name,
+    out = k === 'out';
+  dialog(
+    out ? 'KICK?' : 'SPAWN?',
+    `<p class="dmsg">${out ? `Kick <b>${esc(who)}</b> out of <b>${esc(worldName)}</b>?` : `Send <b>${esc(who)}</b> back to the door?`}</p>`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => {} },
+      {
+        label: out ? 'Kick' : 'Spawn',
+        cls: out ? 'danger' : '',
+        run: () => {
+          if (!isOwner()) return;
+          Net.sendKick(to, out ? 'out' : 'spawn');
+          toast((out ? 'Kicked ' : 'Sent back to the door: ') + who);
+        },
+      },
+    ],
+  );
+}
+// we got kicked: only counts when it comes from this world's owner (and never kicks the owner)
+Net.onKick = (p) => {
+  if (!inWorld || !Net.me || (p.to !== '*' && p.to !== Net.me.id)) return;
+  if (!worldOwner || lc(p.n) !== lc(worldOwner) || isOwner()) return;
+  for (const id of ['lockwin', 'worlds', 'shop', 'pmenu']) if ($(id)) $(id).hidden = true;
+  if (p.k === 'out' && worldName !== START_WORLD) {
+    const from = worldName;
+    enterWorld(START_WORLD).then((ok) => {
+      if (ok) setTimeout(() => toast(p.n + ' kicked you out of ' + from), 300);
+      else toDoor(p.n + ' sent you back to the door');
+    });
+    return;
+  }
+  toDoor(p.n + (p.k === 'out' ? ' kicked you back to the door' : ' sent you back to the door'));
+};
+// back to the main door at once (not a Checkpoint), fading in
+function toDoor(msg) {
+  P.dead = null;
+  P.cp = null;
+  P.punch = P.place = null;
+  P.x = door.x * TS + TS / 2 - P.w / 2;
+  P.y = (door.y + 1) * TS - P.h;
+  P.vx = P.vy = 0;
+  P.spawnT = SPAWN_FADE;
+  P.face = 1;
+  smoke(door.x, door.y, 10, 1.2);
+  shake = Math.max(shake, 3);
+  Native.haptic('medium');
+  if (msg) toast(msg);
 }
 function giveAccess(name) {
   const n = lc(name);

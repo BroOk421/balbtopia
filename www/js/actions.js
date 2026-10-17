@@ -318,10 +318,11 @@ function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
   drops.push(d);
   Net.sendDrop(d);
 }
-// may this player pick the drop up? In a locked world: the owner and players with access always;
-// visitors only after nobody took it for DROP_LOCK_MS (or when they dropped it themselves)
+// may this player pick the drop up? In a locked world only the owner takes it at once;
+// everyone else (builders with access and "everyone can build" worlds too) waits DROP_LOCK_MS
+// after it fell out of a block (or was dropped), unless they dropped it themselves
 function canTakeDrop(d) {
-  return hasAccess(playerName) || (!!d.by && lc(d.by) === lc(playerName)) || Date.now() - d.born >= DROP_LOCK_MS;
+  return !worldOwner || isOwner() || (!!d.by && lc(d.by) === lc(playerName)) || Date.now() - d.born >= DROP_LOCK_MS;
 }
 const dropWait = (d) => Math.max(1, Math.ceil((DROP_LOCK_MS - (Date.now() - d.born)) / 1000));
 let dropHintT = -1e9;
@@ -333,7 +334,7 @@ function dropHint(d) {
 // another player dropped something (or a drop got bigger); a: how many ms ago it was dropped
 function netDrop(p) {
   if (!p || typeof p.u !== 'string' || !(p.id === 'gold' || ITEMS[p.id])) return;
-  const qty = Math.max(1, Math.min(9999, p.q | 0)),
+  const qty = Math.max(1, Math.min(999999, p.q | 0)),
     born = Date.now() - Math.max(0, +p.a || 0),
     d = drops.find((d) => d.uid === p.u);
   if (d) Object.assign(d, { qty, born });

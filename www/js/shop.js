@@ -51,14 +51,14 @@ Object.assign(ITEMS, {
     name: 'Diamond Lock',
     kind: 'block',
     block: DLOCK,
-    desc: 'Worth 100 World Locks, and locks a world just like one. Have 100? Double-click them to make a Black Diamond Lock.',
+    desc: 'Worth 100 World Locks, and locks a world just like one. Double-click: with 100 or more you get a Black Diamond Lock, with fewer one breaks into 100 World Locks.',
     rarity: 'Epic',
   },
   black_diamond_lock: {
     name: 'Black Diamond Lock',
     kind: 'block',
     block: BDLOCK,
-    desc: 'Worth 100 Diamond Locks (10,000 World Locks). The rarest lock there is, and it locks a world too.',
+    desc: 'Worth 100 Diamond Locks (10,000 World Locks). The rarest lock there is, and it locks a world too. Double-click to break one into 100 Diamond Locks.',
     rarity: 'Legendary',
   },
 });
@@ -66,6 +66,41 @@ const isLockT = (t) => !!(BLOCK[t] && BLOCK[t].lock);
 const LOCK_TIERS = ['world_lock', 'diamond_lock', 'black_diamond_lock'],
   LOCK_STEP = 100;
 const countItem = (id) => inv.filter((s) => s.id === id).reduce((n, s) => n + s.qty, 0);
+// double-click a lock in the bag or the hotbar:
+//   100 or more (and there is a bigger kind): 100 of them become 1 of the next kind
+//   fewer than 100: 1 of them breaks into 100 of the kind below (99 Diamond Locks -> 98 + 100 World Locks)
+//   World Locks under 100 can't go anywhere; a Black Diamond Lock always breaks into 100 Diamond Locks
+function lockTap(id) {
+  const k = LOCK_TIERS.indexOf(id);
+  if (k < 0) return;
+  if (LOCK_TIERS[k + 1] && countItem(id) >= LOCK_STEP) return compressLock(id);
+  if (k > 0) return breakLock(id);
+  toast('You need ' + LOCK_STEP + ' ' + ITEMS[id].name + 's for a ' + ITEMS[LOCK_TIERS[k + 1]].name + ' (you have ' + countItem(id) + ')');
+}
+function takeLocks(id, n) {
+  for (let left = n; left > 0; ) {
+    const s = inv.find((s) => s.id === id);
+    if (!s) break;
+    const q = Math.min(left, s.qty);
+    takeItem(id, q);
+    left -= q;
+  }
+}
+// sparkles all around you, a floating "+N ..." and a toast
+function lockFx(gotId, gotN, msg) {
+  const cx = P.x + P.w / 2,
+    cy = P.y + P.h / 2,
+    col = BLOCK[ITEMS[gotId].block].fx || ['#ffd23f', '#fff6c8', '#c98a12'];
+  for (let j = 0; j < 26; j++) {
+    const a = (j / 26) * Math.PI * 2;
+    parts.push({ x: cx, y: cy, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170 - 120, life: 0.7, c: col[j % 3], s: 2 + (j % 2) });
+  }
+  floats.push({ x: cx, y: P.y - 6, s: '+' + gotN + ' ' + ITEMS[gotId].name + (gotN > 1 ? 's' : ''), life: 1.6 });
+  shake = 4;
+  Native.haptic('heavy');
+  toast(msg);
+  savePlayer();
+}
 // turn 100 of a lock into 1 of the next kind
 function compressLock(id) {
   const k = LOCK_TIERS.indexOf(id),
@@ -74,28 +109,24 @@ function compressLock(id) {
   const have = countItem(id);
   if (have < LOCK_STEP)
     return toast('You need ' + LOCK_STEP + ' ' + ITEMS[id].name + 's for a ' + ITEMS[next].name + ' (you have ' + have + ')');
-  for (let left = LOCK_STEP; left > 0; ) {
-    const n = Math.min(left, inv.find((s) => s.id === id).qty);
-    takeItem(id, n);
-    left -= n;
-  }
+  takeLocks(id, LOCK_STEP);
   if (!addItem(next, 1)) {
     addItem(id, LOCK_STEP);
-    return;
+    return toast('No room in your bag');
   }
-  // sparkles all around you
-  const cx = P.x + P.w / 2,
-    cy = P.y + P.h / 2,
-    col = BLOCK[next === 'diamond_lock' ? DLOCK : BDLOCK].fx;
-  for (let j = 0; j < 26; j++) {
-    const a = (j / 26) * Math.PI * 2;
-    parts.push({ x: cx, y: cy, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170 - 120, life: 0.7, c: col[j % 3], s: 2 + (j % 2) });
+  lockFx(next, 1, LOCK_STEP + ' ' + ITEMS[id].name + 's → 1 ' + ITEMS[next].name + '!');
+}
+// break 1 lock into 100 of the kind below it
+function breakLock(id) {
+  const k = LOCK_TIERS.indexOf(id),
+    prev = LOCK_TIERS[k - 1];
+  if (!prev || countItem(id) < 1) return;
+  takeLocks(id, 1);
+  if (!addItem(prev, LOCK_STEP)) {
+    addItem(id, 1);
+    return toast('No room in your bag for ' + LOCK_STEP + ' ' + ITEMS[prev].name + 's');
   }
-  floats.push({ x: cx, y: P.y - 6, s: '+1 ' + ITEMS[next].name, life: 1.6 });
-  shake = 4;
-  Native.haptic('heavy');
-  toast(LOCK_STEP + ' ' + ITEMS[id].name + 's → 1 ' + ITEMS[next].name + '!');
-  savePlayer();
+  lockFx(prev, LOCK_STEP, '1 ' + ITEMS[id].name + ' → ' + LOCK_STEP + ' ' + ITEMS[prev].name + 's');
 }
 // two clicks on the same thing within a short moment
 let lastTap = { k: null, t: 0 };
