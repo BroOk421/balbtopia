@@ -35,6 +35,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `net.js` | Supabase: accounts, saves, realtime world channel (`p`, `punch`, `tiles`, `drop`, `take`, `chat`, `clear`, `die`, `sync`), lobby (DMs, trades, gifts) |
 | `lock.js` | World Lock access rules (`isOwner`, `hasAccess`, `canEdit`) and the lock window |
 | `social.js` | `dialog()` pop-up helper, trade/friends/messages/email/gifts, world chat (CHAT button) |
+| `weather.js` | Snow Weather Machine block and the snowy weather: winter backdrop, falling snow, white flash |
+| `rest.js` | Sitting on chairs and sleeping in beds (pose, Zzz, 5 s wait, one player per bed) |
 | `worlds.js` | Saving/loading worlds (`worldData` / `applyWorld`), entering worlds, world list |
 | `ui.js`, `menu.js` | Hotbar, bag (50 slots), item info, gold counter; menu tabs, XP and levels |
 
@@ -43,7 +45,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js). Backgrounds 1 (cave), 2–3 and 5–26 (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js). Backgrounds 1 (cave), 2–3 and 5–26 (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -51,8 +53,13 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `growtopiaNotInGameYet` lists real Growtopia recipes whose result isn't in the game yet (mostly clothing,
   which needs its own sprite on the character); the game ignores that list.
 - Growtopia recipes are taken from growtopiawiki.com. Mark Balbtopia-only ones `"source": "balbtopia"`.
-  Currently 199 splices (194 Growtopia, 5 Balbtopia: dirt+dirt, rock+rock, cave+cave = Dark Cave,
-  Cyclopean Visor + Neon Lights = Laser Eyes, Long Brown Hair + Yellow Block = Princess Hair).
+  Currently 209 splices (194 Growtopia, 15 Balbtopia: dirt+dirt, rock+rock, cave+cave = Dark Cave,
+  Cyclopean Visor + Neon Lights = Laser Eyes, Long Brown Hair + Yellow Block = Princess Hair, and the 10 below).
+  Oct 2026 Balbtopia splices (blocks 122–131, art at the end of blocks.js): Marble Block = Rock + White Block,
+  Honeycomb Block = Amber Glass + Yellow Block, Lantern = Glass Pane + Torch, Flower Pot = Brown Block + Daisy,
+  Sunflower = Daisy + Yellow Block, Notice Board = Sign + Wood Block, Fish Tank = Blue Block + Glass Pane,
+  Magic Mushroom = Mushroom + Torch, Lava Lamp = Glass Pane + Lava, Cherry Blossom = Grass + Rainbow Block.
+  Animated ones (`NEW_ANIM`: ms per frame, frames): Lantern, Fish Tank, Magic Mushroom, Lava Lamp, Cherry Blossom.
   Magic Bacon Wallpaper + any coloured block = that colour's wallpaper.
 - New pixel art: add a painter to `TEX` (solid blocks/backgrounds) or `DECO` (walk-through), drawn on a 16x16 grid
   of 2px cells with the `cells()` helpers `R` (rect), `P` (pixel), `D` (disc). Seeds and trees are coloured
@@ -72,7 +79,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Death: 4 lava burns (hearts refill after 6 s without a burn) or falling out of the world. The body goes limp
   with eyes shut and a weak face, fades out, a ghost with wings and a halo floats up (clothes stay on), then
   you respawn at the main door, fading in.
-- Arm stays out 1 s after placing a block (`PLACE_POSE`).
+- Arm stays out 0.5 s after the last block you placed (`PLACE_POSE`; placing again restarts it).
 - Top right: gold, SHOP, CHAT, menu. The world name and coordinates are hidden on purpose (`.wname, .coords` in CSS).
 - Buying something in the Shop closes the Shop window (back to the game).
 - Shop has category tabs (`SHOP_TABS`: LOCKS, WORLD, TOOLS, WEAR; each `SHOP` entry has `cat`). Only two rows of
@@ -113,9 +120,11 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   hold up to 120 characters. Stand on one to read it in a bubble; wrench + click to write (only players who can build).
 - RECIPES world: built by the game (`buildRecipesWorld` in signs.js) with one sign per recipe on shelves of Wooden
   Platforms, locked by the GM. The world is cleared down to the bedrock (no dirt/stone/lava); the door stands on the
-  bedrock. Shelves are 3 tiles tall: above every sign, what the recipe makes: clothes on a Mannequin, everything else
+  bedrock at the bottom left (x 1, one free tile to its left), the lock beside it in the bedrock. Shelves are 3 tiles tall: above every sign, what the recipe makes: clothes on a Mannequin, everything else
   in a Display Box. It is rebuilt automatically when the recipe list or the layout changes (`recipesVersion`, with a
-  layout tag like `L3:`, saved as `rv`) and always shows in the world list.
+  layout tag like `L6:`, saved as `rv`) and always shows in the world list. One sign per item made (`recipeList`:
+  an item with two recipes, like Grass, gets one sign with both, "A + B or C + D"), sorted A to Z by name: the
+  bottom shelf starts at A (left to right) and each shelf up carries on, Z at the top.
 - Display Box (Shop, 1,000 gold, solid): wrench to put one item from the bag in or take it out (anyone with access).
   The item is drawn cropped to fit (`iconFit`/`drawFitted`), so small things still fill the glass.
 - Mannequin (Shop, 2,500 gold, walk-through): wrench to put clothes on, one per wear slot, or take them off. Its body
@@ -125,10 +134,13 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Neither can be broken while it holds something, and Clear World keeps those (`showBusy`). Saved as `disp`/`mann`.
 - Death Spikes and Cactus (`hurt: true`) hurt like lava (same hearts).
 - Shop sells a single World Lock for 2,000 gold (owner didn't name a price).
-- Wearables: 7 slots (`WEAR_SLOTS`: back, shirt, pants, feet, face, hair, hat). Shirt/pants/feet recolour the
+- Wearables: 8 slots (`WEAR_SLOTS`: back, shirt, pants, feet, face, hair, hat, aura), plus the Hand slot for tools. Shirt/pants/feet recolour the
   white top (y 98–156), blue jeans (y 138–202) and white shoes (y ≥ 178) of every body frame, so they move with
   walking and punching. Remote players get `eq` (all worn items) and `hd` (hand item) in the position message.
-  The bag shows one box per slot; click a box to take that item off.
+  Worn items are OUT of the bag (they don't take bag space): `wear(id)` takes one out of the bag and puts the old
+  item of that slot back; the Wearing boxes under the bag show them, and clicking one opens an Unequip pop-up
+  (`askUnequip` / `unequip`, needs a free bag slot). Saves have `wornV: 2`; older saves (worn items still in the
+  bag) are converted on load by `setWorn`, which takes one of each worn item out of the bag.
 - Tools (hold them in the hotbar): Pickaxe −1 punch on every block (spliced: Cave Background + Portcullis);
   Shovel −2 on dirt only; Golden / Diamond / Black Diamond Pickaxe −2 on every block, faster swings, sparkles.
   Always at least 1 punch. Shop prices (owner gave none): Shovel 1,500, Golden 10,000, Diamond 30,000,
@@ -148,11 +160,21 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   wings at the shoulder blades), Golden Wings (60,000, big gold wings with sparkles plus a pair of small gold wings
   lower down, pointing out). All drawn by `wingPair` (colours `WING_WHITE` / `WING_GOLD`, size, height, tilt).
   Every pair gives `WING_JUMPS` (1) extra jump in the air; it comes back only when you land.
-  Wings flap fast in the air, slowly on the ground. Prices were picked by Claude (owner gave none). Wear art canvases have `ART_PAD` (110 px) room around the body so wings are never cut off.
+  Wings only flap in the air (jumping/falling); on the ground they stay still and open (frame 0). Prices were picked by Claude (owner gave none). Wear art canvases have `ART_PAD` (110 px) room around the body so wings are never cut off.
 - Cyclopean Visor and Laser Eyes (`LASER_FACE`): punches become a laser and reach one tile further (in Growtopia
   the Cyclopean Visor changes the punch and adds a tile of reach). Neither is sold in the Shop any more; the long
   hairs aren't either (all recipes now).
-- Bag: TRASH button bottom right under the slots: click it, click an item, choose how many, confirm.
+- Bag: TRASH button bottom right under the slots (a red pixel-art bin icon, inline SVG, no text): click it, click an
+  item, choose how many, confirm.
+- Hotbar: press and hold an item (`HOLD_DROP_MS`, 0.55 s; a gold bar fills along the bottom) to drop it, same as
+  Drop in the bag (`askDrop`). A short tap still selects it.
+- `HOLD_LIFT` (wear.js) can raise a held tool; it is 0 (owner found 3 px too high).
+- Pickaxe handles: wood, except Golden / Diamond / Black Diamond Pickaxes, whose `handle` colours (light, middle,
+  dark, grip) in `TOOLS` match their head.
+- Floating drops hold at most `DROP_STACK` (200) each (`spawnDrop`, actions.js). Dropping onto a tile that already has
+  drops of the same item (same `by`) tops them up to 200; the rest floats as new drops beside them (`DROP_SPREAD`).
+- Drop (bag pop-up or hold on the hotbar) works on ONE bag slot: `askDrop(id, slot)` asks with the slot's amount
+  ("In this slot N", − / + / MAX) and `dropFromSlot` takes only from that stack.
 - Menu → Profile → SPAWN: dies on the spot and comes back at the door (or Checkpoint).
 - Gold counter: only the coin scales up and back down, restarted on every pickup (class `coinpop`; never `pop`,
   which is the item pop-up style and would blow up the whole counter).
@@ -163,7 +185,114 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   earnings wait inside until the owner collects them. Can't be broken (or cleared) while it holds items or locks.
   You walk through it like a wall picture (`solid: false`). The top of the popup shows the item picture, name and how many;
   the Qty box sits on the same row as the item dropdown.
+- Aura slot: Golden Aura (Shop, 50,000), Red Aura (50,000), Dark Diamond Aura (75,000), Diamond Aura (60,000), White Aura
+  (50,000; prices picked by Claude). The others are the golden frames recoloured by brightness onto a colour ramp (`art-source/items/aura_recolor.py` ->
+  `aura_red.png`, `aura_dark.png`, `aura_diamond.png`, `aura_white.png`), with lightning in matching colours. The owner's sprite sheet (8 frames, 4x2) was keyed
+  off its glowing background and lined up on the frames' bottoms into `assets/items/aura_golden.png` (8 frames of
+  160x242 side by side; source sheet and the Python keying script in `art-source/items/`). `AURAS` gives each aura its
+  strip, frame count, speed (`ms`) and height (`h` x body height); `drawAura` draws it behind the body, standing on
+  the feet (from `drawBehind`, so Mannequins show it too), at `alpha` (0.7). Its icon is frame 0 (`wearIcon`).
+  Layers, back to front: back item (wings, jetpack), aura, back of long hair, body, worn items, then
+  `drawAuraFront` (render.js and display.js): yellow lightning bolts (`bolt` colours: glow, bolt, core) in front of the
+  body, a new set every `LIGHTNING_MS` (70 ms), each flickering on and off.
+- Hand slot (`EQ_SLOTS` = `WEAR_SLOTS` + 'hand'; `slotOf(id)` says where an item goes): every tool except the Wrench
+  (pickaxes, shovel, sword...) is held from the Hand slot, out of the bag, like worn clothes. Picking a tool from the
+  bag or hotbar puts it there and holds it; hotbar slot 1 is the fist, or the Hand tool when there is one
+  (`bareHand()`). Blocks and seeds are still held from the bag; going back to slot 1 holds the Hand tool again.
+  Click the Hand box to put the tool back in the bag. The Mannequin only uses `WEAR_SLOTS` (no hand).
+  The Hand tool stays drawn in the hand while you hold something else (a block, a seed, the wrench), also in the
+  placing pose; only a swing (punching with the tool itself) draws it elsewhere (render.js `shown`).
+- Wearing row under the bag shows only the boxes (no list of names under it any more).
+- Vending Machine art (`VEND_ART`): red machine that is mostly a glass window (`VEND_GLASS`); the item for sale is
+  drawn big inside with `drawFitted`, with a glass shine over it.
+- Snow Weather Machine (Shop WORLD tab, 5,000; price picked by Claude; `weather.js`, block 120, walk-through like the
+  Vending Machine): while one
+  stands anywhere in the world (`currentWeather`: `fg.indexOf(WEATHER_SNOW)`), the backdrop is a winter scene (winter sky
+  gradient, no sun, the same pictures recoloured by brightness onto `WINTER_RAMP`, made once in `winterLayer`) and snow
+  falls in front of the world (`drawSnow`, 170 flakes with depth). Placing or breaking it (here or by another player)
+  flashes the screen white (`FLASH_MS`); coming into a world never flashes. Its art is an original snow-globe machine.
+- Sunny Weather Machine (Shop WORLD, 5,000; block 121, walk-through): a sunny day (blue sky gradient, the pictures
+  recoloured green/blue by `WEATHER_RAMP.sunny`, and the sunset's own sun (`bg_sun`) recoloured bright yellow). Snow
+  wins if both machines are on in a world. One punch switches a machine off (back to the sunset), the next on again
+  (`toggleWeather`: bit `WEATHER_OFF` of the tile's `vari`, saved and synced with the tile); each punch also counts
+  as a hit, so punching fast 8 times (`hits: 8`, damage forgets after 5 s) breaks it. Both weathers drop the clouds' half-see-through sunset glow (alpha below
+  `CLOUD_SOLID`), which showed as a pale halo round the clouds once recoloured. `weatherLayer(w, k)` /
+  `weatherFlipped` / `drawWeatherSky` are the general versions (the winter* names still work). After the glow is
+  dropped, bits of cloud smaller than 700 px are cleared too (`dropSmallPieces`).
+- Backdrop edges: the sun picture's glow reached its edges and showed as a box; `softEdges` (weather.js) fades its alpha
+  over the outer 18%, for the sunset and sunny suns. Above the backdrop (tall screens, `top > 0`) the sunset sky is the
+  sky picture's own top row stretched up, so there is no line where the picture starts.
+- Jammers (Signal / Punch) are drawn inside the World Lock's dark box frame, with the machine smaller inside it.
+- Picture-strip wearables (`strip` on a `WEAR` entry: { img, frames, ms, x, y, w, h, icon }, drawn by `drawWearStrip`):
+  the owner's art, fitted on our body by scripts in `art-source/items/` (`align.py` finds scale + offset by matching dark
+  outlines; the hair sheets' figures are our same base character).
+  - Super Saiyan Hair (40,000): idle row of his SSJ sheet, 9 frames of 300x260; scale 1.356 for every frame (eyes-to-feet
+    against the bald figure x the bald figure's head fit 0.689), each frame placed by matching the face; the sides come
+    down beside the face. Cut by `hair_ssj_cut.py`.
+  - 9 hairstyles from his sheet are the LOOK of 9 recipe hairs (same ids and recipes, new names where the look
+    changed): brown_hair (Brown Hair), blonde_bombshell, long_black_hair, hot_pink_highlights, grey_hair_bun,
+    messy_auburn_tresses, spikey_hair, purple_mohawk (now "Black Bob"), pigtails (now "Black Top Bun"). Not in the Shop.
+    The pictures are the OWNER'S OWN crops (`art-source/items/hairs_owner_crop.png`: same 2172x724 sheet, only the
+    hair left; his crop is slightly scaled and moved per hair). `hairs_owner_cut.py` takes each hair's solid pixels,
+    finds where it sits on the original figure sheet by colour matching (`hairs_match.py`, searching only round its own
+    figure; the red ponytail is placed by hand in `FIX`), then applies the bald figure's head fit (scale 0.689, bald
+    crop (20, 230) -> ours (-7, -13), minus the figure's shift along the row). Icons (`iconImg`, 64x64) are the same
+    hair, squared; in `WEAR` the five long/bang hairs (Long Black, Hot Pink, Blonde, Black Bob, Red
+    Ponytail) sit 12 body px further right than the script's fit (owner: the bangs hid an eye); the others as fitted.
+    The older auto-cut (`hairs_cut.py`) is kept only for reference.
+    Long hairs (Long Black, Hot Pink Highlights, Blonde Bombshell, Messy Auburn Tresses) have `split: HAIR_SPLIT`
+    (108 body px, just below the head's bottom outline): `drawWearStrip(..., part)` draws the part above it in front
+    (`drawWorn`) and the part below it behind the body (`drawBehind`), so the arms overlap the hair.
+  - 10 wings (back slot, `wings: true`, 30,000-80,000; `<name>_wings`): `wings_cut.py` splits each into the wing halves
+    and its small particles; wings with particles have 8 frames where every particle twinkles and floats on its own
+    beat. 240 body px wide, centred on the body, centre y 95. In the air they flap by squeezing sideways.
+  A strip entry (`drawWearStrip`; hair from `drawWorn`, back items from `drawBehind`)
+  uses `icon` as the crop for the bag icon (fitted, keeping its shape). `top` on a `WEAR` hair entry moves the name tag above tall hair. `iconBox` y values (drawn art) are
+  art-canvas pixels (ART_PAD above the body), not body pixels.
+- Rarity (farming.js `rarityOf`): Dirt 1, Cave 2, Rock 3, Lava 5; a spliced item = its two seeds' rarities added
+  (cheapest recipe), so 1 to about 130; tiers by `rarityTier` (Common <=5, Uncommon <=15, Rare <=40, Epic <=80,
+  Legendary). Shown in item info as "N · Tier". Items that don't grow from a seed have none.
+- Breaking a block or background (`act` in actions.js): the block drops with `DROP_BLOCK / (1 + r/15)`, its seed with
+  `DROP_SEED / (1 + r/20)`, gold with `GOLD_CHANCE + min(0.35, r/250)` (amount 1 + r/10 + 0-2): sometimes something,
+  sometimes nothing; rarer = fewer blocks and seeds back, more gold. No rarity (Shop items, locks): always drops back.
+  `BLOCK_DROP_CHANCE` / `SEED_CHANCE` in config.js are no longer used for breaking.
+- GM bag (`isGM()`): `gmFillBag` gives every item in `ITEMS` (a stack of 200, or 1 of things you wear or hold),
+  topped up when PLAY is pressed and whenever the bag opens; the bag has room for all (`bagSize`), and category tabs
+  over the grid (`GM_TABS`: ALL, BLOCKS, BG, SEEDS, WEAR, TOOLS, OTHER; `itemCat`). Other players are unchanged.
+- Footwear (feet slot) makes you run faster by its rarity: x(1 + min(FEET_SPEED_MAX, FEET_SPEED_BASE + r x
+  FEET_SPEED_PER)) = +10% plus 1% per rarity point, at most +60% (`feetSpeed` in wear.js, used in physics.js).
+- GM bag shows no amounts (bag, hotbar, pop-up, info). A GM's drop always asks how many (1 to 200, starts at 1) and
+  takes nothing out of the bag (`askDrop` -> `spawnItemDrop`).
+- Sitting and sleeping (`rest.js`): stand still on the chair/bed tile itself for `REST_DELAY` (5 s, counted only
+  on that tile: `stillAt`) on a Wooden Chair or Toilet (`SEATS`: seat
+  cell) and you sit, using the owner's sitting pose (bottom-left figure of `art-source/character/sit_sleep_sheet.png`,
+  cut by `sit_cut.py` into `assets/character/sit.png`: 198x215 = our 118 frame + `SIT_PAD` 40 each side, head fitted
+  exactly onto the standing head so hair/hats fit); `sitBody` repaints its skin to the player's tone, `outfitBody(...,
+  SIT_BANDS)` its clothes (shirt band starts at row 100, below the eyes at 65-84, or the eye whites get the shirt colour); row `SIT_SEAT_ROW` sits on the seat. On a Bed or Hospital Bed (`BEDS`) you lie down: body
+  turned on its back, head on the pillow (left), eyes shut, Zzz floating up (no blanket). Moving, jumping or punching
+  gets you up. `P.rest` = { k: 'sit'|'sleep', tx, ty, id }; sent as `rs` in the position message and checked against
+  the receiver's own world (`restFromNet`). Drawn by `drawResting` (called first in `drawCharacter`). A bed or chair
+  someone else is resting on can't be used (`restTaken`, one toast per tile).
+  `outfitBody(im, key, eq, bands)` takes the clothes rows of the picture (`BODY_BANDS` for the standing frames).
+- Talking (`drawTalk`, end of render.js): while a new chat bubble shows (`say.T` = its start; for 0.5 s + 0.06 s per
+  letter, at most 3 s), the mouth cycles through the owner's mouth shapes (`assets/character/mouths.png`: closed, o,
+  open, wide, grin, teeth, 32x24 cells already at our scale, from `art-source/character/talk_sheet.png` row 2 + row 3
+  col 5), every `TALK_MS`; our own mouth line (x 70-81, y 93-95; `MOUTH_X/Y`) is covered with the skin colour first.
+  Nothing else of the face changes. Not while angry; sitting uses `SIT_MOUTH_Y` (96).
+- Backdrop mountains: small notches in the top outline of far/big/mid/front were filled (`art-source/
+  background_notch_fix.py`; originals in `art-source/background_original/`).
 - Checkpoint (deco): walking past it sets `P.cp`; when you die you respawn there (if it still exists), else at the door.
+- Backgrounds go on any tile that has no background yet, even one with a block, sign, decoration, platform or tree on
+  it; they are drawn behind it (render.js). Not drawn behind ground blocks with a sheet (dirt, rock, lava, bedrock)
+  or Dark Cave, so the rounded ground edges still show the sky.
+- Seeds can be planted on top of platforms (Wooden Platform, Staircase: `plat`) as well as on solid blocks (`canPlant`).
+- Wooden Platform joins its neighbours: `DECO.wooden_platform(h, f)` with f = 1 (platform on the left) | 2 (on the
+  right); an open side gets a rounded end, so a row reads as one plank and a lone one is rounded on both ends.
+- Chat: at most `CHAT_MAX` (80) letters, with a counter by the box. Speech bubbles wrap at `CHAT_BUBBLE_W` and grow
+  upwards, never wider (`bubbleLines` breaks long words too). Spam limit: `CHAT_BURST` (3) messages within
+  `CHAT_WINDOW` s, then `CHAT_COOLDOWN` (5) s wait; incoming chat from someone over the limit is ignored too.
+- Entering a world (`enterWorld` in worlds.js): a blurred LOADING screen (`#wload`) covers everything for at least
+  `WLOAD_MIN` ms and until the world is in; while it shows, other `enterWorld` calls return false and keys are ignored.
 
 ## Ideas the owner may ask for next
 

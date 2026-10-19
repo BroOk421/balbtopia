@@ -1930,6 +1930,13 @@ button:focus-visible {
   background: var(--slot);
   color: var(--ink);
 }
+/* letters typed / CHAT_MAX, next to the chat box */
+.chatcount {
+  align-self: center;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
 .chatlog {
   list-style: none;
   margin: 0 0 8px;
@@ -2117,15 +2124,21 @@ button:focus-visible {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 34px;
   height: 34px;
-  padding: 0 10px;
+  padding: 0;
   border-radius: 4px;
   border: 2px solid var(--night);
   background: var(--slot);
-  color: var(--muted);
-  font: 8px var(--pixel);
+  color: #e8392c; /* the red bin */
   cursor: pointer;
+}
+.trashbtn:hover {
+  color: #ff5a46;
+}
+.trashbtn svg {
+  display: block;
 }
 .trashbtn.on {
   background: #c62f2a;
@@ -2277,4 +2290,92 @@ button:focus-visible {
   font-size: 10px;
   color: var(--muted);
   opacity: 0.6;
+}
+
+/* entering a world: blurred, darkened screen with a spinner until the world has loaded.
+   It covers everything and takes all taps, so nothing can be spammed while it shows. */
+.wload {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(28, 16, 51, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: wloadIn 0.18s ease-out;
+}
+.wload.out {
+  opacity: 0;
+  transition: opacity 0.25s ease-in;
+}
+.wloadbox {
+  text-align: center;
+  padding: 18px 26px;
+  background: var(--panel);
+  border: 3px solid var(--night);
+  box-shadow:
+    0 0 0 2px var(--glow),
+    0 8px 0 rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+}
+.wspin {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 12px;
+  border: 5px solid var(--slot);
+  border-top-color: var(--sun);
+  border-radius: 50%;
+  animation: wspin 0.8s linear infinite;
+}
+.wloadT {
+  margin: 0;
+  font: 11px var(--pixel);
+  color: var(--sun);
+  letter-spacing: 1px;
+}
+.wloadN {
+  margin: 8px 0 0;
+  font: 9px var(--pixel);
+  color: var(--ink);
+}
+@keyframes wspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes wloadIn {
+  from {
+    opacity: 0;
+  }
+}
+/* messages (like "couldn't load the world") stay readable over the loading blur */
+.toast {
+  z-index: 101;
+}
+/* hotbar: press and hold an item to drop it; a bar fills along the bottom while holding */
+.hb {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.hb.pressing::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  height: 3px;
+  width: 0;
+  border-radius: 2px;
+  background: var(--sun);
+  animation: hbHold 0.55s linear forwards;
+}
+@keyframes hbHold {
+  to {
+    width: calc(100% - 4px);
+  }
+}
+/* GM bag: category tabs over the grid (same look as the Shop's) */
+.gmtabs {
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }

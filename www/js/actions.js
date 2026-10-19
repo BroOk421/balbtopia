@@ -98,8 +98,9 @@ function act() {
   }
   const i = at(x, y),
     it = ITEMS[hand];
-  // trees: a seed in hand splices, anything else punches (harvest when ripe)
-  if (trees.has(i)) {
+  // trees: a seed in hand splices, anything else punches (harvest when ripe);
+  // a background in hand still goes on the tile, behind the tree
+  if (trees.has(i) && !(it && it.kind === 'background')) {
     if (it && it.kind === 'seed') {
       if (canEdit()) splice(x, y, hand);
     } else {
@@ -142,6 +143,8 @@ function act() {
         toast('Bedrock is too hard to break');
         return;
       }
+      // a Weather Machine: every punch switches it off / on (punch it fast a few times to break it)
+      if (isWeatherT(fg[i])) toggleWeather(i);
       dmg[i]++;
       dmgT[i] = now;
       shake = 2.5;
@@ -160,7 +163,7 @@ function act() {
         dmg[i] = 0;
         if (y > 0) uproot(x, y - 1);
         addXP(1);
-        if (Math.random() < (BLOCK_DROP_CHANCE[id] ?? 1)) spawnDrop(id, x * TS + 16, y * TS + 16);
+        if (Math.random() < blockDropChance(id)) spawnDrop(id, x * TS + 16, y * TS + 16);
         if (b.lock) {
           worldOwner = null;
           setLockCfg(null);
@@ -171,10 +174,8 @@ function act() {
           return;
         }
         dropSeed(id, x, y);
-        if (Math.random() < GOLD_CHANCE) {
-          const n = GOLD_AMOUNT[0] + Math.floor(Math.random() * (GOLD_AMOUNT[1] - GOLD_AMOUNT[0] + 1));
-          spawnDrop('gold', x * TS + 16 + (Math.random() < 0.5 ? -7 : 7), y * TS + 12, n);
-        }
+        const gold = goldDropAmount(id);
+        if (gold) spawnDrop('gold', x * TS + 16 + (Math.random() < 0.5 ? -7 : 7), y * TS + 12, gold);
       }
     } else if (bg[i]) {
       bgDmg[i]++;
@@ -190,8 +191,10 @@ function act() {
         bg[i] = 0;
         bgDmg[i] = 0;
         smoke(x, y, 9, 1.4);
-        spawnDrop(bk.id, x * TS + 16, y * TS + 16);
+        if (Math.random() < blockDropChance(bk.id)) spawnDrop(bk.id, x * TS + 16, y * TS + 16);
         dropSeed(bk.id, x, y);
+        const gold = goldDropAmount(bk.id);
+        if (gold) spawnDrop('gold', x * TS + 16 + (Math.random() < 0.5 ? -7 : 7), y * TS + 12, gold);
       }
     }
     return;
@@ -215,7 +218,7 @@ function act() {
       smoke(x, y, 10, 1.3);
     }
     fg[i] = it.block;
-    vari[i] = Math.floor(Math.random() * 3);
+    vari[i] = Math.floor(Math.random() * 3); // (bit WEATHER_OFF clear: a new Weather Machine is on)
     takeItem(hand);
     placeFx(x, y, it.block, true);
   } else if (it.kind === 'background') {
@@ -296,9 +299,9 @@ function smoke(x, y, n, power) {
   }
 }
 // an item floating in the world; joins a nearby drop of the same kind
-// seeds fall out of broken blocks: dirt and cave 50%, rock and lava 30%
+// seeds fall out of broken blocks (and harvested trees), less often the rarer the item (seedDropChance)
 function dropSeed(id, x, y) {
-  if (Math.random() < (SEED_CHANCE[id] || 0))
+  if (Math.random() < seedDropChance(id))
     spawnDrop(id + '_seed', x * TS + 16 + (Math.random() < 0.5 ? -6 : 6), y * TS + 20);
 }
 // every drop has an id (uid) so all players in the world see the same drop, a time it was
@@ -306,17 +309,33 @@ function dropSeed(id, x, y) {
 let dropSeq = 0;
 const newDropId = () =>
   (Net.me ? Net.me.id.slice(0, 8) : 'local') + '-' + Date.now().toString(36) + '-' + (dropSeq++).toString(36);
+// One floating drop holds at most DROP_STACK of an item. Dropping onto a tile that already has drops
+// of the same item tops those up first; what doesn't fit floats as a new drop beside them
+// (e.g. 200 Grass floating + 1 more = a 200 and a 1).
+const DROP_STACK = 200;
+const DROP_SPREAD = [0, 7, -7, 3.5, -3.5, 10, -10]; // x offsets of the extra drops on one spot
 function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
-  const near = drops.find((d) => d.id === id && (d.by || null) === by && Math.hypot(d.x - x, d.y - y) < 10);
-  if (near) {
-    near.qty += qty;
-    near.born = Date.now(); // more fell on it: the minute starts again
-    Net.sendDrop(near);
-    return;
+  const tx = Math.floor(x / TS),
+    ty = Math.floor(y / TS),
+    sameSpot = (d) => (Math.floor(d.x / TS) === tx && Math.floor(d.y / TS) === ty) || Math.hypot(d.x - x, d.y - y) < 10,
+    here = drops.filter((d) => d.id === id && (d.by || null) === by && sameSpot(d));
+  for (const d of here) {
+    if (qty <= 0) break;
+    const k = Math.min(qty, DROP_STACK - d.qty);
+    if (k <= 0) continue;
+    d.qty += k;
+    d.born = Date.now(); // more fell on it: the minute starts again
+    Net.sendDrop(d);
+    qty -= k;
   }
-  const d = { uid: newDropId(), id, qty, x, y, age: 0, minAge, ph: Math.random() * 6.28, born: Date.now(), by };
-  drops.push(d);
-  Net.sendDrop(d);
+  let n = here.length;
+  while (qty > 0) {
+    const k = Math.min(qty, DROP_STACK),
+      d = { uid: newDropId(), id, qty: k, x: x + DROP_SPREAD[n++ % DROP_SPREAD.length], y, age: 0, minAge, ph: Math.random() * 6.28, born: Date.now(), by };
+    drops.push(d);
+    Net.sendDrop(d);
+    qty -= k;
+  }
 }
 // may this player pick the drop up? In a locked world only the owner takes it at once;
 // everyone else (builders with access and "everyone can build" worlds too) waits DROP_LOCK_MS

@@ -147,6 +147,17 @@ const NEW_ITEMS = [
   { id: 'portcullis', t: 113, name: 'Portcullis', kind: 'deco', hits: 4, rarity: 'Uncommon', grow: 300, seed: ['#5a606e', '#2e323c', '#9aa0ad'], fx: ['#5a606e', '#9aa0ad', '#2e323c'], desc: "An iron castle gate. Portcullis = Dungeon Door + Death Spikes." },
   { id: 'steel_block', t: 114, name: 'Steel Block', kind: 'block', hits: 8, rarity: 'Uncommon', grow: 360, seed: ['#9aa0ad', '#4a4f5c', '#e0e4ea'], fx: ['#9aa0ad', '#e0e4ea', '#4a4f5c'], edge: ['#1a1d24', '#e0e4ea', '#4a4f5c'], desc: "Strong riveted steel. Steel Block = Purple Block + Portcullis." },
   { id: 'golden_block', t: 115, name: 'Golden Block', kind: 'block', hits: 6, rarity: 'Rare', grow: 420, seed: ['#ffd23f', '#a8760a', '#fff4b8'], fx: ['#ffd23f', '#fff4b8', '#a8760a'], edge: ['#5a3a06', '#fff4b8', '#a8760a'], desc: "A block of shiny gold. Golden Block = Yellow Block + Steel Block." },
+  // Balbtopia-only splices (Oct 2026), blocks 122-131
+  { id: 'marble_block', t: 122, name: 'Marble Block', kind: 'block', hits: 5, rarity: 'Uncommon', grow: 240, seed: ['#e8e8ee',  '#9a9aa8',  '#ffffff'], fx: ['#e8e8ee',  '#ffffff',  '#9a9aa8'], edge: ['#5a5a66', '#ffffff', '#c8c8d2'], desc: "Polished white stone with soft grey veins. Marble Block = Rock + White Block." },
+  { id: 'honeycomb_block', t: 123, name: 'Honeycomb Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 240, seed: ['#f2b020',  '#8a5a06',  '#ffd860'], fx: ['#f2b020',  '#ffd860',  '#8a5a06'], edge: ['#5a3a06', '#ffe680', '#a8760a'], desc: "Sweet golden honeycomb. Honeycomb Block = Amber Glass + Yellow Block." },
+  { id: 'lantern', t: 124, name: 'Lantern', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 240, seed: ['#ffb030',  '#3a2a1a',  '#fff0a0'], fx: ['#ffb030',  '#fff0a0',  '#3a2a1a'], desc: "A little hanging lantern with a flickering flame. Lantern = Glass Pane + Torch." },
+  { id: 'flower_pot', t: 125, name: 'Flower Pot', kind: 'deco', hits: 2, rarity: 'Common', grow: 200, seed: ['#c86a3a',  '#7a3a1a',  '#ffd23f'], fx: ['#c86a3a',  '#ffd23f',  '#4caf3a'], desc: "A clay pot with a happy yellow flower. Flower Pot = Brown Block + Daisy." },
+  { id: 'sunflower', t: 126, name: 'Sunflower', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 240, seed: ['#ffc81e',  '#6a4010',  '#4caf3a'], fx: ['#ffc81e',  '#4caf3a',  '#6a4010'], desc: "A tall sunflower that follows the sun. Sunflower = Daisy + Yellow Block." },
+  { id: 'notice_board', t: 127, name: 'Notice Board', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 260, seed: ['#a86c3c',  '#5a3a20',  '#f2e8c8'], fx: ['#a86c3c',  '#f2e8c8',  '#ff6a5a'], desc: "A cork board covered in notes and pins. Notice Board = Sign + Wood Block." },
+  { id: 'fish_tank', t: 128, name: 'Fish Tank', kind: 'deco', hits: 3, rarity: 'Rare', grow: 300, seed: ['#3a8ad8',  '#1a3a6a',  '#9fd6f5'], fx: ['#3a8ad8',  '#9fd6f5',  '#ff8a2a'], desc: "A glass tank with little fish swimming around. Fish Tank = Blue Block + Glass Pane." },
+  { id: 'magic_mushroom', t: 129, name: 'Magic Mushroom', kind: 'deco', hits: 2, rarity: 'Rare', grow: 300, seed: ['#a040e0',  '#4a1a6a',  '#ffb0ff'], fx: ['#a040e0',  '#ffb0ff',  '#fff6c0'], desc: "A glowing purple mushroom with sparkling spots. Magic Mushroom = Mushroom + Torch." },
+  { id: 'lava_lamp', t: 130, name: 'Lava Lamp', kind: 'deco', hits: 3, rarity: 'Rare', grow: 320, seed: ['#ff5a2a',  '#3a2a4a',  '#ffd040'], fx: ['#ff5a2a',  '#ffd040',  '#8a3aa0'], desc: "Slow blobs of lava rise and fall inside. Lava Lamp = Glass Pane + Lava." },
+  { id: 'cherry_blossom', t: 131, name: 'Cherry Blossom', kind: 'deco', hits: 2, rarity: 'Rare', grow: 320, seed: ['#ffb0d0',  '#6a3a2a',  '#ffe0ec'], fx: ['#ffb0d0',  '#ffe0ec',  '#6a3a2a'], desc: "A little blossom tree with drifting pink petals. Cherry Blossom = Grass + Rainbow Block." },
   { id: 'boombox', t: 116, name: 'Boombox', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 360, seed: ['#2a2830', '#9aa0ad', '#4a4752'], fx: ['#2a2830', '#9aa0ad', '#ff4ad8'], desc: "A stereo for your world. Boombox = Black Block + Steel Block." },
 ];
 
@@ -713,10 +724,28 @@ const DECO = {
       P(i - 1, j - 1, '#8a9aff');
     }
   },
-  wooden_platform({ R, P }) {
+  // f: which sides join another Wooden Platform (1 = left, 2 = right). An open side gets a
+  // rounded end; joined sides run straight to the tile edge so a row of them looks like one plank.
+  // f 0 (a platform on its own, and the icon) is rounded on both ends.
+  wooden_platform({ R, P, x }, f = 0) {
     R(0, 0, 16, 4, '#2a1a0e');
     R(0, 1, 16, 2, '#b07a4a');
     R(0, 1, 16, 1, '#d8a066');
+    for (const [open, e, n] of [
+      [!(f & 1), 0, 1],
+      [!(f & 2), 15, -1],
+    ]) {
+      if (!open) continue;
+      // rounded cap: clear the outer corners, then outline the curve
+      x.clearRect(e * 2, 0, 2, 2);
+      x.clearRect(e * 2, 6, 2, 2);
+      P(e, 1, '#2a1a0e');
+      P(e, 2, '#2a1a0e');
+      P(e + n, 0, '#2a1a0e');
+      P(e + n, 3, '#2a1a0e');
+      P(e + n, 1, '#c98a52');
+      P(e + n, 2, '#8a5a32');
+    }
     for (const i of [3, 11]) {
       R(i, 4, 2, 3, '#2a1a0e');
       R(i, 4, 1, 2, '#6b4424');
@@ -1358,7 +1387,14 @@ function drawNewBlock(b, x, y, px, py, T) {
     if (b.edge) drawEdges(maskOf(x, y), px, py, T, b.edge);
   } else {
     // a Checkpoint is green when it is the one you'll come back to
-    const f = b.id === 'checkpoint' ? (P.cp && P.cp.x === x && P.cp.y === y ? 1 : 0) : decoFrame(b.id);
+    const f =
+      b.id === 'checkpoint'
+        ? P.cp && P.cp.x === x && P.cp.y === y
+          ? 1
+          : 0
+        : b.id === 'wooden_platform'
+          ? (x > 0 && fg[at(x - 1, y)] === fg[at(x, y)] ? 1 : 0) | (x < WW - 1 && fg[at(x + 1, y)] === fg[at(x, y)] ? 2 : 0)
+          : decoFrame(b.id);
     g.drawImage(decoCanvas(b.id, f), px, py, T, T);
   }
 }
@@ -1408,4 +1444,167 @@ function itemImg(k) {
     x.fillRect(0, 0, c.width, c.height);
   }
   return (IMG[k] = c);
+}
+
+// ---------- Balbtopia-only splices (Oct 2026): art ----------
+Object.assign(TEX, {
+  // white stone with soft grey veins and a polished shine
+  marble_block({ R, P }) {
+    R(0, 0, 16, 16, '#e8e8ee');
+    R(0, 0, 16, 1, '#ffffff');
+    R(0, 0, 1, 16, '#ffffff');
+    R(0, 15, 16, 1, '#b8b8c4');
+    R(15, 0, 1, 16, '#b8b8c4');
+    for (const [i, j] of [[2, 3], [3, 4], [4, 4], [5, 5], [6, 7], [7, 8], [7, 9], [8, 10], [10, 10], [11, 11], [12, 13]]) P(i, j, '#a8a8b6');
+    for (const [i, j] of [[10, 2], [11, 3], [11, 4], [12, 5], [13, 5]]) P(i, j, '#c4c4d0');
+    for (const [i, j] of [[2, 11], [3, 12], [4, 12]]) P(i, j, '#c4c4d0');
+    P(3, 2, '#ffffff');
+    P(4, 2, '#ffffff');
+    P(2, 2, '#ffffff');
+  },
+  // golden hexagon cells with darker walls and drips of honey
+  honeycomb_block({ R, P }) {
+    R(0, 0, 16, 16, '#a8760a');
+    const cell = (x, y) => {
+      R(x + 1, y, 3, 1, '#ffd860');
+      R(x, y + 1, 5, 2, '#f2b020');
+      R(x + 1, y + 3, 3, 1, '#d89414');
+      P(x + 1, y + 1, '#fff0a0');
+    };
+    for (const [x, y] of [[0, 0], [6, 0], [12, 0], [3, 4], [9, 4], [0, 8], [6, 8], [12, 8], [3, 12], [9, 12]]) cell(x, y);
+    R(7, 15, 1, 1, '#ffd860');
+  },
+});
+Object.assign(DECO, {
+  // a black iron lantern on a hook; the flame flickers (2 frames)
+  lantern({ R, P }, f = 0) {
+    R(7, 0, 2, 2, '#2a2830');
+    R(5, 2, 6, 2, '#2a2830');
+    R(4, 4, 8, 9, '#2a2830');
+    R(5, 5, 6, 7, f ? '#ffd040' : '#ffb030');
+    R(6, 6, 4, 5, f ? '#fff6c0' : '#ffe080');
+    R(7, f ? 6 : 7, 2, f ? 4 : 3, '#ffffff');
+    R(4, 8, 8, 1, '#2a2830');
+    R(7, 5, 2, 7, 'rgba(42,40,48,.5)');
+    R(3, 13, 10, 2, '#2a2830');
+    R(4, 13, 8, 1, '#4a4752');
+    P(5, 5, '#fff6c0');
+  },
+  // a clay pot with a yellow daisy-like flower and two leaves
+  flower_pot({ R, P, D }) {
+    R(7, 6, 2, 5, '#3f9a30');
+    D(5, 8, 1.5, '#4caf3a');
+    D(11, 7, 1.5, '#4caf3a');
+    for (const [i, j] of [[8, 1], [5, 4], [11, 4], [6, 6], [10, 6], [8, 3]]) D(i, j, 1.4, '#ffd23f');
+    D(8, 4, 1.6, '#c86a1a');
+    P(7, 3, '#e8a040');
+    R(3, 10, 10, 2, '#7a3a1a');
+    R(4, 12, 8, 4, '#c86a3a');
+    R(4, 12, 8, 1, '#e08a5a');
+    R(3, 10, 10, 1, '#a8562a');
+    R(11, 12, 1, 4, '#9a4a22');
+  },
+  // a tall sunflower: brown seed face, yellow petals, leaves on the stem
+  sunflower({ R, P, D }) {
+    R(7, 7, 2, 9, '#3f9a30');
+    R(7, 7, 1, 9, '#5ab84a');
+    D(4, 11, 2, '#4caf3a');
+    D(11, 13, 2, '#4caf3a');
+    for (let a = 0; a < 10; a++) {
+      const ang = (a / 10) * Math.PI * 2;
+      D(8 + Math.cos(ang) * 4.2, 4.5 + Math.sin(ang) * 3.6, 1.5, a % 2 ? '#ffc81e' : '#ffe050');
+    }
+    D(8, 4.5, 2.6, '#6a4010');
+    D(8, 4.5, 1.6, '#8a5a1a');
+    P(7, 4, '#a87a2a');
+    P(9, 5, '#a87a2a');
+  },
+  // a wooden-framed cork board with notes and coloured pins
+  notice_board({ R, P }) {
+    R(1, 1, 14, 11, '#5a3a20');
+    R(2, 2, 12, 9, '#c8945a');
+    R(2, 2, 12, 1, '#d8a870');
+    R(3, 3, 4, 4, '#f2e8c8');
+    R(8, 4, 5, 3, '#fff6a0');
+    R(4, 8, 6, 2, '#c8e8ff');
+    for (const [i, j] of [[4, 4], [5, 5], [9, 5], [10, 5], [5, 9], [7, 9]]) P(i, j, '#8a8a96');
+    P(5, 3, '#ff4a4a');
+    P(10, 4, '#3a8ad8');
+    P(6, 8, '#4caf3a');
+    R(3, 12, 2, 4, '#5a3a20');
+    R(11, 12, 2, 4, '#5a3a20');
+  },
+  // a glass tank: water, sand, a plant and two fish that swim back and forth (4 frames)
+  fish_tank({ R, P }, f = 0) {
+    R(1, 3, 14, 12, '#1a3a6a');
+    R(2, 4, 12, 10, '#3a8ad8');
+    R(2, 4, 12, 2, '#6ab0f0');
+    R(2, 12, 12, 2, '#e8d098');
+    R(4, 9, 1, 3, '#3f9a30');
+    R(5, 8, 1, 4, '#4caf3a');
+    R(12, 10, 1, 2, '#3f9a30');
+    // fish: orange one left-right, yellow one the other way
+    const x1 = [4, 6, 8, 6][f],
+      x2 = [10, 8, 6, 8][f];
+    R(x1, 7, 3, 2, '#ff8a2a');
+    P(x1 + (f < 2 ? 3 : -1), 7, '#ff8a2a');
+    P(x1 + (f < 2 ? 3 : -1), 8, '#ff8a2a');
+    P(x1 + (f < 2 ? 2 : 0), 7, '#1a1a1a');
+    R(x2, 10, 2, 1, '#ffd23f');
+    P(x2 + (f < 2 ? -1 : 2), 10, '#ffd23f');
+    // bubbles
+    P(9, [9, 8, 6, 5][f], '#c8ecff');
+    P(11, [6, 5, 9, 8][f], '#c8ecff');
+    R(1, 3, 14, 1, '#9fd6f5');
+    R(0, 14, 16, 2, '#2a2830');
+  },
+  // a purple mushroom whose spots glow brighter and dimmer (2 frames)
+  magic_mushroom({ R, P, D }, f = 0) {
+    R(6, 9, 4, 7, '#f2e8d8');
+    R(6, 9, 1, 7, '#ffffff');
+    R(9, 9, 1, 7, '#c8bca8');
+    D(8, 7, 6, '#4a1a6a');
+    D(8, 7, 5.2, '#a040e0');
+    R(2, 8, 12, 2, '#4a1a6a');
+    R(3, 8, 10, 1, '#7a2ab0');
+    const spot = f ? '#fff6c0' : '#ffb0ff';
+    for (const [i, j] of [[5, 4], [10, 3], [8, 6], [12, 6], [4, 7]]) {
+      P(i, j, spot);
+      P(i + 1, j, spot);
+    }
+    if (f) for (const [i, j] of [[2, 2], [14, 3], [13, 0]]) P(i, j, '#fff6c0');
+  },
+  // a lava lamp: a glass tube on a metal base with blobs that rise and fall (4 frames)
+  lava_lamp({ R, P, D }, f = 0) {
+    R(6, 0, 4, 2, '#5a606e');
+    R(5, 2, 6, 10, '#3a2a4a');
+    R(6, 2, 4, 10, '#8a3aa0');
+    const ys = [[4, 9], [5, 8], [6, 7], [5, 9]][f];
+    D(8, ys[0], 1.4, '#ff5a2a');
+    D(7.5, ys[1], 1.2, '#ffd040');
+    P(8, (ys[0] + 2) % 10 + 2, '#ff8a4a');
+    R(6, 2, 1, 10, 'rgba(255,255,255,.25)');
+    R(4, 12, 8, 2, '#5a606e');
+    R(3, 14, 10, 2, '#3a3f4a');
+    R(4, 12, 8, 1, '#9aa0ad');
+  },
+  // a small cherry tree: brown trunk, pink blossom, petals drifting down (2 frames)
+  cherry_blossom({ R, P, D }, f = 0) {
+    R(7, 9, 2, 7, '#6a3a2a');
+    R(7, 9, 1, 7, '#8a5a3a');
+    R(5, 10, 2, 1, '#6a3a2a');
+    R(9, 11, 2, 1, '#6a3a2a');
+    D(8, 5, 5.5, '#e88ab0');
+    D(5, 6, 3, '#ffb0d0');
+    D(11, 5, 3.2, '#ffb0d0');
+    D(8, 3, 3, '#ffc8e0');
+    for (const [i, j] of [[6, 3], [10, 4], [4, 6], [12, 7], [8, 7]]) P(i, j, '#ffe0ec');
+    for (const [i, j] of f ? [[2, 11], [13, 13], [4, 15]] : [[3, 13], [12, 11], [5, 14]]) P(i, j, '#ffb0d0');
+  },
+});
+// animated decorations among them: ms per frame and how many frames
+const NEW_ANIM = { lantern: [180, 2], fish_tank: [320, 4], magic_mushroom: [500, 2], lava_lamp: [600, 4], cherry_blossom: [700, 2] };
+{
+  const prev = decoFrame;
+  decoFrame = (id) => (NEW_ANIM[id] ? Math.floor(now / NEW_ANIM[id][0]) % NEW_ANIM[id][1] : prev(id));
 }

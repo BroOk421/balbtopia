@@ -43,12 +43,23 @@
           <span class="count" id="count"></span
           ><button class="x" id="invx" aria-label="Close inventory">X</button>
         </header>
+        <!-- GM only: item categories (the GM's bag holds every item in the game) -->
+        <div class="stabs gmtabs" id="gmTabs" hidden role="tablist" aria-label="Item categories"></div>
         <div class="grid" id="grid"></div>
         <div class="wearing">
           <span>Wearing:</span>
           <div class="eslots" id="eqSlots"></div>
-          <button class="trashbtn" id="trashBtn" type="button" title="Trash: click it, then click an item to throw it away"><span class="can"></span>TRASH</button>
-          <span id="eqName">Nothing</span>
+          <button class="trashbtn" id="trashBtn" type="button" title="Trash: click it, then click an item to throw it away" aria-label="Trash">
+            <!-- pixel-art bin: lid with a handle, body with three ribs -->
+            <svg viewBox="0 0 16 16" width="22" height="22" shape-rendering="crispEdges" aria-hidden="true">
+              <rect x="6" y="0" width="4" height="1" fill="#14101c" /><rect x="5" y="1" width="1" height="2" fill="#14101c" /><rect x="10" y="1" width="1" height="2" fill="#14101c" />
+              <rect x="1" y="2" width="14" height="3" fill="#14101c" /><rect x="2" y="3" width="12" height="1" fill="currentColor" />
+              <rect x="2" y="5" width="12" height="11" fill="#14101c" /><rect x="3" y="5" width="10" height="10" fill="currentColor" />
+              <rect x="3" y="5" width="10" height="1" fill="rgba(0,0,0,.3)" />
+              <rect x="5" y="7" width="1" height="6" fill="rgba(0,0,0,.35)" /><rect x="8" y="7" width="1" height="6" fill="rgba(0,0,0,.35)" /><rect x="11" y="7" width="1" height="6" fill="rgba(0,0,0,.35)" />
+              <rect x="4" y="6" width="1" height="7" fill="rgba(255,255,255,.35)" />
+            </svg>
+          </button>
         </div>
       </section>
       <div class="pop" id="pop" hidden role="menu">
@@ -206,6 +217,15 @@
         </div>
       </section>
 
+      <!-- entering a world: the screen blurs behind this until the world is in (worlds.js) -->
+      <div class="wload" id="wload" hidden aria-live="polite">
+        <div class="wloadbox">
+          <div class="wspin" aria-hidden="true"></div>
+          <p class="wloadT">LOADING</p>
+          <p class="wloadN" id="wloadN"></p>
+        </div>
+      </div>
+
       <div class="toast" id="toast" hidden></div>
     </div>
 
@@ -226,11 +246,13 @@
     <script src="js/lock.js"></script>
     <script src="js/social.js"></script>
     <script src="js/worlds.js"></script>
+    <script src="js/weather.js"></script>
     <script src="js/shop.js"></script>
     <script src="js/signs.js"></script>
     <script src="js/wear.js"></script>
     <script src="js/vend.js"></script>
     <script src="js/display.js"></script>
+    <script src="js/rest.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/native.js"></script>
     <script src="js/menu.js"></script>

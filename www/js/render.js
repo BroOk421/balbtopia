@@ -73,11 +73,22 @@ function drawBg() {
   // follow you down (with their own curves) instead of leaving a gap
   const bottom = Math.max(cv.height, Math.min(cv.height + h * 0.2, surfY + h * 0.22)),
     top = bottom - h;
+  // a Weather Machine in the world: its own sky and the same pictures recoloured (weather.js)
+  const wx = currentWeather(),
+    snow = !!wx;
   g.fillStyle = 'rgb(78,44,169)';
-  g.fillRect(0, 0, cv.width, Math.ceil(top) + 1);
+  if (snow) drawWeatherSky(wx, top, h);
+  else if (IMG.bg_sky && IMG.bg_sky.width && top > 0) {
+    // above the picture: its own top row stretched up, so the sky carries on with no line
+    g.imageSmoothingEnabled = true;
+    g.drawImage(IMG.bg_sky, 0, 0, IMG.bg_sky.width, 1, 0, 0, cv.width, Math.ceil(top) + 2);
+  } else g.fillRect(0, 0, cv.width, Math.ceil(top) + 1);
   g.imageSmoothingEnabled = true;
   for (const [k, f] of LAY) {
-    const im = IMG[k];
+    if (snow && (k === 'bg_sky' || (k === 'bg_sun' && wx === 'snow'))) continue;
+    // (the sun's glow fades out before the edges of its picture, so no box shows round it)
+    const im = snow ? weatherLayer(wx, k) : k === 'bg_sun' ? softEdges(IMG[k]) : IMG[k];
+    if (!im) continue;
     if (f === 0) {
       g.drawImage(im, 0, top, cv.width, h);
       continue;
@@ -91,7 +102,7 @@ function drawBg() {
     for (let i = start; i < start + Math.ceil(cv.width / w) + 2; i++) {
       const x = off + i * w;
       if (x > cv.width || x + w < 0) continue;
-      g.drawImage(((i % 2) + 2) % 2 ? flipped(k) : im, Math.floor(x), top, Math.ceil(w) + 1, h);
+      g.drawImage(((i % 2) + 2) % 2 ? (snow ? weatherFlipped(wx, k) : flipped(k)) : im, Math.floor(x), top, Math.ceil(w) + 1, h);
     }
   }
   g.imageSmoothingEnabled = false;
@@ -275,6 +286,7 @@ function drawWorn(c, top, sc, dy = 0) {
       g.drawImage(h, (-FR.w / 2 + it.off.x) * sc * Z, top + (it.off.y + dy) * sc * Z, h.width * sc * Z, h.height * sc * Z);
     }
     if (WEAR_BY_ID[hid] && WEAR_BY_ID[hid].art) drawWearArt(hid, top, sc, dy);
+    if (WEAR_BY_ID[hid] && WEAR_BY_ID[hid].strip) drawWearStrip(WEAR_BY_ID[hid], top, sc, dy, 1, 'front');
   }
   if (eq.hat) drawWearArt(eq.hat, top, sc, dy);
 }
@@ -349,6 +361,7 @@ function drawDead(c, ox, oy) {
 // one character (you or another player): body, walk cycle, punch arm, clothing and name tag
 function drawCharacter(c, ox, oy) {
   if (c.dead) return drawDead(c, ox, oy);
+  if (c.rest) return drawResting(c, ox, oy); // sitting or sleeping (rest.js)
   const style = c.style === 'stride' ? 'stride' : 'step';
   const angry = c.angry > 0;
   // no blinking while angry: the eyes stay open under the angry lids
@@ -389,9 +402,13 @@ function drawCharacter(c, ox, oy) {
     frameKey = swinging ? 'noarm_' + c.skin : punching ? 'punch_' + c.skin : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
   g.drawImage(outfitBody(body, frameKey, eq), (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
   if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else drawTalk(c, top, sc, dy, MOUTH_Y);
   drawWorn(c, top, sc, dy);
-  // a tool in the front hand (when punching, it is drawn at the fist instead)
-  if (tool && !punching && c.hand !== 'wrench') drawHeldTool(c.hand, top, sc, 0, c.skin, im, frameKey);
+  drawAuraFront(c, top, sc, dy); // the aura's lightning, in front of everything else on the body
+  // the tool in the hand: the one you hold, or else the one in your Hand slot, so the pickaxe stays in
+  // your hand while you hold a block, a seed or the wrench (only a swing draws it elsewhere)
+  const shown = tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null;
+  if (shown && !swinging) drawHeldTool(shown, top, sc, 0, c.skin, im, frameKey);
   g.restore();
   if (swinging) drawToolSwing(c, cx, top, sc, ox, oy);
   // Laser Eyes: every punch is a laser
@@ -399,7 +416,8 @@ function drawCharacter(c, ox, oy) {
   g.imageSmoothingEnabled = false;
   // name tag just above the head (or above the hair when wearing some)
   // name tag above the head, above the hair or the hat
-  const hairTop = eq.hair && ITEMS[eq.hair] && ITEMS[eq.hair].off ? ITEMS[eq.hair].off.y + 16 : eq.hair === 'afro' ? -40 : 4;
+  const hw = WEAR_BY_ID[eq.hair],
+    hairTop = hw && hw.top !== undefined ? hw.top : eq.hair && ITEMS[eq.hair] && ITEMS[eq.hair].off ? ITEMS[eq.hair].off.y + 16 : eq.hair === 'afro' ? -40 : 4;
   const headTop = top + Math.min(4, hairTop, eq.hat ? (eq.hat === 'top_hat' ? -52 : -26) : 4) * sc * Z;
   const tagW = drawNameTag(c.name, cx, headTop - 4 * Z);
   if (c.say) drawBubble(c.say.text, cx, headTop - 11 * Z, Math.min(1, c.say.t * 2));
@@ -522,14 +540,20 @@ function render() {
     vy0 = Math.max(0, Math.floor(cam.y / TS)),
     vx1 = Math.min(WW - 1, Math.ceil((cam.x + cv.width / Z) / TS)),
     vy1 = Math.min(WH - 1, Math.ceil((cam.y + cv.height / Z) / TS));
-  // background walls + soft shade under blocks
+  // background walls + soft shade under blocks. A background also shows behind whatever stands on
+  // its tile (signs, platforms, decorations, locks, see-through blocks): the block is drawn on top.
+  // Not behind the ground itself (dirt, rock, lava, bedrock, dark cave), so its rounded edges
+  // still show the sky and not the cave wall.
   for (let y = vy0; y <= vy1; y++)
     for (let x = vx0; x <= vx1; x++) {
       const i = at(x, y);
-      if (!bg[i] || fg[i]) continue;
+      if (!bg[i]) continue;
+      const b = fg[i] && BLOCK[fg[i]];
+      if (b && (b.sheet || b.art === 'dark')) continue;
       const px = ox + x * T,
         py = oy + y * T;
       g.drawImage(bgImage(bg[i]), px, py, T, T);
+      if (fg[i]) continue;
       g.fillStyle = 'rgba(8,4,2,.32)';
       if (y > 0 && fg[at(x, y - 1)]) g.fillRect(px, py, T, T * 0.22);
       if (x > 0 && fg[at(x - 1, y)]) g.fillRect(px, py, T * 0.16, T);
@@ -665,6 +689,7 @@ function render() {
       name: playerName,
       place: P.place,
       say: P.say,
+      rest: P.rest,
     },
     ox,
     oy,
@@ -706,6 +731,9 @@ function render() {
     g.fillText(f.s, ox + f.x * Z, oy + f.y * Z);
     g.globalAlpha = 1;
   }
+  // weather: falling snow over the world, and the white flash when the weather changes
+  if (weatherNow === 'snow') drawSnow();
+  drawWeatherFlash();
   // cursor square
   if (ptr.inside && $('inv').hidden) {
     const { x, y } = tileUnder();
@@ -1002,11 +1030,38 @@ function drawPlaces(ox, oy, T) {
   }
 }
 // speech bubble above a player's name (messages)
+// The bubble never gets wider than CHAT_BUBBLE_W: long text wraps onto more lines, so the
+// bubble grows upwards instead of sideways. Words too long for a line are cut by letters.
+function bubbleLines(text, maxW) {
+  const lines = [];
+  let line = '';
+  for (const word of String(text).split(/\s+/)) {
+    if (!word) continue;
+    const tryLine = line ? line + ' ' + word : word;
+    if (g.measureText(tryLine).width <= maxW) {
+      line = tryLine;
+      continue;
+    }
+    if (line) lines.push(line);
+    line = '';
+    // the word alone is too long: cut it into pieces that fit
+    for (const ch of word) {
+      if (line && g.measureText(line + ch).width > maxW) {
+        lines.push(line);
+        line = '';
+      }
+      line += ch;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 function drawBubble(text, x, y, a) {
-  g.font = `${6 * Z}px "Press Start 2P", monospace`;
-  const t = text.length > 34 ? text.slice(0, 33) + '…' : text,
-    w = g.measureText(t).width + 8 * Z,
-    h = 12 * Z;
+  g.font = `${5 * Z}px "Press Start 2P", monospace`;
+  const lines = bubbleLines(text, CHAT_BUBBLE_W * Z),
+    lh = 7 * Z,
+    w = Math.max(...lines.map((l) => g.measureText(l).width)) + 8 * Z,
+    h = lines.length * lh + 5 * Z;
   g.globalAlpha = a;
   g.fillStyle = '#fffaf0';
   g.strokeStyle = '#1c1033';
@@ -1021,7 +1076,7 @@ function drawBubble(text, x, y, a) {
   g.fillStyle = '#1c1033';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillText(t, x, y - h / 2 + Z * 0.5);
+  lines.forEach((l, k) => g.fillText(l, x, y - h + 2.5 * Z + lh * (k + 0.5) + Z * 0.5));
   g.textBaseline = 'alphabetic';
   g.globalAlpha = 1;
 }
@@ -1072,4 +1127,31 @@ function wrenchSprite() {
 }
 function drawIcon(id, x, y, s) {
   g.drawImage(iconCanvas(id), x, y, s, s);
+}
+// ---------- talking: the mouth moves while a new chat message shows over the head ----------
+// The owner's mouth shapes (assets/character/mouths.png) drawn over our own mouth, nothing else of the face changes.
+const MOUTH_X = 75.5, // our mouth's middle (body px)
+  MOUTH_Y = 94;
+const MOUTHS = ['closed', 'o', 'open', 'wide', 'grin', 'teeth'];
+const TALK_SEQ = ['o', 'open', 'wide', 'open', 'o', 'grin', 'open', 'wide', 'teeth', 'o', 'closed', 'open'];
+const TALK_MS = 110;
+// call inside the character transform (x 0 = the body's middle)
+function drawTalk(c, top, sc, dy, mouthY) {
+  const say = c.say,
+    im = IMG.mouths;
+  if (!say || !im || !im.width) return;
+  if (say.T === undefined) say.T = say.t; // when it started (say.t counts down)
+  const el = say.T - say.t,
+    dur = Math.min(3, 0.5 + String(say.text).length * 0.06);
+  if (el < 0 || el > dur) return;
+  const shape = TALK_SEQ[Math.floor((el * 1000) / TALK_MS) % TALK_SEQ.length],
+    f = MOUTHS.indexOf(shape),
+    k = sc * Z,
+    col = ARM_COLOR[c.skin] || ARM_COLOR.porcelain;
+  // cover our own mouth line with skin, then the shape on top
+  g.fillStyle = col.skin;
+  g.fillRect((-FR.w / 2 + MOUTH_X - 7) * k, top + (mouthY + dy - 2) * k, 14 * k, 4 * k);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(im, f * 32, 0, 32, 24, (-FR.w / 2 + MOUTH_X - 16) * k, top + (mouthY + dy - 12) * k, 32 * k, 24 * k);
+  g.imageSmoothingEnabled = true;
 }

@@ -611,6 +611,27 @@
     },
     { "seeds": ["long_brown_hair", "yellow_block"], "result": "princess_hair", "source": "balbtopia", "note": "Princess Hair = Long Brown Hair + Yellow Block (not in Growtopia)"
     }
+,
+    { "seeds": ["rock", "white_block"], "result": "marble_block", "source": "balbtopia", "note": "Marble Block = Rock + White Block (not in Growtopia)"
+    },
+    { "seeds": ["amber_glass", "yellow_block"], "result": "honeycomb_block", "source": "balbtopia", "note": "Honeycomb Block = Amber Glass + Yellow Block (not in Growtopia)"
+    },
+    { "seeds": ["glass_pane", "torch"], "result": "lantern", "source": "balbtopia", "note": "Lantern = Glass Pane + Torch (not in Growtopia)"
+    },
+    { "seeds": ["brown_block", "daisy"], "result": "flower_pot", "source": "balbtopia", "note": "Flower Pot = Brown Block + Daisy (not in Growtopia)"
+    },
+    { "seeds": ["daisy", "yellow_block"], "result": "sunflower", "source": "balbtopia", "note": "Sunflower = Daisy + Yellow Block (not in Growtopia)"
+    },
+    { "seeds": ["sign", "wood_block"], "result": "notice_board", "source": "balbtopia", "note": "Notice Board = Sign + Wood Block (not in Growtopia)"
+    },
+    { "seeds": ["blue_block", "glass_pane"], "result": "fish_tank", "source": "balbtopia", "note": "Fish Tank = Blue Block + Glass Pane (not in Growtopia)"
+    },
+    { "seeds": ["mushroom", "torch"], "result": "magic_mushroom", "source": "balbtopia", "note": "Magic Mushroom = Mushroom + Torch (not in Growtopia)"
+    },
+    { "seeds": ["glass_pane", "lava"], "result": "lava_lamp", "source": "balbtopia", "note": "Lava Lamp = Glass Pane + Lava (not in Growtopia)"
+    },
+    { "seeds": ["grass", "rainbow_block"], "result": "cherry_blossom", "source": "balbtopia", "note": "Cherry Blossom = Grass + Rainbow Block (not in Growtopia)"
+    }
   ],
   "growtopiaNotInGameYet": [
     { "seeds": ["super_crate_box", "white_block"], "result": "sheet_music_blank", "name": "Sheet Music: Blank", "why": "music item"

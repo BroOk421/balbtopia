@@ -46,7 +46,7 @@ function step(dt) {
   touchCheckpoint();
   if (P.healT > 0 && (P.healT -= dt) <= 0) P.hp = LAVA_HP;
   const dir = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
-  const target = dir * 160,
+  const target = dir * 160 * feetSpeed(),
     acc = P.ground ? 14 : 8;
   // knocked back: you can't steer for a moment, you just slide out
   if (P.kbT > 0) {
@@ -132,6 +132,7 @@ function step(dt) {
   P.x = Math.max(0, Math.min(WW * TS - P.w, P.x));
   if (P.y > WH * TS) return die('fell');
   stepFx(dt);
+  updateRest(dt); // sit on chairs, lie down in beds (rest.js)
 }
 // you died: the body goes limp and fades while a little ghost with wings flies up (see drawDead)
 function die(why) {

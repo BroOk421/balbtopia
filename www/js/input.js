@@ -8,6 +8,7 @@ const cv = $('c'),
   g = cv.getContext('2d');
 addEventListener('keydown', (e) => {
   if (!$('start').hidden) return;
+  if (!$('wload').hidden) return e.preventDefault(); // a world is loading
   // typing in a text box (world name, player name) is not game input
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   if (e.code === 'Escape') {

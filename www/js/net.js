@@ -323,6 +323,7 @@ const Net = (() => {
       equipped: p.eq && typeof p.eq === 'object' ? { ...p.eq } : { hair: p.h || null, feet: p.ft || null },
       hand: typeof p.hd === 'string' ? p.hd : 'fist',
       hurt: p.hu ? 0.3 : 0,
+      rest: restFromNet(p.rs),
       seen: now,
     });
     if (!r.walking) r.walkPh = 0;
@@ -347,6 +348,7 @@ const Net = (() => {
       eq: equipped, // everything worn
       hd: hand, // what's in the hand (tools show)
       hu: P.hurt > 0 || P.hitT > 0 ? 1 : 0,
+      rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
     };
     const j = JSON.stringify(p);
     if (!force && j === lastPos && now - beatT < 1500) return;
