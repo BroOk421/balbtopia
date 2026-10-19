@@ -203,7 +203,7 @@ const A = {
   aura_red: 'assets/items/aura_red.png',
   aura_diamond: 'assets/items/aura_diamond.png',
   aura_white: 'assets/items/aura_white.png',
-  hair_ssj: 'assets/items/hair_ssj.png', // Super Saiyan Hair: 9 frames of 300x260 (art-source/items/hair_ssj_cut.py)
+  hair_ssj: 'assets/items/hair_ssj.png', // Golden Spike Hair: 9 frames of 300x260 (art-source/items/hair_ssj_cut.py)
   // hairstyles and wings cut from the owner's sheets (art-source/items/hairs_cut.py, wings_cut.py)
   hair_messy_black: 'assets/items/hair_messy_black.png',
   hair_messy_black_icon: 'assets/items/hair_messy_black_icon.png',

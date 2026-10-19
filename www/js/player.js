@@ -32,7 +32,7 @@ const P = {
 let skin = SKINS[0]; // new players start with the first colour; change it in Menu → Profile
 const equipped = { feet: null, hair: null };
 const SLOTNAME = { hair: 'hair', feet: 'feet' };
-// a new account starts with the wrench and one World Lock (the fist is always in hotbar slot 1)
+// a new account starts with the wrench and one Gold Lock (the fist is always in hotbar slot 1)
 const inv = [
   { id: 'wrench', qty: 1 },
   { id: 'world_lock', qty: 1 },

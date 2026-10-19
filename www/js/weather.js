@@ -1,12 +1,12 @@
-// Weather: the Snow and Sunny Weather Machines (blocks from the Shop). While one stands anywhere in a world, that
+// Weather: the Snow and Sun Machines (blocks from the Shop). While one stands anywhere in a world, that
 // world is snowy (winter scene, falling snow) or sunny (blue sky, green hills, a shining sun) instead of the sunset;
 // the screen flashes white when the weather changes (placing or breaking a machine, here or by anyone else).
 // ===== weather =====
 const WEATHER_SNOW = 120; // block number (permanent: saved worlds keep it)
 // walk-through, like the Vending Machine
-BLOCK[WEATHER_SNOW] = { id: 'snow_weather_machine', name: 'Snow Weather Machine', hits: 8, art: 'deco', solid: false, fx: ['#5a7ac8', '#e8f4ff', '#ffd23f'] };
+BLOCK[WEATHER_SNOW] = { id: 'snow_weather_machine', name: 'Snow Machine', hits: 8, art: 'deco', solid: false, fx: ['#5a7ac8', '#e8f4ff', '#ffd23f'] };
 ITEMS.snow_weather_machine = {
-  name: 'Snow Weather Machine',
+  name: 'Snow Machine',
   kind: 'block',
   block: WEATHER_SNOW,
   desc: 'Place it in a world and snow starts to fall: the sky turns wintry and the hills go white. Punch it once to switch it off (the sunset comes back), again to switch it on.',
@@ -46,11 +46,11 @@ DECO.snow_weather_machine = ({ R, P, D }) => {
   P(8, 0, '#fff4b8');
 };
 
-// ---------- the Sunny Weather Machine ----------
+// ---------- the Sun Machine ----------
 const WEATHER_SUNNY = 121; // block number (permanent)
-BLOCK[WEATHER_SUNNY] = { id: 'sunny_weather_machine', name: 'Sunny Weather Machine', hits: 8, art: 'deco', solid: false, fx: ['#ffd23f', '#5ab4f0', '#ffffff'] };
+BLOCK[WEATHER_SUNNY] = { id: 'sunny_weather_machine', name: 'Sun Machine', hits: 8, art: 'deco', solid: false, fx: ['#ffd23f', '#5ab4f0', '#ffffff'] };
 ITEMS.sunny_weather_machine = {
-  name: 'Sunny Weather Machine',
+  name: 'Sun Machine',
   kind: 'block',
   block: WEATHER_SUNNY,
   desc: 'Place it in a world for a bright sunny day: blue sky, white clouds, green hills and a shining sun. Punch it once to switch it off (the sunset comes back), again to switch it on.',
@@ -87,8 +87,58 @@ DECO.sunny_weather_machine = ({ R, P, D }) => {
   P(8, 0, '#fff4b8');
 };
 
+// ---------- the Rain Machine ----------
+const WEATHER_RAIN = 146; // block number (permanent)
+BLOCK[WEATHER_RAIN] = { id: 'rain_weather_machine', name: 'Rain Machine', hits: 8, art: 'deco', solid: false, fx: ['#5a6a8a', '#9ab8e0', '#e0f0ff'] };
+ITEMS.rain_weather_machine = {
+  name: 'Rain Machine',
+  kind: 'block',
+  block: WEATHER_RAIN,
+  desc: 'Place it in a world for a rainy day: grey clouds, dark hills and rain pouring down. Punch it once to switch it off (the sunset comes back), again to switch it on.',
+  rarity: 'Epic',
+};
+// (its picture is HD_DECO.rain_weather_machine below; DECO only has to exist for the icon code)
+DECO.rain_weather_machine = () => {};
+HD_DECO.rain_weather_machine = (x, { P, R, E }) => {
+  // stand
+  R(3, 25, 26, 7, '#14101c');
+  R(4, 25, 24, 6, '#4a5a7a');
+  R(4, 25, 24, 1, '#7a8aaa');
+  R(4, 30, 24, 1, '#2a3450');
+  R(14, 26, 4, 3, '#14101c');
+  R(15, 26, 2, 2, '#ffd23f');
+  P(15, 26, '#fff4b8');
+  // glass dome with a stormy sky inside
+  E(16, 14, 12.5, 12.5, '#14101c');
+  E(16, 14, 11.5, 11.5, '#3a4660');
+  for (let j = 3; j < 26; j++)
+    for (let i = 4; i < 28; i++) {
+      const d = Math.hypot(i + 0.5 - 16, j + 0.5 - 14);
+      if (d > 11.3) continue;
+      if (j > 19) P(i, j, j > 22 ? '#2a5a3a' : '#3a7a4a'); // wet grass
+    }
+  // dark cloud
+  E(12, 9, 4.5, 3, '#6a7690');
+  E(18, 8, 5, 3.6, '#7a86a0');
+  E(21, 10, 3.6, 2.4, '#6a7690');
+  E(15, 10.5, 6, 2, '#5a6680');
+  for (let i = 11; i < 22; i++) P(i, 7 + ((i * 7) % 3 === 0 ? 0 : 1), '#9aa6c0');
+  // rain streaks
+  for (const [i, j] of [[10, 13], [13, 15], [16, 13], [19, 15], [22, 13], [11, 18], [17, 18], [20, 19], [14, 20]]) {
+    P(i, j, '#a8d0ff');
+    P(i - 1, j + 1, '#7ab0f0');
+  }
+  // puddle and glass shine, gold light on top
+  E(17, 21.5, 4, 0.8, '#7ab0f0');
+  P(8, 7, '#c8ecff');
+  P(9, 6, '#c8ecff');
+  P(10, 5, '#e0f6ff');
+  R(14, 0, 4, 2, '#14101c');
+  R(15, 0, 2, 1, '#ffd23f');
+};
+
 // ---------- which weather is it here? ----------
-// a Snow Weather Machine anywhere in the world: snow; else a Sunny one: sunny; else the sunset
+// a Snow Machine anywhere in the world: snow; else a Sunny one: sunny; else the sunset
 const FLASH_MS = 450; // the white flash when the weather changes
 let weatherNow = null,
   weatherWorld = null,
@@ -96,7 +146,7 @@ let weatherNow = null,
 // A machine is switched off by a punch and on again by the next one (bit WEATHER_OFF of its tile's `vari`,
 // which is saved with the world and sent to everyone like the tile itself).
 const WEATHER_OFF = 4;
-const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY;
+const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN;
 const machineOn = (t) => {
   for (let i = 0; i < fg.length; i++) if (fg[i] === t && !(vari[i] & WEATHER_OFF)) return true;
   return false;
@@ -107,7 +157,8 @@ function toggleWeather(i) {
   saveWorld();
 }
 function currentWeather() {
-  const w = !inWorld ? null : machineOn(WEATHER_SNOW) ? 'snow' : machineOn(WEATHER_SUNNY) ? 'sunny' : null;
+  // snow wins over rain, rain over sun
+  const w = !inWorld ? null : machineOn(WEATHER_SNOW) ? 'snow' : machineOn(WEATHER_RAIN) ? 'rain' : machineOn(WEATHER_SUNNY) ? 'sunny' : null;
   if (worldName !== weatherWorld) {
     // just came into this world: no flash, the loading screen covers it
     weatherWorld = worldName;
@@ -128,6 +179,13 @@ const WEATHER_RAMP = {
     bg_big: ['#4a5c80', '#a8bcd6', '#f2f7fc'],
     bg_mid: ['#5a6c90', '#c4d4e8', '#ffffff'],
     bg_front: ['#6a7ca0', '#d8e4f2', '#ffffff'],
+  },
+  rain: {
+    bg_clouds: ['#4a5468', '#7a8498', '#a4aec0'],
+    bg_far: ['#2e3a52', '#4a5a76', '#76869e'],
+    bg_big: ['#24344a', '#3a5068', '#62788e'],
+    bg_mid: ['#1f3a2e', '#2f5a42', '#5a826a'],
+    bg_front: ['#1a3226', '#2a4e38', '#4e7a5c'],
   },
   sunny: {
     bg_sun: ['#ffc83a', '#fff0a0', '#ffffff'],
@@ -180,7 +238,7 @@ function weatherLayer(w, k) {
   } catch (e) {
     // can't read pixels (page opened as a file): a wash over the picture instead
     x.globalCompositeOperation = 'source-atop';
-    x.fillStyle = w === 'snow' ? 'rgba(214,226,242,.75)' : 'rgba(120,200,110,.55)';
+    x.fillStyle = w === 'snow' ? 'rgba(214,226,242,.75)' : w === 'rain' ? 'rgba(40,52,72,.6)' : 'rgba(120,200,110,.55)';
     x.fillRect(0, 0, c.width, c.height);
   }
   return (WLAYER[key] = c);
@@ -263,6 +321,10 @@ function drawWeatherSky(w, top, h) {
     gr.addColorStop(0, '#6f86ac');
     gr.addColorStop(0.6, '#b4c6de');
     gr.addColorStop(1, '#e4ecf6');
+  } else if (w === 'rain') {
+    gr.addColorStop(0, '#2a3246');
+    gr.addColorStop(0.6, '#4a5670');
+    gr.addColorStop(1, '#7a879e');
   } else {
     gr.addColorStop(0, '#2f8ae0');
     gr.addColorStop(0.6, '#6ec0f8');
@@ -312,4 +374,57 @@ function drawWeatherFlash() {
   if (t < 0 || t >= 1) return;
   g.fillStyle = `rgba(255,255,255,${(1 - t) * 0.85})`;
   g.fillRect(0, 0, cv.width, cv.height);
+}
+
+// ---------- rain (screen space, in front of the world) ----------
+// slanted streaks with depth (nearer = longer, brighter, faster), and little splashes where they land low on the screen
+const DROPS = [];
+for (let i = 0; i < 260; i++) DROPS.push({ x: Math.random(), y: Math.random(), d: 0.3 + Math.random() * 0.7 });
+const SPLASH = [];
+let rainLast = 0;
+function drawRain() {
+  const dt = Math.min(0.05, Math.max(0, (now - rainLast) / 1000));
+  rainLast = now;
+  const W = cv.width,
+    H = cv.height,
+    u = Math.max(1, H / 600),
+    slant = 0.22; // sideways per downwards
+  g.lineCap = 'round';
+  for (const r of DROPS) {
+    r.y += dt * (0.9 + r.d * 1.1);
+    r.x += dt * (0.9 + r.d * 1.1) * slant * (H / W);
+    if (r.y > 1.05) {
+      // some land with a splash near the bottom of the screen
+      if (Math.random() < 0.35) SPLASH.push({ x: r.x * W, y: H * (0.78 + Math.random() * 0.2), t: 0 });
+      r.y = -0.05;
+      r.x = Math.random();
+    }
+    const sx = (((r.x * W - cam.x * Z * r.d * 0.4) % W) + W) % W,
+      sy = (((r.y * H - cam.y * Z * r.d * 0.2) % H) + H) % H,
+      len = (8 + r.d * 16) * u;
+    g.strokeStyle = `rgba(180,210,255,${0.25 + r.d * 0.45})`;
+    g.lineWidth = (0.6 + r.d * 1.1) * u;
+    g.beginPath();
+    g.moveTo(sx, sy);
+    g.lineTo(sx - len * slant, sy - len);
+    g.stroke();
+  }
+  // splashes: a small ring that widens and fades
+  for (let k = SPLASH.length - 1; k >= 0; k--) {
+    const s = SPLASH[k];
+    s.t += dt;
+    if (s.t > 0.35) {
+      SPLASH.splice(k, 1);
+      continue;
+    }
+    const a = 1 - s.t / 0.35;
+    g.strokeStyle = `rgba(200,225,255,${a * 0.6})`;
+    g.lineWidth = u;
+    g.beginPath();
+    g.ellipse(s.x, s.y, (2 + s.t * 30) * u, (0.8 + s.t * 8) * u, 0, 0, Math.PI * 2);
+    g.stroke();
+  }
+  // a dim grey veil so the whole world looks wet and overcast
+  g.fillStyle = 'rgba(30,40,60,.12)';
+  g.fillRect(0, 0, W, H);
 }

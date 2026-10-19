@@ -1,16 +1,16 @@
 // The Shop (button at the top left): buy tools and blocks with gold.
 //   Door Mover   hold it, click a tile: the main door (and the bedrock under it) moves there
 //   Jammers      blocks you place; Signal Jammer hides the world from the world list,
-//                Punch Jammer stops players punching each other in the world
+//                Punch Blocker stops players punching each other in the world
 //   Clear World  use it, confirm: every block, background and tree is gone; the door,
-//                the World Lock and blocks that can't be broken stay
-//   World Locks  packs for pesos (Stripe), coming soon
-// Door Mover and Clear World only work in a world you own (one with your World Lock).
+//                the Gold Lock and blocks that can't be broken stay
+//   Gold Locks  packs for pesos (Stripe), coming soon
+// Door Mover and Clear World only work in a world you own (one with your Gold Lock).
 // ===== shop =====
 const SIGNAL_JAMMER = 56,
   PUNCH_JAMMER = 57;
 BLOCK[SIGNAL_JAMMER] = { id: 'signal_jammer', name: 'Signal Jammer', hits: 4, art: 'deco', fx: ['#5a606e', '#9aa0ad', '#ff4a2a'] };
-BLOCK[PUNCH_JAMMER] = { id: 'punch_jammer', name: 'Punch Jammer', hits: 4, art: 'deco', fx: ['#5a606e', '#9aa0ad', '#ffd23f'] };
+BLOCK[PUNCH_JAMMER] = { id: 'punch_jammer', name: 'Punch Blocker', hits: 4, art: 'deco', fx: ['#5a606e', '#9aa0ad', '#ffd23f'] };
 Object.assign(ITEMS, {
   door_mover: {
     name: 'Door Mover',
@@ -26,7 +26,7 @@ Object.assign(ITEMS, {
     rarity: 'Rare',
   },
   punch_jammer: {
-    name: 'Punch Jammer',
+    name: 'Punch Blocker',
     kind: 'block',
     block: PUNCH_JAMMER,
     desc: 'Place it in a world and nobody can punch other players there.',
@@ -35,30 +35,30 @@ Object.assign(ITEMS, {
   clear_world: {
     name: 'Clear World',
     kind: 'consumable',
-    desc: 'Wipes your world clean: dirt, cave walls, rock, lava, every block, background and tree. The door, the World Lock and blocks that can\'t be broken stay.',
+    desc: 'Wipes your world clean: dirt, cave walls, rock, lava, every block, background and tree. The door, the Gold Lock and blocks that can\'t be broken stay.',
     rarity: 'Epic',
   },
 });
-// ---------- locks: 100 World Locks make a Diamond Lock, 100 Diamond Locks a Black Diamond Lock ----------
-// (double-click a stack of 100 in the bag or the hotbar). Each kind locks a world just like a World Lock.
+// ---------- locks: 100 Gold Locks make a Crystal Lock, 100 Crystal Locks a Shadow Lock ----------
+// (double-click a stack of 100 in the bag or the hotbar). Each kind locks a world just like a Gold Lock.
 const DLOCK = 58,
   BDLOCK = 59;
-BLOCK[DLOCK] = { id: 'diamond_lock', name: 'Diamond Lock', hits: 5, art: 'lock', lock: true, fx: ['#7fe8ff', '#ffffff', '#2fa8d8'] };
-BLOCK[BDLOCK] = { id: 'black_diamond_lock', name: 'Black Diamond Lock', hits: 5, art: 'lock', lock: true, fx: ['#3a3058', '#a99cff', '#16121f'] };
-ITEMS.world_lock.desc += ' Have 100? Double-click them in your bag to make a Diamond Lock.';
+BLOCK[DLOCK] = { id: 'diamond_lock', name: 'Crystal Lock', hits: 5, art: 'lock', lock: true, fx: ['#7fe8ff', '#ffffff', '#2fa8d8'] };
+BLOCK[BDLOCK] = { id: 'black_diamond_lock', name: 'Shadow Lock', hits: 5, art: 'lock', lock: true, fx: ['#3a3058', '#a99cff', '#16121f'] };
+ITEMS.world_lock.desc += ' Have 100? Double-click them in your bag to make a Crystal Lock.';
 Object.assign(ITEMS, {
   diamond_lock: {
-    name: 'Diamond Lock',
+    name: 'Crystal Lock',
     kind: 'block',
     block: DLOCK,
-    desc: 'Worth 100 World Locks, and locks a world just like one. Double-click: with 100 or more you get a Black Diamond Lock, with fewer one breaks into 100 World Locks.',
+    desc: 'Worth 100 Gold Locks, and locks a world just like one. Double-click: with 100 or more you get a Shadow Lock, with fewer one breaks into 100 Gold Locks.',
     rarity: 'Epic',
   },
   black_diamond_lock: {
-    name: 'Black Diamond Lock',
+    name: 'Shadow Lock',
     kind: 'block',
     block: BDLOCK,
-    desc: 'Worth 100 Diamond Locks (10,000 World Locks). The rarest lock there is, and it locks a world too. Double-click to break one into 100 Diamond Locks.',
+    desc: 'Worth 100 Crystal Locks (10,000 Gold Locks). The rarest lock there is, and it locks a world too. Double-click to break one into 100 Crystal Locks.',
     rarity: 'Legendary',
   },
 });
@@ -68,8 +68,8 @@ const LOCK_TIERS = ['world_lock', 'diamond_lock', 'black_diamond_lock'],
 const countItem = (id) => inv.filter((s) => s.id === id).reduce((n, s) => n + s.qty, 0);
 // double-click a lock in the bag or the hotbar:
 //   100 or more (and there is a bigger kind): 100 of them become 1 of the next kind
-//   fewer than 100: 1 of them breaks into 100 of the kind below (99 Diamond Locks -> 98 + 100 World Locks)
-//   World Locks under 100 can't go anywhere; a Black Diamond Lock always breaks into 100 Diamond Locks
+//   fewer than 100: 1 of them breaks into 100 of the kind below (99 Crystal Locks -> 98 + 100 Gold Locks)
+//   Gold Locks under 100 can't go anywhere; a Shadow Lock always breaks into 100 Crystal Locks
 function lockTap(id) {
   const k = LOCK_TIERS.indexOf(id);
   if (k < 0) return;
@@ -105,7 +105,7 @@ function lockFx(gotId, gotN, msg) {
 function compressLock(id) {
   const k = LOCK_TIERS.indexOf(id),
     next = LOCK_TIERS[k + 1];
-  if (!next) return toast('The Black Diamond Lock is the biggest lock there is');
+  if (!next) return toast('The Shadow Lock is the biggest lock there is');
   const have = countItem(id);
   if (have < LOCK_STEP)
     return toast('You need ' + LOCK_STEP + ' ' + ITEMS[id].name + 's for a ' + ITEMS[next].name + ' (you have ' + have + ')');
@@ -147,15 +147,16 @@ const SHOP_TABS = [
 let shopTab = 'locks';
 const SHOP = [
   { id: 'world_lock', gold: 2000, cat: 'locks' },
+  // packs for pesos (not open yet): 5 and 10 Gold Locks, and 1 Crystal Lock (= 100 Gold Locks)
+  { id: 'world_lock', qty: 5, peso: true, cat: 'locks' },
   { id: 'world_lock', qty: 10, peso: true, cat: 'locks' },
-  { id: 'world_lock', qty: 50, peso: true, cat: 'locks' },
-  { id: 'world_lock', qty: 100, peso: true, cat: 'locks' },
-  { id: 'world_lock', qty: 1000, peso: true, cat: 'locks' },
+  { id: 'diamond_lock', qty: 1, peso: true, cat: 'locks' },
   { id: 'door_mover', gold: 1000, cat: 'world' },
   { id: 'signal_jammer', gold: 2000, cat: 'world' },
   { id: 'punch_jammer', gold: 2000, cat: 'world' },
   { id: 'snow_weather_machine', gold: 5000, cat: 'world' },
   { id: 'sunny_weather_machine', gold: 5000, cat: 'world' },
+  { id: 'rain_weather_machine', gold: 5000, cat: 'world' },
   { id: 'clear_world', gold: 1500, cat: 'world' },
   { id: 'vending_machine', gold: 5000, cat: 'world' },
   { id: 'display_box', gold: 1000, cat: 'world' },
@@ -186,10 +187,10 @@ const SHOP = [
 ];
 
 // ---------- art ----------
-// the jammers sit in a dark box like the World Lock's (same frame and colours), so they read as
+// the jammers sit in a dark box like the Gold Lock's (same frame and colours), so they read as
 // world items: a small grey machine inside with an antenna and a blinking light on top
 function jammerBox({ R, P }, light) {
-  // the box (World Lock frame)
+  // the box (Gold Lock frame)
   R(0, 0, 16, 16, '#14101c');
   R(1, 1, 14, 14, '#3a3350');
   R(2, 2, 12, 12, '#2a2440');
@@ -282,9 +283,15 @@ function closeShop() {
   cv.focus();
 }
 // cards show just the picture, the price and a button; the details open in a pop-up (shopItem)
-const shopTitle = (s) => (s.qty ? s.qty.toLocaleString() + ' World Locks' : ITEMS[s.id].name);
+// a pack: "5 Gold Locks", "1 Crystal Lock"
+const packName = (s) => s.qty.toLocaleString() + ' ' + ITEMS[s.id].name + (s.qty > 1 ? 's' : '');
+const shopTitle = (s) => (s.qty ? packName(s) : ITEMS[s.id].name);
 const shopDesc = (s) =>
-  s.qty ? 'A pack of ' + s.qty.toLocaleString() + ' World Locks. Lock your worlds, trade them, give them away.' : ITEMS[s.id].desc;
+  !s.qty
+    ? ITEMS[s.id].desc
+    : s.id === 'diamond_lock'
+      ? 'One Crystal Lock, worth 100 Gold Locks. Locks a world too; double-click it in your bag to break it into 100 Gold Locks.'
+      : 'A pack of ' + packName(s) + '. Lock your worlds, trade them, give them away.';
 function shopPic(id, cls) {
   const pic = iconCanvas(id).cloneNode();
   pic.getContext('2d').drawImage(iconCanvas(id), 0, 0);
@@ -331,7 +338,7 @@ function renderShop() {
     card.className = 'scard' + (onSale(s) ? '' : ' soon') + (!s.peso && P.gold < priceOf(s) ? ' poor' : '');
     card.setAttribute('aria-label', shopTitle(s));
     card.title = shopTitle(s);
-    card.innerHTML = `<div class="spic"></div>${s.qty ? `<span class="sqty">x${s.qty.toLocaleString()}</span>` : ''}
+    card.innerHTML = `<div class="spic"></div>${s.qty > 1 ? `<span class="sqty">x${s.qty.toLocaleString()}</span>` : ''}
       <div class="sprice">${priceHtml(s)}</div>
       <span class="btn sbuy">${onSale(s) ? 'BUY' : 'SOON'}</span>`;
     card.querySelector('.spic').appendChild(shopPic(s.id));
@@ -384,7 +391,7 @@ $('shopx').onclick = closeShop;
 // ---------- using what you bought ----------
 function ownWorldOnly(what) {
   if (isOwner()) return true;
-  toast(worldOwner ? 'Only ' + worldOwner + ' can use a ' + what + ' here' : 'Lock this world with a World Lock first, then use the ' + what);
+  toast(worldOwner ? 'Only ' + worldOwner + ' can use a ' + what + ' here' : 'Lock this world with a Gold Lock first, then use the ' + what);
   return false;
 }
 // Door Mover: the door goes to tile (x, y), its bedrock to (x, y + 1)
@@ -395,7 +402,7 @@ function moveDoor(x, y) {
   const i = at(x, y),
     below = at(x, y + 1);
   if (fg[i] || trees.has(i)) return toast('Pick an empty tile for the door');
-  if (isLockT(fg[below])) return toast("The door can't stand on the World Lock");
+  if (isLockT(fg[below])) return toast("The door can't stand on the Gold Lock");
   if (overlapsAnyPlayer(x, y + 1)) return toast('Someone is standing there');
   fg[at(door.x, door.y + 1)] = 0;
   smoke(door.x, door.y, 10, 1.2);
@@ -420,7 +427,7 @@ function askClearWorld() {
   ptr.down = false;
   dialog(
     'CLEAR WORLD?',
-    `<p class="dmsg">Everything in <b>${esc(worldName)}</b> will be gone: dirt, cave walls, rock, lava, every block, background and tree.<br><br>The door, your World Lock and blocks that can't be broken stay. This can't be undone.</p>`,
+    `<p class="dmsg">Everything in <b>${esc(worldName)}</b> will be gone: dirt, cave walls, rock, lava, every block, background and tree.<br><br>The door, your Gold Lock and blocks that can't be broken stay. This can't be undone.</p>`,
     [
       { label: 'Cancel', cls: 'ghost', run: () => {} },
       {

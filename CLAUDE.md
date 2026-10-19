@@ -37,6 +37,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `social.js` | `dialog()` pop-up helper, trade/friends/messages/email/gifts, world chat (CHAT button) |
 | `weather.js` | Snow Weather Machine block and the snowy weather: winter backdrop, falling snow, white flash |
 | `rest.js` | Sitting on chairs and sleeping in beds (pose, Zzz, 5 s wait, one player per bed) |
+| `lobby.js` | The LOBBY world (empty, door in the middle; the owner builds it); everyone lands there after PLAY |
+| `gates.js` | Gates (Portcullis, Iron Bars), water from the Water Bucket (swimming), Death Spikes / Stalactite kill on touch |
 | `worlds.js` | Saving/loading worlds (`worldData` / `applyWorld`), entering worlds, world list |
 | `ui.js`, `menu.js` | Hotbar, bag (50 slots), item info, gold counter; menu tabs, XP and levels |
 
@@ -45,7 +47,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js). Backgrounds 1 (cave), 2–3 and 5–26 (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js). Backgrounds 1 (cave), 2–3, 5–26 and 27–31 (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -53,7 +55,10 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `growtopiaNotInGameYet` lists real Growtopia recipes whose result isn't in the game yet (mostly clothing,
   which needs its own sprite on the character); the game ignores that list.
 - Growtopia recipes are taken from growtopiawiki.com. Mark Balbtopia-only ones `"source": "balbtopia"`.
-  Currently 209 splices (194 Growtopia, 15 Balbtopia: dirt+dirt, rock+rock, cave+cave = Dark Cave,
+  Currently 228 splices (148 Growtopia, 80 Balbtopia; 64 Growtopia recipes were remixed in Oct 2026 so the list isn't an
+  exact copy: one seed swapped for a similar item of about the same rarity, e.g. Fireplace = Golden Block + Red Bricks;
+  they are marked source balbtopia in farming.json. Basic ones (result rarity <= 8) were left alone.
+  Older Balbtopia ones: Sand = Dirt + Water Bucket (Growtopia Sand can't be spliced), dirt+dirt, rock+rock, cave+cave = Dark Cave,
   Cyclopean Visor + Neon Lights = Laser Eyes, Long Brown Hair + Yellow Block = Princess Hair, and the 10 below).
   Oct 2026 Balbtopia splices (blocks 122–131, art at the end of blocks.js): Marble Block = Rock + White Block,
   Honeycomb Block = Amber Glass + Yellow Block, Lantern = Glass Pane + Torch, Flower Pot = Brown Block + Daisy,
@@ -72,7 +77,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   everyone else (builders with access and "everyone can build" worlds too) sees them see-through with a ring
   that fills up and can take them 60 s after they fell out of a block or were dropped; you can always take
   what you dropped yourself (`canTakeDrop`).
-- Floating drops show no number, only the item picture.
+- Floating drops show no number, only the item picture. `DROP_SIZE` is 15 (was 11; owner wanted every floating drop bigger);
+  the pickup reach in physics.js stays at the old size.
 - Drops within a few pixels fly into the player (vacuum animation) before going into the bag. Gold: only the
   coin icon pops in the counter.
 - Angry face while punching/breaking (`ANGRY_TIME`), seen by others too.
@@ -90,7 +96,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   background (`visibilitychange`); logout waits for the last save.
 - Shop cards show picture, price and BUY; tapping opens a pop-up with name, picture, description, price, Buy/Cancel.
   Prices: Door Mover 1,000, jammers 2,000 each, Clear World 1,500 (owner didn't name a price for this one).
-  World Lock packs (10/50/100/1000) are for pesos via Stripe: shown as "coming soon", not built yet.
+  Lock packs for pesos (Stripe, shown as "coming soon", not built yet): 5 Gold Locks, 10 Gold Locks, 1 Crystal Lock
+  (owner, Oct 2026; was 10/50/100/1000).
   Door Mover and Clear World only work in a world you own.
 - GM: `tae123` gets everything in the Shop for free, the World Lock packs too.
 - `addItem` splits big amounts into stacks of `MAXSTACK` (200) and adds nothing if it all doesn't fit.
@@ -293,6 +300,134 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `CHAT_WINDOW` s, then `CHAT_COOLDOWN` (5) s wait; incoming chat from someone over the limit is ignored too.
 - Entering a world (`enterWorld` in worlds.js): a blurred LOADING screen (`#wload`) covers everything for at least
   `WLOAD_MIN` ms and until the world is in; while it shows, other `enterWorld` calls return false and keys are ignored.
+
+- Gold on the floor is coins (render.js `coinParts` / `drawGoldPile`): one gold pile per tile (gold piles have no 200 cap
+  in `spawnDrop`). Chain (`COIN_KINDS` in config.js; owner's order): small bronze 1 -> big bronze 5 -> small silver 25 ->
+  small gold 125 -> big gold 625 -> gold bar 3125 (there is no big silver). 5 of a kind on one tile join into 1 of the next
+  (sparkles + a small pop); bars never join. A kind with several shows as a small stack (up to 4 drawn), top coin spins.
+  Picking it up adds the value to `P.gold`. Art is drawn pixel by pixel at 1 px on 32x32 (`drawCoin(ctx, kind)`:
+  raised rim, groove, stamped star, glint; `drawBar`: an ingot in 3/4 view (top, front and right faces, `BAR_FACES` polygons via `inPoly`) on its own 40x32 canvas, stamped panel, shine; colours `METAL`,
+  sizes `COIN_LOOK`). The gold counter, Shop prices and the 'gold' icon use the big gold coin.
+- Trees still growing can be broken: `TREE_HITS` (3) punches within `TREE_HIT_FORGET` s. A spliced tree gives back both
+  seeds that made it (`pa`: 'a+b', saved and synced as the 6th tree field), an unspliced one its own seed (`treeSeeds`).
+- Harvesting a ripe tree drops gold by rarity (`treeGold`: chance `TREE_GOLD_CHANCE` + min(0.5, r/120), amount
+  1 + r/5 + a bit; Dirt ~1-2, rarity 80 ~20).
+- Standing on a tree shows a white bubble with an arrow (`drawTreeBubble`, farming.js): the tree's name, "Ripe in 1h 02m 05s"
+  (`fmtLeft`) and a growth bar, or "Ready to harvest!". Punching a young tree no longer toasts the time.
+
+- Detailed seeds (`drawSeedHD`, end of render.js): EVERY seed is drawn pixel by pixel at 1 px (egg shape lit from the
+  top left, outline, shine). Dirt, Cave, Rock, Lava have their own looks (`SEED_HD`: dirt specks + pebbles, cave cracks,
+  rock facets, lava crust with glowing cracks, using the fixed Voronoi points `SEED_CELLS`). Every other seed
+  (`seedLook`): its `SEED_COLOR` made into a 5-step ramp (`mixHex`) and a texture picked from its name (`SEED_TEX`:
+  speck, cave cracks, rock facets, spots, stripes; `flip` mirrors the pattern). `SEED_ART` is only a fallback now.
+- Block detail pass (`hdPass`, blocks.js): every `TEX` block/background and `DECO` picture goes through it when cached
+  (`texCanvas`, `decoCanvas`): the 2 px cell art gets its diagonal steps and corners smoothed at 1 px (EPX / Scale2x rule
+  on the 16x16 cell grid; cells that aren't one colour are left alone) and a light steady grain (`HD_GRAIN`, 7%). The
+  designs themselves are unchanged. Ground tiles (dirt, rock, lava, cave, bedrock pictures) were already 1 px art.
+
+- Seeds have a sprout on top (`drawSprout`: stem + two pointed leaves with veins, colours `LEAF`), so they don't look
+  like eggs; the seed body sits lower (cy 19).
+- Hand-drawn 1 px decorations that fill the whole tile like a dirt block (`HD_DECO` + `hdCanvas` helpers R/P/E/RR in
+  blocks.js; `decoCanvas` uses them instead of `DECO` and skips `hdPass`): Happy Joy Plaque (big smiling face, rivets,
+  bevelled gold frame), Notice Board, Boombox, Dresser, Barrel, Bookcase, Olde Timey Radio, Wooden Table, School Desk,
+  Bathtub, Sign, Crappy Sign, Mushroom, Fish Tank (4 frames). Helpers `hdNoise`, `hdWood` (planks with grain). Chairs, beds,
+  toilet and platforms were left alone on purpose (rest.js / platform code depend on their shapes). More items can be moved
+  there the same way; the owner has a checklist page of what is detailed and what isn't.
+
+- Hand-drawn 1 px textures for blocks/backgrounds: `HD_TEX` (blocks.js; `texCanvas` uses it instead of `TEX` + `hdPass`).
+  The HD art lives in `www/js/hd/` (loaded right after blocks.js in index.html): `colors.js` (every plain coloured
+  `*_block` and coloured `*_wallpaper`, one drawing each from the item's `color`: `hdColorBlock`, `hdWallpaper`),
+  `blocks_a.js` / `blocks_b.js` (all other TEX blocks, backgrounds, wallpapers), `deco_c.js` (plants, food, lamps) and
+  `deco_d.js` (signs, doors, fences, hazards, weather machines, jammers) add to `HD_TEX` / `HD_DECO`. Animated ones keep
+  their frames (`f`). Only Wooden Chair, Toilet, Bed, Hospital Bed, Wooden Platform and Staircase still use the old 2 px
+  DECO art (+ `hdPass`), on purpose (rest.js and platform code depend on their shapes).
+- Override files loaded LAST (after every game file, before main.js) in `www/js/hd/`: `misc.js` (redeclares `lockSprite`,
+  `paintDoor`/`doorSprite`/`woodDoorSprite`, `grassTuft`, `grassTop`, `darkTile`; new Vending / Display Box art on
+  `NEWART.vend` / `NEWART.disp` + `SHOP_ICON`, same glass areas; Mannequin icon stand; Door Mover / Clear World icons),
+  `tools.js` (redeclares `wrenchSprite`, `toolSprite`: wrench, sword, flashlight, pencil, boxing glove; same 32x32 canvas
+  and grip `GRIP` (7,25); pickaxes and shovel were already 1 px), `wear_hats.js` (`Object.assign(WEAR_ART, ...)`: every
+  hat, afro, long brown / princess hair with shading, sheen, stitching, same shapes and places), `wear_face_back.js`
+  (glasses, visor, laser eyes, beards, backpack, jetpack, and a redeclared `wingPair` with feather layers, same flap
+  frames). Shirts/pants/feet recolour the body picture and were left as they are. A later `function x(){}` in these
+  files replaces the global; consts can't be redeclared, so mutate objects instead.
+
+- Growtopia items added Oct 2026 (recipes checked on each item's growtopiawiki.com page, `/w/<Name>`): Painting: Dink Duck
+  (bg 27) = Yellow Block + Wooden Background, Painting: Yerfdog (bg 28) = White Block + Wooden Background, Air Duct (bg 29) =
+  Dark Grey Block + Grey Block, Viney Wallpaper (bg 30) = Dark Aqua Block + Grass, Evil Brick Background (bg 31) = Evil Bricks
+  + Red Wallpaper, Street Sign (132, sign) = Pointy Sign + Sidewalk, Arrow Placard (133, sign) = Big Old Sideways Arrow +
+  Pointy Sign, Jade Block (134) = Dark Aqua + Dark Green Block, Viney Block (135) = Dark Green Block + Grass, Iron Bars (136,
+  solid, see-through art) = Plumbing + Death Spikes, Sandstone (137) = Cactus + Dirt, Fireplace (138, 2-frame fire) = Evil
+  Bricks + Golden Block, Ice Sculptures (139) = Ice + Glass Block, Fishbowl (140) = Ice + Wooden Window, Snowy Rocks (141) =
+  Ice + Rock, Disco Ball (142, 2 frames) = Window + Boombox, Skeleton (143) = Grey Wallpaper + Ice, Sugar Cane (144) = Seaweed
+  + Happy Joy Plaque. Grow time = 60 + 8 x Growtopia rarity seconds (Growtopia's real times are hours/days). They have
+  no TEX/DECO: their art is only in `js/hd/growtopia_tex.js` / `growtopia_deco.js` (`newIcon` accepts HD_TEX too).
+  Next ones these unlock (need one more new item each): Granite Block / Diving Board / Wall Like An Egyptian (Sandstone),
+  Jail Door (Iron Bars), Chandelier / Campfire (Fireplace), Air Vent (Air Duct), For Sale / Open Sign (Street Sign),
+  Chalkboard (Painting: Yerfdog), Tangram Block (Checker Wallpaper), Mystery Block (Disco Ball).
+
+- `vari` bits per tile (saved and synced with the tile): 0-1 dirt picture variant (`vari & 3`), 4 `WEATHER_OFF`,
+  8 `WATER`, 16 `GATE_OPEN`. Placing a block re-rolls the variant; it keeps `WATER` only if the block is walk-through or a gate.
+- Gates (`gates.js`): Portcullis and Iron Bars have `gate: true`. `solidAt` makes them solid for the local player unless
+  `gatePass(i, name)`: "Open to all" (bit `GATE_OPEN`, set by wrenching the gate: `openGate`, players who can build) or
+  `hasAccess(name)` (owner, players with access, or an unlocked world). They slide up into the ceiling (`drawGate`, clipped
+  to the tile, `GATE_SPEED`) while a player who may pass (you or anyone online) is within `GATE_REACH` of the tile, and
+  drop back when they leave. The animation is drawn per client; `stepGates()` runs at the start of `render()`.
+- Death Spikes and Stalactite have `kill: true` (instant death on touching their tile, `die('spikes')`); Cactus still
+  `hurt`s like lava.
+- Water (Growtopia style): holding the Water Bucket and clicking a tile puts water there (bit `WATER`, uses one bucket; not
+  on solid blocks; walk-through blocks keep it). Clicking water with the bucket removes it and gives the bucket back
+  (`WATER_KEEP` 90%). In water (`inWater`: the body's middle) you move at 60% speed, sink at most 140 px/s and every jump is
+  a swim stroke up (-300), with splashes. Water is drawn see-through over the world and players (`drawWater`, wavy surface
+  where the tile above is dry). The Water Bucket block itself still exists for old worlds.
+
+- Names (Oct 2026, to stay clear of Growtopia's own coined names; the item ids did NOT change, so saves are fine):
+  World Lock -> Gold Lock, Diamond Lock -> Crystal Lock, Black Diamond Lock -> Shadow Lock, Happy Joy Plaque -> Smiley
+  Plaque, Magic Bacon Wallpaper -> Wavy Wallpaper, Venus Guytrap -> Snap Plant, Hanging Guytrap -> Hanging Snap Plant,
+  Olde Timey Radio -> Old Radio, Big Old Sideways Arrow -> Big Arrow, Das Red Balloon -> Red Balloon, Cyclopean Visor ->
+  Red Visor, Dreamstone Block -> Sparkle Block, Cloudstone Block -> Cloud Block, Grimstone -> Mossy Stone, Crappy Sign ->
+  Old Sign, Pointy Sign -> Arrow Sign, Arrow Placard -> Arrow Board, Painting: Dink Duck -> Duck Painting (redrawn: white
+  duck on a sunset pond), Painting: Yerfdog -> Dog Painting (redrawn: brown puppy with a ball), Super Crate Box -> Crate,
+  Mud Glob -> Mud Block, Evil Bricks -> Dark Bricks, Evil Brick Background -> Dark Brick Wall, Art Wall -> Paint Wall,
+  Just One Boxing Glove -> Boxing Glove, Gambler's Visor -> Green Visor, Shallot Mustache -> Curly Mustache, Biker Stache
+  -> Long Mustache, Smarty Pants -> Rainbow Pants, Sexy Boxers -> Heart Boxers, Stinky Socks -> Yellow Socks, Hot Head ->
+  Fire Head, Blonde Bombshell -> Long Blonde Hair, Messy Auburn Tresses -> Messy Red Hair, Hot Pink Highlights -> Pink
+  Streak Hair, Unicorn Hair -> Pastel Hair, Super Saiyan Hair -> Golden Spike Hair, Punch Jammer -> Punch Blocker, Snow /
+  Sunny Weather Machine -> Snow / Sun Machine, Ice Sculptures -> Ice Star, Viney Block / Wallpaper -> Vine Block /
+  Wallpaper, Froghat -> Frog Hat. Rule: new names are short and describe the look; never put "Growtopia", its coined
+  names, its characters or its flavour text in anything the player sees (comments and data notes are fine). The RECIPES
+  world tag is `L7:` and includes the item names, so a rename rebuilds its signs.
+
+- LOBBY (`lobby.js`): PLAY always goes to the LOBBY (not the last world), and a kick "out" sends you there too. Built by
+  the game like RECIPES, but EMPTY: cleared down to the bedrock (`FLOOR = WH - 6`), the main door on the bedrock in the
+  middle of the world (x = WW/2 = 50), and a sign right above the door marking the centre. The owner builds the lobby
+  himself (it is locked by the GM, `GM_USERS[0]`). `LOBBY_V` ('LOBBY:3') is saved as the world's `rv`; changing it
+  REBUILDS the lobby and wipes whatever was built there, so never bump it once the owner has built it. Always at the top
+  of the world list.
+- Private world list (worlds.js): each account only sees LOBBY, RECIPES and the worlds IT has been to or made
+  (`seenWorlds`, saved in the player save as `seen`: [{ n, o, t }], newest first, at most `SEEN_MAX` 40; `rememberWorld`
+  after every successful enter). Other players' worlds never show unless you typed their name and went in. This is only
+  what the game shows: the Supabase `worlds` table can still be read by anyone with the anon key (true privacy needs a
+  row-level-security policy).
+- Menu -> Worlds shows only the worlds you have locked (`myLockedWorlds`; online `Net.refreshOwnWorlds` asks the server
+  for worlds whose owner is you).
+- Rain Machine (Shop WORLD, 5,000; block 146, walk-through; HD art: a glass dome with a storm cloud, rain and wet grass):
+  rainy weather: dark blue-grey sky, the backdrop recoloured by `WEATHER_RAMP.rain`, no sun, and `drawRain` in front of
+  the world (260 slanted streaks with depth, splash rings near the bottom of the screen, a light grey veil). Snow wins over
+  rain, rain over sun; one punch switches it off/on like the other machines.
+
+- Camera (main.js): eases after the player (x 8/s, y 9/s) but is clamped so the player is never more than `CAM_LAG` (10%)
+  of the screen from the aim point; falling or flying fast you stay in view (about 65% down the screen while falling).
+- Gravity and jumps are constants in config.js: `GRAVITY` 1700 (was 1550), `JUMP_V` 571 (was 545), `WING_JUMP_V` 524 (was
+  500), `MAX_FALL` 950 (was 900): snappier, same jump height (~95 px). Swimming has its own numbers in physics.js.
+
+- Character portrait (`charPortrait(c)`, end of ui.js): Menu -> Profile and the wrench player menu show the character
+  exactly as it looks (skin, clothes, hair, hat, wings, aura): drawCharacter is run on a corner of the game canvas
+  (saved and put back), copied out, trimmed to the drawing, eyes open, no name tag.
+- Account limit: online, register goes through the Edge Function `supabase/functions/signup` (at most `MAX_PER_IP` 3
+  accounts per IP address; table `signup_ips` keeps only a SHA-256 of the IP; makes the user with the service role, then
+  the game logs in). Needs: schema.sql run again, the function deployed with Verify JWT off, and "Allow new users to
+  sign up" turned off in Supabase. If the function isn't deployed (404), `Net.signUp` falls back to the old direct
+  sign-up (`signUpDirect`). Offline: `MAX_ACCOUNTS_HERE` 3 accounts per device (auth.js). Steps are in README.
 
 ## Ideas the owner may ask for next
 

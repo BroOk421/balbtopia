@@ -1,8 +1,8 @@
 // Vending Machine (bought in the Shop), like Growtopia's:
 //   The world owner places it, then wrenches it to put items in (one kind of item, up to VEND_MAX)
-//   and to set a price in World Locks: "N World Locks each" or "N items for 1 World Lock".
-//   Anyone else wrenches it to buy; the World Locks they pay wait inside until the owner collects them.
-//   A machine with items or World Locks in it can't be broken, and Clear World leaves it alone.
+//   and to set a price in Gold Locks: "N Gold Locks each" or "N items for 1 Gold Lock".
+//   Anyone else wrenches it to buy; the Gold Locks they pay wait inside until the owner collects them.
+//   A machine with items or Gold Locks in it can't be broken, and Clear World leaves it alone.
 // ===== vend =====
 const VEND = 117,
   VEND_MAX = 20000, // how many a machine holds in all (not shown to players)
@@ -13,10 +13,10 @@ ITEMS.vending_machine = {
   name: 'Vending Machine',
   kind: 'block',
   block: VEND,
-  desc: 'Sell your items to other players for World Locks. Place it in your locked world, then hold the wrench and click it to fill it and set the price.',
+  desc: 'Sell your items to other players for Gold Locks. Place it in your locked world, then hold the wrench and click it to fill it and set the price.',
   rarity: 'Rare',
 };
-const vends = new Map(); // tile index -> { id, n (how many inside), p (price), per (true: p items for 1 WL), e (World Locks earned) }
+const vends = new Map(); // tile index -> { id, n (how many inside), p (price), per (true: p items for 1 WL), e (Gold Locks earned) }
 const isVendT = (t) => t === VEND;
 const vendBusy = (i) => {
   const v = vends.get(i);
@@ -34,7 +34,7 @@ function vendChanged(i) {
 Net.onVend = (p) => {
   if (p && Number.isInteger(p.i) && p.i >= 0 && p.i < fg.length) setVend(p.i, p.v);
 };
-const priceText = (v) => (v.per ? v.p.toLocaleString() + ' for 1 World Lock' : v.p.toLocaleString() + ' World Lock' + (v.p > 1 ? 's' : '') + ' each');
+const priceText = (v) => (v.per ? v.p.toLocaleString() + ' for 1 Gold Lock' : v.p.toLocaleString() + ' Gold Lock' + (v.p > 1 ? 's' : '') + ' each');
 const sellable = (id) => ITEMS[id] && ITEMS[id].kind !== 'tool' && !LOCK_TIERS.includes(id) && id !== 'vending_machine';
 
 // wrench on a machine
@@ -42,7 +42,7 @@ function openVend(x, y) {
   const i = at(x, y),
     v = vends.get(i);
   if (isOwner()) return vendOwner(i);
-  if (!worldOwner) return toast('Lock this world with a World Lock to use a Vending Machine');
+  if (!worldOwner) return toast('Lock this world with a Gold Lock to use a Vending Machine');
   if (!v || !v.id || v.n <= 0) return toast('This Vending Machine is empty');
   vendBuyer(i);
 }
@@ -124,7 +124,7 @@ function vendOwner(i) {
   };
   body.querySelector('#vCollect').onclick = () => {
     if (v.e <= 0 || !addItem('world_lock', v.e)) return;
-    toast('Collected ' + v.e.toLocaleString() + ' World Locks');
+    toast('Collected ' + v.e.toLocaleString() + ' Gold Locks');
     Native.haptic('medium');
     save({ ...v, e: 0 });
   };
@@ -133,7 +133,7 @@ function vendOwner(i) {
 function vendBuyer(i) {
   const v = vends.get(i),
     unit = v.per ? v.p : 1, // items per purchase
-    cost1 = v.per ? 1 : v.p, // World Locks per purchase
+    cost1 = v.per ? 1 : v.p, // Gold Locks per purchase
     maxSets = Math.floor(v.n / unit);
   if (maxSets < 1) return toast('Not enough left in this machine');
   const body = dialog(
@@ -144,7 +144,7 @@ function vendBuyer(i) {
         <div class="vline"><input id="vBuy" class="vnum" type="number" min="1" max="${Math.min(maxSets, VEND_ADD)}" value="1" placeholder="Qty" inputmode="numeric" /></div>
       </label>
       <p class="dmsg" id="vTotal"></p>
-      <p class="snote">You have ${countItem('world_lock').toLocaleString()} World Locks.</p>
+      <p class="snote">You have ${countItem('world_lock').toLocaleString()} Gold Locks.</p>
     </div>`,
     [
       { label: 'Cancel', cls: 'ghost', run: () => {} },
@@ -157,7 +157,7 @@ function vendBuyer(i) {
           if (sets < 1 || sets * unit > cur.n) return toast('There are only ' + cur.n.toLocaleString() + ' left'), false;
           const items = sets * unit,
             cost = sets * cost1;
-          if (countItem('world_lock') < cost) return toast('You need ' + cost.toLocaleString() + ' World Locks'), false;
+          if (countItem('world_lock') < cost) return toast('You need ' + cost.toLocaleString() + ' Gold Locks'), false;
           for (let left = cost; left > 0; ) {
             const k = Math.min(left, inv.find((s) => s.id === 'world_lock').qty);
             takeItem('world_lock', k);
@@ -179,7 +179,7 @@ function vendBuyer(i) {
   const inp = body.querySelector('#vBuy'),
     total = () => {
       const s = Math.max(0, Math.min(maxSets, VEND_ADD, Math.floor(Number(inp.value) || 0)));
-      body.querySelector('#vTotal').textContent = 'You get ' + (s * unit).toLocaleString() + ' for ' + (s * cost1).toLocaleString() + ' World Lock' + (s * cost1 === 1 ? '' : 's');
+      body.querySelector('#vTotal').textContent = 'You get ' + (s * unit).toLocaleString() + ' for ' + (s * cost1).toLocaleString() + ' Gold Lock' + (s * cost1 === 1 ? '' : 's');
     };
   inp.oninput = total;
   total();

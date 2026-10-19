@@ -65,7 +65,28 @@ const Net = (() => {
     return m;
   }
   const userOf = (u) => u && { id: u.id, name: (u.user_metadata && u.user_metadata.username) || u.email.split('@')[0] };
+  // New accounts go through the "signup" Edge Function (supabase/functions/signup): at most 3 accounts per IP address.
+  // If that function isn't deployed yet, the old direct sign-up is used (no limit then).
   N.signUp = async (user, pass) => {
+    try {
+      const { error } = await sb.functions.invoke('signup', { body: { username: user, password: pass } });
+      if (!error) return N.signIn(user, pass);
+      const res = error.context;
+      const status = res && res.status;
+      if (status && status !== 404) {
+        let msg = '';
+        try {
+          msg = (await res.json()).error;
+        } catch (e) {}
+        return msg || 'Could not make the account (' + status + ')';
+      }
+      // 404 / no response: the function isn't there, fall back below
+    } catch (e) {
+      // network trouble reaching the function: fall back below
+    }
+    return N.signUpDirect(user, pass);
+  };
+  N.signUpDirect = async (user, pass) => {
     try {
       const { data, error } = await sb.auth.signUp({
         email: emailOf(user),
@@ -181,6 +202,26 @@ const Net = (() => {
         }
       });
   };
+  // the worlds this player has locked (Menu -> Worlds); returns true when the list changed
+  N.ownWorlds = [];
+  N.refreshOwnWorlds = async () => {
+    try {
+      const { data, error } = await sb
+        .from('worlds')
+        .select('name,owner,updated_at')
+        .ilike('owner', playerName)
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const list = data.map((r) => ({ name: r.name, owner: r.owner, visited: Date.parse(r.updated_at) || 0 }));
+      const changed = JSON.stringify(list) !== JSON.stringify(N.ownWorlds);
+      N.ownWorlds = list;
+      return changed;
+    } catch (e) {
+      console.error('own worlds', e);
+      return false;
+    }
+  };
   // the list at the main door and in the menu; returns true when it changed
   N.refreshWorlds = async () => {
     try {
@@ -210,7 +251,7 @@ const Net = (() => {
     snapOwner = null,
     snapLock = '',
     snapDoor = '';
-  const treeKey = (t) => t.seed + '|' + t.planted + '|' + t.fruit + '|' + (t.spliced ? 1 : 0);
+  const treeKey = (t) => t.seed + '|' + t.planted + '|' + t.fruit + '|' + (t.spliced ? 1 : 0) + '|' + (t.pa || '');
   function snapshot() {
     snapFg = fg.slice();
     snapBg = bg.slice();
@@ -416,7 +457,7 @@ const Net = (() => {
     for (const [i, tree] of trees) {
       const k = treeKey(tree);
       if (snapTrees.get(i) !== k) {
-        tr.push([i, tree.seed, tree.planted, tree.fruit, tree.spliced ? 1 : 0]);
+        tr.push([i, tree.seed, tree.planted, tree.fruit, tree.spliced ? 1 : 0, tree.pa || 0]);
         snapTrees.set(i, k);
       }
     }
@@ -461,12 +502,12 @@ const Net = (() => {
       vari[i] = snapVari[i] = v;
       dmg[i] = bgDmg[i] = 0;
     }
-    for (const [i, seed, planted, fruit, sp] of m.tr || []) {
+    for (const [i, seed, planted, fruit, sp, pa] of m.tr || []) {
       if (seed === null) {
         trees.delete(i);
         snapTrees.delete(i);
       } else if (TREE_TIME[seed]) {
-        const tree = { seed, planted, fruit, spliced: !!sp };
+        const tree = { seed, planted, fruit, spliced: !!sp, pa: typeof pa === 'string' ? pa : null };
         trees.set(i, tree);
         snapTrees.set(i, treeKey(tree));
       }

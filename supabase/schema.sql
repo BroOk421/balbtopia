@@ -65,3 +65,13 @@ create policy "mail: read own" on public.mail for select to authenticated using 
 create policy "mail: send" on public.mail for insert to authenticated with check (auth.uid() = from_id);
 create policy "mail: mark read" on public.mail for update to authenticated using (auth.uid() = to_id) with check (auth.uid() = to_id);
 create policy "mail: delete own" on public.mail for delete to authenticated using (auth.uid() = to_id);
+
+-- sign-up limit: how many accounts were made from each connection (only a hash of the IP address is kept).
+-- Only the "signup" Edge Function (service role) uses it; players can't read or write it.
+create table if not exists public.signup_ips (
+  ip_hash text not null,
+  user_id uuid references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create index if not exists signup_ips_hash on public.signup_ips (ip_hash);
+alter table public.signup_ips enable row level security;

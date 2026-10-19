@@ -1,10 +1,18 @@
-// Worlds: saving and loading (in this browser), entering worlds, ownership with a World Lock,
+// Worlds: saving and loading (in this browser), entering worlds, ownership with a Gold Lock,
 // and the world list that opens at the main door.
 // ===== worlds =====
 let worldName = START_WORLD,
-  worldOwner = null, // player name of whoever placed the World Lock, or null
+  worldOwner = null, // player name of whoever placed the Gold Lock, or null
   playerName = 'Player',
   inWorld = false; // true once a world has been entered (so we never save an unplayed world)
+// The world list is private: each account only sees the worlds it went into (or made by typing a name),
+// newest first, plus LOBBY and RECIPES. [{ n: name, o: owner when last seen, t: when }]
+let seenWorlds = [];
+const SEEN_MAX = 40;
+function rememberWorld(name) {
+  if (name === LOBBY_WORLD || name === RECIPES_WORLD) return;
+  seenWorlds = [{ n: name, o: worldOwner || null, t: Date.now() }, ...seenWorlds.filter((s) => s.n !== name)].slice(0, SEEN_MAX);
+}
 
 const SAVE_KEY = 'balbtopia.v1';
 const NAME_RE = /^[A-Z0-9]{1,16}$/;
@@ -46,7 +54,7 @@ function worldData() {
     door: [door.x, door.y],
     owner: worldOwner,
     lock: lockCfg,
-    trees: [...trees].map(([i, t]) => [i, t.seed, t.planted, t.fruit, t.spliced ? 1 : 0]),
+    trees: [...trees].map(([i, t]) => [i, t.seed, t.planted, t.fruit, t.spliced ? 1 : 0, t.pa || 0]),
     jam: jamInfo(), // jammers placed here (Signal Jammer hides the world from the list)
     signs: [...signs].filter(([i]) => isSignT(fg[i])), // [tile, text] of every sign with writing
     rv: worldRV, // RECIPES world only: the recipe list it was built from
@@ -68,8 +76,8 @@ function applyWorld(w, skew = 0) {
   worldOwner = w.owner || null;
   setLockCfg(w.lock);
   trees.clear();
-  for (const [i, seed, planted, fruit, sp] of w.trees || [])
-    if (TREE_TIME[seed]) trees.set(i, { seed, planted, fruit, spliced: !!sp });
+  for (const [i, seed, planted, fruit, sp, pa] of w.trees || [])
+    if (TREE_TIME[seed]) trees.set(i, { seed, planted, fruit, spliced: !!sp, pa: typeof pa === 'string' ? pa : null });
   signs.clear();
   for (const [i, text] of Array.isArray(w.signs) ? w.signs : []) if (Number.isInteger(i)) setSign(i, text);
   worldRV = w.rv || null;
@@ -114,6 +122,7 @@ function playerData() {
     playDays,
     settings,
     friends: myFriends,
+    seen: seenWorlds, // the worlds this account has been to (the private world list)
   };
 }
 // what you wear, from a save: every slot is emptied first (so nothing carries over from another account),
@@ -136,6 +145,9 @@ function setWorn(saved, outOfBag) {
 }
 function applyPlayer(p) {
   playerName = p.name || playerName;
+  seenWorlds = (Array.isArray(p.seen) ? p.seen : [])
+    .filter((s) => s && typeof s.n === 'string' && /^[A-Z0-9]{1,16}$/.test(s.n))
+    .slice(0, SEEN_MAX);
   if (SKINS.includes(p.skin)) skin = p.skin;
   inv.length = 0;
   for (const it of p.inv || []) if (ITEMS[it.id]) inv.push(it);
@@ -170,16 +182,25 @@ function loadPlayer() {
   applyPlayer(p);
   return true;
 }
-// RECIPES is always in the list, even before anyone has opened it
-const withRecipes = (list) =>
-  list.some((w) => w.name === RECIPES_WORLD) ? list : [...list, { name: RECIPES_WORLD, owner: GM_USERS[0], visited: 0 }];
+// the list at the main door: LOBBY and RECIPES, then only the worlds THIS account has been to (newest first).
+// The owner shown is the newest we know (the server's list when online, else what we saw last time).
 function listWorlds() {
-  if (Net.online) return withRecipes(Net.worldList.filter(listedWorld));
+  const known = Net.online ? new Map(Net.worldList.map((w) => [w.name, w])) : null,
+    local = Net.online ? null : store().worlds,
+    pinned = [LOBBY_WORLD, RECIPES_WORLD].map((name) => ({ name, owner: GM_USERS[0], visited: 0 }));
+  const mine = seenWorlds.map((s) => {
+    const k = known ? known.get(s.n) : local[s.n];
+    return { name: s.n, owner: k && k.owner !== undefined ? k.owner : s.o, visited: s.t };
+  });
+  return pinned.concat(mine.sort((a, b) => b.visited - a.visited));
+}
+// the worlds this account has locked (Menu -> Worlds). Online it asks the server (cached in Net.ownWorlds).
+function myLockedWorlds() {
+  if (Net.online) return Net.ownWorlds || [];
   const w = store().worlds;
   return Object.keys(w)
-    .map((n) => ({ name: n, owner: w[n].owner, visited: w[n].visited || 0, jam: w[n].jam }))
-    .filter(listedWorld)
-    .concat(store().worlds[RECIPES_WORLD] ? [] : [{ name: RECIPES_WORLD, owner: GM_USERS[0], visited: 0 }])
+    .filter((n) => w[n].owner && lc(w[n].owner) === lc(playerName))
+    .map((n) => ({ name: n, owner: w[n].owner, visited: w[n].visited || 0 }))
     .sort((a, b) => b.visited - a.visited);
 }
 
@@ -248,6 +269,8 @@ async function enterWorldNow(name) {
   }
   // the RECIPES world is built by the game, and rebuilt when the recipe list changes
   if (name === RECIPES_WORLD && worldRV !== recipesVersion()) buildRecipesWorld();
+  // the LOBBY too (lobby.js)
+  if (name === LOBBY_WORLD && worldRV !== LOBBY_V) buildLobbyWorld();
   dmg.fill(0);
   bgDmg.fill(0);
   puffs.length = parts.length = floats.length = vacs.length = chatLog.length = 0;
@@ -265,6 +288,7 @@ async function enterWorldNow(name) {
   Net.lobbyWorld(name);
   $('lockwin').hidden = true;
   if (worldOwner && lockCfg.desc) setTimeout(() => toast(worldOwner + "'s world: " + lockCfg.desc), 1700);
+  rememberWorld(name);
   saveWorld(true);
   savePlayer();
   updateWorldLabel();

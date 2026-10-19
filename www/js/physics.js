@@ -46,7 +46,8 @@ function step(dt) {
   touchCheckpoint();
   if (P.healT > 0 && (P.healT -= dt) <= 0) P.hp = LAVA_HP;
   const dir = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
-  const target = dir * 160 * feetSpeed(),
+  const swim = inWater(P); // gates.js: in water you move slower, sink slowly and can always paddle up
+  const target = dir * 160 * feetSpeed() * (swim ? 0.6 : 1),
     acc = P.ground ? 14 : 8;
   // knocked back: you can't steer for a moment, you just slide out
   if (P.kbT > 0) {
@@ -66,19 +67,20 @@ function step(dt) {
   if (P.buf > 0 && P.coyote <= 0 && !P.ground && P.airJ > 0) {
     P.airJ--;
     P.buf = 0;
-    P.vy = -500;
+    P.vy = -WING_JUMP_V;
     // a puff of feathers
     for (let k = 0; k < 10; k++)
       parts.push({ x: P.x + P.w / 2 + (Math.random() - 0.5) * 16, y: P.y + P.h * 0.6, vx: (Math.random() - 0.5) * 120, vy: 40 + Math.random() * 80, life: 0.5, c: k % 2 ? '#ffffff' : '#e4ecf8', s: 2 });
     Native.haptic('light');
   }
-  if (P.buf > 0 && P.coyote > 0) {
-    P.vy = -545;
+  if (P.buf > 0 && (P.coyote > 0 || swim)) {
+    P.vy = swim && P.coyote <= 0 ? -300 : -JUMP_V; // a swim stroke, or a normal jump off the ground
     P.buf = 0;
     P.coyote = 0;
     P.ground = false;
+    if (swim) splash(Math.floor((P.x + P.w / 2) / TS), Math.floor((P.y + P.h / 2) / TS), 3);
   }
-  P.vy = Math.min(900, P.vy + 1550 * dt);
+  P.vy = swim ? Math.min(140, P.vy + 520 * dt) : Math.min(MAX_FALL, P.vy + GRAVITY * dt);
   let hot = false;
   P.x += P.vx * dt;
   hot = collide('x') || hot;
@@ -110,11 +112,14 @@ function step(dt) {
       ty = Math.floor(py / TS);
     if (inW(tx, ty) && fg[at(tx, ty)] === LAVA) hot = true;
   }
-  // Death Spikes and Cactus hurt like lava when you're inside their tile
+  // Cactus hurts like lava when you're inside its tile; Death Spikes and Stalactite kill at once (gates.js)
   let spiky = false;
   for (let ty = Math.floor(P.y / TS); ty <= Math.floor((P.y + P.h - 1) / TS); ty++)
-    for (let tx = Math.floor(P.x / TS); tx <= Math.floor((P.x + P.w - 1) / TS); tx++)
-      if (inW(tx, ty) && (BLOCK[fg[at(tx, ty)]] || {}).hurt) spiky = true;
+    for (let tx = Math.floor(P.x / TS); tx <= Math.floor((P.x + P.w - 1) / TS); tx++) {
+      const b = inW(tx, ty) && BLOCK[fg[at(tx, ty)]];
+      if (b && b.kill) return die('spikes');
+      if (b && b.hurt) spiky = true;
+    }
   if (spiky) hot = true;
   // each burn takes one heart; the hearts come back after HEAL_TIME without burns
   if (hot && P.hurt <= 0) {
@@ -186,7 +191,7 @@ function stepFx(dt) {
   }
   // drops float where they were dropped; walking into one picks it up
   // a drop that comes within reach (a few pixels around you) gets sucked in
-  const r = DROP_SIZE / 2 + 6;
+  const r = 11 / 2 + 6; // pickup reach (kept from the old drop size, so bigger drops don't pull from further)
   for (let k = drops.length - 1; k >= 0; k--) {
     const d = drops[k];
     d.age += dt;

@@ -1,7 +1,7 @@
 // Farming: planting seeds on top of blocks, trees that grow over real time,
 // splicing two seeds into a new tree, and harvesting ripe trees.
 // ===== farming =====
-const trees = new Map(); // tile index -> { seed, planted (ms since 1970), fruit, spliced }
+const trees = new Map(); // tile index -> { seed, planted (ms since 1970), fruit, spliced, pa ('a+b': the two seeds spliced) }
 
 const treeName = (seed) => ITEMS[seed].name + ' Tree';
 function treeProgress(t) {
@@ -72,21 +72,49 @@ function splice(x, y, seedItem) {
   const result = SPLICE[[t.seed, from].sort().join('+')];
   if (!result) return toast(ITEMS[from].name + " won't combine with a " + treeName(t.seed));
   const was = t.seed;
-  Object.assign(t, { seed: result, planted: Date.now(), fruit: randFruit(), spliced: true });
+  Object.assign(t, { seed: result, planted: Date.now(), fruit: randFruit(), spliced: true, pa: [was, from].sort().join('+') });
   takeItem(seedItem);
   smoke(x, y, 10, 1.1);
   addXP(2);
   toast(ITEMS[was].name + ' + ' + ITEMS[from].name + ' = ' + treeName(result) + '!');
 }
 
-// punch a tree: ripe gives blocks (and maybe seeds and gold), young tells you how long is left
+// gold from harvesting a ripe tree: rarer trees give gold more often, and more of it
+function treeGold(seed) {
+  const r = rarityOf(seed) || 1;
+  if (Math.random() >= TREE_GOLD_CHANCE + Math.min(0.5, r / 120)) return 0;
+  return 1 + Math.floor(r / 5) + Math.floor(Math.random() * (2 + r / 10));
+}
+// the seeds a broken young tree gives back: both seeds of a splice, else its own seed
+function treeSeeds(t) {
+  const ids = t.spliced && t.pa ? t.pa.split('+') : [t.seed];
+  return ids.map((s) => s + '_seed').filter((s) => ITEMS[s]);
+}
+// punches on young trees: tile -> { n, t (game time of the last punch) }
+const treeHits = new Map();
+// punch a tree: ripe gives blocks (and maybe seeds and gold); a young one breaks after TREE_HITS punches
+// and gives its seeds back (a spliced tree: both seeds that made it)
 function punchTree(x, y) {
   const i = at(x, y),
     t = trees.get(i),
     p = treeProgress(t);
   if (p < 1) {
-    const left = Math.ceil((1 - p) * TREE_TIME[t.seed]);
-    toast(treeName(t.seed) + ' · ripe in ' + left + 's');
+    const h = treeHits.get(i);
+    const n = h && now / 1000 - h.t < TREE_HIT_FORGET ? h.n + 1 : 1;
+    shake = 1.5;
+    burst(x, y, SEED_COLOR[t.seed], 3);
+    smoke(x, y, 3, 0.7);
+    if (n < TREE_HITS) {
+      treeHits.set(i, { n, t: now / 1000 });
+      return;
+    }
+    treeHits.delete(i);
+    trees.delete(i);
+    burst(x, y, SEED_COLOR[t.seed], 10);
+    smoke(x, y, 8, 1.2);
+    treeSeeds(t).forEach((s, k, all) =>
+      spawnDrop(s, x * TS + 16 + (all.length > 1 ? (k ? 7 : -7) : 0), y * TS + 18),
+    );
     return;
   }
   trees.delete(i);
@@ -96,8 +124,8 @@ function punchTree(x, y) {
   for (let k = 0; k < t.fruit; k++)
     spawnDrop(t.seed, x * TS + 8 + Math.random() * 16, y * TS + 10 + Math.random() * 10);
   dropSeed(t.seed, x, y);
-  if (Math.random() < GOLD_CHANCE)
-    spawnDrop('gold', x * TS + 16, y * TS + 6, 1 + Math.floor(Math.random() * 3));
+  const gold = treeGold(t.seed);
+  if (gold) spawnDrop('gold', x * TS + 16, y * TS + 12, gold);
 }
 // a tree whose ground is gone pops and gives its seed back
 function uproot(x, y) {
@@ -179,4 +207,73 @@ function drawTrees(ox, oy, T) {
       g.fillRect(px + T * 0.15, py + T * 0.04, T * 0.7 * p, Z * 2);
     }
   }
+}
+
+// ---------- the bubble over a tree you stand on: its name and how long until it is ripe ----------
+function treeUnderPlayer() {
+  const tx = Math.floor((P.x + P.w / 2) / TS);
+  for (const py of [P.y + P.h - 2, P.y + P.h / 2]) {
+    const ty = Math.floor(py / TS);
+    if (inW(tx, ty) && trees.has(at(tx, ty))) return at(tx, ty);
+  }
+  return -1;
+}
+// 3725 s -> "1h 02m 05s", 65 -> "1m 05s", 9 -> "9s"
+function fmtLeft(s) {
+  const h = Math.floor(s / 3600),
+    m = Math.floor((s % 3600) / 60),
+    ss = s % 60,
+    p2 = (n) => String(n).padStart(2, '0');
+  return h ? h + 'h ' + p2(m) + 'm ' + p2(ss) + 's' : m ? m + 'm ' + p2(ss) + 's' : ss + 's';
+}
+function drawTreeBubble(ox, oy) {
+  if (P.dead) return;
+  const i = treeUnderPlayer();
+  if (i < 0) return;
+  const t = trees.get(i),
+    p = treeProgress(t),
+    left = Math.max(0, Math.ceil((1 - p) * TREE_TIME[t.seed])),
+    x = i % WW,
+    y = (i / WW) | 0,
+    // above the tree's top, which grows from a sapling to a full tile
+    cx = ox + (x * TS + TS / 2) * Z,
+    tipY = oy + (Math.min(y * TS + TS * (1 - (0.3 + 0.7 * p)), P.y - 10) - 2) * Z, // above the tree and your name
+    U = Math.max(Z, 2.4 * Math.min(2, devicePixelRatio || 1)),
+    l1 = treeName(t.seed),
+    l2 = p >= 1 ? 'Ready to harvest!' : 'Ripe in ' + fmtLeft(left);
+  g.font = `${4 * U}px "Press Start 2P", monospace`;
+  const lh = 7 * U,
+    barH = p < 1 ? 5 * U : 0,
+    w = Math.max(g.measureText(l1).width, g.measureText(l2).width, 60 * U) + 10 * U,
+    h = 2 * lh + 8 * U + barH,
+    bx = Math.max(4, Math.min(cv.width - w - 4, cx - w / 2)),
+    by = tipY - h - 4 * U;
+  g.fillStyle = '#fffaf0';
+  g.strokeStyle = '#1c1033';
+  g.lineWidth = Math.max(1, U / 2);
+  g.beginPath();
+  g.roundRect(bx, by, w, h, 3 * U);
+  g.moveTo(cx - 3 * U, by + h);
+  g.lineTo(cx, by + h + 4 * U);
+  g.lineTo(cx + 3 * U, by + h);
+  g.fill();
+  g.stroke();
+  g.textAlign = 'center';
+  g.textBaseline = 'top';
+  g.fillStyle = '#1c1033';
+  g.fillText(l1, bx + w / 2, by + 4 * U + U * 0.5);
+  g.fillStyle = p >= 1 ? '#2a8a2a' : '#5a4a70';
+  g.fillText(l2, bx + w / 2, by + 4 * U + lh + U * 0.5);
+  if (barH) {
+    // growth bar
+    const gx = bx + 5 * U,
+      gy = by + 4 * U + 2 * lh + U,
+      gw = w - 10 * U;
+    g.fillStyle = 'rgba(28,16,51,.18)';
+    g.fillRect(gx, gy, gw, 2 * U);
+    g.fillStyle = '#5cbf3a';
+    g.fillRect(gx, gy, gw * p, 2 * U);
+  }
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
 }

@@ -22,7 +22,8 @@ function openPlayerMenu(other) {
     name = other ? other.name : playerName;
   $('pmName').textContent = name;
   $('pmWorld').textContent = 'in ' + worldName + (worldOwner === name ? ' · owner' : '');
-  $('pmAvatar').src = A['skin_' + (other ? other.skin : skin) + '_open'];
+  // the player as they look right now: their skin and everything they wear
+  $('pmAvatar').src = charPortrait(other ? { skin: other.skin, equipped: other.equipped } : { skin, equipped });
   m.hidden = false;
   $('pmTrade').focus();
 }
@@ -500,7 +501,7 @@ function buildStart() {
     if (!account || $('play').disabled) return;
     $('play').disabled = true;
     gmFillBag(); // a GM's bag holds every item
-    const ok = await enterWorld(worldName || START_WORLD);
+    const ok = await enterWorld(LOBBY_WORLD); // everyone starts in the LOBBY (lobby.js)
     $('play').disabled = false;
     if (!ok) return;
     $('start').hidden = true;
@@ -526,4 +527,73 @@ function ready() {
   cam.x = Math.max(0, P.x - vw / 2);
   cam.y = P.y - vh * 0.55;
   requestAnimationFrame(loop);
+}
+
+// ---------- portrait of a character, exactly as it looks in the world (skin, clothes, hair, wings, aura, tool) ----------
+// Drawn with the game's own drawCharacter on a corner of the game canvas (the next frame paints over it anyway),
+// copied out and trimmed to the drawing. c: { skin, equipped } (you, or another player).
+function charPortrait(c) {
+  const k = Math.max(2, Math.min(6, cv.height / (CHAR_H * 2.1), cv.width / (CHAR_H * 1.6))), // pixels per world px
+    W = Math.ceil(CHAR_H * 1.5 * k),
+    H = Math.ceil(CHAR_H * 2 * k);
+  // eyes open: pick a moment of the blink timeline that shows the open eyes
+  let blink = 0;
+  for (let t = 0, m = 0; m < TL.length; t += TL[m++].ms)
+    if (TL[m].frame === 'open') {
+      blink = t + 1 - (now % TLT);
+      break;
+    }
+  const who = {
+    x: 0,
+    y: 0,
+    w: P.w,
+    h: P.h,
+    face: 1,
+    skin: c.skin || 'tan',
+    ground: true,
+    walking: false,
+    walkPh: 0,
+    equipped: c.equipped || {},
+    hand: 'fist',
+    name: '', // no name tag
+    blink,
+  };
+  const saveZ = Z,
+    back = g.getImageData(0, 0, W, H);
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, W, H);
+  Z = k;
+  try {
+    // feet at the bottom of the box, body in the middle
+    drawCharacter(who, W / 2 - (P.w / 2) * k, H - P.h * k - 2 * k);
+  } finally {
+    Z = saveZ;
+  }
+  const out = document.createElement('canvas');
+  out.width = W;
+  out.height = H;
+  out.getContext('2d').drawImage(cv, 0, 0, W, H, 0, 0, W, H);
+  g.putImageData(back, 0, 0);
+  g.restore();
+  // trim the empty edges
+  const d = out.getContext('2d').getImageData(0, 0, W, H).data;
+  let x0 = W,
+    y0 = H,
+    x1 = -1,
+    y1 = -1;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if (d[(y * W + x) * 4 + 3] > 8) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+  if (x1 < 0) return A['skin_' + who.skin + '_open'];
+  const t = document.createElement('canvas');
+  t.width = x1 - x0 + 3;
+  t.height = y1 - y0 + 3;
+  t.getContext('2d').drawImage(out, x0 - 1, y0 - 1, t.width, t.height, 0, 0, t.width, t.height);
+  return t.toDataURL();
 }

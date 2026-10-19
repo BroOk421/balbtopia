@@ -10,7 +10,7 @@ function playerTile() {
 // a square of REACH tiles around that tile (up, down, left and right)
 function inReach(tx, ty) {
   const p = playerTile(),
-    r = REACH + (laserFace(equipped) ? 1 : 0); // Cyclopean Visor / Laser Eyes reach one tile further
+    r = REACH + (laserFace(equipped) ? 1 : 0); // Red Visor / Laser Eyes reach one tile further
   return Math.abs(tx - p.x) <= r && Math.abs(ty - p.y) <= r;
 }
 // the fist shoots out to the clicked point and grows (bare hands, no pickaxe yet)
@@ -37,7 +37,7 @@ function punchPlayer(r) {
     dir = Math.sign(tx - (P.x + P.w / 2)) || P.face;
   startPunch(tx, ty);
   if (jammed(PUNCH_JAMMER)) {
-    toast("A Punch Jammer is on: you can't punch players here");
+    toast("A Punch Blocker is on: you can't punch players here");
     return;
   }
   Net.hit(r, dir); // only they move; you stay put
@@ -72,6 +72,7 @@ function act() {
     if (inW(t.x, t.y) && isVendT(fg[at(t.x, t.y)])) return openVend(t.x, t.y);
     if (inW(t.x, t.y) && isDispT(fg[at(t.x, t.y)])) return openDisplay(t.x, t.y);
     if (inW(t.x, t.y) && isMannT(fg[at(t.x, t.y)])) return openMannequin(t.x, t.y);
+    if (inW(t.x, t.y) && isGateT(fg[at(t.x, t.y)])) return openGate(t.x, t.y);
     const other = Net.playerAt(ptr.x, ptr.y);
     if (other) return openPlayerMenu(other);
     const onSelf = ptr.x > P.x - 4 && ptr.x < P.x + P.w + 4 && ptr.y > P.y - 14 && ptr.y < P.y + P.h + 4;
@@ -98,6 +99,8 @@ function act() {
   }
   const i = at(x, y),
     it = ITEMS[hand];
+  // the Water Bucket puts water on a tile (or takes it away): gates.js
+  if (hand === 'water_bucket') return useWaterBucket(x, y);
   // trees: a seed in hand splices, anything else punches (harvest when ripe);
   // a background in hand still goes on the tile, behind the tree
   if (trees.has(i) && !(it && it.kind === 'background')) {
@@ -116,14 +119,14 @@ function act() {
   }
   if (hand === 'fist' || !it || it.kind === 'clothing' || it.kind === 'seed' || it.kind === 'tool') {
     startPunch(ptr.x, ptr.y);
-    // the World Lock: only the owner may break it, even players with access can't
+    // the Gold Lock: only the owner may break it, even players with access can't
     if (isLockT(fg[i]) && !isOwner()) {
-      toast('Only ' + worldOwner + ' can break this World Lock');
+      toast('Only ' + worldOwner + ' can break this Gold Lock');
       shake = Math.max(shake, 2.5);
       return;
     }
     if ((fg[i] || bg[i]) && !canEdit()) return;
-    // a Vending Machine with items or World Locks inside can't be broken
+    // a Vending Machine with items or Gold Locks inside can't be broken
     if (isVendT(fg[i]) && vendBusy(i)) {
       toast('Empty the Vending Machine first (wrench it)');
       shake = Math.max(shake, 2);
@@ -208,7 +211,7 @@ function act() {
     }
     if (isLockT(it.block)) {
       if (worldOwner) {
-        toast('This world already has a World Lock');
+        toast('This world already has a Gold Lock');
         return;
       }
       worldOwner = playerName;
@@ -218,7 +221,8 @@ function act() {
       smoke(x, y, 10, 1.3);
     }
     fg[i] = it.block;
-    vari[i] = Math.floor(Math.random() * 3); // (bit WEATHER_OFF clear: a new Weather Machine is on)
+    // (bit WEATHER_OFF clear: a new Weather Machine is on; water stays under walk-through blocks, gates.js)
+    vari[i] = Math.floor(Math.random() * 3) | (BLOCK[it.block].solid === false || BLOCK[it.block].gate ? vari[i] & WATER : 0);
     takeItem(hand);
     placeFx(x, y, it.block, true);
   } else if (it.kind === 'background') {
@@ -319,9 +323,11 @@ function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
     ty = Math.floor(y / TS),
     sameSpot = (d) => (Math.floor(d.x / TS) === tx && Math.floor(d.y / TS) === ty) || Math.hypot(d.x - x, d.y - y) < 10,
     here = drops.filter((d) => d.id === id && (d.by || null) === by && sameSpot(d));
+  // gold has no cap: one pile per tile, shown as coins (5 of a kind join into the next kind, see coinParts)
+  const cap = id === 'gold' ? Infinity : DROP_STACK;
   for (const d of here) {
     if (qty <= 0) break;
-    const k = Math.min(qty, DROP_STACK - d.qty);
+    const k = Math.min(qty, cap - d.qty);
     if (k <= 0) continue;
     d.qty += k;
     d.born = Date.now(); // more fell on it: the minute starts again
@@ -330,7 +336,7 @@ function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
   }
   let n = here.length;
   while (qty > 0) {
-    const k = Math.min(qty, DROP_STACK),
+    const k = Math.min(qty, cap),
       d = { uid: newDropId(), id, qty: k, x: x + DROP_SPREAD[n++ % DROP_SPREAD.length], y, age: 0, minAge, ph: Math.random() * 6.28, born: Date.now(), by };
     drops.push(d);
     Net.sendDrop(d);

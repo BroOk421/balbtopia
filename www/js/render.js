@@ -85,7 +85,7 @@ function drawBg() {
   } else g.fillRect(0, 0, cv.width, Math.ceil(top) + 1);
   g.imageSmoothingEnabled = true;
   for (const [k, f] of LAY) {
-    if (snow && (k === 'bg_sky' || (k === 'bg_sun' && wx === 'snow'))) continue;
+    if (snow && (k === 'bg_sky' || (k === 'bg_sun' && (wx === 'snow' || wx === 'rain')))) continue;
     // (the sun's glow fades out before the edges of its picture, so no box shows round it)
     const im = snow ? weatherLayer(wx, k) : k === 'bg_sun' ? softEdges(IMG[k]) : IMG[k];
     if (!im) continue;
@@ -528,6 +528,7 @@ function drawSmoke(ox, oy) {
   g.globalAlpha = 1;
 }
 function render() {
+  stepGates(); // gates.js
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.clearRect(0, 0, cv.width, cv.height);
   drawBg();
@@ -578,7 +579,7 @@ function render() {
         drawEdges(maskOf(x, y), ox + x * T, oy + y * T, T, ['#07040b', '#4a3a5c', '#160f1e']);
       } else {
         let k = b.sheet();
-        if (t === DIRT) k += vari[i];
+        if (t === DIRT) k += vari[i] & 3;
         const m = maskOf(x, y);
         g.drawImage(IMG[k], m * 32, 0, 32, 32, ox + x * T, oy + y * T, T, T);
         // dirt with nothing on top becomes the grassy top layer
@@ -596,7 +597,7 @@ function render() {
   // main door (1 tile), drawn in front of the wall and behind the player
   g.drawImage(doorSprite(), ox + door.x * T, oy + door.y * T, T, T);
   drawTrees(ox, oy, T);
-  // holding the wrench: a wrench shows inside every World Lock; click it for the lock's settings
+  // holding the wrench: a wrench shows inside every Gold Lock; click it for the lock's settings
   if (hand === 'wrench')
     for (let i = 0; i < fg.length; i++) {
       if (!isLockT(fg[i])) continue;
@@ -617,15 +618,8 @@ function render() {
     // a drop this visitor can't take yet: see-through, with a ring that fills up over the minute
     const locked = !canTakeDrop(d);
     if (locked) g.globalAlpha = 0.6;
-    if (d.id === 'gold') {
-      // gold spins like a coin
-      const sx = Math.max(0.15, Math.abs(Math.cos(now / 220 + d.ph)));
-      g.save();
-      g.translate(x, y);
-      g.scale(sx, 1);
-      drawIcon('gold', (-s / 2) * Z, (-s / 2) * Z, s * Z);
-      g.restore();
-    } else drawIcon(d.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
+    if (d.id === 'gold') drawGoldPile(d, x, y, s);
+    else drawIcon(d.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
     // floating drops show no number, only the item
     g.globalAlpha = 1;
     if (locked) {
@@ -652,7 +646,12 @@ function render() {
       s = DROP_SIZE * (1 - 0.6 * u),
       x = ox + (v.x + (tx - v.x) * e) * Z,
       y = oy + (v.y + (ty - v.y) * e - Math.sin(u * Math.PI) * 6) * Z;
-    drawIcon(v.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
+    if (v.id === 'gold') {
+      const im = coinCanvas(coinParts(v.qty)[0].k),
+        w = (s * im.width) / 32;
+      g.drawImage(im, x - (w / 2) * Z, y - (s / 2) * Z, w * Z, s * Z);
+    }
+    else drawIcon(v.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
   }
   // other players in this world (online), then you on top
   // holding the wrench: a small wrench shows next to each other player's name; click it (or them) for their menu
@@ -694,6 +693,7 @@ function render() {
     ox,
     oy,
   );
+  drawWater(ox, oy, T); // gates.js: water in front of the world and players
   if (P.hurt > 0) {
     g.fillStyle = `rgba(255,60,30,${P.hurt * 0.25})`;
     g.fillRect(0, 0, cv.width, cv.height);
@@ -701,6 +701,7 @@ function render() {
   drawSmoke(ox, oy);
   drawPlaces(ox, oy, T);
   drawSignBubble(ox, oy);
+  drawTreeBubble(ox, oy);
   drawFlyers(ox, oy);
   // particles & floating text
   for (const p of parts) {
@@ -733,6 +734,7 @@ function render() {
   }
   // weather: falling snow over the world, and the white flash when the weather changes
   if (weatherNow === 'snow') drawSnow();
+  else if (weatherNow === 'rain') drawRain();
   drawWeatherFlash();
   // cursor square
   if (ptr.inside && $('inv').hidden) {
@@ -762,7 +764,9 @@ function iconCanvas(id) {
   if (nw) x.drawImage(nw, 0, 0, 32, 32);
   else if (id === 'gold') drawCoin(x);
   else if (id === 'wrench') x.drawImage(wrenchSprite(), 0, 0);
-  else if (it.kind === 'seed') drawPixels(x, SEED_ART, seedMap(it.from), 2);
+  else if (it.kind === 'seed') {
+    if (!drawSeedHD(x, it.from)) drawPixels(x, SEED_ART, seedMap(it.from), 2);
+  }
   else if (it.block && BLOCK[it.block].lock) x.drawImage(lockSprite(id), 0, 0, 32, 32);
   else if (id === 'door') x.drawImage(woodDoorSprite(), 0, 0);
   else if (id === 'grass') {
@@ -779,37 +783,117 @@ function iconCanvas(id) {
   }
   return (ICON[id] = c);
 }
-// pixel-art gold coin on a 32x32 canvas
-const COIN_ART = [
-  '....KKKKKK....',
-  '..KKYYYYYYKK..',
-  '.KYWWYYYYYYOK.',
-  '.KYWYYOOOYYOK.',
-  'KYWYYOYYYOYYOK',
-  'KYYYOYYYYYOYOK',
-  'KYYYOYYYYYOYOK',
-  'KYYYOYYYYYOYOK',
-  'KYYYYOYYYOYYOK',
-  '.KYYYYOOOYYOK.',
-  '.KYYYYYYYYOOK.',
-  '..KKOOOOOOKK..',
-  '....KKKKKK....',
-];
-function drawCoin(x) {
-  const map = { K: '#5a3a06', Y: '#ffd23f', O: '#e09a1c', W: '#fff4b8' };
-  const s = 2,
-    w = COIN_ART[0].length,
-    h = COIN_ART.length,
-    x0 = (32 - w * s) / 2,
-    y0 = (32 - h * s) / 2;
-  COIN_ART.forEach((row, j) =>
-    [...row].forEach((ch, i) => {
-      if (map[ch]) {
-        x.fillStyle = map[ch];
-        x.fillRect(x0 + i * s, y0 + j * s, s, s);
+// ---------- coins and the gold bar, drawn pixel by pixel on a 32x32 canvas (1 px pixels, finer than the 2 px block art) ----------
+// metal colours: outline, dark, mid, light, shine
+const METAL = {
+  bronze: ['#3a1806', '#7a3814', '#b9652b', '#e3955a', '#ffd3a6'],
+  silver: ['#22263a', '#5d6478', '#9aa3b8', '#d4dae8', '#ffffff'],
+  gold: ['#4a2c03', '#a8640b', '#e8a81b', '#ffd94a', '#fff7c4'],
+};
+// kind -> metal, coin radius (small 8.5, big 13); the bar has its own drawing
+const COIN_LOOK = {
+  bronze_s: ['bronze', 8.5],
+  bronze_b: ['bronze', 13],
+  silver_s: ['silver', 8.5],
+  gold_s: ['gold', 8.5],
+  gold_b: ['gold', 13],
+};
+// a 5-pointed star: is (x, y) inside it (centre 0, outer radius R)?
+function inStar(x, y, R) {
+  const a = Math.atan2(y, x) + Math.PI / 2,
+    d = Math.hypot(x, y),
+    seg = (Math.PI * 2) / 5,
+    u = Math.abs(((((a % seg) + seg) % seg) / seg) * 2 - 1); // 1 at a point, 0 between points
+  return d <= R * (0.45 + 0.55 * u * u);
+}
+function drawCoin(x, kind = 'gold_b') {
+  if (kind === 'bar') return drawBar(x);
+  const [metal, r] = COIN_LOOK[kind] || COIN_LOOK.gold_b,
+    [K, D, M, L, W] = METAL[metal],
+    c = 16,
+    big = r > 10,
+    px = (i, j, col) => {
+      x.fillStyle = col;
+      x.fillRect(i, j, 1, 1);
+    };
+  for (let j = 0; j < 32; j++)
+    for (let i = 0; i < 32; i++) {
+      const dx = i + 0.5 - c,
+        dy = j + 0.5 - c,
+        d = Math.hypot(dx, dy);
+      if (d > r) continue;
+      // light comes from the top left
+      const lam = d ? (-dx - dy) / (d * Math.SQRT2) : 0;
+      let col;
+      if (d > r - 1.1) col = K;
+      else if (d > r - (big ? 3.2 : 2.3)) col = lam > 0.45 ? W : lam > 0 ? L : lam > -0.5 ? M : D; // raised rim
+      else if (d > r - (big ? 4.3 : 3.2)) col = lam > 0.2 ? D : lam < -0.4 ? L : M; // groove inside the rim
+      else {
+        // face: lighter towards the top left
+        col = dx + dy < -r * 0.55 ? L : M;
+        const sr = r * (big ? 0.52 : 0.5);
+        if (inStar(dx, dy, sr)) col = inStar(dx + 1, dy + 1, sr) ? L : W; // stamped star, lit edge
+        else if (inStar(dx - 1, dy - 1, sr)) col = D; // its shadow
       }
-    }),
-  );
+      px(i, j, col);
+    }
+  // a glint on the rim
+  const gx = Math.round(c - r * 0.55),
+    gy = Math.round(c - r * 0.62);
+  px(gx, gy, '#ffffff');
+  if (big) {
+    px(gx + 1, gy, W);
+    px(gx, gy + 1, W);
+  }
+}
+// pixel-art helpers for the 1 px drawings: point in polygon
+function inPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i],
+      [xj, yj] = pts[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+// gold bar: an ingot seen from the front-right and a little above (3/4 view) on a 40x32 canvas:
+// light top face, front face, darker right face, outline, faint edges between faces, stamped panel and shine
+const BAR_FACES = {
+  top: [[8, 12], [26, 12], [32, 7], [14, 7]],
+  front: [[3, 25], [29, 25], [26, 12], [8, 12]],
+  right: [[29, 25], [36, 19], [32, 7], [26, 12]],
+};
+function drawBar(x) {
+  const [K, D, M, L, W] = METAL.gold,
+    face = (i, j) => {
+      for (const f of ['top', 'right', 'front']) if (inPoly(i + 0.5, j + 0.5, BAR_FACES[f])) return f;
+      return null;
+    },
+    grid = [];
+  for (let j = 0; j < 32; j++) for (let i = 0; i < 40; i++) grid[j * 40 + i] = face(i, j);
+  const at = (i, j) => (i < 0 || j < 0 || i >= 40 || j >= 32 ? null : grid[j * 40 + i]);
+  for (let j = 0; j < 32; j++)
+    for (let i = 0; i < 40; i++) {
+      const f = at(i, j);
+      if (!f) continue;
+      let col;
+      if (!at(i - 1, j) || !at(i + 1, j) || !at(i, j - 1) || !at(i, j + 1)) col = K;
+      else if (f === 'top') col = at(i, j + 1) !== 'top' ? W : (i + j) % 7 === 0 ? W : L;
+      else if (f === 'right') col = at(i - 1, j) !== 'right' ? M : j > 20 ? '#7a4806' : D;
+      else {
+        col = at(i, j - 1) !== 'front' ? W : j >= 23 ? D : M;
+        // stamped panel
+        if (i >= 9 && i <= 23 && j >= 15 && j <= 21) col = i === 9 || j === 15 ? D : i === 23 || j === 21 ? L : M;
+      }
+      x.fillStyle = col;
+      x.fillRect(i, j, 1, 1);
+    }
+  // shine
+  x.fillStyle = W;
+  for (let k = 0; k < 4; k++) x.fillRect(12 + k, 20 - k, 1, 1);
+  x.fillStyle = '#ffffff';
+  x.fillRect(16, 9, 3, 1);
+  x.fillRect(15, 10, 1, 1);
 }
 // draw a pixel-art pattern centred on a 32x32 canvas
 function drawPixels(x, art, map, s) {
@@ -844,7 +928,7 @@ function seedMap(from) {
   const [m, d, h] = SEED_COLOR[from];
   return { K: '#1a0f0a', M: m, D: d, H: h };
 }
-// World Lock: golden padlock on a dark block
+// Gold Lock: golden padlock on a dark block
 const LOCK_ART = [
   'KKKKKKKKKKKKKKKK',
   'KBBBBBBBBBBBBBBK',
@@ -863,7 +947,7 @@ const LOCK_ART = [
   'KBBBBBBBBBBBBBBK',
   'KKKKKKKKKKKKKKKK',
 ];
-// the same padlock in three kinds: gold World Lock, icy Diamond Lock, purple-black Black Diamond Lock
+// the same padlock in three kinds: gold Gold Lock, icy Crystal Lock, purple-black Shadow Lock
 const LOCK_COLORS = {
   world_lock: { K: '#14101c', B: '#3a3350', b: '#2a2440', G: '#c9c9d6', Y: '#ffd23f', O: '#d48a12', W: '#fff4b8' },
   diamond_lock: { K: '#0c1a26', B: '#2a5a7a', b: '#1a3a52', G: '#e0faff', Y: '#7fe8ff', O: '#2fa8d8', W: '#ffffff' },
@@ -1154,4 +1238,256 @@ function drawTalk(c, top, sc, dy, mouthY) {
   g.imageSmoothingEnabled = false;
   g.drawImage(im, f * 32, 0, 32, 24, (-FR.w / 2 + MOUTH_X - 16) * k, top + (mouthY + dy - 12) * k, 32 * k, 24 * k);
   g.imageSmoothingEnabled = true;
+}
+
+// ---------- gold on the floor: bronze, silver, gold coins and gold bars ----------
+// A tile holds one gold pile (a value). It shows as coins: 5 small bronze (1) make a big bronze (5), 5 big bronze a
+// small silver (25), 5 small silver a small gold (125), 5 small gold a big gold (625), 5 big gold a gold bar (3125);
+// bars never join (COIN_KINDS in config.js).
+const COINS = {};
+function coinCanvas(k) {
+  if (COINS[k]) return COINS[k];
+  const c = document.createElement('canvas');
+  c.width = k === 'bar' ? 40 : 32; // the bar is a bit wider
+  c.height = 32;
+  drawCoin(c.getContext('2d'), k);
+  return (COINS[k] = c);
+}
+// value -> [{ k, n }] biggest first (only kinds there are some of)
+function coinParts(v) {
+  const out = [];
+  for (const c of COIN_KINDS) {
+    const n = c.k === 'bar' ? Math.floor(v / c.v) : Math.floor(v / c.v) % 5;
+    if (n) out.push({ k: c.k, n });
+    if (c.k === 'bar') v %= c.v;
+  }
+  return out.length ? out : [{ k: 'bronze_s', n: 1 }];
+}
+// what each kind fills of its 32x32 canvas: width, height, how far the drawing's bottom is below the middle
+const COIN_BOX = { bar: [34, 19, 9.5], small: [17, 17, 8.5], big: [26, 26, 13] };
+const coinBox = (k) => COIN_BOX[k === 'bar' ? 'bar' : COIN_LOOK[k][1] > 10 ? 'big' : 'small'];
+const COIN_FX = { sparkle: ['#fff4b8', '#ffd23f', '#ffffff'] };
+const PILE_W = 36; // a pile is never wider than this (world px)
+function drawGoldPile(d, x, y, s) {
+  // 5 of a kind just joined: sparkles and a little pop
+  if (d.shownQ !== undefined && d.qty > d.shownQ) {
+    const a = coinParts(d.shownQ),
+      b = coinParts(d.qty),
+      top = (p) => COIN_KINDS.findIndex((c) => c.k === p[0].k);
+    if (top(b) < top(a) || b.reduce((n, p) => n + p.n, 0) < a.reduce((n, p) => n + p.n, 0)) {
+      toolSparkles(COIN_FX, d.x, d.y, 10, 14);
+      d.popT = now;
+    }
+  }
+  d.shownQ = d.qty;
+  const parts = coinParts(d.qty),
+    pop = d.popT ? Math.max(0, 1 - (now - d.popT) / 300) : 0;
+  // world px per canvas px: a big coin is about 1.3 drops wide; shrink if the row would be too wide
+  let k = (s * 1.3) / 26;
+  const gapPx = 2,
+    rowW = parts.reduce((w, p) => w + coinBox(p.k)[0], 0) + gapPx * (parts.length - 1);
+  if (rowW * k > PILE_W) k = PILE_W / rowW;
+  k *= 1 + pop * 0.35;
+  const base = y + s * 0.5 * Z; // every piece stands on the same line
+  let cx = x - (rowW * k * Z) / 2;
+  for (const [n, p] of parts.entries()) {
+    const [bw, , below] = coinBox(p.k),
+      im = coinCanvas(p.k),
+      many = Math.min(p.n, 4),
+      mx = cx + (bw / 2) * k * Z,
+      S = 32 * k * Z,
+      SW = im.width * k * Z; // drawn width (the bar's canvas is wider)
+    for (let j = 0; j < many; j++) {
+      // a stack: each one a little higher and to the left
+      const px = mx - j * 1.2 * k * Z,
+        py = base - below * k * Z - j * 2.5 * k * Z;
+      if (p.k === 'bar' || j < many - 1) g.drawImage(im, px - SW / 2, py - S / 2, SW, S);
+      else {
+        // the top coin of a stack spins
+        const sx = Math.max(0.15, Math.abs(Math.cos(now / 220 + d.ph + n)));
+        g.save();
+        g.translate(px, py);
+        g.scale(sx, 1);
+        g.drawImage(im, -S / 2, -S / 2, S, S);
+        g.restore();
+      }
+    }
+    cx += (bw + gapPx) * k * Z;
+  }
+}
+
+// ---------- detailed seeds (1 px pixels) for the four dug-up blocks ----------
+// An egg-shaped seed lit from the top left, with its block's texture: dirt specks and pebbles, cave cracks,
+// rock facets, lava crust with glowing cracks. Other seeds still use SEED_ART coloured from SEED_COLOR.
+const SEED_HD = {
+  dirt: { c: ['#2a170c', '#56331d', '#7f502d', '#a6713f', '#cf9963'], tex: 'dirt' },
+  cave: { c: ['#170f0a', '#2f2018', '#4a3426', '#694b37', '#8b6b52'], tex: 'cave' },
+  rock: { c: ['#262a32', '#4d535f', '#757d8c', '#9fa7b5', '#d2d8e2'], tex: 'rock' },
+  lava: { c: ['#1a0804', '#34120a', '#55200f', '#763018', '#974624'], tex: 'lava' },
+};
+// steady pseudo-random number 0..1 for a pixel
+const hash2 = (i, j, k = 0) => {
+  const v = Math.sin(i * 127.1 + j * 311.7 + k * 74.7) * 43758.5453;
+  return v - Math.floor(v);
+};
+// Voronoi: distance to the nearest and second-nearest of a fixed set of points, and which one
+function cellsAt(x, y, pts) {
+  let d1 = 1e9,
+    d2 = 1e9,
+    id = 0;
+  pts.forEach(([px, py], k) => {
+    const d = Math.hypot(x - px, y - py);
+    if (d < d1) {
+      d2 = d1;
+      d1 = d;
+      id = k;
+    } else if (d < d2) d2 = d;
+  });
+  return { d1, d2, id };
+}
+const SEED_CELLS = [[11, 10], [19, 9], [24, 15], [8, 18], [15, 17], [21, 22], [12, 25], [17, 27], [26, 23], [6, 12], [14, 5]];
+// any other seed: its own SEED_COLOR made into a 5-step ramp, and one of a few textures picked by its name
+const SEED_TEX = ['speck', 'cave', 'rock', 'spots', 'stripes', 'speck', 'spots'];
+function mixHex(a, b, t) {
+  const n = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)),
+    A = n(a),
+    B = n(b);
+  return '#' + A.map((v, k) => Math.round(v + (B[k] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+function seedLook(from) {
+  if (SEED_HD[from]) return SEED_HD[from];
+  const sc = SEED_COLOR[from];
+  if (!sc) return null;
+  const [m, d, l] = sc;
+  let hsh = 0;
+  for (const ch of from) hsh = (hsh * 31 + ch.charCodeAt(0)) >>> 0;
+  return (SEED_HD[from] = {
+    c: [mixHex(d, '#000000', 0.45), d, m, l, mixHex(l, '#ffffff', 0.45)],
+    tex: SEED_TEX[hsh % SEED_TEX.length],
+    flip: (hsh >> 4) & 1, // mirror the cell pattern so seeds with the same texture still differ
+  });
+}
+function drawSeedHD(x, from) {
+  const S = seedLook(from);
+  if (!S) return false;
+  const pal = S.c,
+    cx = 16,
+    cy = 19, // the seed sits low: a sprout with two leaves grows out of its top
+    ry = 10.5,
+    shape = (i, j) => {
+      const dx = i + 0.5 - cx,
+        dy = j + 0.5 - cy,
+        rx = 9.5 * (1 + 0.12 * (dy / ry)); // egg: narrower at the top
+      return (dx / rx) ** 2 + (dy / ry) ** 2 <= 1;
+    },
+    put = (i, j, col) => {
+      x.fillStyle = col;
+      x.fillRect(i, j, 1, 1);
+    };
+  for (let j = 0; j < 32; j++)
+    for (let i = 0; i < 32; i++) {
+      if (!shape(i, j)) continue;
+      if (!shape(i - 1, j) || !shape(i + 1, j) || !shape(i, j - 1) || !shape(i, j + 1)) {
+        put(i, j, '#140a06');
+        continue;
+      }
+      const dx = (i + 0.5 - cx) / 9.5,
+        dy = (j + 0.5 - cy) / ry,
+        nz = Math.sqrt(Math.max(0, 1 - dx * dx - dy * dy)),
+        lit = -0.5 * dx - 0.6 * dy + 0.62 * nz; // -1..1
+      let lv = lit > 0.75 ? 4 : lit > 0.45 ? 3 : lit > 0.05 ? 2 : lit > -0.3 ? 1 : 0;
+      let col = null;
+      const h = hash2(i, j),
+        ci = S.flip ? 31 - i : i;
+      if (S.tex === 'speck') {
+        if (h < 0.14) lv = Math.max(0, lv - 1);
+        else if (h > 0.9) lv = Math.min(4, lv + 1);
+      } else if (S.tex === 'spots') {
+        // round spots in the darker shade, each with a lit rim at the top
+        for (const [sx, sy, r] of [[12, 12, 2.6], [20, 15, 2.2], [14, 21, 2.4], [21, 23, 1.6], [9, 18, 1.4]]) {
+          const dd = Math.hypot(ci + 0.5 - sx, j + 0.5 - sy);
+          if (dd < r) lv = Math.max(0, lv - (dd < r - 1 ? 2 : 1));
+        }
+        if (h > 0.95) lv = Math.min(4, lv + 1);
+      } else if (S.tex === 'stripes') {
+        // curved bands round the seed, like a melon
+        const band = Math.sin((ci - 16) * 0.55 + (j - 17) * 0.12);
+        if (band > 0.7) lv = Math.max(0, lv - 1);
+        else if (band < -0.85) lv = Math.min(4, lv + 1);
+        if (h < 0.06) lv = Math.max(0, lv - 1);
+      } else if (S.tex === 'dirt') {
+        if (h < 0.14) lv = Math.max(0, lv - 1);
+        else if (h > 0.93) lv = Math.min(4, lv + 1);
+        // little pebbles
+        for (const [px, py] of [[11, 13], [19, 20], [13, 24], [21, 11]]) {
+          if (i === px && j === py) col = '#b8b0a4';
+          if (i === px + 1 && j === py) col = '#8a8278';
+          if (i === px && j === py + 1) col = '#6e665e';
+        }
+      } else if (S.tex === 'cave') {
+        const c = cellsAt(ci + 0.5, j + 0.5, SEED_CELLS);
+        if (c.d2 - c.d1 < 1) lv = 0; // cracks
+        else if (h < 0.1) lv = Math.max(0, lv - 1);
+        else if (c.id % 3 === 0) lv = Math.min(4, lv + (lv < 3 ? 1 : 0));
+      } else if (S.tex === 'rock') {
+        const c = cellsAt(ci + 0.5, j + 0.5, SEED_CELLS);
+        // facets: each a shade of its own, dark seams, lit top edges
+        lv = Math.max(0, Math.min(4, lv + ((c.id * 7) % 3) - 1));
+        if (c.d2 - c.d1 < 0.9) lv = Math.max(0, lv - 2);
+        else if (c.d2 - c.d1 < 1.9 && j + 0.5 < SEED_CELLS[c.id][1]) lv = Math.min(4, lv + 1);
+        if (h > 0.96) lv = Math.min(4, lv + 1);
+      } else if (S.tex === 'lava') {
+        const c = cellsAt(i + 0.5, j + 0.5, SEED_CELLS),
+          e = c.d2 - c.d1;
+        if (e < 0.8) col = '#fff0a0'; // white-hot middle of a crack
+        else if (e < 1.7) col = '#ffb02a';
+        else if (e < 2.6) col = '#ff5a12';
+        else if (e < 3.4) col = '#a02a0c'; // crust glowing near the crack
+        else if (h < 0.12) lv = Math.max(0, lv - 1);
+      }
+      put(i, j, col || pal[lv]);
+    }
+  // shine
+  put(10, 13, '#ffffff');
+  put(11, 12, '#ffffff');
+  put(10, 12, pal[4]);
+  put(12, 12, pal[4]);
+  put(10, 14, pal[4]);
+  drawSprout(put);
+  return true;
+}
+// a little sprout on top of every seed: a stem and two leaves (bigger one to the right), each with a vein
+const LEAF = { K: '#12301a', D: '#2a7a2a', M: '#4caf3a', L: '#8fe06a', V: '#2f8a30' };
+function drawSprout(put) {
+  // stem
+  put(16, 9, LEAF.K);
+  put(15, 8, LEAF.K);
+  put(17, 8, LEAF.K);
+  put(16, 8, LEAF.D);
+  put(16, 7, LEAF.M);
+  put(15, 7, LEAF.K);
+  put(17, 7, LEAF.K);
+  const leaf = (cx, cy, rx, ry, ang) => {
+    const ca = Math.cos(ang),
+      sa = Math.sin(ang),
+      inL = (i, j) => {
+        const u = (i + 0.5 - cx) * ca + (j + 0.5 - cy) * sa,
+          v = -(i + 0.5 - cx) * sa + (j + 0.5 - cy) * ca;
+        // pointed at the tip (u > 0): narrower the further out
+        const w = ry * (u > 0 ? 1 - (u / rx) ** 2 : Math.sqrt(Math.max(0, 1 - (u / rx) ** 2)));
+        return Math.abs(u) <= rx && Math.abs(v) <= w ? { u, v } : null;
+      };
+    for (let j = Math.floor(cy - rx - 1); j <= cy + rx + 1; j++)
+      for (let i = Math.floor(cx - rx - 1); i <= cx + rx + 1; i++) {
+        const q = inL(i, j);
+        if (!q) continue;
+        let col;
+        if (!inL(i - 1, j) || !inL(i + 1, j) || !inL(i, j - 1) || !inL(i, j + 1)) col = LEAF.K;
+        else if (Math.abs(q.v) < 0.5 && q.u > -rx + 1.5) col = LEAF.V; // vein
+        else col = q.v < 0 ? LEAF.L : q.v > 1 ? LEAF.D : LEAF.M; // upper half lit
+        put(i, j, col);
+      }
+  };
+  leaf(20.5, 5, 5, 2.4, -0.45);
+  leaf(11.8, 5.8, 3.6, 1.8, Math.PI + 0.5);
 }

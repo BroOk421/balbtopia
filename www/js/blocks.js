@@ -22,8 +22,8 @@ const NEW_ITEMS = [
   { id: 'daisy', t: 14, name: 'Daisy', kind: 'deco', hits: 1, rarity: 'Common', grow: 60, seed: ['#f4f4f4', '#ffd23f', '#ffffff'], fx: ['#ffffff', '#ffd23f', '#4caf3a'], desc: 'A little white flower. Daisy = Dirt + Grass.' },
   { id: 'mushroom', t: 15, name: 'Mushroom', kind: 'deco', hits: 1, rarity: 'Common', grow: 60, seed: ['#d6362a', '#f2e6cc', '#ff6a55'], fx: ['#d6362a', '#f2e6cc', '#ffffff'], desc: 'A red cap with white spots. Mushroom = Cave Background + Grass.' },
   { id: 'rose', t: 16, name: 'Rose', kind: 'deco', hits: 1, rarity: 'Common', grow: 60, seed: ['#d01a3a', '#7a0a1e', '#ff5a72'], fx: ['#d01a3a', '#ff5a72', '#2a6e22'], desc: 'A red rose. Rose = Grass + Lava.' },
-  { id: 'crappy_sign', t: 17, name: 'Crappy Sign', kind: 'deco', hits: 1, rarity: 'Common', grow: 60, seed: ['#9c8466', '#4a3a2a', '#bca486'], fx: ['#9c8466', '#5a4632', '#4a3a2a'], desc: 'A crooked, cracked old sign. Crappy Sign = Dirt + Door.' },
-  { id: 'happy_joy_plaque', t: 18, name: 'Happy Joy Plaque', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 60, seed: ['#ffd23f', '#c98a12', '#fff4b8'], fx: ['#ffd23f', '#c98a12', '#fff4b8'], desc: 'A golden plaque that smiles at everyone. Happy Joy Plaque = Cave Background + Door.' },
+  { id: 'crappy_sign', t: 17, name: 'Old Sign', kind: 'deco', hits: 1, rarity: 'Common', grow: 60, seed: ['#9c8466', '#4a3a2a', '#bca486'], fx: ['#9c8466', '#5a4632', '#4a3a2a'], desc: 'A crooked, cracked old sign. Old Sign = Dirt + Door.' },
+  { id: 'happy_joy_plaque', t: 18, name: 'Smiley Plaque', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 60, seed: ['#ffd23f', '#c98a12', '#fff4b8'], fx: ['#ffd23f', '#c98a12', '#fff4b8'], desc: 'A golden plaque that smiles at everyone. Smiley Plaque = Cave Background + Door.' },
   { id: 'rock_background', bgId: 2, name: 'Rock Background', kind: 'bg', rarity: 'Common', grow: 60, seed: ['#5a606e', '#353945', '#868d9d'], fx: ['#5a606e', '#4a4f5c', '#353945'], desc: 'A rough stone wall for behind your blocks. Rock Background = Door + Rock.' },
   { id: 'wooden_background', bgId: 3, name: 'Wooden Background', kind: 'bg', rarity: 'Common', grow: 60, seed: ['#6b4424', '#3a2414', '#8a5a32'], fx: ['#6b4424', '#5a3a20', '#3a2414'], desc: 'Wooden planks for behind your blocks. Wooden Background = Door + Grass.' },
   // made from the seeds above
@@ -34,118 +34,118 @@ const NEW_ITEMS = [
   { id: 'green_block', t: 23, name: 'Green Block', kind: 'block', hits: 4, rarity: 'Common', grow: 90, seed: ['#3f9a30', '#2a6e22', '#7ccf5a'], fx: ['#3f9a30', '#7ccf5a', '#2a6e22'], color: ['#3f9a30', '#7ccf5a', '#2a6e22'], desc: 'A plain green building block. Green Block = Grass + Bricks.' },
   { id: 'red_block', t: 24, name: 'Red Block', kind: 'block', hits: 4, rarity: 'Common', grow: 90, seed: ['#c62f2a', '#8a1a16', '#ee6a5a'], fx: ['#c62f2a', '#ee6a5a', '#8a1a16'], color: ['#c62f2a', '#ee6a5a', '#8a1a16'], desc: 'A plain red building block. Red Block = Lava + Bricks.' },
   { id: 'grey_block', t: 25, name: 'Grey Block', kind: 'block', hits: 4, rarity: 'Common', grow: 90, seed: ['#868d9d', '#525866', '#c3c9d4'], fx: ['#868d9d', '#c3c9d4', '#525866'], color: ['#868d9d', '#b3b9c4', '#5a606e'], desc: 'A plain grey building block. Grey Block = Rock + Bricks.' },
-  { id: 'mud_glob', t: 26, name: 'Mud Glob', kind: 'block', hits: 3, rarity: 'Common', grow: 90, seed: ['#6b4a2c', '#4a3018', '#9a7450'], fx: ['#6b4a2c', '#9a7450', '#4a3018'], edge: ['#1e1208', '#9a7450', '#4a3018'], desc: 'Squishy wet mud. Mud Glob = Dirt + Daisy.' },
-  { id: 'super_crate_box', t: 27, name: 'Super Crate Box', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 90, seed: ['#c98a52', '#6b4424', '#e0b07a'], fx: ['#c98a52', '#8a5a32', '#9aa0ad'], desc: 'A strong wooden crate with metal corners. Super Crate Box = Dirt + Sign.' },
-  { id: 'pointy_sign', t: 28, name: 'Pointy Sign', kind: 'deco', hits: 2, rarity: 'Common', grow: 90, seed: ['#d8a066', '#6b4424', '#f0c890'], fx: ['#d8a066', '#8a5a32', '#6b4424'], desc: 'A sign shaped like an arrow. Pointy Sign = Door + Sign.' },
+  { id: 'mud_glob', t: 26, name: 'Mud Block', kind: 'block', hits: 3, rarity: 'Common', grow: 90, seed: ['#6b4a2c', '#4a3018', '#9a7450'], fx: ['#6b4a2c', '#9a7450', '#4a3018'], edge: ['#1e1208', '#9a7450', '#4a3018'], desc: 'Squishy wet mud. Mud Block = Dirt + Daisy.' },
+  { id: 'super_crate_box', t: 27, name: 'Crate', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 90, seed: ['#c98a52', '#6b4424', '#e0b07a'], fx: ['#c98a52', '#8a5a32', '#9aa0ad'], desc: 'A strong wooden crate with metal corners. Crate = Dirt + Sign.' },
+  { id: 'pointy_sign', t: 28, name: 'Arrow Sign', kind: 'deco', hits: 2, rarity: 'Common', grow: 90, seed: ['#d8a066', '#6b4424', '#f0c890'], fx: ['#d8a066', '#8a5a32', '#6b4424'], desc: 'A sign shaped like an arrow. Arrow Sign = Door + Sign.' },
   { id: 'wooden_platform', t: 29, name: 'Wooden Platform', kind: 'plat', hits: 2, rarity: 'Common', grow: 90, seed: ['#b07a4a', '#6b4424', '#d8a066'], fx: ['#b07a4a', '#d8a066', '#6b4424'], desc: 'A thin plank. Stand on it from above, jump up through it from below. Wooden Platform = Grass + Wood Block.' },
   { id: 'stone_wall', t: 31, name: 'Stone Wall', kind: 'block', hits: 6, rarity: 'Common', grow: 90, seed: ['#7a808e', '#3a3f4b', '#9aa0ad'], fx: ['#7a808e', '#9aa0ad', '#3a3f4b'], edge: ['#1a1d24', '#9aa0ad', '#3a3f4b'], desc: 'Neat grey stone bricks. Stone Wall = Rock + Grey Block.' },
-  { id: 'evil_bricks', t: 30, name: 'Evil Bricks', kind: 'block', hits: 7, rarity: 'Rare', grow: 90, seed: ['#5c1418', '#1a0608', '#ff4a2a'], fx: ['#5c1418', '#8a2026', '#ff4a2a'], edge: ['#0a0204', '#8a2026', '#360a0d'], desc: 'Dark bricks with a red glow. Evil Bricks = Lava + Black Block.' },
+  { id: 'evil_bricks', t: 30, name: 'Dark Bricks', kind: 'block', hits: 7, rarity: 'Rare', grow: 90, seed: ['#5c1418', '#1a0608', '#ff4a2a'], fx: ['#5c1418', '#8a2026', '#ff4a2a'], edge: ['#0a0204', '#8a2026', '#360a0d'], desc: 'Dark bricks with a red glow. Dark Bricks = Lava + Black Block.' },
   { id: 'red_hair', name: 'Red Hair', kind: 'hair', rarity: 'Uncommon', grow: 90, seed: ['#d8442a', '#7a1a10', '#ff8a5a'], tint: ['#7a1a10', '#ff6a3a'], desc: 'Spiky hair, bright red. Red Hair = Grass + Red Block.' },
   // third batch: more Growtopia recipes on top of the new seeds (numbers 32+ for blocks, 5+ for backgrounds)
-  { id: 'aqua_block', t: 32, name: 'Aqua Block', kind: 'block', hits: 4, rarity: 'Common', grow: 90, seed: ['#2fb5c9', '#1a7a8a', '#7fe0ec'], fx: ['#2fb5c9', '#7fe0ec', '#1a7a8a'], color: ['#2fb5c9', '#7fe0ec', '#1a7a8a'], desc: 'A plain aqua building block. Aqua Block = Bricks + Glass Pane.' },
+  { id: 'aqua_block', t: 32, name: 'Aqua Block', kind: 'block', hits: 4, rarity: 'Common', grow: 90, seed: ['#2fb5c9', '#1a7a8a', '#7fe0ec'], fx: ['#2fb5c9', '#7fe0ec', '#1a7a8a'], color: ['#2fb5c9', '#7fe0ec', '#1a7a8a'], desc: 'A plain aqua building block. Aqua Block = Bricks + Amber Glass.' },
   { id: 'white_block', t: 33, name: 'White Block', kind: 'block', hits: 4, rarity: 'Common', grow: 90, seed: ['#e8e8ee', '#a8a8b4', '#ffffff'], fx: ['#e8e8ee', '#ffffff', '#a8a8b4'], color: ['#e2e2ea', '#ffffff', '#a8a8b4'], desc: 'A plain white building block. White Block = Bricks + Mushroom.' },
   { id: 'yellow_block', t: 34, name: 'Yellow Block', kind: 'block', hits: 4, rarity: 'Common', grow: 90, seed: ['#f2c81e', '#b08a0a', '#ffe680'], fx: ['#f2c81e', '#ffe680', '#b08a0a'], color: ['#f2c81e', '#ffe680', '#b08a0a'], desc: 'A plain yellow building block. Yellow Block = Bricks + Daisy.' },
-  { id: 'red_bricks', t: 35, name: 'Red Bricks', kind: 'block', hits: 6, rarity: 'Common', grow: 90, seed: ['#d0302a', '#7a1210', '#ff6a5a'], fx: ['#d0302a', '#ff6a5a', '#e8d8c8'], edge: ['#2a0a08', '#ff6a5a', '#7a1210'], desc: 'Bright red bricks. Red Bricks = Bricks + Red Block.' },
+  { id: 'red_bricks', t: 35, name: 'Red Bricks', kind: 'block', hits: 6, rarity: 'Common', grow: 90, seed: ['#d0302a', '#7a1210', '#ff6a5a'], fx: ['#d0302a', '#ff6a5a', '#e8d8c8'], edge: ['#2a0a08', '#ff6a5a', '#7a1210'], desc: 'Bright red bricks. Red Bricks = Bricks + Dark Bricks.' },
   { id: 'brick_background', bgId: 5, name: 'Brick Background', kind: 'bg', rarity: 'Common', grow: 90, seed: ['#7a3a28', '#3a1a10', '#a85a40'], fx: ['#7a3a28', '#a85a40', '#3a1a10'], desc: 'A brick wall for behind your blocks. Brick Background = Bricks + Black Block.' },
   { id: 'wooden_table', t: 36, name: 'Wooden Table', kind: 'deco', hits: 2, rarity: 'Common', grow: 90, seed: ['#a86c3c', '#5a3a20', '#d8a066'], fx: ['#a86c3c', '#d8a066', '#5a3a20'], desc: 'A little wooden table. Wooden Table = Wood Block + Wooden Platform.' },
-  { id: 'window', bgId: 6, name: 'Window', kind: 'bg', rarity: 'Common', grow: 90, seed: ['#9fd6f5', '#6b4424', '#e8f8ff'], fx: ['#9fd6f5', '#e8f8ff', '#6b4424'], desc: 'A window: you can see the sky through it. Window = Glass Pane + Wooden Background.' },
+  { id: 'window', bgId: 6, name: 'Window', kind: 'bg', rarity: 'Common', grow: 90, seed: ['#9fd6f5', '#6b4424', '#e8f8ff'], fx: ['#9fd6f5', '#e8f8ff', '#6b4424'], desc: 'A window: you can see the sky through it. Window = Wooden Background + Amber Glass.' },
   { id: 'flowery_wallpaper', bgId: 7, name: 'Flowery Wallpaper', kind: 'bg', rarity: 'Common', grow: 90, seed: ['#e8c8d8', '#a0507a', '#fff0f6'], fx: ['#e8c8d8', '#ff8ab0', '#ffd23f'], desc: 'Wallpaper with little flowers on it. Flowery Wallpaper = Daisy + Wooden Background.' },
   { id: 'poppy', t: 37, name: 'Poppy', kind: 'deco', hits: 1, rarity: 'Common', grow: 90, seed: ['#ff5a1e', '#2a1010', '#ff9a5a'], fx: ['#ff5a1e', '#ff9a5a', '#2a6e22'], desc: 'A bright orange-red poppy. Poppy = Daisy + Rose.' },
-  { id: 'grimstone', t: 38, name: 'Grimstone', kind: 'block', hits: 7, rarity: 'Uncommon', grow: 90, seed: ['#3e4440', '#1e2220', '#4a7a3a'], fx: ['#3e4440', '#4f5a52', '#4a7a3a'], edge: ['#0e100e', '#5a6a5c', '#1e2220'], desc: 'Old mossy stone. Grimstone = Grass + Stone Wall.' },
-  { id: 'red_wood_wall', bgId: 8, name: 'Red Wood Wall', kind: 'bg', rarity: 'Common', grow: 90, seed: ['#8a2a20', '#4a100c', '#b84a3a'], fx: ['#8a2a20', '#b84a3a', '#4a100c'], desc: 'Red painted planks for behind your blocks. Red Wood Wall = Red Block + Wooden Background.' },
-  { id: 'barn_block', t: 39, name: 'Barn Block', kind: 'block', hits: 5, rarity: 'Common', grow: 90, seed: ['#b8281e', '#ffffff', '#e05a48'], fx: ['#b8281e', '#ffffff', '#7a1410'], desc: 'Red barn planks with a white cross. Barn Block = Red Block + Super Crate Box.' },
-  { id: 'toilet', t: 40, name: 'Toilet', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 90, seed: ['#f2f2f6', '#8a8a96', '#ffffff'], fx: ['#ffffff', '#c8c8d2', '#8a8a96'], desc: 'Every world needs one. Toilet = Brown Block + Crappy Sign.' },
+  { id: 'grimstone', t: 38, name: 'Mossy Stone', kind: 'block', hits: 7, rarity: 'Uncommon', grow: 90, seed: ['#3e4440', '#1e2220', '#4a7a3a'], fx: ['#3e4440', '#4f5a52', '#4a7a3a'], edge: ['#0e100e', '#5a6a5c', '#1e2220'], desc: 'Old mossy stone. Mossy Stone = Grass + Stone Wall.' },
+  { id: 'red_wood_wall', bgId: 8, name: 'Red Wood Wall', kind: 'bg', rarity: 'Common', grow: 90, seed: ['#8a2a20', '#4a100c', '#b84a3a'], fx: ['#8a2a20', '#b84a3a', '#4a100c'], desc: 'Red painted planks for behind your blocks. Red Wood Wall = Wooden Background + Stone Wall.' },
+  { id: 'barn_block', t: 39, name: 'Barn Block', kind: 'block', hits: 5, rarity: 'Common', grow: 90, seed: ['#b8281e', '#ffffff', '#e05a48'], fx: ['#b8281e', '#ffffff', '#7a1410'], desc: 'Red barn planks with a white cross. Barn Block = Crate + Red Bricks.' },
+  { id: 'toilet', t: 40, name: 'Toilet', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 90, seed: ['#f2f2f6', '#8a8a96', '#ffffff'], fx: ['#ffffff', '#c8c8d2', '#8a8a96'], desc: 'Every world needs one. Toilet = Brown Block + Old Sign.' },
   { id: 'bush', t: 41, name: 'Bush', kind: 'deco', hits: 1, rarity: 'Common', grow: 90, seed: ['#2f8a2a', '#1a4a16', '#6ccf4a'], fx: ['#2f8a2a', '#6ccf4a', '#1a4a16'], desc: 'A round green bush. Bush = Rose + Poppy.' },
   { id: 'romantic_bushes', t: 42, name: 'Romantic Bushes', kind: 'deco', hits: 1, rarity: 'Uncommon', grow: 120, seed: ['#2f8a2a', '#d01a3a', '#ff8ab0'], fx: ['#2f8a2a', '#d01a3a', '#ff8ab0'], desc: 'A bush full of roses. Romantic Bushes = Rose + Bush.' },
   { id: 'orange_block', t: 43, name: 'Orange Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#f07a1e', '#a84a0a', '#ffad60'], fx: ['#f07a1e', '#ffad60', '#a84a0a'], color: ['#f07a1e', '#ffad60', '#a84a0a'], desc: 'A plain orange building block. Orange Block = Bricks + Poppy.' },
   { id: 'blueberry', t: 44, name: 'Blueberry', kind: 'deco', hits: 1, rarity: 'Common', grow: 120, seed: ['#3a4ad0', '#1a226a', '#8a9aff'], fx: ['#3a4ad0', '#8a9aff', '#2f8a2a'], desc: 'A little bush of blueberries. Blueberry = Mushroom + Bush.' },
   { id: 'blue_block', t: 45, name: 'Blue Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#2f5fd0', '#1a3a8a', '#6f95f0'], fx: ['#2f5fd0', '#6f95f0', '#1a3a8a'], color: ['#2f5fd0', '#6f95f0', '#1a3a8a'], desc: 'A plain blue building block. Blue Block = Bricks + Blueberry.' },
-  { id: 'purple_block', t: 46, name: 'Purple Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#8a3fc9', '#561f88', '#b884ec'], fx: ['#8a3fc9', '#b884ec', '#561f88'], color: ['#8a3fc9', '#b884ec', '#561f88'], desc: 'A plain purple building block. Purple Block = Red Block + Blue Block.' },
-  { id: 'glass_block', t: 47, name: 'Glass Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#bfe8ff', '#5a9ec4', '#ffffff'], fx: ['#ffffff', '#bfe8ff', '#5a9ec4'], desc: 'A thick block of clear glass. Glass Block = Glass Pane + Aqua Block.' },
-  { id: 'red_glass_block', t: 48, name: 'Red Glass Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 120, seed: ['#ff5a5a', '#a01a1a', '#ffc0c0'], fx: ['#ffc0c0', '#ff5a5a', '#a01a1a'], desc: 'A thick block of red glass. Red Glass Block = Red Block + Glass Block.' },
-  { id: 'bubble_wrap', t: 49, name: 'Bubble Wrap', kind: 'block', hits: 2, rarity: 'Common', grow: 120, seed: ['#d8f0ff', '#8ab8d8', '#ffffff'], fx: ['#ffffff', '#d8f0ff', '#8ab8d8'], desc: 'Pop pop pop! Bubble Wrap = Glass Pane + Blueberry.' },
+  { id: 'purple_block', t: 46, name: 'Purple Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#8a3fc9', '#561f88', '#b884ec'], fx: ['#8a3fc9', '#b884ec', '#561f88'], color: ['#8a3fc9', '#b884ec', '#561f88'], desc: 'A plain purple building block. Purple Block = Blue Block + Red Bricks.' },
+  { id: 'glass_block', t: 47, name: 'Glass Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#bfe8ff', '#5a9ec4', '#ffffff'], fx: ['#ffffff', '#bfe8ff', '#5a9ec4'], desc: 'A thick block of clear glass. Glass Block = Aqua Block + Amber Glass.' },
+  { id: 'red_glass_block', t: 48, name: 'Red Glass Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 120, seed: ['#ff5a5a', '#a01a1a', '#ffc0c0'], fx: ['#ffc0c0', '#ff5a5a', '#a01a1a'], desc: 'A thick block of red glass. Red Glass Block = Glass Block + Red Bricks.' },
+  { id: 'bubble_wrap', t: 49, name: 'Bubble Wrap', kind: 'block', hits: 2, rarity: 'Common', grow: 120, seed: ['#d8f0ff', '#8ab8d8', '#ffffff'], fx: ['#ffffff', '#d8f0ff', '#8ab8d8'], desc: 'Pop pop pop! Bubble Wrap = Blueberry + Amber Glass.' },
   { id: 'wooden_window', bgId: 9, name: 'Wooden Window', kind: 'bg', rarity: 'Common', grow: 120, seed: ['#8a5a32', '#9fd6f5', '#c98a52'], fx: ['#8a5a32', '#c98a52', '#9fd6f5'], desc: 'A small window in a wooden wall. Wooden Window = Window + Wooden Background.' },
   { id: 'stripey_wallpaper', bgId: 10, name: 'Stripey Wallpaper', kind: 'bg', rarity: 'Common', grow: 120, seed: ['#3fb59a', '#1f6a5a', '#9ae8d0'], fx: ['#3fb59a', '#9ae8d0', '#1f6a5a'], desc: 'Green and aqua stripes. Stripey Wallpaper = Green Block + Aqua Block.' },
-  { id: 'dark_grey_block', t: 50, name: 'Dark Grey Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#4a4f5c', '#2e323c', '#686e7c'], fx: ['#4a4f5c', '#686e7c', '#2e323c'], color: ['#4a4f5c', '#686e7c', '#2e323c'], desc: 'A dark grey building block. Dark Grey Block = Grey Block + Grimstone.' },
-  { id: 'dark_green_block', t: 51, name: 'Dark Green Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#1f5a1a', '#0f3a0c', '#3a8a30'], fx: ['#1f5a1a', '#3a8a30', '#0f3a0c'], color: ['#1f5a1a', '#3a8a30', '#0f3a0c'], desc: 'A dark green building block. Dark Green Block = Green Block + Grimstone.' },
-  { id: 'dark_brown_block', t: 52, name: 'Dark Brown Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#4e301a', '#2e1a0c', '#6b4424'], fx: ['#4e301a', '#6b4424', '#2e1a0c'], color: ['#4e301a', '#6b4424', '#2e1a0c'], desc: 'A dark brown building block. Dark Brown Block = Brown Block + Grimstone.' },
-  { id: 'dark_red_block', t: 53, name: 'Dark Red Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#7a1414', '#4a0808', '#a83030'], fx: ['#7a1414', '#a83030', '#4a0808'], color: ['#7a1414', '#a83030', '#4a0808'], desc: 'A dark red building block. Dark Red Block = Red Block + Grimstone.' },
-  { id: 'sidewalk', t: 54, name: 'Sidewalk', kind: 'block', hits: 5, rarity: 'Common', grow: 120, seed: ['#b3b9c4', '#6a707e', '#e0e4ea'], fx: ['#b3b9c4', '#e0e4ea', '#6a707e'], desc: 'Smooth grey paving slabs. Sidewalk = Grey Block + Red Bricks.' },
+  { id: 'dark_grey_block', t: 50, name: 'Dark Grey Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#4a4f5c', '#2e323c', '#686e7c'], fx: ['#4a4f5c', '#686e7c', '#2e323c'], color: ['#4a4f5c', '#686e7c', '#2e323c'], desc: 'A dark grey building block. Dark Grey Block = Grey Block + Stone Wall.' },
+  { id: 'dark_green_block', t: 51, name: 'Dark Green Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#1f5a1a', '#0f3a0c', '#3a8a30'], fx: ['#1f5a1a', '#3a8a30', '#0f3a0c'], color: ['#1f5a1a', '#3a8a30', '#0f3a0c'], desc: 'A dark green building block. Dark Green Block = Green Block + Stone Wall.' },
+  { id: 'dark_brown_block', t: 52, name: 'Dark Brown Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#4e301a', '#2e1a0c', '#6b4424'], fx: ['#4e301a', '#6b4424', '#2e1a0c'], color: ['#4e301a', '#6b4424', '#2e1a0c'], desc: 'A dark brown building block. Dark Brown Block = Brown Block + Stone Wall.' },
+  { id: 'dark_red_block', t: 53, name: 'Dark Red Block', kind: 'block', hits: 4, rarity: 'Common', grow: 120, seed: ['#7a1414', '#4a0808', '#a83030'], fx: ['#7a1414', '#a83030', '#4a0808'], color: ['#7a1414', '#a83030', '#4a0808'], desc: 'A dark red building block. Dark Red Block = Mossy Stone + Red Bricks.' },
+  { id: 'sidewalk', t: 54, name: 'Sidewalk', kind: 'block', hits: 5, rarity: 'Common', grow: 120, seed: ['#b3b9c4', '#6a707e', '#e0e4ea'], fx: ['#b3b9c4', '#e0e4ea', '#6a707e'], desc: 'Smooth grey paving slabs. Sidewalk = Grey Block + Dark Bricks.' },
   { id: 'tiger_block', t: 55, name: 'Tiger Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 120, seed: ['#f08a1e', '#1a1210', '#ffbf60'], fx: ['#f08a1e', '#1a1210', '#ffbf60'], desc: 'Orange with black tiger stripes. Tiger Block = Black Block + Orange Block.' },
   // fourth batch (blocks 60+, backgrounds 11+; 56-59 are the jammers and locks in shop.js)
-  { id: 'dark_yellow_block', t: 60, name: 'Dark Yellow Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#a8860a', '#d4b028', '#6a5406'], fx: ['#a8860a', '#d4b028', '#6a5406'], color: ['#a8860a', '#d4b028', '#6a5406'], desc: 'A dark yellow building block. Dark Yellow Block = Yellow Block + Grimstone.' },
-  { id: 'dark_aqua_block', t: 61, name: 'Dark Aqua Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#1a7a8a', '#2fb5c9', '#0c4a54'], fx: ['#1a7a8a', '#2fb5c9', '#0c4a54'], color: ['#1a7a8a', '#2fb5c9', '#0c4a54'], desc: 'A dark aqua building block. Dark Aqua Block = Aqua Block + Grimstone.' },
-  { id: 'dark_blue_block', t: 62, name: 'Dark Blue Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#1a2f7a', '#2f5fd0', '#0c1a4a'], fx: ['#1a2f7a', '#2f5fd0', '#0c1a4a'], color: ['#1a2f7a', '#2f5fd0', '#0c1a4a'], desc: 'A dark blue building block. Dark Blue Block = Blue Block + Grimstone.' },
-  { id: 'dark_orange_block', t: 63, name: 'Dark Orange Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#a84a0a', '#e0701a', '#6a2a04'], fx: ['#a84a0a', '#e0701a', '#6a2a04'], color: ['#a84a0a', '#e0701a', '#6a2a04'], desc: 'A dark orange building block. Dark Orange Block = Orange Block + Grimstone.' },
-  { id: 'dark_purple_block', t: 64, name: 'Dark Purple Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#4a1a70', '#7a3fb0', '#2a0c44'], fx: ['#4a1a70', '#7a3fb0', '#2a0c44'], color: ['#4a1a70', '#7a3fb0', '#2a0c44'], desc: 'A dark purple building block. Dark Purple Block = Purple Block + Grimstone.' },
+  { id: 'dark_yellow_block', t: 60, name: 'Dark Yellow Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#a8860a', '#d4b028', '#6a5406'], fx: ['#a8860a', '#d4b028', '#6a5406'], color: ['#a8860a', '#d4b028', '#6a5406'], desc: 'A dark yellow building block. Dark Yellow Block = Yellow Block + Stone Wall.' },
+  { id: 'dark_aqua_block', t: 61, name: 'Dark Aqua Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#1a7a8a', '#2fb5c9', '#0c4a54'], fx: ['#1a7a8a', '#2fb5c9', '#0c4a54'], color: ['#1a7a8a', '#2fb5c9', '#0c4a54'], desc: 'A dark aqua building block. Dark Aqua Block = Aqua Block + Stone Wall.' },
+  { id: 'dark_blue_block', t: 62, name: 'Dark Blue Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#1a2f7a', '#2f5fd0', '#0c1a4a'], fx: ['#1a2f7a', '#2f5fd0', '#0c1a4a'], color: ['#1a2f7a', '#2f5fd0', '#0c1a4a'], desc: 'A dark blue building block. Dark Blue Block = Blue Block + Stone Wall.' },
+  { id: 'dark_orange_block', t: 63, name: 'Dark Orange Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#a84a0a', '#e0701a', '#6a2a04'], fx: ['#a84a0a', '#e0701a', '#6a2a04'], color: ['#a84a0a', '#e0701a', '#6a2a04'], desc: 'A dark orange building block. Dark Orange Block = Orange Block + Stone Wall.' },
+  { id: 'dark_purple_block', t: 64, name: 'Dark Purple Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#4a1a70', '#7a3fb0', '#2a0c44'], fx: ['#4a1a70', '#7a3fb0', '#2a0c44'], color: ['#4a1a70', '#7a3fb0', '#2a0c44'], desc: 'A dark purple building block. Dark Purple Block = Purple Block + Stone Wall.' },
   { id: 'polka_dot_block', t: 65, name: 'Polka Dot Block', kind: 'block', hits: 4, rarity: 'Common', grow: 150, seed: ['#f2f2f6', '#f07a1e', '#ffffff'], fx: ['#ffffff', '#f07a1e', '#c8c8d2'], desc: 'White with orange spots. Polka Dot Block = White Block + Orange Block.' },
-  { id: 'rainbow_block', t: 66, name: 'Rainbow Block', kind: 'block', hits: 4, rarity: 'Rare', grow: 180, seed: ['#ff4a4a', '#4a6aff', '#ffd23f'], fx: ['#ff4a4a', '#ffd23f', '#4a6aff'], desc: 'Every colour at once. Rainbow Block = Orange Block + Purple Block.' },
-  { id: 'blue_glass_block', t: 67, name: 'Blue Glass Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 150, seed: ['#5a8aff', '#1a3a9a', '#c0d0ff'], fx: ['#c0d0ff', '#5a8aff', '#1a3a9a'], desc: 'A thick block of blue glass. Blue Glass Block = Blue Block + Glass Block.' },
-  { id: 'neon_lights', t: 68, name: 'Neon Lights', kind: 'block', hits: 3, rarity: 'Rare', grow: 180, seed: ['#ff4ad8', '#2a0a3a', '#5affff'], fx: ['#ff4ad8', '#5affff', '#2a0a3a'], desc: 'Glowing pink and blue tubes. Neon Lights = Purple Block + Glass Block.' },
-  { id: 'dreamstone_block', t: 69, name: 'Dreamstone Block', kind: 'block', hits: 5, rarity: 'Uncommon', grow: 180, seed: ['#c08aff', '#6a3aaa', '#ffd0ff'], fx: ['#c08aff', '#ffd0ff', '#6a3aaa'], edge: ['#2a1244', '#ffd0ff', '#6a3aaa'], desc: 'Soft purple stone from a dream. Dreamstone Block = Orange Block + Bed.' },
-  { id: 'cloudstone_block', t: 70, name: 'Cloudstone Block', kind: 'block', hits: 5, rarity: 'Uncommon', grow: 180, seed: ['#e8f4ff', '#8ab0d8', '#ffffff'], fx: ['#ffffff', '#e8f4ff', '#8ab0d8'], edge: ['#4a6a8a', '#ffffff', '#8ab0d8'], desc: 'Puffy stone as light as a cloud. Cloudstone Block = Aqua Block + Dreamstone Block.' },
-  { id: 'ceramic_tile', t: 71, name: 'Ceramic Tile', kind: 'block', hits: 4, rarity: 'Common', grow: 180, seed: ['#f2f2f6', '#3a6ad0', '#ffffff'], fx: ['#ffffff', '#c8d8f0', '#3a6ad0'], desc: 'Shiny white bathroom tiles. Ceramic Tile = Toilet + Dreamstone Block.' },
-  { id: 'ice', t: 72, name: 'Ice', kind: 'block', hits: 3, rarity: 'Uncommon', grow: 180, seed: ['#a8e8ff', '#4aa8d8', '#ffffff'], fx: ['#ffffff', '#a8e8ff', '#4aa8d8'], desc: 'A slab of clear blue ice. Ice = Glass Pane + Cloudstone Block.' },
+  { id: 'rainbow_block', t: 66, name: 'Rainbow Block', kind: 'block', hits: 4, rarity: 'Rare', grow: 180, seed: ['#ff4a4a', '#4a6aff', '#ffd23f'], fx: ['#ff4a4a', '#ffd23f', '#4a6aff'], desc: 'Every colour at once. Rainbow Block = Orange Block + Dark Purple Block.' },
+  { id: 'blue_glass_block', t: 67, name: 'Blue Glass Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 150, seed: ['#5a8aff', '#1a3a9a', '#c0d0ff'], fx: ['#c0d0ff', '#5a8aff', '#1a3a9a'], desc: 'A thick block of blue glass. Blue Glass Block = Blue Block + Red Glass Block.' },
+  { id: 'neon_lights', t: 68, name: 'Neon Lights', kind: 'block', hits: 3, rarity: 'Rare', grow: 180, seed: ['#ff4ad8', '#2a0a3a', '#5affff'], fx: ['#ff4ad8', '#5affff', '#2a0a3a'], desc: 'Glowing pink and blue tubes. Neon Lights = Purple Block + Red Glass Block.' },
+  { id: 'dreamstone_block', t: 69, name: 'Sparkle Block', kind: 'block', hits: 5, rarity: 'Uncommon', grow: 180, seed: ['#c08aff', '#6a3aaa', '#ffd0ff'], fx: ['#c08aff', '#ffd0ff', '#6a3aaa'], edge: ['#2a1244', '#ffd0ff', '#6a3aaa'], desc: 'Soft purple stone from a dream. Sparkle Block = Orange Block + Bed.' },
+  { id: 'cloudstone_block', t: 70, name: 'Cloud Block', kind: 'block', hits: 5, rarity: 'Uncommon', grow: 180, seed: ['#e8f4ff', '#8ab0d8', '#ffffff'], fx: ['#ffffff', '#e8f4ff', '#8ab0d8'], edge: ['#4a6a8a', '#ffffff', '#8ab0d8'], desc: 'Puffy stone as light as a cloud. Cloud Block = Aqua Block + Sparkle Block.' },
+  { id: 'ceramic_tile', t: 71, name: 'Ceramic Tile', kind: 'block', hits: 4, rarity: 'Common', grow: 180, seed: ['#f2f2f6', '#3a6ad0', '#ffffff'], fx: ['#ffffff', '#c8d8f0', '#3a6ad0'], desc: 'Shiny white bathroom tiles. Ceramic Tile = Toilet + Sparkle Block.' },
+  { id: 'ice', t: 72, name: 'Ice', kind: 'block', hits: 3, rarity: 'Uncommon', grow: 180, seed: ['#a8e8ff', '#4aa8d8', '#ffffff'], fx: ['#ffffff', '#a8e8ff', '#4aa8d8'], desc: 'A slab of clear blue ice. Ice = Cloud Block + Amber Glass.' },
   { id: 'bathtub', t: 73, name: 'Bathtub', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 150, seed: ['#f2f2f6', '#3a8ad8', '#ffffff'], fx: ['#ffffff', '#7ac8ff', '#c8c8d2'], desc: 'A tub full of bubbly water. Bathtub = Toilet + White Block.' },
   { id: 'water_bucket', t: 74, name: 'Water Bucket', kind: 'deco', hits: 1, rarity: 'Common', grow: 150, seed: ['#8a909e', '#3a8ad8', '#c3c9d4'], fx: ['#7ac8ff', '#c3c9d4', '#5a606e'], desc: 'A bucket of water. Water Bucket = Toilet + Aqua Block.' },
-  { id: 'wooden_chair', t: 75, name: 'Wooden Chair', kind: 'deco', hits: 2, rarity: 'Common', grow: 150, seed: ['#a86c3c', '#5a3a20', '#d8a066'], fx: ['#a86c3c', '#d8a066', '#5a3a20'], desc: 'A plain wooden chair. Wooden Chair = Toilet + Wooden Platform.' },
+  { id: 'wooden_chair', t: 75, name: 'Wooden Chair', kind: 'deco', hits: 2, rarity: 'Common', grow: 150, seed: ['#a86c3c', '#5a3a20', '#d8a066'], fx: ['#a86c3c', '#d8a066', '#5a3a20'], desc: 'A plain wooden chair. Wooden Chair = Wooden Platform + Wooden Table.' },
   { id: 'orange', t: 76, name: 'Orange', kind: 'deco', hits: 1, rarity: 'Common', grow: 150, seed: ['#f08a1e', '#2a6e22', '#ffbf60'], fx: ['#f08a1e', '#ffbf60', '#4caf3a'], desc: 'A juicy orange. Orange = Bush + Poppy.' },
-  { id: 'lollipop', t: 77, name: 'Lollipop', kind: 'deco', hits: 1, rarity: 'Uncommon', grow: 180, seed: ['#ff6ab0', '#8a3fc9', '#ffffff'], fx: ['#ff6ab0', '#ffffff', '#8a3fc9'], desc: 'A giant swirly lollipop. Lollipop = Purple Block + Blueberry.' },
-  { id: 'apple', t: 78, name: 'Apple', kind: 'deco', hits: 1, rarity: 'Common', grow: 150, seed: ['#d8241e', '#7a0a0a', '#ff7a6a'], fx: ['#d8241e', '#ff7a6a', '#4caf3a'], desc: 'A shiny red apple. Apple = Red Bricks + Blueberry.' },
+  { id: 'lollipop', t: 77, name: 'Lollipop', kind: 'deco', hits: 1, rarity: 'Uncommon', grow: 180, seed: ['#ff6ab0', '#8a3fc9', '#ffffff'], fx: ['#ff6ab0', '#ffffff', '#8a3fc9'], desc: 'A giant swirly lollipop. Lollipop = Blueberry + Dark Purple Block.' },
+  { id: 'apple', t: 78, name: 'Apple', kind: 'deco', hits: 1, rarity: 'Common', grow: 150, seed: ['#d8241e', '#7a0a0a', '#ff7a6a'], fx: ['#d8241e', '#ff7a6a', '#4caf3a'], desc: 'A shiny red apple. Apple = Blueberry + Dark Bricks.' },
   { id: 'cherry', t: 79, name: 'Cherry', kind: 'deco', hits: 1, rarity: 'Common', grow: 180, seed: ['#c0102a', '#5a0610', '#ff5a72'], fx: ['#c0102a', '#ff5a72', '#4caf3a'], desc: 'Two cherries on one stem. Cherry = Dark Red Block + Blueberry.' },
-  { id: 'tomato', t: 80, name: 'Tomato', kind: 'deco', hits: 1, rarity: 'Common', grow: 150, seed: ['#e8301e', '#2a6e22', '#ff8a6a'], fx: ['#e8301e', '#ff8a6a', '#4caf3a'], desc: 'A ripe tomato. Tomato = Red Bricks + Mud Glob.' },
+  { id: 'tomato', t: 80, name: 'Tomato', kind: 'deco', hits: 1, rarity: 'Common', grow: 150, seed: ['#e8301e', '#2a6e22', '#ff8a6a'], fx: ['#e8301e', '#ff8a6a', '#4caf3a'], desc: 'A ripe tomato. Tomato = Mud Block + Dark Bricks.' },
   { id: 'dungeon_door', t: 81, name: 'Dungeon Door', kind: 'deco', hits: 4, rarity: 'Uncommon', grow: 150, seed: ['#5a606e', '#2a2e38', '#9aa0ad'], fx: ['#5a606e', '#9aa0ad', '#6b4424'], desc: 'A heavy door in a stone arch. You can walk through it. Dungeon Door = Door + Window.' },
-  { id: 'barrel', t: 82, name: 'Barrel', kind: 'deco', hits: 3, rarity: 'Common', grow: 180, seed: ['#8a5a32', '#3a2414', '#b07a4a'], fx: ['#8a5a32', '#b07a4a', '#5a606e'], desc: 'A wooden barrel with iron bands. Barrel = Super Crate Box + Dungeon Door.' },
-  { id: 'picket_fence', t: 83, name: 'Picket Fence', kind: 'deco', hits: 2, rarity: 'Common', grow: 180, seed: ['#f2f2f6', '#8a8a96', '#ffffff'], fx: ['#ffffff', '#c8c8d2', '#8a8a96'], desc: 'A white picket fence. Picket Fence = White Block + Wooden Chair.' },
-  { id: 'olde_timey_radio', t: 84, name: 'Olde Timey Radio', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 180, seed: ['#8a5a32', '#ffd23f', '#c98a52'], fx: ['#8a5a32', '#c98a52', '#ffd23f'], desc: 'A wooden radio from long ago. Olde Timey Radio = Toilet + Dungeon Door.' },
-  { id: 'bed', t: 85, name: 'Bed', kind: 'deco', hits: 2, rarity: 'Common', grow: 180, seed: ['#3a6ad0', '#f2f2f6', '#8aa8ff'], fx: ['#3a6ad0', '#ffffff', '#8a5a32'], desc: 'A comfy bed with a blue blanket. Bed = Mushroom + Wooden Chair.' },
-  { id: 'school_desk', t: 86, name: 'School Desk', kind: 'deco', hits: 2, rarity: 'Common', grow: 180, seed: ['#c98a52', '#5a606e', '#e0b07a'], fx: ['#c98a52', '#e0b07a', '#5a606e'], desc: 'A little desk from school. School Desk = Orange Block + Wooden Chair.' },
-  { id: 'clouds', t: 87, name: 'Clouds', kind: 'deco', hits: 1, rarity: 'Uncommon', grow: 240, seed: ['#ffffff', '#a8c8e8', '#ffffff'], fx: ['#ffffff', '#e8f4ff', '#a8c8e8'], desc: 'A fluffy cloud you can float your world in. Clouds = Glass Block + Cloudstone Block.' },
+  { id: 'barrel', t: 82, name: 'Barrel', kind: 'deco', hits: 3, rarity: 'Common', grow: 180, seed: ['#8a5a32', '#3a2414', '#b07a4a'], fx: ['#8a5a32', '#b07a4a', '#5a606e'], desc: 'A wooden barrel with iron bands. Barrel = Crate + Barn Door.' },
+  { id: 'picket_fence', t: 83, name: 'Picket Fence', kind: 'deco', hits: 2, rarity: 'Common', grow: 180, seed: ['#f2f2f6', '#8a8a96', '#ffffff'], fx: ['#ffffff', '#c8c8d2', '#8a8a96'], desc: 'A white picket fence. Picket Fence = White Block + Wooden Table.' },
+  { id: 'olde_timey_radio', t: 84, name: 'Old Radio', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 180, seed: ['#8a5a32', '#ffd23f', '#c98a52'], fx: ['#8a5a32', '#c98a52', '#ffd23f'], desc: 'A wooden radio from long ago. Old Radio = Toilet + Barn Door.' },
+  { id: 'bed', t: 85, name: 'Bed', kind: 'deco', hits: 2, rarity: 'Common', grow: 180, seed: ['#3a6ad0', '#f2f2f6', '#8aa8ff'], fx: ['#3a6ad0', '#ffffff', '#8a5a32'], desc: 'A comfy bed with a blue blanket. Bed = Mushroom + Wooden Table.' },
+  { id: 'school_desk', t: 86, name: 'School Desk', kind: 'deco', hits: 2, rarity: 'Common', grow: 180, seed: ['#c98a52', '#5a606e', '#e0b07a'], fx: ['#c98a52', '#e0b07a', '#5a606e'], desc: 'A little desk from school. School Desk = Orange Block + Wooden Table.' },
+  { id: 'clouds', t: 87, name: 'Clouds', kind: 'deco', hits: 1, rarity: 'Uncommon', grow: 240, seed: ['#ffffff', '#a8c8e8', '#ffffff'], fx: ['#ffffff', '#e8f4ff', '#a8c8e8'], desc: 'A fluffy cloud you can float your world in. Clouds = Cloud Block + Red Glass Block.' },
   { id: 'blue_star_wallpaper', bgId: 11, name: 'Blue Star Wallpaper', kind: 'bg', rarity: 'Common', grow: 150, seed: ['#2a3a9a', '#ffd23f', '#5a7aff'], fx: ['#2a3a9a', '#ffd23f', '#5a7aff'], desc: 'Dark blue wallpaper with gold stars. Blue Star Wallpaper = Blue Block + Amber Glass.' },
-  { id: 'checker_wallpaper', bgId: 12, name: 'Checker Wallpaper', kind: 'bg', rarity: 'Common', grow: 180, seed: ['#f2f2f6', '#1a1a22', '#ffffff'], fx: ['#ffffff', '#1a1a22', '#8a8a96'], desc: 'Black and white checks. Checker Wallpaper = Window + Evil Bricks.' },
+  { id: 'checker_wallpaper', bgId: 12, name: 'Checker Wallpaper', kind: 'bg', rarity: 'Common', grow: 180, seed: ['#f2f2f6', '#1a1a22', '#ffffff'], fx: ['#ffffff', '#1a1a22', '#8a8a96'], desc: 'Black and white checks. Checker Wallpaper = Window + Red Bricks.' },
   { id: 'staircase', t: 88, name: 'Staircase', kind: 'plat', hits: 2, rarity: 'Common', grow: 180, seed: ['#8a2a20', '#4a100c', '#b84a3a'], fx: ['#8a2a20', '#b84a3a', '#4a100c'], desc: 'Wooden steps. Stand on them from above like a platform. Staircase = Wooden Platform + Red Wood Wall.' },
   // fifth batch (blocks 89+, backgrounds 13+)
-  { id: 'lattice_background', bgId: 13, name: 'Lattice Background', kind: 'bg', rarity: 'Common', grow: 180, seed: ['#a86c3c', '#5a3a20', '#d8a066'], fx: ['#a86c3c', '#d8a066', '#5a3a20'], desc: "Crossed wooden slats; the sky shows through. Lattice Background = Wooden Background + Wooden Chair." },
-  { id: 'dresser', t: 89, name: 'Dresser', kind: 'deco', hits: 3, rarity: 'Common', grow: 180, seed: ['#8a5a32', '#3a2414', '#c98a52'], fx: ['#8a5a32', '#c98a52', '#ffd23f'], desc: "A wooden chest of drawers. Dresser = Dungeon Door + Wooden Table." },
+  { id: 'lattice_background', bgId: 13, name: 'Lattice Background', kind: 'bg', rarity: 'Common', grow: 180, seed: ['#a86c3c', '#5a3a20', '#d8a066'], fx: ['#a86c3c', '#d8a066', '#5a3a20'], desc: "Crossed wooden slats; the sky shows through. Lattice Background = Wooden Background + Wooden Table." },
+  { id: 'dresser', t: 89, name: 'Dresser', kind: 'deco', hits: 3, rarity: 'Common', grow: 180, seed: ['#8a5a32', '#3a2414', '#c98a52'], fx: ['#8a5a32', '#c98a52', '#ffd23f'], desc: "A wooden chest of drawers. Dresser = Wooden Table + Barn Door." },
   { id: 'house_entrance', t: 90, name: 'House Entrance', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 180, seed: ['#c98a52', '#7a1a10', '#f2e6cc'], fx: ['#c98a52', '#7a1a10', '#f2e6cc'], desc: "A cosy front door with a little roof. You can walk through it. House Entrance = Door + Dungeon Door." },
   { id: 'bookcase', t: 91, name: 'Bookcase', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 240, seed: ['#6b4424', '#d8241e', '#2fb5c9'], fx: ['#6b4424', '#d8241e', '#2fb5c9'], desc: "Shelves full of colourful books. Bookcase = Rainbow Block + Dresser." },
-  { id: 'magic_bacon_wallpaper', bgId: 14, name: 'Magic Bacon Wallpaper', kind: 'bg', rarity: 'Rare', grow: 240, seed: ['#d8604a', '#8a2a1a', '#ffc0a8'], fx: ['#d8604a', '#ffc0a8', '#8a2a1a'], desc: "Wavy stripes of magic bacon. Splice it with a coloured block for a wallpaper in that colour. Magic Bacon Wallpaper = Rainbow Block + House Entrance." },
-  { id: 'art_wall', bgId: 15, name: 'Art Wall', kind: 'bg', rarity: 'Rare', grow: 300, seed: ['#f2f2f6', '#ff4a4a', '#4a6aff'], fx: ['#ff4a4a', '#ffd23f', '#4a6aff'], desc: "A wall splashed with paint. Art Wall = Rainbow Block + Magic Bacon Wallpaper." },
-  { id: 'aqua_wallpaper', bgId: 16, name: 'Aqua Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#2fb5c9', '#1a7a8a', '#7fe0ec'], fx: ['#2fb5c9', '#7fe0ec', '#1a7a8a'], color: ['#2fb5c9', '#7fe0ec', '#1a7a8a'], desc: "Aqua patterned wallpaper. Aqua Wallpaper = Aqua Block + Magic Bacon Wallpaper." },
-  { id: 'black_wallpaper', bgId: 17, name: 'Black Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#2a2830', '#121116', '#4a4752'], fx: ['#2a2830', '#4a4752', '#121116'], color: ['#2a2830', '#4a4752', '#121116'], desc: "Black patterned wallpaper. Black Wallpaper = Black Block + Magic Bacon Wallpaper." },
-  { id: 'blue_wallpaper', bgId: 18, name: 'Blue Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#2f5fd0', '#1a3a8a', '#6f95f0'], fx: ['#2f5fd0', '#6f95f0', '#1a3a8a'], color: ['#2f5fd0', '#6f95f0', '#1a3a8a'], desc: "Blue patterned wallpaper. Blue Wallpaper = Blue Block + Magic Bacon Wallpaper." },
-  { id: 'brown_wallpaper', bgId: 19, name: 'Brown Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#8a5a32', '#5a3a20', '#b07a4a'], fx: ['#8a5a32', '#b07a4a', '#5a3a20'], color: ['#8a5a32', '#b07a4a', '#5a3a20'], desc: "Brown patterned wallpaper. Brown Wallpaper = Brown Block + Magic Bacon Wallpaper." },
-  { id: 'green_wallpaper', bgId: 20, name: 'Green Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#3f9a30', '#2a6e22', '#7ccf5a'], fx: ['#3f9a30', '#7ccf5a', '#2a6e22'], color: ['#3f9a30', '#7ccf5a', '#2a6e22'], desc: "Green patterned wallpaper. Green Wallpaper = Green Block + Magic Bacon Wallpaper." },
-  { id: 'grey_wallpaper', bgId: 21, name: 'Grey Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#868d9d', '#5a606e', '#b3b9c4'], fx: ['#868d9d', '#b3b9c4', '#5a606e'], color: ['#868d9d', '#b3b9c4', '#5a606e'], desc: "Grey patterned wallpaper. Grey Wallpaper = Grey Block + Magic Bacon Wallpaper." },
-  { id: 'orange_wallpaper', bgId: 22, name: 'Orange Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#f07a1e', '#a84a0a', '#ffad60'], fx: ['#f07a1e', '#ffad60', '#a84a0a'], color: ['#f07a1e', '#ffad60', '#a84a0a'], desc: "Orange patterned wallpaper. Orange Wallpaper = Orange Block + Magic Bacon Wallpaper." },
-  { id: 'purple_wallpaper', bgId: 23, name: 'Purple Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#8a3fc9', '#561f88', '#b884ec'], fx: ['#8a3fc9', '#b884ec', '#561f88'], color: ['#8a3fc9', '#b884ec', '#561f88'], desc: "Purple patterned wallpaper. Purple Wallpaper = Purple Block + Magic Bacon Wallpaper." },
-  { id: 'red_wallpaper', bgId: 24, name: 'Red Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#c62f2a', '#8a1a16', '#ee6a5a'], fx: ['#c62f2a', '#ee6a5a', '#8a1a16'], color: ['#c62f2a', '#ee6a5a', '#8a1a16'], desc: "Red patterned wallpaper. Red Wallpaper = Red Block + Magic Bacon Wallpaper." },
-  { id: 'white_wallpaper', bgId: 25, name: 'White Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#e2e2ea', '#a8a8b4', '#ffffff'], fx: ['#e2e2ea', '#ffffff', '#a8a8b4'], color: ['#e2e2ea', '#ffffff', '#a8a8b4'], desc: "White patterned wallpaper. White Wallpaper = White Block + Magic Bacon Wallpaper." },
-  { id: 'yellow_wallpaper', bgId: 26, name: 'Yellow Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#f2c81e', '#b08a0a', '#ffe680'], fx: ['#f2c81e', '#ffe680', '#b08a0a'], color: ['#f2c81e', '#ffe680', '#b08a0a'], desc: "Yellow patterned wallpaper. Yellow Wallpaper = Yellow Block + Magic Bacon Wallpaper." },
-  { id: 'rustic_fence', t: 92, name: 'Rustic Fence', kind: 'deco', hits: 2, rarity: 'Common', grow: 240, seed: ['#8a5a32', '#3a2414', '#b07a4a'], fx: ['#8a5a32', '#b07a4a', '#3a2414'], desc: "An old wooden fence. Rustic Fence = Picket Fence + Crappy Sign." },
-  { id: 'note_block', t: 93, name: 'Note Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 240, seed: ['#8a5a32', '#1a1210', '#c98a52'], fx: ['#8a5a32', '#c98a52', '#1a1210'], edge: ['#1a0e06', '#c98a52', '#5a3a20'], desc: "A wooden block with a music note on it. Note Block = Olde Timey Radio + Blue Block." },
-  { id: 'checkpoint', t: 94, name: 'Checkpoint', kind: 'deco', hits: 3, rarity: 'Rare', grow: 240, seed: ['#7ccf5a', '#2a6e22', '#ffffff'], fx: ['#ffffff', '#7ccf5a', '#9aa0ad'], desc: "A flag. Walk past it and it turns green: when you die you come back here instead of at the door. Checkpoint = Cloudstone Block + Bubble Wrap." },
+  { id: 'magic_bacon_wallpaper', bgId: 14, name: 'Wavy Wallpaper', kind: 'bg', rarity: 'Rare', grow: 240, seed: ['#d8604a', '#8a2a1a', '#ffc0a8'], fx: ['#d8604a', '#ffc0a8', '#8a2a1a'], desc: "Wavy stripes of magic bacon. Splice it with a coloured block for a wallpaper in that colour. Wavy Wallpaper = Rainbow Block + House Entrance." },
+  { id: 'art_wall', bgId: 15, name: 'Paint Wall', kind: 'bg', rarity: 'Rare', grow: 300, seed: ['#f2f2f6', '#ff4a4a', '#4a6aff'], fx: ['#ff4a4a', '#ffd23f', '#4a6aff'], desc: "A wall splashed with paint. Paint Wall = Rainbow Block + Dark Brick Wall." },
+  { id: 'aqua_wallpaper', bgId: 16, name: 'Aqua Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#2fb5c9', '#1a7a8a', '#7fe0ec'], fx: ['#2fb5c9', '#7fe0ec', '#1a7a8a'], color: ['#2fb5c9', '#7fe0ec', '#1a7a8a'], desc: "Aqua patterned wallpaper. Aqua Wallpaper = Aqua Block + Wavy Wallpaper." },
+  { id: 'black_wallpaper', bgId: 17, name: 'Black Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#2a2830', '#121116', '#4a4752'], fx: ['#2a2830', '#4a4752', '#121116'], color: ['#2a2830', '#4a4752', '#121116'], desc: "Black patterned wallpaper. Black Wallpaper = Black Block + Wavy Wallpaper." },
+  { id: 'blue_wallpaper', bgId: 18, name: 'Blue Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#2f5fd0', '#1a3a8a', '#6f95f0'], fx: ['#2f5fd0', '#6f95f0', '#1a3a8a'], color: ['#2f5fd0', '#6f95f0', '#1a3a8a'], desc: "Blue patterned wallpaper. Blue Wallpaper = Wavy Wallpaper + Dark Blue Block." },
+  { id: 'brown_wallpaper', bgId: 19, name: 'Brown Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#8a5a32', '#5a3a20', '#b07a4a'], fx: ['#8a5a32', '#b07a4a', '#5a3a20'], color: ['#8a5a32', '#b07a4a', '#5a3a20'], desc: "Brown patterned wallpaper. Brown Wallpaper = Brown Block + Wavy Wallpaper." },
+  { id: 'green_wallpaper', bgId: 20, name: 'Green Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#3f9a30', '#2a6e22', '#7ccf5a'], fx: ['#3f9a30', '#7ccf5a', '#2a6e22'], color: ['#3f9a30', '#7ccf5a', '#2a6e22'], desc: "Green patterned wallpaper. Green Wallpaper = Green Block + Wavy Wallpaper." },
+  { id: 'grey_wallpaper', bgId: 21, name: 'Grey Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#868d9d', '#5a606e', '#b3b9c4'], fx: ['#868d9d', '#b3b9c4', '#5a606e'], color: ['#868d9d', '#b3b9c4', '#5a606e'], desc: "Grey patterned wallpaper. Grey Wallpaper = Grey Block + Wavy Wallpaper." },
+  { id: 'orange_wallpaper', bgId: 22, name: 'Orange Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#f07a1e', '#a84a0a', '#ffad60'], fx: ['#f07a1e', '#ffad60', '#a84a0a'], color: ['#f07a1e', '#ffad60', '#a84a0a'], desc: "Orange patterned wallpaper. Orange Wallpaper = Orange Block + Wavy Wallpaper." },
+  { id: 'purple_wallpaper', bgId: 23, name: 'Purple Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#8a3fc9', '#561f88', '#b884ec'], fx: ['#8a3fc9', '#b884ec', '#561f88'], color: ['#8a3fc9', '#b884ec', '#561f88'], desc: "Purple patterned wallpaper. Purple Wallpaper = Wavy Wallpaper + Dark Purple Block." },
+  { id: 'red_wallpaper', bgId: 24, name: 'Red Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#c62f2a', '#8a1a16', '#ee6a5a'], fx: ['#c62f2a', '#ee6a5a', '#8a1a16'], color: ['#c62f2a', '#ee6a5a', '#8a1a16'], desc: "Red patterned wallpaper. Red Wallpaper = Wavy Wallpaper + Red Bricks." },
+  { id: 'white_wallpaper', bgId: 25, name: 'White Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#e2e2ea', '#a8a8b4', '#ffffff'], fx: ['#e2e2ea', '#ffffff', '#a8a8b4'], color: ['#e2e2ea', '#ffffff', '#a8a8b4'], desc: "White patterned wallpaper. White Wallpaper = White Block + Wavy Wallpaper." },
+  { id: 'yellow_wallpaper', bgId: 26, name: 'Yellow Wallpaper', kind: 'bg', rarity: 'Common', grow: 300, seed: ['#f2c81e', '#b08a0a', '#ffe680'], fx: ['#f2c81e', '#ffe680', '#b08a0a'], color: ['#f2c81e', '#ffe680', '#b08a0a'], desc: "Yellow patterned wallpaper. Yellow Wallpaper = Yellow Block + Wavy Wallpaper." },
+  { id: 'rustic_fence', t: 92, name: 'Rustic Fence', kind: 'deco', hits: 2, rarity: 'Common', grow: 240, seed: ['#8a5a32', '#3a2414', '#b07a4a'], fx: ['#8a5a32', '#b07a4a', '#3a2414'], desc: "An old wooden fence. Rustic Fence = Picket Fence + Old Sign." },
+  { id: 'note_block', t: 93, name: 'Note Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 240, seed: ['#8a5a32', '#1a1210', '#c98a52'], fx: ['#8a5a32', '#c98a52', '#1a1210'], edge: ['#1a0e06', '#c98a52', '#5a3a20'], desc: "A wooden block with a music note on it. Note Block = Old Radio + Dark Blue Block." },
+  { id: 'checkpoint', t: 94, name: 'Checkpoint', kind: 'deco', hits: 3, rarity: 'Rare', grow: 240, seed: ['#7ccf5a', '#2a6e22', '#ffffff'], fx: ['#ffffff', '#7ccf5a', '#9aa0ad'], desc: "A flag. Walk past it and it turns green: when you die you come back here instead of at the door. Checkpoint = Cloud Block + Bubble Wrap." },
   { id: 'plumbing', t: 95, name: 'Plumbing', kind: 'block', hits: 4, rarity: 'Common', grow: 240, seed: ['#3f9a30', '#1a4a16', '#7ccf5a'], fx: ['#3f9a30', '#7ccf5a', '#1a4a16'], desc: "Green pipes. Plumbing = Green Block + Bathtub." },
   { id: 'copper_plumbing', t: 96, name: 'Copper Plumbing', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 300, seed: ['#c8783a', '#6a3414', '#f0a868'], fx: ['#c8783a', '#f0a868', '#6a3414'], desc: "Shiny copper pipes. Copper Plumbing = Orange Block + Plumbing." },
   { id: 'streetlamp', t: 97, name: 'Streetlamp', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 300, seed: ['#3a3f4b', '#ffd23f', '#fff4b8'], fx: ['#3a3f4b', '#ffd23f', '#9aa0ad'], desc: "A street light that glows. Streetlamp = Neon Lights + Plumbing." },
   // sixth batch (blocks 98+)
-  { id: 'hanging_guytrap', t: 98, name: 'Hanging Guytrap', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 300, seed: ['#3f9a30', '#d01a3a', '#7ccf5a'], fx: ['#3f9a30', '#7ccf5a', '#d01a3a'], desc: "A hungry plant that hangs from above. Hanging Guytrap = Rose + Magic Bacon Wallpaper." },
-  { id: 'venus_guytrap', t: 99, name: 'Venus Guytrap', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 300, seed: ['#3f9a30', '#ff6ab0', '#9be36b'], fx: ['#3f9a30', '#9be36b', '#ff6ab0'], desc: "A snapping plant with big jaws. Venus Guytrap = Daisy + Magic Bacon Wallpaper." },
+  { id: 'hanging_guytrap', t: 98, name: 'Hanging Snap Plant', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 300, seed: ['#3f9a30', '#d01a3a', '#7ccf5a'], fx: ['#3f9a30', '#7ccf5a', '#d01a3a'], desc: "A hungry plant that hangs from above. Hanging Snap Plant = Rose + Wavy Wallpaper." },
+  { id: 'venus_guytrap', t: 99, name: 'Snap Plant', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 300, seed: ['#3f9a30', '#ff6ab0', '#9be36b'], fx: ['#3f9a30', '#9be36b', '#ff6ab0'], desc: "A snapping plant with big jaws. Snap Plant = Daisy + Wavy Wallpaper." },
   { id: 'screen_door', t: 100, name: 'Screen Door', kind: 'deco', hits: 3, rarity: 'Common', grow: 240, seed: ['#8a5a32', '#c3c9d4', '#c98a52'], fx: ['#8a5a32', '#c3c9d4', '#5a3a20'], desc: "A door with a mesh window. You can walk through it. Screen Door = Door + Lattice Background." },
-  { id: 'hospital_bed', t: 101, name: 'Hospital Bed', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 300, seed: ['#e8e8ee', '#5a8ac8', '#ffffff'], fx: ['#ffffff', '#9fc0e8', '#8a909e'], desc: "A white bed on wheels. Hospital Bed = Bed + Screen Door." },
+  { id: 'hospital_bed', t: 101, name: 'Hospital Bed', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 300, seed: ['#e8e8ee', '#5a8ac8', '#ffffff'], fx: ['#ffffff', '#9fc0e8', '#8a909e'], desc: "A white bed on wheels. Hospital Bed = Bed + Barn Door." },
   { id: 'barn_door', t: 102, name: 'Barn Door', kind: 'deco', hits: 3, rarity: 'Common', grow: 240, seed: ['#b8281e', '#ffffff', '#e05a48'], fx: ['#b8281e', '#ffffff', '#7a1410'], desc: "A big red barn door. You can walk through it. Barn Door = Door + Barn Block." },
-  { id: 'big_old_sideways_arrow', t: 103, name: 'Big Old Sideways Arrow', kind: 'deco', hits: 2, rarity: 'Common', grow: 240, seed: ['#f07a1e', '#a84a0a', '#ffad60'], fx: ['#f07a1e', '#ffad60', '#a84a0a'], sign: true, desc: "A big orange arrow pointing the way. Big Old Sideways Arrow = Orange Block + Pointy Sign." },
-  { id: 'secret_passage', t: 104, name: 'Secret Passage', kind: 'deco', hits: 4, rarity: 'Rare', grow: 300, seed: ['#a86c3c', '#3a2414', '#c98a52'], fx: ['#a86c3c', '#c98a52', '#3a2414'], desc: "Looks just like a Wood Block, but you can walk right through it. Secret Passage = Wood Block + Big Old Sideways Arrow." },
-  { id: 'ice_crust_block', t: 105, name: 'Ice Crust Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 300, seed: ['#c8f0ff', '#5ab0e0', '#ffffff'], fx: ['#ffffff', '#c8f0ff', '#5ab0e0'], edge: ['#2a6a8a', '#ffffff', '#5ab0e0'], desc: "Snowy ice packed hard. Ice Crust Block = Glass Block + Water Bucket." },
+  { id: 'big_old_sideways_arrow', t: 103, name: 'Big Arrow', kind: 'deco', hits: 2, rarity: 'Common', grow: 240, seed: ['#f07a1e', '#a84a0a', '#ffad60'], fx: ['#f07a1e', '#ffad60', '#a84a0a'], sign: true, desc: "A big orange arrow pointing the way. Big Arrow = Orange Block + Arrow Sign." },
+  { id: 'secret_passage', t: 104, name: 'Secret Passage', kind: 'deco', hits: 4, rarity: 'Rare', grow: 300, seed: ['#a86c3c', '#3a2414', '#c98a52'], fx: ['#a86c3c', '#c98a52', '#3a2414'], desc: "Looks just like a Wood Block, but you can walk right through it. Secret Passage = Wood Block + Big Arrow." },
+  { id: 'ice_crust_block', t: 105, name: 'Ice Crust Block', kind: 'block', hits: 4, rarity: 'Uncommon', grow: 300, seed: ['#c8f0ff', '#5ab0e0', '#ffffff'], fx: ['#ffffff', '#c8f0ff', '#5ab0e0'], edge: ['#2a6a8a', '#ffffff', '#5ab0e0'], desc: "Snowy ice packed hard. Ice Crust Block = Water Bucket + Red Glass Block." },
   { id: 'seaweed', t: 106, name: 'Seaweed', kind: 'deco', hits: 1, rarity: 'Common', grow: 240, seed: ['#2a8a5a', '#0f4a2a', '#5ad08a'], fx: ['#2a8a5a', '#5ad08a', '#0f4a2a'], desc: "Wavy green seaweed. Seaweed = Bush + Water Bucket." },
-  { id: 'das_red_balloon', t: 107, name: 'Das Red Balloon', kind: 'deco', hits: 1, rarity: 'Uncommon', grow: 300, seed: ['#e8302a', '#8a1010', '#ff8a7a'], fx: ['#e8302a', '#ff8a7a', '#ffffff'], desc: "A shiny red balloon on a string. Das Red Balloon = Red Block + Bubble Wrap." },
-  { id: 'danger_sign', t: 108, name: 'Danger Sign', kind: 'deco', hits: 2, rarity: 'Common', grow: 240, seed: ['#ffd23f', '#1a1210', '#fff4b8'], fx: ['#ffd23f', '#1a1210', '#9aa0ad'], sign: true, desc: "A yellow warning sign. Danger Sign = Lava + Pointy Sign." },
+  { id: 'das_red_balloon', t: 107, name: 'Red Balloon', kind: 'deco', hits: 1, rarity: 'Uncommon', grow: 300, seed: ['#e8302a', '#8a1010', '#ff8a7a'], fx: ['#e8302a', '#ff8a7a', '#ffffff'], desc: "A shiny red balloon on a string. Red Balloon = Bubble Wrap + Red Bricks." },
+  { id: 'danger_sign', t: 108, name: 'Danger Sign', kind: 'deco', hits: 2, rarity: 'Common', grow: 240, seed: ['#ffd23f', '#1a1210', '#fff4b8'], fx: ['#ffd23f', '#1a1210', '#9aa0ad'], sign: true, desc: "A yellow warning sign. Danger Sign = Lava + Arrow Sign." },
   { id: 'biohazard_sign', t: 109, name: 'Biohazard Sign', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 300, seed: ['#f07a1e', '#1a1210', '#ffad60'], fx: ['#f07a1e', '#1a1210', '#9aa0ad'], sign: true, desc: "An orange sign that says stay away. Biohazard Sign = Orange Block + Danger Sign." },
   { id: 'death_spikes', t: 110, name: 'Death Spikes', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 300, seed: ['#c3c9d4', '#5a606e', '#ffffff'], fx: ['#c3c9d4', '#ffffff', '#5a606e'], hurt: true, desc: "Sharp spikes. Touch them and you get hurt, just like lava. Death Spikes = Rock Background + Danger Sign." },
   { id: 'cactus', t: 111, name: 'Cactus', kind: 'deco', hits: 2, rarity: 'Common', grow: 300, seed: ['#3f9a30', '#1a4a16', '#9be36b'], fx: ['#3f9a30', '#9be36b', '#1a4a16'], hurt: true, desc: "A prickly cactus. It hurts to touch! Cactus = Bush + Death Spikes." },
   { id: 'stalactite', t: 112, name: 'Stalactite', kind: 'deco', hits: 3, rarity: 'Common', grow: 300, seed: ['#5a4870', '#2c2236', '#7a6890'], fx: ['#5a4870', '#7a6890', '#2c2236'], desc: "A pointy rock hanging from a cave ceiling. Stalactite = Dark Cave + Death Spikes." },
-  { id: 'portcullis', t: 113, name: 'Portcullis', kind: 'deco', hits: 4, rarity: 'Uncommon', grow: 300, seed: ['#5a606e', '#2e323c', '#9aa0ad'], fx: ['#5a606e', '#9aa0ad', '#2e323c'], desc: "An iron castle gate. Portcullis = Dungeon Door + Death Spikes." },
-  { id: 'steel_block', t: 114, name: 'Steel Block', kind: 'block', hits: 8, rarity: 'Uncommon', grow: 360, seed: ['#9aa0ad', '#4a4f5c', '#e0e4ea'], fx: ['#9aa0ad', '#e0e4ea', '#4a4f5c'], edge: ['#1a1d24', '#e0e4ea', '#4a4f5c'], desc: "Strong riveted steel. Steel Block = Purple Block + Portcullis." },
+  { id: 'portcullis', t: 113, name: 'Portcullis', kind: 'deco', hits: 4, rarity: 'Uncommon', grow: 300, seed: ['#5a606e', '#2e323c', '#9aa0ad'], fx: ['#5a606e', '#9aa0ad', '#2e323c'], desc: "An iron castle gate. Portcullis = Death Spikes + Barn Door." },
+  { id: 'steel_block', t: 114, name: 'Steel Block', kind: 'block', hits: 8, rarity: 'Uncommon', grow: 360, seed: ['#9aa0ad', '#4a4f5c', '#e0e4ea'], fx: ['#9aa0ad', '#e0e4ea', '#4a4f5c'], edge: ['#1a1d24', '#e0e4ea', '#4a4f5c'], desc: "Strong riveted steel. Steel Block = Portcullis + Dark Purple Block." },
   { id: 'golden_block', t: 115, name: 'Golden Block', kind: 'block', hits: 6, rarity: 'Rare', grow: 420, seed: ['#ffd23f', '#a8760a', '#fff4b8'], fx: ['#ffd23f', '#fff4b8', '#a8760a'], edge: ['#5a3a06', '#fff4b8', '#a8760a'], desc: "A block of shiny gold. Golden Block = Yellow Block + Steel Block." },
   // Balbtopia-only splices (Oct 2026), blocks 122-131
   { id: 'marble_block', t: 122, name: 'Marble Block', kind: 'block', hits: 5, rarity: 'Uncommon', grow: 240, seed: ['#e8e8ee',  '#9a9aa8',  '#ffffff'], fx: ['#e8e8ee',  '#ffffff',  '#9a9aa8'], edge: ['#5a5a66', '#ffffff', '#c8c8d2'], desc: "Polished white stone with soft grey veins. Marble Block = Rock + White Block." },
@@ -158,6 +158,26 @@ const NEW_ITEMS = [
   { id: 'magic_mushroom', t: 129, name: 'Magic Mushroom', kind: 'deco', hits: 2, rarity: 'Rare', grow: 300, seed: ['#a040e0',  '#4a1a6a',  '#ffb0ff'], fx: ['#a040e0',  '#ffb0ff',  '#fff6c0'], desc: "A glowing purple mushroom with sparkling spots. Magic Mushroom = Mushroom + Torch." },
   { id: 'lava_lamp', t: 130, name: 'Lava Lamp', kind: 'deco', hits: 3, rarity: 'Rare', grow: 320, seed: ['#ff5a2a',  '#3a2a4a',  '#ffd040'], fx: ['#ff5a2a',  '#ffd040',  '#8a3aa0'], desc: "Slow blobs of lava rise and fall inside. Lava Lamp = Glass Pane + Lava." },
   { id: 'cherry_blossom', t: 131, name: 'Cherry Blossom', kind: 'deco', hits: 2, rarity: 'Rare', grow: 320, seed: ['#ffb0d0',  '#6a3a2a',  '#ffe0ec'], fx: ['#ffb0d0',  '#ffe0ec',  '#6a3a2a'], desc: "A little blossom tree with drifting pink petals. Cherry Blossom = Grass + Rainbow Block." },
+  // Growtopia items (Oct 2026, recipes from growtopiawiki.com): blocks 132-144, backgrounds 27-31
+  { id: 'painting_dink_duck', bgId: 27, name: "Duck Painting", kind: 'bg', rarity: 'Common', grow: 140, seed: ["#ffd23f", "#6b4424", "#fff4b8"], fx: ["#ffd23f", "#fff4b8", "#6b4424"], desc: "A framed painting of a white duck swimming on a pond at sunset. Duck Painting = Yellow Block + Wooden Background." },
+  { id: 'painting_yerfdog', bgId: 28, name: "Dog Painting", kind: 'bg', rarity: 'Common', grow: 140, seed: ["#e8d8c0", "#6b4424", "#6ab0f0"], fx: ["#e8d8c0", "#6ab0f0", "#6b4424"], desc: "A framed painting of a brown puppy with a red ball on the grass. Dog Painting = White Block + Wooden Background." },
+  { id: 'air_duct', bgId: 29, name: "Air Duct", kind: 'bg', rarity: 'Uncommon', grow: 180, seed: ["#8a909e", "#3a3e48", "#c3c9d4"], fx: ["#8a909e", "#c3c9d4", "#3a3e48"], desc: "A riveted metal air duct. Rows of them join into one long tunnel. Air Duct = Dark Grey Block + Grey Block." },
+  { id: 'viney_wallpaper', bgId: 30, name: "Vine Wallpaper", kind: 'bg', rarity: 'Common', grow: 172, seed: ["#38732d", "#1a3a14", "#62e4a7"], fx: ["#38732d", "#62e4a7", "#1a3a14"], desc: "A dark jungle wall of tangled vines. Vine Wallpaper = Dark Aqua Block + Grass." },
+  { id: 'evil_brick_background', bgId: 31, name: "Dark Brick Wall", kind: 'bg', rarity: 'Rare', grow: 436, seed: ["#2b2b2b", "#140608", "#f40000"], fx: ["#2b2b2b", "#f40000", "#140608"], desc: "Near-black bricks with glowing red mortar, for behind your blocks. Dark Brick Wall = Red Wallpaper + Red Bricks." },
+  { id: 'street_sign', t: 132, name: "Street Sign", kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 180, seed: ["#2f8a4a", "#5a606e", "#ffffff"], fx: ["#2f8a4a", "#ffffff", "#5a606e"], sign: true, desc: "A green street-name plate on a grey pole. Wrench it to write the street name. Street Sign = Arrow Sign + Sidewalk." },
+  { id: 'arrow_placard', t: 133, name: "Arrow Board", kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 196, seed: ["#c98a52", "#6b4424", "#ff8a1e"], fx: ["#c98a52", "#ff8a1e", "#6b4424"], sign: true, desc: "A wooden board on a post with a big arrow. Wrench it to write on it. Arrow Board = Big Arrow + Notice Board." },
+  { id: 'jade_block', t: 134, name: "Jade Block", kind: 'block', hits: 5, rarity: 'Uncommon', grow: 252, seed: ["#268c7c", "#15453d", "#5ad0b8"], fx: ["#268c7c", "#5ad0b8", "#15453d"], edge: ["#0a221e", "#5ad0b8", "#15453d"], desc: "Carved green jade with a polished bevel. Jade Block = Dark Aqua Block + Dark Green Block." },
+  { id: 'viney_block', t: 135, name: "Vine Block", kind: 'block', hits: 4, rarity: 'Common', grow: 172, seed: ["#6a707e", "#2a6e22", "#4caf3a"], fx: ["#6a707e", "#4caf3a", "#2a6e22"], edge: ["#1a1e24", "#9be36b", "#2a6e22"], desc: "A stone block wrapped in leafy green vines. Vine Block = Dark Green Block + Grass." },
+  { id: 'iron_bars', t: 136, name: "Iron Bars", kind: 'block', hits: 6, rarity: 'Uncommon', grow: 268, seed: ["#959595", "#585858", "#d0d0d0"], fx: ["#959595", "#d0d0d0", "#585858"], desc: "Heavy iron jail bars. You can see through them but not walk through. Iron Bars = Plumbing + Death Spikes." },
+  { id: 'sandstone', t: 137, name: "Sandstone", kind: 'block', hits: 4, rarity: 'Uncommon', grow: 204, seed: ["#e0c48a", "#a8864a", "#f6e2b0"], fx: ["#e0c48a", "#f6e2b0", "#a8864a"], edge: ["#5a4420", "#f6e2b0", "#a8864a"], desc: "Tan desert stone in soft layers. Sandstone = Cactus + Dirt." },
+  { id: 'snowy_rocks', t: 141, name: "Snowy Rocks", kind: 'block', hits: 5, rarity: 'Rare', grow: 308, seed: ["#868d9d", "#525866", "#ffffff"], fx: ["#868d9d", "#ffffff", "#525866"], edge: ["#262a32", "#ffffff", "#525866"], desc: "Grey rock with a cap of fresh snow. Snowy Rocks = Rock + Ice Crust Block." },
+  { id: 'fireplace', t: 138, name: "Fireplace", kind: 'deco', hits: 4, rarity: 'Rare', grow: 428, seed: ["#b5502f", "#3a1a10", "#ff8a1e"], fx: ["#b5502f", "#ff8a1e", "#3a1a10"], desc: "A brick hearth with a gold trim and a crackling fire. Fireplace = Golden Block + Red Bricks." },
+  { id: 'ice_sculptures', t: 139, name: "Ice Star", kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 220, seed: ["#a8e4ff", "#4a9ad0", "#ffffff"], fx: ["#a8e4ff", "#ffffff", "#4a9ad0"], desc: "A see-through ice star, carved by hand. Ice Star = Glass Block + Ice Crust Block." },
+  { id: 'fishbowl', t: 140, name: "Fishbowl", kind: 'deco', hits: 2, rarity: 'Rare', grow: 380, seed: ["#baeff8", "#3a8ad8", "#daec97"], fx: ["#baeff8", "#daec97", "#3a8ad8"], desc: "A round glass bowl with water, gravel, a tiny castle and a fish. Fishbowl = Ice + Window." },
+  { id: 'disco_ball', t: 142, name: "Disco Ball", kind: 'deco', hits: 3, rarity: 'Rare', grow: 420, seed: ["#d4dae6", "#5d6478", "#ffffff"], fx: ["#d4dae6", "#ffffff", "#5d6478"], desc: "A mirrored ball on a chain that throws sparkles around. Disco Ball = Boombox + Wooden Window." },
+  { id: 'skeleton', t: 143, name: "Skeleton", kind: 'deco', hits: 3, rarity: 'Epic', grow: 636, seed: ["#f2ecdc", "#8a8270", "#ffffff"], fx: ["#f2ecdc", "#ffffff", "#8a8270"], desc: "A spooky old skeleton sitting against the wall. Skeleton = Grey Wallpaper + Ice Crust Block." },
+  { id: 'sugar_cane', t: 144, name: "Sugar Cane", kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 252, seed: ["#7ccf5a", "#2a6e22", "#c8f0a0"], fx: ["#7ccf5a", "#c8f0a0", "#2a6e22"], desc: "Tall jointed green stalks with thin leaves. Sugar Cane = Seaweed + Smiley Plaque." },
+  { id: 'sand', t: 145, name: 'Sand', kind: 'block', hits: 3, rarity: 'Common', grow: 60, seed: ["#e8cf8e", "#b0904a", "#fff0c0"], fx: ["#e8cf8e", "#fff0c0", "#b0904a"], edge: ["#6a5428", "#fff0c0", "#b0904a"], desc: "Fine warm sand for beaches and deserts. Sand = Dirt + Water Bucket." },
   { id: 'boombox', t: 116, name: 'Boombox', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 360, seed: ['#2a2830', '#9aa0ad', '#4a4752'], fx: ['#2a2830', '#9aa0ad', '#ff4ad8'], desc: "A stereo for your world. Boombox = Black Block + Steel Block." },
 ];
 
@@ -1363,14 +1383,609 @@ Object.assign(DECO, {
   },
 });
 
+// ---------- detail pass: the 2 px cell art made finer at 1 px ----------
+// Every block texture and decoration is painted on a 16x16 grid of 2 px cells. hdPass smooths the steps of
+// diagonal edges and corners at 1 px (the EPX / Scale2x rule on the cell grid) and adds a light, steady grain
+// (each pixel a few % lighter or darker), so the pictures keep their design but look finer.
+const HD_GRAIN = 0.07; // how strong the grain is (0 = none)
+function hdPass(c) {
+  const x = c.getContext('2d');
+  let d;
+  try {
+    d = x.getImageData(0, 0, 32, 32);
+  } catch (e) {
+    return c;
+  }
+  const p = d.data,
+    src = new Uint8ClampedArray(p),
+    key = (i, j) => {
+      const o = (j * 32 + i) * 4;
+      return (src[o] << 24) | (src[o + 1] << 16) | (src[o + 2] << 8) | src[o + 3];
+    },
+    cell = [];
+  // a cell's colour, or null when its 4 pixels differ (then it is left as it is)
+  for (let j = 0; j < 16; j++)
+    for (let i = 0; i < 16; i++) {
+      const k = key(i * 2, j * 2);
+      cell[j * 16 + i] =
+        k === key(i * 2 + 1, j * 2) && k === key(i * 2, j * 2 + 1) && k === key(i * 2 + 1, j * 2 + 1) ? k : null;
+    }
+  const C = (i, j, own) => (i < 0 || j < 0 || i > 15 || j > 15 ? own : cell[j * 16 + i]),
+    copy = (from, i, j) => {
+      // copy pixel colour from source pixel 'from' (index) to (i, j)
+      const o = (j * 32 + i) * 4;
+      for (let k = 0; k < 4; k++) p[o + k] = src[from + k];
+    };
+  for (let j = 0; j < 16; j++)
+    for (let i = 0; i < 16; i++) {
+      const P = cell[j * 16 + i];
+      if (P === null) continue;
+      const A = C(i, j - 1, P),
+        B = C(i + 1, j, P),
+        L = C(i - 1, j, P),
+        D = C(i, j + 1, P);
+      if (A === null || B === null || L === null || D === null) continue;
+      // a source pixel of that cell; off the tile the neighbour counts as this cell itself
+      const pix = (ci, cj) => (ci < 0 || cj < 0 || ci > 15 || cj > 15 ? (j * 2 * 32 + i * 2) * 4 : (cj * 2 * 32 + ci * 2) * 4);
+      if (L === A && L !== D && A !== B) copy(pix(i, j - 1), i * 2, j * 2);
+      if (A === B && A !== L && B !== D) copy(pix(i, j - 1), i * 2 + 1, j * 2);
+      if (D === L && D !== B && L !== A) copy(pix(i - 1, j), i * 2, j * 2 + 1);
+      if (B === D && B !== A && D !== L) copy(pix(i + 1, j), i * 2 + 1, j * 2 + 1);
+    }
+  // grain
+  for (let j = 0; j < 32; j++)
+    for (let i = 0; i < 32; i++) {
+      const o = (j * 32 + i) * 4;
+      if (!p[o + 3]) continue;
+      const v = Math.sin(i * 127.1 + j * 311.7) * 43758.5453,
+        f = 1 + (v - Math.floor(v) - 0.5) * 2 * HD_GRAIN;
+      for (let k = 0; k < 3; k++) p[o + k] = p[o + k] * f;
+    }
+  x.putImageData(d, 0, 0);
+  return c;
+}
 const NEWART = {};
 function texCanvas(id) {
-  return (NEWART[id] ||= cells((h) => TEX[id](h)));
+  if (HD_TEX[id]) return (NEWART[id] ||= hdCanvas((x, h) => HD_TEX[id](x, h)));
+  return (NEWART[id] ||= hdPass(cells((h) => TEX[id](h))));
 }
+// hand-drawn 1 px block / background textures (32x32, fill the tile); filled by js/hd/*.js too
+const HD_TEX = {};
 function decoCanvas(id, f = 0) {
   const k = id + ':' + f;
-  return (NEWART[k] ||= cells((h) => DECO[id](h, f)));
+  if (HD_DECO[id]) return (NEWART[k] ||= hdCanvas((x, h) => HD_DECO[id](x, h, f)));
+  return (NEWART[k] ||= hdPass(cells((h) => DECO[id](h, f))));
 }
+// ---------- hand-drawn 1 px pictures (fill the whole tile, like a dirt block) ----------
+// helpers: R rect, P pixel, E filled ellipse, RR rounded rect, all in 1 px on a 32x32 canvas
+function hdCanvas(paint) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const x = c.getContext('2d'),
+    P = (i, j, col) => {
+      x.fillStyle = col;
+      x.fillRect(i, j, 1, 1);
+    },
+    R = (i, j, w, h, col) => {
+      x.fillStyle = col;
+      x.fillRect(i, j, w, h);
+    },
+    E = (cx, cy, rx, ry, col) => {
+      for (let j = Math.floor(cy - ry); j <= Math.ceil(cy + ry); j++)
+        for (let i = Math.floor(cx - rx); i <= Math.ceil(cx + rx); i++)
+          if (((i + 0.5 - cx) / rx) ** 2 + ((j + 0.5 - cy) / ry) ** 2 <= 1) P(i, j, col);
+    },
+    RR = (i, j, w, h, r, col) => {
+      for (let jj = j; jj < j + h; jj++)
+        for (let ii = i; ii < i + w; ii++) {
+          const dx = Math.max(i + r - ii - 0.5, ii + 0.5 - (i + w - r), 0),
+            dy = Math.max(j + r - jj - 0.5, jj + 0.5 - (j + h - r), 0);
+          if (dx * dx + dy * dy <= r * r) P(ii, jj, col);
+        }
+    };
+  paint(x, { P, R, E, RR });
+  return c;
+}
+// steady 0..1 noise for a pixel (wood grain, specks)
+const hdNoise = (i, j, k = 0) => {
+  const v = Math.sin(i * 12.9898 + j * 78.233 + k * 37.719) * 43758.5453;
+  return v - Math.floor(v);
+};
+// a wooden plank area with grain lines: base colour, darker grain, lighter streaks
+function hdWood(P, x0, y0, w, h, [base, dark, light], vertical = false) {
+  for (let j = y0; j < y0 + h; j++)
+    for (let i = x0; i < x0 + w; i++) {
+      const a = vertical ? i : j,
+        b = vertical ? j : i,
+        n = hdNoise(a, Math.floor(b / 5));
+      P(i, j, n < 0.16 ? dark : n > 0.86 ? light : base);
+    }
+}
+const HD_DECO = {
+  // oak barrel: curved staves, two iron hoops, lid on top
+  barrel(x, { P, R, E }) {
+    for (let j = 1; j < 32; j++) {
+      const t = (j - 16) / 15,
+        half = Math.round(11.5 + 3 * (1 - t * t)); // bulges in the middle
+      for (let i = 16 - half; i < 16 + half; i++) {
+        const edge = i === 16 - half || i === 15 + half || j === 1 || j === 31,
+          u = (i - (16 - half)) / (2 * half), // 0 left .. 1 right
+          stave = Math.floor(u * 6),
+          seam = Math.abs(u * 6 - Math.round(u * 6)) < 0.08;
+        let col = edge ? '#2a1a0e' : seam ? '#5a3418' : u < 0.25 ? '#c08048' : u > 0.78 ? '#7a4a24' : stave % 2 ? '#a06636' : '#9a6032';
+        if (!edge && hdNoise(i, j) < 0.08) col = '#7a4a24';
+        P(i, j, col);
+      }
+    }
+    // hoops
+    for (const y of [7, 23]) {
+      const t = (y - 16) / 15,
+        half = Math.round(11.5 + 3 * (1 - t * t));
+      R(16 - half, y, half * 2, 3, '#2a2c34');
+      R(17 - half, y, half * 2 - 2, 1, '#9aa0ad');
+      R(17 - half, y + 1, half * 2 - 2, 1, '#5a606e');
+      P(18 - half, y + 1, '#d4d8e0');
+    }
+    // lid
+    E(16, 3, 11, 2.2, '#2a1a0e');
+    E(16, 3, 10, 1.5, '#c98a52');
+    R(10, 3, 12, 1, '#a86c3c');
+  },
+  // bookcase full of books, three shelves
+  bookcase(x, { P, R }) {
+    R(0, 0, 32, 32, '#2a1a0e');
+    hdWood(P, 1, 1, 30, 30, ['#7a4a28', '#5a3418', '#8f5a32']);
+    R(1, 1, 30, 1, '#a86c3c');
+    const cols = [
+      ['#d8241e', '#ff6a5a'],
+      ['#2fb5c9', '#8ae4f0'],
+      ['#ffd23f', '#fff0a0'],
+      ['#4caf3a', '#9be36b'],
+      ['#8a3fc9', '#c48aff'],
+      ['#f07a1e', '#ffb070'],
+      ['#f2f2f6', '#ffffff'],
+      ['#3a5ad8', '#8aa4ff'],
+    ];
+    for (const [k0, y] of [[0, 3], [3, 13], [5, 23]]) {
+      R(3, y, 26, 8, '#3a2414'); // back of the shelf
+      let i = 3,
+        k = k0;
+      while (i < 28) {
+        const w = 2 + ((k * 7) % 3),
+          tall = 6 + ((k * 5) % 3),
+          [c, l] = cols[k % cols.length];
+        if (k % 5 === 4 && i < 25) {
+          // a book leaning over
+          for (let t = 0; t < 6; t++) R(i + Math.floor(t / 2), y + 8 - 1 - t, 2, 1, c);
+          i += 4;
+        } else {
+          const w2 = Math.min(w, 29 - i);
+          R(i, y + 8 - tall, w2, tall, c);
+          R(i, y + 8 - tall, 1, tall, l);
+          R(i, y + 8 - tall + 2, w2, 1, 'rgba(0,0,0,.25)');
+          i += w2;
+        }
+        k++;
+      }
+      R(1, y + 8, 30, 2, '#3a2414'); // shelf board
+      R(1, y + 8, 30, 1, '#a86c3c');
+    }
+  },
+  // old wooden radio with an arched top, cloth speaker and a dial
+  olde_timey_radio(x, { P, R, E, RR }) {
+    // arched body
+    for (let j = 1; j < 30; j++)
+      for (let i = 2; i < 30; i++) {
+        const inArch = j >= 11 || Math.hypot((i + 0.5 - 16) / 14, (j + 0.5 - 12) / 11) <= 1;
+        if (!inArch) continue;
+        P(i, j, '#2a1a0e');
+      }
+    for (let j = 2; j < 29; j++)
+      for (let i = 3; i < 29; i++) {
+        const inArch = j >= 11 || Math.hypot((i + 0.5 - 16) / 13, (j + 0.5 - 12) / 10) <= 1;
+        if (!inArch) continue;
+        const n = hdNoise(i, Math.floor(j / 3));
+        P(i, j, i < 6 ? '#c08048' : i > 25 ? '#6b4424' : n < 0.15 ? '#7a4a24' : '#9a6032');
+      }
+    // speaker cloth with arched grille bars
+    for (let j = 6; j < 19; j++)
+      for (let i = 8; i < 24; i++) {
+        if (j < 11 && Math.hypot((i + 0.5 - 16) / 8, (j + 0.5 - 11) / 5.5) > 1) continue;
+        P(i, j, (i + j) % 2 ? '#d8c08a' : '#c8ac74');
+      }
+    for (const i of [11, 14, 17, 20]) for (let j = 6; j < 19; j++) if (j >= 9 || Math.abs(i - 15.5) < 5 - (9 - j)) P(i, j, '#6b4424');
+    R(7, 19, 18, 1, '#5a3418');
+    // dial window and knobs
+    RR(9, 21, 14, 4, 1, '#2a1a0e');
+    R(10, 22, 12, 2, '#ffe9a0');
+    for (let i = 11; i < 22; i += 2) P(i, 22, '#a07a30');
+    P(15, 23, '#d8241e');
+    for (const cx of [6.5, 25.5]) {
+      E(cx, 23, 2, 2, '#2a1a0e');
+      E(cx, 23, 1.3, 1.3, '#e0b07a');
+      P(Math.floor(cx) - 1, 22, '#fff4d0');
+    }
+    // feet
+    R(5, 29, 4, 3, '#2a1a0e');
+    R(23, 29, 4, 3, '#2a1a0e');
+    // shine on the arch
+    for (let k = 0; k < 4; k++) P(7 + k, 7 - k, '#e0a868');
+  },
+  // wooden table: thick top with grain, two turned legs
+  wooden_table(x, { P, R }) {
+    R(0, 11, 32, 7, '#2a1a0e');
+    hdWood(P, 1, 12, 30, 4, ['#a86c3c', '#8a5a32', '#c98a52']);
+    R(1, 12, 30, 1, '#e0b07a');
+    R(1, 16, 30, 1, '#6b4424');
+    for (const i of [3, 25]) {
+      R(i, 18, 4, 14, '#2a1a0e');
+      R(i + 1, 18, 2, 14, '#8a5a32');
+      R(i + 1, 18, 1, 14, '#a86c3c');
+      R(i, 23, 4, 2, '#2a1a0e');
+      R(i + 1, 23, 2, 1, '#c98a52');
+    }
+    R(7, 18, 18, 2, '#2a1a0e');
+    R(7, 18, 18, 1, '#6b4424');
+  },
+  // school desk: wooden top on a metal frame, a book and an apple on it
+  school_desk(x, { P, R, E }) {
+    // frame
+    for (const i of [4, 26]) {
+      R(i, 15, 3, 17, '#2a2c34');
+      R(i + 1, 15, 1, 17, '#9aa0ad');
+    }
+    R(4, 27, 25, 2, '#2a2c34');
+    R(5, 27, 23, 1, '#6a6f7c');
+    // book box under the top
+    R(5, 15, 12, 7, '#2a1a0e');
+    R(6, 16, 10, 5, '#8a5a32');
+    R(6, 16, 10, 1, '#5a3418');
+    // top
+    R(1, 12, 30, 4, '#2a1a0e');
+    hdWood(P, 2, 12, 28, 3, ['#d8a066', '#c08048', '#f0c890']);
+    R(2, 12, 28, 1, '#f6dcae');
+    // book
+    R(5, 7, 10, 5, '#2a1a0e');
+    R(6, 8, 8, 3, '#3a6ae8');
+    R(6, 8, 8, 1, '#8aa4ff');
+    R(6, 10, 8, 1, '#f2f2f6');
+    // apple
+    E(22.5, 8.5, 3.5, 3.2, '#5a0a08');
+    E(22.5, 8.5, 2.8, 2.6, '#d8241e');
+    P(21, 7, '#ff8a7a');
+    P(21, 8, '#ff5a4a');
+    R(22, 4, 1, 2, '#5a3a20');
+    P(23, 4, '#4caf3a');
+    P(24, 4, '#4caf3a');
+  },
+  // white bathtub full of bubbles, golden feet, a tap
+  bathtub(x, { P, R, E, RR }) {
+    // tap
+    R(26, 3, 2, 8, '#5a606e');
+    R(26, 3, 1, 8, '#d4d8e0');
+    R(23, 3, 4, 2, '#5a606e');
+    R(23, 3, 4, 1, '#d4d8e0');
+    P(23, 6, '#7ac8ff');
+    // tub
+    RR(0, 11, 32, 15, 4, '#4a4a58');
+    RR(1, 12, 30, 13, 3, '#e8e8f0');
+    R(2, 12, 28, 2, '#ffffff');
+    for (let i = 3; i < 29; i++) P(i, 23, '#c8c8d4');
+    R(1, 11, 30, 1, '#4a4a58');
+    // water and bubbles above the rim
+    R(2, 9, 28, 3, '#7ac8ff');
+    R(2, 9, 28, 1, '#b0e0ff');
+    for (const [cx, cy, r] of [[6, 8, 2.6], [11, 7, 3.2], [17, 8, 2.4], [21, 6.5, 2.8], [8, 5, 1.6], [15, 4.5, 1.8], [27, 8.5, 1.6]]) {
+      E(cx, cy, r, r, '#c8ecff');
+      E(cx - 0.4, cy - 0.4, r - 0.8, r - 0.8, '#ffffff');
+      P(Math.floor(cx - r / 2), Math.floor(cy - r / 2), '#ffffff');
+    }
+    // feet
+    for (const i of [4, 24]) {
+      R(i, 25, 4, 5, '#7a5206');
+      R(i + 1, 25, 2, 4, '#ffd23f');
+      R(i, 29, 5, 2, '#7a5206');
+      P(i + 1, 25, '#fff4b8');
+    }
+  },
+  // wooden sign: board with grain and nails on a post
+  sign(x, { P, R }) {
+    R(14, 20, 4, 12, '#2a1a0e');
+    R(15, 20, 2, 12, '#8a5a32');
+    R(15, 20, 1, 12, '#a86c3c');
+    R(11, 30, 10, 2, '#2a1a0e');
+    R(0, 1, 32, 21, '#2a1a0e');
+    hdWood(P, 1, 2, 30, 19, ['#c98a52', '#a86c3c', '#e0b07a']);
+    R(1, 2, 30, 1, '#f0c890');
+    R(1, 2, 1, 19, '#e0b07a');
+    R(1, 20, 30, 1, '#8a5a32');
+    R(30, 2, 1, 19, '#8a5a32');
+    // writing lines and nails
+    R(5, 7, 20, 2, '#5a3a20');
+    R(5, 12, 16, 2, '#5a3a20');
+    R(5, 7, 20, 1, '#7a5230');
+    for (const [i, j] of [[3, 4], [28, 4], [3, 17], [28, 17]]) {
+      P(i, j, '#4a4a58');
+      P(i, j - 1, '#d4d8e0');
+    }
+  },
+  // crappy sign: tilted, cracked grey planks on a crooked post
+  crappy_sign(x, { P, R }) {
+    for (let j = 18; j < 32; j++) {
+      const off = j < 25 ? 0 : 1;
+      R(16 + off, j, 4, 1, '#2a1a0e');
+      R(17 + off, j, 2, 1, '#6a5a46');
+    }
+    R(13, 30, 10, 2, '#2a1a0e');
+    // board, sheared so it tilts
+    for (let j = 2; j < 20; j++) {
+      const sh = Math.floor((j - 2) / 4);
+      for (let i = 0; i < 27; i++) {
+        const xx = i + sh;
+        const edge = j === 2 || j === 19 || i === 0 || i === 26 || j === 10;
+        const n = hdNoise(i, Math.floor(j / 3));
+        P(xx, j, edge ? '#2a1a0e' : j === 3 || j === 11 ? '#c0aa88' : n < 0.18 ? '#7a6a54' : n > 0.88 ? '#b8a284' : '#9c8466');
+      }
+    }
+    // cracks and a scrawl
+    for (const [i, j] of [[8, 4], [9, 5], [9, 6], [10, 7], [20, 13], [21, 14], [21, 15]]) P(i + Math.floor((j - 2) / 4), j, '#3a2a1a');
+    for (let k = 0; k < 9; k++) P(5 + k + Math.floor(5 / 4), 14 + (k % 3 === 1 ? -1 : 0), '#4a3a2a');
+  },
+  // red mushroom with white spots, gills under the cap
+  mushroom(x, { P, R, E }) {
+    // stem
+    for (let j = 17; j < 31; j++) {
+      const w = j > 27 ? 5 : 4;
+      R(16 - w, j, w * 2, 1, '#3a2a1a');
+      R(17 - w, j, w * 2 - 2, 1, '#f2e6cc');
+      P(17 - w, j, '#ffffff');
+      P(14 + w, j, '#c8b898');
+    }
+    R(11, 31, 10, 1, '#3a2a1a');
+    // gills
+    E(16, 17, 11, 2.5, '#3a2a1a');
+    E(16, 17, 10, 1.8, '#d8c8a8');
+    for (let i = 8; i < 25; i += 2) P(i, 17, '#a89878');
+    // cap
+    for (let j = 2; j < 17; j++)
+      for (let i = 0; i < 32; i++) {
+        const d = ((i + 0.5 - 16) / 15.5) ** 2 + ((j + 0.5 - 17) / 15) ** 2;
+        if (d > 1) continue;
+        const lit = (i - 16) * -0.5 + (j - 10) * -0.8;
+        P(i, j, d > 0.86 ? '#3a0a08' : lit > 5 ? '#ff7a62' : lit > -2 ? '#e8402e' : '#b82a20');
+      }
+    // spots
+    for (const [cx, cy, r] of [[9, 9, 2.4], [17, 5.5, 2], [23, 10, 2.2], [13, 14, 1.4], [26, 14, 1.2], [5, 14, 1.2]]) {
+      E(cx, cy, r, r * 0.85, '#ffffff');
+      P(Math.floor(cx + r * 0.4), Math.floor(cy + r * 0.4), '#f0d8d0');
+    }
+    P(11, 4, '#ffb0a0');
+    P(12, 4, '#ffb0a0');
+  },
+  // fish tank: glass box, sand, weed, two fish swimming, bubbles (4 frames)
+  fish_tank(x, { P, R, E }, f = 0) {
+    R(0, 2, 32, 28, '#1a2a4a');
+    // water, darker at the bottom
+    for (let j = 4; j < 27; j++) R(1, j, 30, 1, j < 8 ? '#5aaaf0' : j < 18 ? '#3a8ad8' : '#2f74c0');
+    R(1, 4, 30, 1, '#9fd6f5');
+    R(1, 3, 30, 1, '#2a3a5a');
+    // sand with pebbles
+    for (let i = 1; i < 31; i++) {
+      const h = 3 + Math.round(Math.sin(i * 0.5) * 0.8);
+      for (let j = 27 - h; j < 27; j++) P(i, j, hdNoise(i, j) < 0.2 ? '#c8b070' : '#e8d098');
+    }
+    for (const [i, c] of [[6, '#ff8a6a'], [19, '#9aa0ad'], [26, '#6ac0ff']]) {
+      P(i, 25, c);
+      P(i + 1, 25, c);
+    }
+    // weed swaying
+    const sw = [0, 1, 0, -1][f];
+    for (let j = 10; j < 25; j++) {
+      const o = Math.round(Math.sin(j * 0.6) * 1 + (j < 17 ? sw : 0));
+      P(5 + o, j, '#2f8a30');
+      P(6 + o, j, '#4caf3a');
+      if (j > 14) {
+        P(27 - o, j, '#2f8a30');
+        P(28 - o, j, '#4caf3a');
+      }
+    }
+    // fish: orange one going right then left, yellow one the other way
+    const fx1 = [7, 11, 15, 11][f],
+      dir1 = f < 2 ? 1 : -1,
+      fx2 = [22, 18, 14, 18][f],
+      dir2 = -dir1;
+    const fish = (cx, cy, dir, body, fin, size) => {
+      E(cx, cy, size, size * 0.6, body);
+      for (let k = 0; k < 3; k++) {
+        P(Math.round(cx - dir * (size + 1)), cy - 1 + k, fin);
+        if (k === 1) P(Math.round(cx - dir * (size + 2)), cy - 2 + k * 1, fin);
+      }
+      P(Math.round(cx + dir * (size - 1.5)), Math.floor(cy - 0.5), '#121116');
+      P(Math.round(cx - dir * 0.5), Math.floor(cy - 1), '#ffffff');
+    };
+    fish(fx1, 11, dir1, '#ff8a2a', '#e05a10', 3);
+    fish(fx2, 17, dir2, '#ffd23f', '#e0a020', 2.3);
+    // bubbles rising
+    for (const [i, ys] of [[16, [20, 15, 10, 6]], [23, [9, 6, 22, 16]]]) {
+      const y = ys[f];
+      P(i, y, '#e0f6ff');
+      P(i + 1, y - 3, '#c8ecff');
+    }
+    // glass shine and the stand
+    for (let k = 0; k < 6; k++) P(3 + k, 10 - k, 'rgba(255,255,255,.55)');
+    R(0, 29, 32, 3, '#2a2830');
+    R(0, 29, 32, 1, '#4a4752');
+  },
+
+  // golden plaque with a big happy face, as big as a block
+  happy_joy_plaque(x, { P, R, E, RR }) {
+    RR(0, 0, 32, 32, 4, '#3a2408'); // outline
+    RR(1, 1, 30, 30, 3, '#a8650c'); // frame, shaded bottom right
+    RR(1, 1, 29, 29, 3, '#ffe27a'); // lit top left
+    RR(2, 2, 28, 28, 2, '#e0a020'); // frame middle
+    R(4, 4, 24, 24, '#7a4a08'); // inner edge
+    R(5, 5, 22, 22, '#f0b82a');
+    // face: lighter towards the top left
+    for (let j = 5; j < 27; j++) for (let i = 5; i < 27; i++) if (i + j < 30) P(i, j, i + j < 20 ? '#ffe680' : '#ffd23f');
+    R(5, 5, 22, 1, '#fff4b8');
+    R(5, 5, 1, 22, '#fff4b8');
+    // rivets in the frame corners
+    for (const [i, j] of [[2, 2], [28, 2], [2, 28], [28, 28]]) {
+      R(i, j, 2, 2, '#7a4a08');
+      P(i, j, '#fff4b8');
+    }
+    // shine
+    for (let k = 0; k < 4; k++) P(7 + k, 10 - k, '#fffbe0');
+    P(7, 11, '#fffbe0');
+    // eyes with a glint
+    E(11.5, 13, 2, 3, '#3a2408');
+    E(20.5, 13, 2, 3, '#3a2408');
+    P(11, 11, '#ffffff');
+    P(20, 11, '#ffffff');
+    P(11, 12, '#7a5a3a');
+    P(20, 12, '#7a5a3a');
+    // rosy cheeks
+    E(8.5, 18, 2, 1.3, '#ff9a72');
+    E(23.5, 18, 2, 1.3, '#ff9a72');
+    P(8, 17, '#ffc0a0');
+    P(23, 17, '#ffc0a0');
+    // open smile: outline, mouth, tongue
+    for (let j = 17; j <= 24; j++)
+      for (let i = 9; i <= 22; i++) {
+        const d = Math.hypot((i + 0.5 - 16) / 6, (j + 0.5 - 18) / 5.5);
+        if (j + 0.5 < 18 || d > 1) continue;
+        P(i, j, d > 0.82 || j === 18 ? '#3a2408' : j >= 22 && d < 0.8 ? '#ff6a7a' : '#8a1a12');
+      }
+    P(13, 19, '#b83a2a');
+    P(14, 19, '#b83a2a');
+  },
+  // cork board on two posts, covered in notes and pins
+  notice_board(x, { P, R, E }) {
+    // posts
+    R(5, 24, 4, 8, '#2a1a0e');
+    R(6, 24, 2, 8, '#8a5a32');
+    R(6, 24, 1, 8, '#c98a52');
+    R(23, 24, 4, 8, '#2a1a0e');
+    R(24, 24, 2, 8, '#8a5a32');
+    R(24, 24, 1, 8, '#c98a52');
+    // frame
+    R(0, 0, 32, 26, '#2a1a0e');
+    R(1, 1, 30, 24, '#8a5a32');
+    R(1, 1, 30, 1, '#c98a52');
+    R(1, 1, 1, 24, '#c98a52');
+    R(1, 24, 30, 1, '#5a3a20');
+    R(30, 1, 1, 24, '#5a3a20');
+    // cork with specks
+    R(3, 3, 26, 20, '#c8945a');
+    for (let j = 3; j < 23; j++)
+      for (let i = 3; i < 29; i++) {
+        const v = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453,
+          h = v - Math.floor(v);
+        if (h < 0.12) P(i, j, '#a8743e');
+        else if (h > 0.93) P(i, j, '#e0b07a');
+      }
+    R(3, 3, 26, 1, '#9a6a38');
+    // white note with lines
+    R(5, 5, 9, 11, '#c8bfa8');
+    R(5, 5, 8, 10, '#f6f0dc');
+    for (let k = 0; k < 4; k++) R(6, 8 + k * 2, 6 - (k % 2) * 2, 1, '#8a8478');
+    // yellow sticky note, a bit tilted
+    R(17, 5, 9, 8, '#c9a826');
+    R(17, 5, 8, 7, '#ffe066');
+    R(17, 5, 8, 1, '#fff2a0');
+    R(18, 8, 5, 1, '#b08a20');
+    R(18, 10, 4, 1, '#b08a20');
+    // pink note
+    R(16, 15, 10, 7, '#c86a7a');
+    R(16, 15, 9, 6, '#ffb0c0');
+    R(17, 17, 6, 1, '#c86a7a');
+    R(17, 19, 4, 1, '#c86a7a');
+    // little photo
+    R(6, 17, 7, 5, '#ffffff');
+    R(7, 18, 5, 3, '#6ac0ff');
+    R(7, 20, 5, 1, '#4caf3a');
+    P(10, 18, '#ffd23f');
+    // pins
+    for (const [i, j, c, l] of [[9, 5, '#e83a3a', '#ff9a9a'], [21, 5, '#3a6ae8', '#9ab8ff'], [20, 15, '#4caf3a', '#a0f080'], [9, 17, '#ffd23f', '#fff4b8']]) {
+      R(i - 1, j - 1, 3, 3, c);
+      P(i - 1, j - 1, l);
+      P(i + 1, j + 1, '#2a1a0e');
+    }
+  },
+  // stereo with a handle, two speakers and pink lights
+  boombox(x, { P, R, E, RR }) {
+    // handle
+    R(8, 0, 16, 2, '#121116');
+    R(8, 0, 2, 6, '#121116');
+    R(22, 0, 2, 6, '#121116');
+    R(9, 1, 14, 1, '#9aa0ad');
+    R(9, 1, 1, 5, '#9aa0ad');
+    R(22, 1, 1, 5, '#6a6f7c');
+    // body
+    RR(0, 5, 32, 26, 3, '#121116');
+    RR(1, 6, 30, 24, 2, '#2a2830');
+    R(2, 6, 28, 1, '#4a4752');
+    R(1, 28, 30, 1, '#1a1920');
+    // top strip with buttons
+    R(3, 8, 26, 4, '#4a4752');
+    R(3, 8, 26, 1, '#6a6f7c');
+    for (const [i, c] of [[5, '#ff4a4a'], [9, '#9aa0ad'], [13, '#9aa0ad'], [17, '#9aa0ad']]) {
+      R(i, 9, 3, 2, c);
+      P(i, 9, '#ffffff');
+    }
+    R(22, 9, 6, 2, '#ff4ad8');
+    R(22, 9, 6, 1, '#ffa0ee');
+    // speakers
+    for (const cx of [8.5, 23.5]) {
+      E(cx, 21, 6.5, 6.5, '#9aa0ad');
+      E(cx, 21, 5.5, 5.5, '#121116');
+      E(cx, 21, 4.5, 4.5, '#3a3844');
+      E(cx, 21, 2.5, 2.5, '#5a5866');
+      E(cx, 21, 1.3, 1.3, '#121116');
+      P(Math.floor(cx) - 3, 18, '#6a6f7c');
+      P(Math.floor(cx) - 2, 17, '#6a6f7c');
+    }
+    // tape deck between them
+    R(14, 15, 4, 12, '#121116');
+    R(15, 16, 2, 4, '#ff4ad8');
+    R(15, 22, 2, 1, '#9aa0ad');
+    R(15, 24, 2, 1, '#9aa0ad');
+    // shine
+    R(3, 7, 4, 1, '#6a6f7c');
+  },
+  // wooden chest of three drawers with brass knobs
+  dresser(x, { P, R }) {
+    // top board, wider than the body
+    R(0, 0, 32, 5, '#2a1a0e');
+    R(1, 1, 30, 3, '#a86c3c');
+    R(1, 1, 30, 1, '#d8a066');
+    // body
+    R(1, 4, 30, 25, '#2a1a0e');
+    R(2, 5, 28, 23, '#8a5a32');
+    R(2, 5, 1, 23, '#a86c3c');
+    R(29, 5, 1, 23, '#5a3a20');
+    // three drawers
+    for (let k = 0; k < 3; k++) {
+      const y = 6 + k * 7;
+      R(4, y, 24, 6, '#3a2414');
+      R(5, y + 1, 22, 4, '#a86c3c');
+      R(5, y + 1, 22, 1, '#c98a52');
+      R(5, y + 4, 22, 1, '#7a4a28');
+      // wood grain
+      for (let i = 0; i < 3; i++) R(7 + i * 7 + (k % 2) * 3, y + 2 + (i % 2), 3, 1, '#93582f');
+      // knobs
+      for (const i of [10, 21]) {
+        R(i, y + 2, 2, 2, '#7a5a0a');
+        P(i, y + 2, '#ffe680');
+      }
+    }
+    // feet
+    R(2, 28, 5, 4, '#2a1a0e');
+    R(3, 28, 3, 3, '#6b4424');
+    R(25, 28, 5, 4, '#2a1a0e');
+    R(26, 28, 3, 3, '#6b4424');
+  },
+};
 let decoFrame = (id) => (id === 'torch' ? Math.floor(now / 160) % 2 : id === 'streetlamp' ? Math.floor(now / 700) % 2 : 0);
 // the background picture for a bg[] value
 function bgImage(v) {
@@ -1379,6 +1994,7 @@ function bgImage(v) {
 }
 // draws one of the new blocks (called from render.js)
 function drawNewBlock(b, x, y, px, py, T) {
+  if (b.gate) return drawGate(b, x, y, px, py, T); // gates.js
   if (b.art === 'vend') return drawVend(x, y, px, py, T);
   if (b.art === 'disp') return drawDisplayBox(x, y, px, py, T);
   if (b.art === 'mann') return drawMannStand(x, y, px, py, T);
@@ -1408,7 +2024,7 @@ function newIcon(id) {
   const c = document.createElement('canvas');
   c.width = c.height = 32;
   const x = c.getContext('2d');
-  if (TEX[id]) {
+  if (TEX[id] || HD_TEX[id]) {
     x.drawImage(texCanvas(id), 0, 0);
     if (n.edge) drawEdges(15, 0, 0, 32, n.edge, x, 1);
   } else x.drawImage(decoCanvas(id), 0, 0);
@@ -1603,7 +2219,7 @@ Object.assign(DECO, {
   },
 });
 // animated decorations among them: ms per frame and how many frames
-const NEW_ANIM = { lantern: [180, 2], fish_tank: [320, 4], magic_mushroom: [500, 2], lava_lamp: [600, 4], cherry_blossom: [700, 2] };
+const NEW_ANIM = { lantern: [180, 2], fish_tank: [320, 4], magic_mushroom: [500, 2], lava_lamp: [600, 4], cherry_blossom: [700, 2], fireplace: [160, 2], disco_ball: [300, 2] };
 {
   const prev = decoFrame;
   decoFrame = (id) => (NEW_ANIM[id] ? Math.floor(now / NEW_ANIM[id][0]) % NEW_ANIM[id][1] : prev(id));
