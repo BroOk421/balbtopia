@@ -23,8 +23,14 @@ function loop(ts) {
     vh = cv.height / Z;
   const tx = P.x + P.w / 2 - vw / 2,
     ty = P.y + P.h / 2 - vh * 0.55;
+  // the camera eases after you (a little delay), but never lets you get more than CAM_LAG of the screen away
+  // from the middle, so falling or flying fast you stay in view
   cam.x += (tx - cam.x) * Math.min(1, dt * 8);
-  cam.y += (ty - cam.y) * Math.min(1, dt * 8);
+  cam.y += (ty - cam.y) * Math.min(1, dt * 9);
+  const lx = vw * CAM_LAG,
+    ly = vh * CAM_LAG;
+  cam.x = Math.max(tx - lx, Math.min(tx + lx, cam.x));
+  cam.y = Math.max(ty - ly, Math.min(ty + ly, cam.y));
   cam.x = Math.max(0, Math.min(WW * TS - vw, cam.x));
   cam.y = Math.max(-vh * 0.3, Math.min(WH * TS - vh, cam.y));
   shake = Math.max(0, shake - dt * 20);

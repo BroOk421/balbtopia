@@ -1,5 +1,5 @@
 // Signs and the RECIPES world.
-// A sign block (Sign, Crappy Sign, Pointy Sign, Danger Sign, ...) can hold a line of text.
+// A sign block (Sign, Old Sign, Arrow Sign, Danger Sign, ...) can hold a line of text.
 // Stand on it and the text shows in a bubble above it; hold the wrench and click it to write on it
 // (only players who may build in the world). The text is saved with the world and sent to everyone.
 // The world called RECIPES is built by the game: every splice recipe on its own sign, shelf by shelf.
@@ -111,7 +111,9 @@ function drawSignBubble(ox, oy) {
 // ---------- the RECIPES world ----------
 const RECIPES_WORLD = 'RECIPES';
 let worldRV = null; // which recipe list the RECIPES world was built from (saved with the world)
-const recipesVersion = () => 'L6:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).join('').length;
+// L7: items were renamed (Oct 2026); the names are part of the tag so a rename rebuilds the signs too
+const recipesVersion = () =>
+  'L7:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length;
 // one entry per item the splices make (an item with two recipes, like Grass, gets one sign with both),
 // sorted A to Z by name
 function recipeList() {

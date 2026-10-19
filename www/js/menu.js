@@ -71,7 +71,7 @@ function profile(el) {
   const need = xpNeed(level);
   el.innerHTML = `
     <div class="prof">
-      <img class="pav" src="${A['skin_' + skin + '_open']}" alt="" />
+      <img class="pav" src="${charPortrait({ skin, equipped })}" alt="Your character" />
       <div class="pinfo">
         <h3>${playerName}</h3>
         <div class="lv"><b>Level ${level}</b><span>${xp} / ${need} XP</span></div>
@@ -108,14 +108,15 @@ function profile(el) {
     sw.appendChild(b);
   }
 }
+// only the worlds you have locked
 function worldsTab(el) {
-  const list = listWorlds();
-  el.innerHTML = `<p class="mlabel">Your worlds <span>${list.length}</span></p><ul class="mlist" id="mworlds"></ul>
-    <p class="mnote">Make a new world at the main door: stand in it and click it.</p>`;
+  const list = myLockedWorlds();
+  el.innerHTML = `<p class="mlabel">Your locked worlds <span>${list.length}</span></p><ul class="mlist" id="mworlds"></ul>
+    <p class="mnote">${list.length ? '' : "You haven't locked a world yet. "}Make a new world at the main door: stand in it and click it, then put a Gold Lock in it.</p>`;
   const ul = el.querySelector('#mworlds');
   if (Net.online && !worldsTab.busy) {
     worldsTab.busy = true;
-    Net.refreshWorlds().then((ch) => {
+    Net.refreshOwnWorlds().then((ch) => {
       if (ch && !$('menu').hidden && menuTab === 'worlds') renderMenu();
       worldsTab.busy = false;
     });

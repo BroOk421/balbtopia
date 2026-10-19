@@ -72,6 +72,7 @@ const solidAt = (x, y) => {
   if (y < 0) return false;
   if (y >= WH) return true;
   const t = fg[at(x, y)];
+  if (t !== EMPTY && BLOCK[t].gate) return !gatePass(at(x, y), playerName); // gates.js: shut unless you may pass
   return t !== EMPTY && BLOCK[t].solid !== false;
 };
 function joins(a, b) {

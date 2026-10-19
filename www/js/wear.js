@@ -21,6 +21,7 @@ function slotOf(id) {
 
 // grow: tree seconds; seed: seed colours. Shirts / pants / feet: col (+ pat for patterns).
 // Hair: tint [dark, light] of the spiky hair, or art. Hats, face and back: art (drawn by WEAR_ART below).
+const HAIR_SPLIT = 108; // long hair: body px just below the neck; below it the hair is behind the body (drawWearStrip)
 const WEAR = [
   // shirts
   { id: 'tan_shirt', name: 'Tan Shirt', slot: 'shirt', col: '#d8b88a', desc: 'A plain tan shirt.' },
@@ -40,29 +41,29 @@ const WEAR = [
   { id: 'black_pants', name: 'Black Pants', slot: 'pants', col: '#2a2830', desc: 'Smart black pants.' },
   { id: 'green_skirt', name: 'Green Skirt', slot: 'pants', col: '#3f9a30', desc: 'A green skirt.' },
   { id: 'jeans', name: 'Jeans', slot: 'pants', col: '#2a48a0', desc: 'Dark blue jeans.' },
-  { id: 'smarty_pants', name: 'Smarty Pants', slot: 'pants', pat: 'rainbow', col: '#ff4a4a', rarity: 'Uncommon', desc: 'Rainbow stripes, for clever people.' },
+  { id: 'smarty_pants', name: 'Rainbow Pants', slot: 'pants', pat: 'rainbow', col: '#ff4a4a', rarity: 'Uncommon', desc: 'Rainbow stripes, for clever people.' },
   { id: 'clown_pants', name: 'Clown Pants', slot: 'pants', col: '#ffd23f', pat: 'dots', col2: '#e8302a', desc: 'Yellow with big red dots.' },
-  { id: 'sexy_boxers', name: 'Sexy Boxers', slot: 'pants', col: '#ff8ac0', pat: 'dots', col2: '#d01a3a', desc: 'Pink boxers with little hearts.' },
+  { id: 'sexy_boxers', name: 'Heart Boxers', slot: 'pants', col: '#ff8ac0', pat: 'dots', col2: '#d01a3a', desc: 'Pink boxers with little hearts.' },
   { id: 'purple_thong', name: 'Purple Thong', slot: 'pants', col: '#8a3fc9', desc: 'Bold. Very purple.' },
   // feet
-  { id: 'stinky_socks', name: 'Stinky Socks', slot: 'feet', col: '#c8c060', desc: 'Nobody wants to stand next to you.' },
+  { id: 'stinky_socks', name: 'Yellow Socks', slot: 'feet', col: '#c8c060', desc: 'Nobody wants to stand next to you.' },
   { id: 'boots', name: 'Boots', slot: 'feet', col: '#4a2c18', desc: 'Sturdy brown boots.' },
   { id: 'brown_shoes', name: 'Brown Shoes', slot: 'feet', col: '#8a5a32', desc: 'Plain brown shoes.' },
   { id: 'patent_leather_shoes', name: 'Patent Leather Shoes', slot: 'feet', col: '#18161c', desc: 'Shiny black shoes.' },
   // hair
-  { id: 'brown_hair', name: 'Brown Hair', slot: 'hair', col: '#8a5428', top: -35, iconImg: 'hair_brown_spike_icon', strip: { img: 'hair_brown_spike', frames: 1, ms: 1000, x: -8, y: -31, w: 135, h: 114, icon: [0, 0, 135, 114] }, desc: 'Brown hair brushed up into a tall quiff.' },
-  { id: 'blonde_bombshell', name: 'Blonde Bombshell', slot: 'hair', col: '#e8c47a', top: -15, iconImg: 'hair_blonde_band_icon', strip: { img: 'hair_blonde_band', frames: 1, ms: 1000, x: -17, y: -11, w: 138, h: 188, icon: [0, 0, 138, 138] }, desc: 'Long blonde hair with a white headband.' },
-  { id: 'spikey_hair', name: 'Spikey Hair', slot: 'hair', col: '#3a3432', top: -35, iconImg: 'hair_messy_black_icon', strip: { img: 'hair_messy_black', frames: 1, ms: 1000, x: -17, y: -31, w: 152, h: 116, icon: [0, 0, 152, 116] }, desc: 'Messy, spiky black hair.' },
-  { id: 'messy_auburn_tresses', name: 'Messy Auburn Tresses', slot: 'hair', col: '#8a2a22', top: -23, iconImg: 'hair_red_ponytail_icon', strip: { img: 'hair_red_ponytail', frames: 1, ms: 1000, x: -17, y: -19, w: 137, h: 185, icon: [0, 0, 137, 137] }, desc: 'Long auburn hair in a high ponytail.' },
-  { id: 'grey_hair_bun', name: 'Grey Hair Bun', slot: 'hair', col: '#c8c4c0', top: -20, iconImg: 'hair_silver_icon', strip: { img: 'hair_silver', frames: 1, ms: 1000, x: -13, y: -16, w: 140, h: 103, icon: [0, 0, 140, 103] }, desc: 'Soft silver-grey hair swept to the side.' },
-  { id: 'hot_pink_highlights', name: 'Hot Pink Highlights', slot: 'hair', col: '#f0a0b4', top: -39, iconImg: 'hair_pink_bun_icon', strip: { img: 'hair_pink_bun', frames: 1, ms: 1000, x: -17, y: -35, w: 138, h: 164, icon: [0, 0, 138, 138] }, desc: 'Pink hair in a messy bun with loose strands.' },
-  { id: 'unicorn_hair', name: 'Unicorn Hair', slot: 'hair', tint: ['#6a2a9a', '#ffb0f0'], rarity: 'Rare', desc: 'Magical pastel hair.' },
-  { id: 'purple_mohawk', name: 'Black Bob', slot: 'hair', col: '#2a2628', top: -11, iconImg: 'hair_black_bob_icon', strip: { img: 'hair_black_bob', frames: 1, ms: 1000, x: -15, y: -7, w: 136, h: 132, icon: [0, 0, 136, 132] }, desc: 'A short black bob with hair clips.' },
-  { id: 'pigtails', name: 'Black Top Bun', slot: 'hair', col: '#2a2628', top: -27, iconImg: 'hair_black_bun_icon', strip: { img: 'hair_black_bun', frames: 1, ms: 1000, x: -17, y: -23, w: 139, h: 136, icon: [0, 0, 139, 136] }, desc: 'Black hair tied up in a bun.' },
+  { id: 'brown_hair', name: 'Brown Hair', slot: 'hair', col: '#8a5428', top: -30, iconImg: 'hair_brown_spike_icon', strip: { img: 'hair_brown_spike', frames: 1, ms: 1000, x: -2, y: -26, w: 115, h: 102, icon: [0, 0, 115, 102] }, desc: 'Brown hair brushed up into a tall quiff.' },
+  { id: 'blonde_bombshell', name: 'Long Blonde Hair', slot: 'hair', col: '#e8c47a', top: -13, iconImg: 'hair_blonde_band_icon', strip: { img: 'hair_blonde_band', frames: 1, ms: 1000, split: HAIR_SPLIT, x: -1, y: -9, w: 125, h: 180, icon: [0, 0, 125, 125] }, desc: 'Long blonde hair with a white headband.' },
+  { id: 'spikey_hair', name: 'Spikey Hair', slot: 'hair', col: '#3a3432', top: -30, iconImg: 'hair_messy_black_icon', strip: { img: 'hair_messy_black', frames: 1, ms: 1000, x: -11, y: -26, w: 135, h: 104, icon: [0, 0, 135, 104] }, desc: 'Messy, spiky black hair.' },
+  { id: 'messy_auburn_tresses', name: 'Messy Red Hair', slot: 'hair', col: '#8a2a22', top: -35, iconImg: 'hair_red_ponytail_icon', strip: { img: 'hair_red_ponytail', frames: 1, ms: 1000, split: HAIR_SPLIT, x: 0, y: -31, w: 120, h: 192, icon: [0, 0, 120, 120] }, desc: 'Long auburn hair in a high ponytail.' },
+  { id: 'grey_hair_bun', name: 'Grey Hair Bun', slot: 'hair', col: '#c8c4c0', top: -18, iconImg: 'hair_silver_icon', strip: { img: 'hair_silver', frames: 1, ms: 1000, x: -13, y: -14, w: 137, h: 93, icon: [0, 0, 137, 93] }, desc: 'Soft silver-grey hair swept to the side.' },
+  { id: 'hot_pink_highlights', name: 'Pink Streak Hair', slot: 'hair', col: '#f0a0b4', top: -40, iconImg: 'hair_pink_bun_icon', strip: { img: 'hair_pink_bun', frames: 1, ms: 1000, split: HAIR_SPLIT, x: 0, y: -36, w: 131, h: 193, icon: [0, 0, 131, 131] }, desc: 'Pink hair in a messy bun with loose strands.' },
+  { id: 'unicorn_hair', name: 'Pastel Hair', slot: 'hair', tint: ['#6a2a9a', '#ffb0f0'], rarity: 'Rare', desc: 'Magical pastel hair.' },
+  { id: 'purple_mohawk', name: 'Black Bob', slot: 'hair', col: '#2a2628', top: -9, iconImg: 'hair_black_bob_icon', strip: { img: 'hair_black_bob', frames: 1, ms: 1000, x: 4, y: -5, w: 119, h: 115, icon: [0, 0, 119, 115] }, desc: 'A short black bob with hair clips.' },
+  { id: 'pigtails', name: 'Black Top Bun', slot: 'hair', col: '#2a2628', top: -25, iconImg: 'hair_black_bun_icon', strip: { img: 'hair_black_bun', frames: 1, ms: 1000, x: -11, y: -21, w: 122, h: 120, icon: [0, 0, 122, 120] }, desc: 'Black hair tied up in a bun.' },
   { id: 'afro', name: 'Afro', slot: 'hair', art: 'afro', desc: 'A big round afro.' },
   // the owner's animated golden hair (the idle row of his sprite sheet: 9 frames, glow and sparks included),
   // cut out and fitted on our head: strip frames are w x h in body-sprite pixels, top left at (x, y) of the body
-  { id: 'super_saiyan_hair', name: 'Super Saiyan Hair', slot: 'hair', rarity: 'Legendary', shop: true, top: -112,
+  { id: 'super_saiyan_hair', name: 'Golden Spike Hair', slot: 'hair', rarity: 'Legendary', shop: true, top: -112,
     strip: { img: 'hair_ssj', frames: 9, ms: 110, x: -90, y: -180, w: 300, h: 260, icon: [55, 45, 210, 190] },
     desc: 'Blazing golden spiky hair with a flickering glow and rising sparks.' },
   // hats
@@ -72,9 +73,9 @@ const WEAR = [
   { id: 'rooster_hat', name: 'Rooster Hat', slot: 'hat', art: 'rooster_hat', desc: 'Cock-a-doodle-doo!' },
   { id: 'baseball_cap', name: 'Baseball Cap', slot: 'hat', art: 'baseball_cap', desc: 'A red cap with a peak.' },
   { id: 'old_timey_hat', name: 'Old-Timey Hat', slot: 'hat', art: 'old_timey_hat', desc: 'A round brown bowler hat.' },
-  { id: 'froghat', name: 'Froghat', slot: 'hat', art: 'froghat', desc: 'Ribbit.' },
-  { id: 'hot_head', name: 'Hot Head', slot: 'hat', art: 'hot_head', rarity: 'Rare', desc: 'Your head is on fire!' },
-  { id: 'gamblers_visor', name: "Gambler's Visor", slot: 'hat', art: 'gamblers_visor', desc: 'A green see-through visor.' },
+  { id: 'froghat', name: 'Frog Hat', slot: 'hat', art: 'froghat', desc: 'Ribbit.' },
+  { id: 'hot_head', name: 'Fire Head', slot: 'hat', art: 'hot_head', rarity: 'Rare', desc: 'Your head is on fire!' },
+  { id: 'gamblers_visor', name: "Green Visor", slot: 'hat', art: 'gamblers_visor', desc: 'A green see-through visor.' },
   { id: 'tv_head', name: 'TV Head', slot: 'hat', art: 'tv_head', rarity: 'Rare', desc: 'Your head is a television.' },
   { id: 'red_riding_hood', name: 'Red Riding Hood', slot: 'hat', art: 'red_riding_hood', desc: 'A red hood. Watch out for wolves.' },
   { id: 'bridal_veil', name: 'Bridal Veil', slot: 'hat', art: 'bridal_veil', desc: 'A long white veil.' },
@@ -83,16 +84,16 @@ const WEAR = [
   { id: 'big_glasses', name: 'Big Glasses', slot: 'face', art: 'big_glasses', desc: 'Huge round glasses.' },
   { id: 'gold_rimmed_glasses', name: 'Gold-Rimmed Glasses', slot: 'face', art: 'gold_rimmed_glasses', desc: 'Thin golden glasses.' },
   { id: 'x_ray_specs', name: 'X-Ray Specs', slot: 'face', art: 'x_ray_specs', desc: 'Swirly glasses that see through things.' },
-  { id: 'cyclopean_visor', name: 'Cyclopean Visor', slot: 'face', art: 'cyclopean_visor', rarity: 'Uncommon', desc: 'A red visor with a glowing slit. Like in Growtopia, your punches become a laser and reach one tile further.' },
+  { id: 'cyclopean_visor', name: 'Red Visor', slot: 'face', art: 'cyclopean_visor', rarity: 'Uncommon', desc: 'A red visor with a glowing slit. Your punches become a laser and reach one tile further.' },
   { id: 'white_beard', name: 'White Beard', slot: 'face', art: 'white_beard', desc: 'A big fluffy white beard.' },
-  { id: 'biker_stache', name: 'Biker Stache', slot: 'face', art: 'biker_stache', desc: 'A long handlebar mustache.' },
-  { id: 'shallot_mustache', name: 'Shallot Mustache', slot: 'face', art: 'shallot_mustache', desc: 'A thin, curly mustache.' },
+  { id: 'biker_stache', name: 'Long Mustache', slot: 'face', art: 'biker_stache', desc: 'A long handlebar mustache.' },
+  { id: 'shallot_mustache', name: 'Curly Mustache', slot: 'face', art: 'shallot_mustache', desc: 'A thin, curly mustache.' },
   // back
   { id: 'backpack', name: 'Backpack', slot: 'back', art: 'backpack', desc: 'A brown backpack.' },
   { id: 'jetpack', name: 'Jetpack', slot: 'back', art: 'jetpack', rarity: 'Rare', desc: 'Twin rockets. Flames come out when you jump.' },
   // long hair (the back part is drawn behind the body)
   { id: 'long_brown_hair', name: 'Long Brown Hair', slot: 'hair', art: 'long_brown', behind: 'long_brown_back', iconBox: [-10, -10, 150, 170], desc: 'Long, straight brown hair.' },
-  { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', col: '#2a2628', top: -8, iconImg: 'hair_long_black_icon', strip: { img: 'hair_long_black', frames: 1, ms: 1000, x: -17, y: -4, w: 141, h: 182, icon: [0, 0, 141, 141] }, desc: 'Long wavy black hair.' },
+  { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', col: '#2a2628', top: -4, iconImg: 'hair_long_black_icon', strip: { img: 'hair_long_black', frames: 1, ms: 1000, split: HAIR_SPLIT, x: -3, y: 0, w: 137, h: 183, icon: [0, 0, 137, 137] }, desc: 'Long wavy black hair.' },
   { id: 'princess_hair', name: 'Princess Hair', slot: 'hair', art: 'princess', behind: 'princess_back', iconBox: [-10, -30, 150, 190], desc: 'Long golden hair with a pink bow.' },
   // from the Shop
   { id: 'angel_wings', name: 'Angel Wings', slot: 'back', art: 'angel_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-60, 110, 238, 150], desc: 'Soft white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
@@ -104,7 +105,7 @@ const WEAR = [
   { id: 'white_aura', name: 'White Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing pure white aura all around you, with bright white lightning.' },
   { id: 'red_aura', name: 'Red Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing red aura of fierce flames all around you, with red lightning.' },
   { id: 'golden_aura', name: 'Golden Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing golden aura of power flames all around you, with swirling streaks of light and rising sparks.' },
-  // (the owner's hairstyle pictures are on the recipe hairs above: Brown Hair, Blonde Bombshell, ...)
+  // (the owner's hairstyle pictures are on the recipe hairs above: Brown Hair, Long Blonde Hair, ...)
   // wings from the owner's sheet (art-source/items/wings_cut.py): their particles twinkle and float (8 frames)
   { id: 'seraph_wings', name: 'Seraph Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_seraph', frames: 1, ms: 140, x: -61, y: -19, w: 240, h: 228, icon: [0, 0, 240, 228] }, desc: 'Big soft white feathered wings. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'demon_wings', name: 'Demon Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_demon', frames: 1, ms: 140, x: -61, y: -15, w: 240, h: 219, icon: [0, 0, 240, 219] }, desc: 'Dark red bat wings with black bones. While you wear them you can jump once more in the air; land to get the jump back.' },
@@ -181,7 +182,9 @@ function paintPixel(w, x, y, f) {
 }
 const OUTFIT = new Map();
 // the body image with these clothes on (cached per frame and outfit)
-function outfitBody(im, key, eq) {
+// bands: the rows of the shirt, pants and shoes on this picture (the standing frames by default)
+const BODY_BANDS = { shirt: [98, 156], pants: [138, 202], feet: 178 };
+function outfitBody(im, key, eq, bands = BODY_BANDS) {
   const shirt = WEAR_BY_ID[eq.shirt],
     pants = WEAR_BY_ID[eq.pants] || (shirt && (shirt.pat === 'dress' || shirt.pat === 'pj') ? shirt : null),
     feet = WEAR_BY_ID[eq.feet];
@@ -207,9 +210,9 @@ function outfitBody(im, key, eq) {
         sat = Math.max(r, gg, b) - Math.min(r, gg, b);
       let w = null,
         f = 1;
-      if (shirt && py >= 98 && py <= 156 && sat < 28 && L > 110) (w = shirt), (f = Math.min(1.08, Math.max(0.5, L / 238)));
-      else if (pants && py >= 138 && py <= 202 && b > r + 18 && b > gg) (w = pants), (f = Math.min(1.45, Math.max(0.45, L / 95)));
-      else if (feet && py >= 178 && sat < 30 && L > 105) (w = feet), (f = Math.min(1.08, Math.max(0.5, L / 238)));
+      if (shirt && py >= bands.shirt[0] && py <= bands.shirt[1] && sat < 28 && L > 110) (w = shirt), (f = Math.min(1.08, Math.max(0.5, L / 238)));
+      else if (pants && py >= bands.pants[0] && py <= bands.pants[1] && b > r + 18 && b > gg) (w = pants), (f = Math.min(1.45, Math.max(0.45, L / 95)));
+      else if (feet && py >= bands.feet && sat < 30 && L > 105) (w = feet), (f = Math.min(1.08, Math.max(0.5, L / 238)));
       if (!w) continue;
       const [nr, ng, nb] = paintPixel(w, px, py, f);
       p[i] = nr;
@@ -565,9 +568,11 @@ function longHairBack({ L }, col, hi) {
 const ARTS = {};
 // animated drawings: ms per frame (2 frames)
 const ANIM = { hot_head: 120, cyclopean_visor: 300 };
-// an animated picture strip worn on the body (e.g. Super Saiyan Hair); call inside the character transform
+// an animated picture strip worn on the body (e.g. Golden Spike Hair); call inside the character transform
 // sx: squeeze sideways round the strip's middle (wings flapping in the air)
-function drawWearStrip(w, top, sc, dy, sx = 1) {
+// part: 'front' only draws above the strip's `split` line (body px), 'back' only below it (long hair: the part
+// over the shoulders goes behind the body, so the arms are in front of it)
+function drawWearStrip(w, top, sc, dy, sx = 1, part) {
   const s = w.strip,
     im = IMG[s.img];
   if (!im || !im.width) return;
@@ -576,6 +581,14 @@ function drawWearStrip(w, top, sc, dy, sx = 1) {
     k = sc * Z,
     mid = (-FR.w / 2 + s.x + s.w / 2) * k;
   g.save();
+  if (part && s.split) {
+    const yc = Math.round(top + (s.split + dy) * k), // on a whole pixel, so no seam shows at the cut
+      big = 1e5;
+    g.beginPath();
+    if (part === 'front') g.rect(-big, -big, 2 * big, yc + big);
+    else g.rect(-big, yc, 2 * big, big);
+    g.clip();
+  }
   g.translate(mid, 0);
   g.scale(sx, 1);
   g.drawImage(im, f * fw, 0, fw, im.height, (-s.w / 2) * k, top + (s.y + dy) * k, s.w * k, s.h * k);
@@ -692,6 +705,7 @@ function drawBehind(c, top, sc, dy) {
   }
   if (eq.aura && AURAS[eq.aura]) drawAura(eq.aura, top, sc, dy);
   if (hw && hw.behind) drawWearArt(eq.hair, top, sc, dy, 0, hw.behind);
+  if (hw && hw.strip && hw.strip.split) drawWearStrip(hw, top, sc, dy, 1, 'back'); // long hair below the shoulders
 }
 // jetpack flames while you're in the air
 function drawJetFlame(top, sc, dy) {
@@ -718,7 +732,7 @@ const TOOLS = {
   sword: { name: 'Sword', bonus: 0, rarity: 'Uncommon', blade: true, head: ['#c3c9d4', '#ffffff', '#5a606e'], desc: 'A shiny sword. Hold it in your hand.' },
   flashlight: { name: 'Flashlight', bonus: 0, rarity: 'Common', light: true, head: ['#2a2830', '#ffd23f', '#121116'], desc: 'Lights up whatever you point at.' },
   pencil: { name: 'Pencil', bonus: 0, rarity: 'Common', pencil: true, head: ['#f2c81e', '#ffe680', '#b08a0a'], desc: 'A giant yellow pencil.' },
-  just_one_boxing_glove: { name: 'Just One Boxing Glove', bonus: 0, rarity: 'Common', glove: true, head: ['#d8241e', '#ff6a5a', '#8a1010'], desc: 'One red boxing glove. Pow!' },
+  just_one_boxing_glove: { name: 'Boxing Glove', bonus: 0, rarity: 'Common', glove: true, head: ['#d8241e', '#ff6a5a', '#8a1010'], desc: 'One red boxing glove. Pow!' },
 };
 for (const [id, t] of Object.entries(TOOLS)) {
   ITEMS[id] = { name: t.name, kind: 'tool', tool: t, desc: t.desc + ' Hold it in your hand.', rarity: t.rarity };

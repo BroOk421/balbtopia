@@ -8,6 +8,7 @@
 const ACCT_KEY = 'balbtopia.accounts',
   SESSION_KEY = 'balbtopia.session';
 const USER_RE = /^[A-Za-z0-9_]{3,16}$/;
+const MAX_ACCOUNTS_HERE = 3; // offline accounts per device (online: 3 per IP address, checked by the server)
 let account = null; // who is logged in: lower-case username (offline) or Supabase user id (online)
 const PASS_MIN = Net.online ? 6 : 4; // Supabase wants at least 6
 
@@ -74,6 +75,7 @@ async function register(user, pass, pass2) {
   const all = accounts(),
     id = user.toLowerCase();
   if (all[id]) return 'That username is taken';
+  if (Object.keys(all).length >= MAX_ACCOUNTS_HERE) return 'Only ' + MAX_ACCOUNTS_HERE + ' accounts can be made on this device';
   const salt = randSalt(),
     h = await hashPass(pass, salt);
   all[id] = { name: user, salt, algo: h.algo, hash: h.hash, created: Date.now() };
@@ -108,6 +110,7 @@ function signIn(id) {
   account = id;
   playerName = a.name;
   setWorn(null); // a new account with no save wears nothing
+  seenWorlds = [];
   loadPlayer();
   playerName = a.name; // the username is the name shown above the player
   return true;
@@ -119,6 +122,7 @@ async function signInOnline() {
   try {
     const p = await Net.loadPlayer();
     setWorn(null);
+    seenWorlds = [];
     if (p) applyPlayer(p);
   } catch (e) {
     console.error(e);

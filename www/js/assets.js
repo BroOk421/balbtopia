@@ -194,12 +194,16 @@ const A = {
   walkstep_porcelain_11: 'assets/character/porcelain/walk_step_11.png',
   hair: 'assets/items/hair_spiky_black.png',
   icon_hair: 'assets/items/hair_spiky_black_icon.png',
+  // sitting pose from the owner's sheet (art-source/character/sit_cut.py): 198x215, our 118 frame + 40 px each side
+  sit_body: 'assets/character/sit.png',
+  // mouths for talking, from the owner's sheet: closed, o, open, wide, grin, teeth (32x24 cells, our scale)
+  mouths: 'assets/character/mouths.png',
   aura_golden: 'assets/items/aura_golden.png', // 8 frames side by side (Golden Aura)
   aura_dark: 'assets/items/aura_dark.png', // the same frames recoloured (art-source/items/aura_recolor.py)
   aura_red: 'assets/items/aura_red.png',
   aura_diamond: 'assets/items/aura_diamond.png',
   aura_white: 'assets/items/aura_white.png',
-  hair_ssj: 'assets/items/hair_ssj.png', // Super Saiyan Hair: 9 frames of 300x260 (art-source/items/hair_ssj_cut.py)
+  hair_ssj: 'assets/items/hair_ssj.png', // Golden Spike Hair: 9 frames of 300x260 (art-source/items/hair_ssj_cut.py)
   // hairstyles and wings cut from the owner's sheets (art-source/items/hairs_cut.py, wings_cut.py)
   hair_messy_black: 'assets/items/hair_messy_black.png',
   hair_messy_black_icon: 'assets/items/hair_messy_black_icon.png',

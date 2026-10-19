@@ -199,6 +199,23 @@ SUPABASE_ANON_KEY=sb_publishable_...
 
 Kung naka-commit na dati ang `www/js/online-config.js` na may key, alisin ito sa git: `git rm --cached www/js/online-config.js`, tapos i-commit.
 
+### Limitasyon: 3 account bawat IP address (laban sa spam)
+
+Para hindi makagawa ng maraming account ang isang tao, dumadaan ang pag-register sa isang **Edge Function** na
+`signup` (`supabase/functions/signup/index.ts`). Binibilang nito ang mga account na nagawa mula sa iisang IP address
+(hash lang ng IP ang naka-save, hindi ang mismong IP) at tumatanggi kapag 3 na.
+
+1. **Patakbuhin ulit ang buong `supabase/schema.sql`** sa SQL Editor (may bagong table na `signup_ips`).
+2. **I-deploy ang function.** Sa Supabase dashboard: *Edge Functions → Deploy a new function → Via Editor*, pangalan na
+   `signup`, i-paste ang laman ng `supabase/functions/signup/index.ts`, at **patayin ang "Verify JWT"** (o sa CLI:
+   `supabase functions deploy signup --no-verify-jwt`).
+3. **Patayin ang direktang sign-up.** *Authentication → Sign In / Providers* → i-off ang **Allow new users to sign up**.
+   Gumagana pa rin ang function kahit naka-off ito, pero hindi na makakagawa ng account nang hindi dumadaan sa limit.
+
+Hangga't hindi pa naka-deploy ang function, gumagamit ang game ng dating paraan (walang limit). Sa offline mode
+(walang Supabase), 3 account bawat device ang limit. Paalala: iisa ang IP ng mga nasa iisang Wi-Fi (bahay, school,
+computer shop), kaya 3 lang din ang kaya nila lahat; ang `MAX_PER_IP` sa function ang babaguhin kung gusto mong taasan.
+
 ### Paano ito gumagana
 
 | Bahagi | Saan |

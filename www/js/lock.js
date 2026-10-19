@@ -1,4 +1,4 @@
-// World Lock: who owns the world, its description, and who may build in it.
+// Gold Lock: who owns the world, its description, and who may build in it.
 // The owner sets it with the wrench (click the lock). Everyone else can only look.
 // Rules: anyone with access (or everyone, when open) can place and break blocks;
 // the lock itself can only be broken by the owner.
@@ -153,9 +153,9 @@ Net.onKick = (p) => {
   if (!inWorld || !Net.me || (p.to !== '*' && p.to !== Net.me.id)) return;
   if (!worldOwner || lc(p.n) !== lc(worldOwner) || isOwner()) return;
   for (const id of ['lockwin', 'worlds', 'shop', 'pmenu']) if ($(id)) $(id).hidden = true;
-  if (p.k === 'out' && worldName !== START_WORLD) {
+  if (p.k === 'out' && worldName !== LOBBY_WORLD) {
     const from = worldName;
-    enterWorld(START_WORLD).then((ok) => {
+    enterWorld(LOBBY_WORLD).then((ok) => {
       if (ok) setTimeout(() => toast(p.n + ' kicked you out of ' + from), 300);
       else toDoor(p.n + ' sent you back to the door');
     });
@@ -192,7 +192,7 @@ $('lockSave').onclick = () => {
   lockCfg.open = $('lOpen').checked;
   setLockCfg(lockCfg);
   saveWorld();
-  toast('World Lock saved');
+  toast('Gold Lock saved');
   closeLockWin();
 };
 $('lockClose').onclick = closeLockWin;

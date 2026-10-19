@@ -27,11 +27,12 @@ const P = {
   airJ: 0, // jumps left in the air (Angel Wings)
   cp: null, // {x, y} of the Checkpoint you'll come back to in this world
   say: null, // {text, t} speech bubble
+  rest: null, // {k: 'sit' | 'sleep', tx, ty, id} on a chair or in a bed (rest.js)
 };
 let skin = SKINS[0]; // new players start with the first colour; change it in Menu → Profile
 const equipped = { feet: null, hair: null };
 const SLOTNAME = { hair: 'hair', feet: 'feet' };
-// a new account starts with the wrench and one World Lock (the fist is always in hotbar slot 1)
+// a new account starts with the wrench and one Gold Lock (the fist is always in hotbar slot 1)
 const inv = [
   { id: 'wrench', qty: 1 },
   { id: 'world_lock', qty: 1 },
