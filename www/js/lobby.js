@@ -14,6 +14,7 @@ function buildLobbyWorld() {
   trees.clear();
   signs.clear();
   vends.clear();
+  pianoSongs.clear();
   displays.clear();
   manns.clear();
   drops.length = 0;

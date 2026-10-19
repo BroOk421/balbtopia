@@ -4,7 +4,7 @@
 let xp = 0, // XP inside the current level
   level = 1,
   playDays = []; // dates played, like '2026-10-15'
-const settings = { vibrate: true, coords: true, zoom: 0 }; // zoom: camera steps closer than the farthest view
+const settings = { vibrate: true, coords: true, zoom: 0, sound: true }; // zoom: camera steps closer than the farthest view
 
 const xpNeed = (lv) => 40 + lv * 20; // XP needed to go from level lv to lv+1
 // XP for playing: breaking blocks, planting, splicing and harvesting
@@ -151,9 +151,12 @@ function settingsTab(el) {
       <span>Camera</span>
       <span class="zoom"><small>Far</small><input type="range" id="sZoom" min="0" max="${ZOOM_MAX}" step="1" aria-label="Camera distance" /><small>Near</small></span>
     </div>
+    <label class="set"><span>Sound</span><input type="checkbox" id="sSnd" /></label>
     <label class="set"><span>Vibration ${Native.isApp ? '' : '<small>(phone app)</small>'}</span><input type="checkbox" id="sVib" /></label>
     <div class="set"><span>Account <span class="acct">${playerName}</span></span>
       <span class="nrow"><button type="button" id="sLogout">Log out</button></span>
+    </div>
+    <div class="set"><span>Version</span><small>Build ${GAME_BUILD}</small>
     </div>`;
   el.querySelectorAll('.seg button').forEach((b) => {
     b.setAttribute('aria-checked', String(b.dataset.v === walkStyle));
@@ -171,6 +174,13 @@ function settingsTab(el) {
     resize();
   };
   zm.onchange = () => savePlayer();
+  const snd = el.querySelector('#sSnd');
+  snd.checked = settings.sound !== false;
+  snd.onchange = () => {
+    settings.sound = snd.checked;
+    savePlayer();
+    if (snd.checked) Sfx.play('pickup');
+  };
   vib.checked = settings.vibrate;
   vib.onchange = () => {
     settings.vibrate = vib.checked;

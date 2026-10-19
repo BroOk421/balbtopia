@@ -612,6 +612,9 @@
     },
     "princess_hair": {
       "growSeconds": 300
+    },
+    "piano": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -2666,6 +2669,15 @@
       "result": "sand",
       "source": "balbtopia",
       "note": "Sand = Dirt + Water Bucket (Growtopia Sand can't be spliced)"
+    },
+    {
+      "seeds": [
+        "note_block",
+        "white_block"
+      ],
+      "result": "piano",
+      "source": "balbtopia",
+      "note": "Piano = Note Block + White Block (Balbtopia; opens the song maker)"
     }
   ],
   "growtopiaNotInGameYet": [

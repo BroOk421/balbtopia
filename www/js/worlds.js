@@ -56,11 +56,12 @@ function worldData() {
     lock: lockCfg,
     trees: [...trees].map(([i, t]) => [i, t.seed, t.planted, t.fruit, t.spliced ? 1 : 0, t.pa || 0]),
     jam: jamInfo(), // jammers placed here (Signal Jammer hides the world from the list)
-    signs: [...signs].filter(([i]) => isSignT(fg[i])), // [tile, text] of every sign with writing
+    signs: [...signs].filter(([i]) => hasTextT(fg[i])), // [tile, text] of every sign with writing (and door destination)
     rv: worldRV, // RECIPES world only: the recipe list it was built from
     disp: [...displays].filter(([i]) => isDispT(fg[i])), // [tile, item] in every Display Box
     mann: [...manns].filter(([i]) => isMannT(fg[i])), // [tile, { slot: item }] worn by every Mannequin
     vends: [...vends].filter(([i]) => isVendT(fg[i])), // [tile, machine] of every Vending Machine
+    songs: [...pianoSongs].filter(([i]) => isPianoT(fg[i])), // [tile, song] of every Piano with a song (music.js)
     // floating drops stay in the world: [uid, item, qty, x, y, dropped at (ms), dropped by]
     drops: drops.slice(-MAX_DROPS).map((d) => [d.uid, d.id, d.qty, Math.round(d.x), Math.round(d.y), d.born, d.by || 0]),
     visited: Date.now(),
@@ -71,6 +72,7 @@ function applyWorld(w, skew = 0) {
   fromB64(w.fg, fg);
   fromB64(w.bg, bg);
   fromB64(w.vari, vari);
+  migrateTiles(); // items that moved between block and background (blocks.js)
   door.x = w.door[0];
   door.y = w.door[1];
   worldOwner = w.owner || null;
@@ -80,6 +82,7 @@ function applyWorld(w, skew = 0) {
     if (TREE_TIME[seed]) trees.set(i, { seed, planted, fruit, spliced: !!sp, pa: typeof pa === 'string' ? pa : null });
   signs.clear();
   for (const [i, text] of Array.isArray(w.signs) ? w.signs : []) if (Number.isInteger(i)) setSign(i, text);
+  numberDoors(false); // doors already in the map without a door ID get one (signs.js)
   worldRV = w.rv || null;
   displays.clear();
   for (const [i, id] of Array.isArray(w.disp) ? w.disp : []) if (Number.isInteger(i)) setDisplay(i, id);
@@ -87,6 +90,8 @@ function applyWorld(w, skew = 0) {
   for (const [i, m] of Array.isArray(w.mann) ? w.mann : []) if (Number.isInteger(i)) setMann(i, m);
   vends.clear();
   for (const [i, v] of Array.isArray(w.vends) ? w.vends : []) if (Number.isInteger(i)) setVend(i, v);
+  pianoSongs.clear();
+  for (const [i, s] of Array.isArray(w.songs) ? w.songs : []) if (Number.isInteger(i)) setPianoSong(i, s);
   drops.length = 0;
   for (const [uid, id, qty, x, y, born, by] of w.drops || [])
     if (typeof uid === 'string' && (id === 'gold' || ITEMS[id]) && qty > 0)
@@ -123,6 +128,7 @@ function playerData() {
     settings,
     friends: myFriends,
     seen: seenWorlds, // the worlds this account has been to (the private world list)
+    songs: mySongs, // songs made with a Piano (music.js)
   };
 }
 // what you wear, from a save: every slot is emptied first (so nothing carries over from another account),
@@ -150,13 +156,14 @@ function applyPlayer(p) {
     .slice(0, SEEN_MAX);
   if (SKINS.includes(p.skin)) skin = p.skin;
   inv.length = 0;
-  for (const it of p.inv || []) if (ITEMS[it.id]) inv.push(it);
+  for (const it of Array.isArray(p.inv) ? p.inv : []) if (it && ITEMS[it.id] && it.qty > 0) inv.push(it);
   if (!inv.some((s) => s.id === 'wrench')) inv.unshift({ id: 'wrench', qty: 1 });
   P.gold = p.gold || 0;
   xp = p.xp || 0;
   level = p.level || 1;
   playDays = p.playDays || [];
   Object.assign(settings, p.settings || {});
+  mySongs = (Array.isArray(p.songs) ? p.songs : []).map(cleanSong).filter(Boolean).slice(0, MY_SONGS_MAX);
   setWorn(p.equipped, p.wornV >= 2);
   // the held item comes back if it is still in the bag (wearables are worn, not held)
   hand =
@@ -261,6 +268,7 @@ async function enterWorldNow(name) {
     trees.clear();
     signs.clear();
     vends.clear();
+    pianoSongs.clear();
     displays.clear();
     manns.clear();
     worldRV = null;

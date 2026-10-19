@@ -2,7 +2,30 @@
 // ===== input =====
 const keys = {};
 let ptr = { x: 0, y: 0, down: false, inside: false },
-  actT = 0;
+  actT = 0,
+  actTile = null; // the tile the last click / repeat acted on (main.js: dragging to place)
+// holding something that is placed (block, background, seed)
+function placingHand() {
+  const it = ITEMS[hand];
+  return !!it && (it.kind === 'block' || it.kind === 'background' || it.kind === 'seed');
+}
+// act on every tile on the line from tile a to tile b (not a itself), in order
+function dragPlace(a, b) {
+  const sx = ptr.x,
+    sy = ptr.y,
+    n = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+  for (let k = 1; k <= n; k++) {
+    const x = Math.round(a.x + ((b.x - a.x) * k) / n),
+      y = Math.round(a.y + ((b.y - a.y) * k) / n);
+    ptr.x = x * TS + TS / 2;
+    ptr.y = y * TS + TS / 2;
+    act();
+    if (!ptr.down || !placingHand()) break; // a dialog opened or the stack ran out
+  }
+  ptr.x = sx;
+  ptr.y = sy;
+  actTile = b;
+}
 const $ = (id) => document.getElementById(id);
 const cv = $('c'),
   g = cv.getContext('2d');
@@ -66,6 +89,7 @@ cv.addEventListener('pointerdown', (e) => {
   ptr = { ...w, down: true, inside: true };
   if ($('start').hidden) {
     act();
+    actTile = tileUnder();
     actT = 0.26;
   }
   cv.setPointerCapture(e.pointerId);

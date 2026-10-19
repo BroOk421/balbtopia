@@ -532,6 +532,10 @@ function render() {
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.clearRect(0, 0, cv.width, cv.height);
   drawBg();
+  Sfx.loop('rain', weatherNow === 'rain' && inWorld); // rain sound while it rains (sound.js)
+  // weather (snow / rain) sits behind the world, over the backdrop only (weather.js)
+  if (weatherNow === 'snow') drawSnow();
+  else if (weatherNow === 'rain') drawRain();
   const sx = (Math.random() - 0.5) * shake,
     sy = (Math.random() - 0.5) * shake;
   const ox = Math.round(-cam.x * Z + sx),
@@ -592,6 +596,9 @@ function render() {
       }
     }
   for (let i = 0; i < bgDmg.length; i++) if (bgDmg[i] && now - dmgT[i] > 5000) bgDmg[i] = 0;
+  // music notes: the beat plays the next column, then the notes get their letters and pops (music.js)
+  stepMusic();
+  drawMusic(ox, oy, T, vx0, vy0, vx1, vy1);
   // drops
   drawMannequins(ox, oy, T);
   // main door (1 tile), drawn in front of the wall and behind the player
@@ -693,6 +700,12 @@ function render() {
     ox,
     oy,
   );
+  // blocks that stand in front of players (Picket Fence): drawn again over them
+  for (let y = vy0; y <= vy1; y++)
+    for (let x = vx0; x <= vx1; x++) {
+      const b = BLOCK[fg[at(x, y)]];
+      if (b && b.front) drawNewBlock(b, x, y, ox + x * T, oy + y * T, T);
+    }
   drawWater(ox, oy, T); // gates.js: water in front of the world and players
   if (P.hurt > 0) {
     g.fillStyle = `rgba(255,60,30,${P.hurt * 0.25})`;
@@ -732,9 +745,7 @@ function render() {
     g.fillText(f.s, ox + f.x * Z, oy + f.y * Z);
     g.globalAlpha = 1;
   }
-  // weather: falling snow over the world, and the white flash when the weather changes
-  if (weatherNow === 'snow') drawSnow();
-  else if (weatherNow === 'rain') drawRain();
+  // the white flash when the weather changes (the snow / rain itself is drawn behind the world, above)
   drawWeatherFlash();
   // cursor square
   if (ptr.inside && $('inv').hidden) {
@@ -779,7 +790,17 @@ function iconCanvas(id) {
   else if (id === 'cave') x.drawImage(IMG.tile_cave, 0, 0);
   else {
     const k = { dirt: 'tile_dirt_0', rock: 'tile_stone', lava: 'tile_lava_0' }[id];
-    x.drawImage(IMG[k], 15 * 32, 0, 32, 32, 0, 0, 32, 32);
+    if (IMG[k]) x.drawImage(IMG[k], 15 * 32, 0, 32, 32, 0, 0, 32, 32);
+    else {
+      // no picture for this item (should not happen): a "?" box instead of breaking the bag
+      console.warn('no icon for', id);
+      x.fillStyle = '#251443';
+      x.fillRect(2, 2, 28, 28);
+      x.fillStyle = '#ffd23f';
+      x.font = '20px monospace';
+      x.textAlign = 'center';
+      x.fillText('?', 16, 24);
+    }
   }
   return (ICON[id] = c);
 }
@@ -1083,16 +1104,18 @@ function darkTile() {
   return (DARKC = c);
 }
 // border on the sides that face air: [outline, top light, bottom shade]
-function drawEdges(m, px, py, T, [k, hi, lo], c = g, u = Z) {
+// w: outline thickness in art px (2; Bricks use 1, `edgeW`)
+function drawEdges(m, px, py, T, [k, hi, lo], c = g, u = Z, w = 2) {
+  const o = w * u;
   c.fillStyle = k;
-  if (m & 1) c.fillRect(px, py, T, 2 * u);
-  if (m & 2) c.fillRect(px + T - 2 * u, py, 2 * u, T);
-  if (m & 4) c.fillRect(px, py + T - 2 * u, T, 2 * u);
-  if (m & 8) c.fillRect(px, py, 2 * u, T);
+  if (m & 1) c.fillRect(px, py, T, o);
+  if (m & 2) c.fillRect(px + T - o, py, o, T);
+  if (m & 4) c.fillRect(px, py + T - o, T, o);
+  if (m & 8) c.fillRect(px, py, o, T);
   c.fillStyle = hi;
-  if (m & 1) c.fillRect(px, py + 2 * u, T, 2 * u);
+  if (m & 1) c.fillRect(px, py + o, T, 2 * u);
   c.fillStyle = lo;
-  if (m & 4) c.fillRect(px, py + T - 4 * u, T, 2 * u);
+  if (m & 4) c.fillRect(px, py + T - o - 2 * u, T, 2 * u);
 }
 // a freshly placed block: a white flash over the tile and a square that pops outwards
 function drawPlaces(ox, oy, T) {
@@ -1268,6 +1291,7 @@ const COIN_BOX = { bar: [34, 19, 9.5], small: [17, 17, 8.5], big: [26, 26, 13] }
 const coinBox = (k) => COIN_BOX[k === 'bar' ? 'bar' : COIN_LOOK[k][1] > 10 ? 'big' : 'small'];
 const COIN_FX = { sparkle: ['#fff4b8', '#ffd23f', '#ffffff'] };
 const PILE_W = 36; // a pile is never wider than this (world px)
+const COIN_SCALE = 0.85; // a big coin's width in drops
 function drawGoldPile(d, x, y, s) {
   // 5 of a kind just joined: sparkles and a little pop
   if (d.shownQ !== undefined && d.qty > d.shownQ) {
@@ -1282,8 +1306,9 @@ function drawGoldPile(d, x, y, s) {
   d.shownQ = d.qty;
   const parts = coinParts(d.qty),
     pop = d.popT ? Math.max(0, 1 - (now - d.popT) / 300) : 0;
-  // world px per canvas px: a big coin is about 1.3 drops wide; shrink if the row would be too wide
-  let k = (s * 1.3) / 26;
+  // world px per canvas px: a big coin is about 0.85 of a drop wide (was 1.3: owner found the coins too big);
+  // shrink if the row would be too wide
+  let k = (s * COIN_SCALE) / 26;
   const gapPx = 2,
     rowW = parts.reduce((w, p) => w + coinBox(p.k)[0], 0) + gapPx * (parts.length - 1);
   if (rowW * k > PILE_W) k = PILE_W / rowW;

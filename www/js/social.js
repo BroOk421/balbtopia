@@ -33,6 +33,8 @@ function dialog(title, html, buttons) {
   return body;
 }
 function closeDialog() {
+  // a box inside the pop-up that still has the keyboard would block the game's keys: give it back
+  if (document.activeElement && $('dlg').contains(document.activeElement)) document.activeElement.blur();
   $('dlg').hidden = true;
   if (dlgDone) {
     const d = dlgDone;
@@ -157,29 +159,61 @@ function pickItem(title, cb) {
   const ids = [...new Set(inv.map((s) => s.id))].filter(tradable);
   if (P.gold > 0) ids.unshift('gold');
   if (!ids.length) return toast('Your bag has nothing to give');
-  const body = dialog(
-    title,
-    `<div class="pick">${ids
-      .map(
-        (id) =>
-          `<button type="button" class="pcell" data-id="${id}" title="${esc(itemName(id))}"><img src="${iconCanvas(id).toDataURL()}" alt=""><small>${have(id)}</small></button>`,
-      )
-      .join('')}</div>
-     <p class="pname2">Tap an item to choose it</p>`,
-    [{ label: 'Cancel', cls: 'ghost', run: () => {} }],
-  );
-  body.querySelectorAll('.pcell').forEach(
-    (c) =>
-      (c.onclick = () => {
-        const id = c.dataset.id,
-          n = have(id);
-        if (n <= 1) {
-          closeDialog();
-          return cb(id, 1);
-        }
-        askQty(title, id, n, 'Confirm', (q) => cb(id, q));
-      }),
-  );
+  const body = dialog(title, '<div class="ipick"></div>', [{ label: 'Cancel', cls: 'ghost', run: () => {} }]);
+  itemPicker(body.querySelector('.ipick'), ids, {
+    count: have,
+    hint: 'Tap an item to choose it',
+    onPick: (id) => {
+      const n = have(id);
+      if (n <= 1) {
+        closeDialog();
+        return cb(id, 1);
+      }
+      askQty(title, id, n, 'Confirm', (q) => cb(id, q));
+    },
+  });
+}
+// a search box over a grid of item pictures (with how many); typing filters by name. Used for trades, gifts and
+// the Vending Machine. opts: count(id) -> number shown, onPick(id), selected (id shown picked), hint (text under)
+function itemPicker(box, ids, opts = {}) {
+  box.innerHTML = `<input class="isearch" type="search" placeholder="Search items" aria-label="Search items" autocomplete="off">
+    <div class="pick"></div><p class="pname2"></p>`;
+  const q = box.querySelector('.isearch'),
+    grid = box.querySelector('.pick'),
+    name = box.querySelector('.pname2');
+  let sel = opts.selected || null;
+  const say = (id) => (name.textContent = id ? itemName(id) + (opts.count ? ' · ' + opts.count(id).toLocaleString() : '') : opts.hint || '');
+  for (const id of ids) {
+    const c = document.createElement('button');
+    c.type = 'button';
+    c.className = 'pcell';
+    c.dataset.id = id;
+    c.dataset.n = itemName(id).toLowerCase();
+    c.title = itemName(id);
+    c.setAttribute('aria-pressed', String(id === sel));
+    c.innerHTML = `<img src="${iconCanvas(id).toDataURL()}" alt="">${opts.count ? `<small>${opts.count(id).toLocaleString()}</small>` : ''}`;
+    c.onmouseenter = () => say(id);
+    c.onmouseleave = () => say(sel);
+    c.onclick = () => {
+      sel = id;
+      grid.querySelectorAll('.pcell').forEach((e) => e.setAttribute('aria-pressed', String(e === c)));
+      say(id);
+      if (opts.onPick) opts.onPick(id);
+    };
+    grid.appendChild(c);
+  }
+  q.oninput = () => {
+    const t = q.value.trim().toLowerCase();
+    let shown = 0;
+    grid.querySelectorAll('.pcell').forEach((c) => {
+      const ok = !t || c.dataset.n.includes(t);
+      c.hidden = !ok;
+      shown += ok;
+    });
+    name.textContent = shown ? (sel ? itemName(sel) : opts.hint || '') : 'No item matches "' + q.value.trim() + '"';
+  };
+  say(sel);
+  return box;
 }
 // how many? a pop-up with the item, a number box (−, +, MAX), Cancel and a confirm button
 // calls back with a whole number from 1 to max

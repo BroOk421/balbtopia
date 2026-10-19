@@ -53,6 +53,197 @@ Net.onSign = (p) => {
   if (p && Number.isInteger(p.i) && p.i >= 0 && p.i < fg.length) setSign(p.i, p.text);
 };
 
+// ---------- doors that lead to another world ----------
+// Every door placed in a world gets its own number, the door ID (#1, #2, ... counting up, whatever kind of door).
+// Wrench a door: two boxes on one row, the world it leads to ("/" first) and the door ID there ("#" first).
+// Stand in the door and click it: you go to that world and come out of that door. Only "/" (or the same world's
+// name) = this world; no ID (or one that doesn't exist) = the main door. Standing in a door, a click never breaks it.
+// Everything is kept in the same `signs` map as sign text, written "#<own id> /<world>#<id>" (saved with the world
+// and sent to everyone with the `sign` event).
+const DOOR_IDS = new Set(['door', 'dungeon_door', 'house_entrance', 'screen_door', 'barn_door']);
+const isDoorT = (t) => !!(BLOCK[t] && DOOR_IDS.has(BLOCK[t].id));
+const hasTextT = (t) => isSignT(t) || isDoorT(t); // tiles whose `signs` entry is kept
+// { id: this door's number, to: world name ('' = this world), at: door number there (0 = main door) }
+function doorInfo(i) {
+  const m = /^(?:#(\d+))?\s*(?:\/([A-Z0-9]{0,16})(?:#(\d+))?)?$/.exec(signs.get(i) || '');
+  return m ? { id: +m[1] || 0, to: m[2] || '', at: +m[3] || 0 } : { id: 0, to: '', at: 0 };
+}
+function setDoor(i, d) {
+  setSign(i, (d.id ? '#' + d.id : '') + (d.to || d.at ? ' /' + d.to + (d.at ? '#' + d.at : '') : ''));
+}
+// the tile of the door with this number in the loaded world, or -1
+function doorById(n) {
+  if (!n) return -1;
+  for (let i = 0; i < fg.length; i++) if (isDoorT(fg[i]) && doorInfo(i).id === n) return i;
+  return -1;
+}
+// doors without a number get the next ones, in tile order (the same on every computer for the same world).
+// Runs when a world loads (so doors already in maps get theirs) and when a door is placed.
+function numberDoors(send) {
+  let max = 0;
+  const todo = [];
+  for (let i = 0; i < fg.length; i++) {
+    if (!isDoorT(fg[i])) continue;
+    const d = doorInfo(i);
+    if (d.id) max = Math.max(max, d.id);
+    else todo.push(i);
+  }
+  for (const i of todo) {
+    setDoor(i, { ...doorInfo(i), id: ++max });
+    if (send) Net.sendSign(i, signs.get(i) || '');
+  }
+  return todo.length;
+}
+// what the player sees for a door
+const doorLabel = (d) => (d.to ? d.to + (d.at ? ' #' + d.at : '') : d.at ? '#' + d.at : 'the main door');
+// "/" first, then only letters and numbers (upper case), at most 16; "#" then up to 4 digits
+const doorInput = (v) => '/' + String(v).replace(/^\/+/, '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16);
+const doorIdInput = (v) => '#' + String(v).replace(/[^0-9]/g, '').replace(/^0+/, '').slice(0, 4);
+// keeps the first character ("/" or "#") of a box from being deleted
+function fixedPrefix(inp, clean, onEnter) {
+  inp.addEventListener('input', () => {
+    const v = clean(inp.value);
+    if (inp.value !== v) inp.value = v;
+  });
+  inp.addEventListener('keydown', (e) => {
+    if ((e.key === 'Backspace' && inp.selectionStart <= 1 && inp.selectionEnd <= 1) || (e.key === 'Home' && !e.shiftKey)) {
+      e.preventDefault();
+      inp.setSelectionRange(1, 1);
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onEnter();
+    }
+  });
+}
+function editDoor(x, y) {
+  const i = at(x, y);
+  if (!canEdit(true)) {
+    toast(worldOwner ? 'Only players who can build in ' + worldName + ' can set this door' : "You can't set this door");
+    return;
+  }
+  if (!doorInfo(i).id) numberDoors(true);
+  const d = doorInfo(i);
+  const save = (b) => {
+    if (!isDoorT(fg[i])) return;
+    const to = doorInput(b.querySelector('#doorDest').value).slice(1),
+      n = +doorIdInput(b.querySelector('#doorAt').value).slice(1) || 0,
+      nd = { id: doorInfo(i).id, to, at: n };
+    setDoor(i, nd);
+    Net.sendSign(i, signs.get(i) || '');
+    saveWorld();
+    toast('This door goes to ' + doorLabel(nd));
+  };
+  const body = dialog(
+    'EDIT DOOR #' + d.id,
+    `<label class="lfield" for="doorDest">Where does this door go?
+       <div class="doorrow">
+         <input id="doorDest" maxlength="17" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc('/' + d.to)}" aria-label="World">
+         <input id="doorAt" class="doorid" maxlength="5" inputmode="numeric" autocomplete="off" value="${esc('#' + (d.at || ''))}" aria-label="Door ID in that world">
+       </div></label>
+     <p class="mnote">This door is <b>#${d.id}</b>. Write a world after the "/" and a door ID after the "#".
+       Only "/" = this world. No ID = the main door. Stand in the door and click it to go.</p>`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => {} },
+      { label: 'Save', run: save },
+    ],
+  );
+  const inp = body.querySelector('#doorDest'),
+    idb = body.querySelector('#doorAt'),
+    enter = () => {
+      save(body);
+      closeDialog();
+    };
+  fixedPrefix(inp, doorInput, enter);
+  fixedPrefix(idb, doorIdInput, enter);
+  setTimeout(() => {
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+  }, 40);
+}
+// the door tile the player is standing in (feet or body), or -1
+function doorUnderPlayer() {
+  const tx = Math.floor((P.x + P.w / 2) / TS);
+  for (const py of [P.y + P.h - 2, P.y + P.h / 2]) {
+    const ty = Math.floor(py / TS);
+    if (inW(tx, ty) && isDoorT(fg[at(tx, ty)]) && !isDoorTile(tx, ty)) return at(tx, ty);
+  }
+  return -1;
+}
+// stand in the door with this number (else at the main door)
+function toDoorId(n) {
+  const i = doorById(n);
+  if (i < 0) return toDoor();
+  toDoor();
+  P.x = (i % WW) * TS + TS / 2 - P.w / 2;
+  P.y = (((i / WW) | 0) + 1) * TS - P.h;
+}
+// clicking a door you are standing in: the camera zooms into the door, then you go where it leads.
+// True when the click was used (so the door is never punched while you stand in it).
+const DOOR_ZOOM_MS = 650; // the zoom into the door
+const DOOR_FADE_MS = 350; // fading back in afterwards
+let doorTrip = null, // { t0, x, y, go } while zooming in
+  doorFadeT = -1e9;
+function useDoor(x, y) {
+  const i = at(x, y);
+  if (!isDoorT(fg[i]) || isDoorTile(x, y) || doorUnderPlayer() !== i) return false;
+  if (doorTrip) return true;
+  const d = doorInfo(i),
+    here = !d.to || d.to === worldName;
+  for (const k in keys) keys[k] = false;
+  ptr.down = false;
+  P.vx = 0;
+  P.punch = P.place = null;
+  Sfx.play('door');
+  doorTrip = {
+    t0: now,
+    x: x * TS + TS / 2,
+    y: y * TS + TS / 2,
+    go: () =>
+      here
+        ? toDoorId(d.at)
+        : enterWorld(d.to).then((ok) => {
+            if (!ok) return;
+            if (d.at) toDoorId(d.at);
+            toast('Entered ' + d.to);
+          }),
+  };
+  return true;
+}
+// called by the game loop around render(): zooms the camera into the door, darkening, then goes
+function doorZoomBegin() {
+  if (!doorTrip) return null;
+  const u = Math.min(1, (now - doorTrip.t0) / DOOR_ZOOM_MS),
+    e = u * u * (3 - 2 * u),
+    z0 = Z;
+  Z = z0 * (1 + 1.6 * e);
+  cam.x = doorTrip.x - cv.width / Z / 2;
+  cam.y = doorTrip.y - cv.height / Z / 2;
+  return { z0, e, done: u >= 1 };
+}
+function doorZoomEnd(st) {
+  if (st) {
+    Z = st.z0;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = `rgba(0,0,0,${st.e})`;
+    g.fillRect(0, 0, cv.width, cv.height);
+    if (st.done) {
+      const go = doorTrip.go;
+      doorTrip = null;
+      doorFadeT = now;
+      go();
+    }
+    return;
+  }
+  // after arriving: the black fades away
+  const f = 1 - (now - doorFadeT) / DOOR_FADE_MS;
+  if (f > 0) {
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = `rgba(0,0,0,${f})`;
+    g.fillRect(0, 0, cv.width, cv.height);
+  }
+}
+
 // the bubble above the sign you're standing on (drawn by render.js)
 function wrapText(text, maxW) {
   const lines = [];
@@ -72,9 +263,15 @@ function wrapText(text, maxW) {
 }
 function drawSignBubble(ox, oy) {
   if (P.dead) return;
-  const i = signUnderPlayer();
-  if (i < 0) return;
-  let text = signs.get(i);
+  let i = signUnderPlayer(),
+    text;
+  if (i < 0) {
+    // standing in a door that leads somewhere: say where
+    i = doorUnderPlayer();
+    if (i < 0) return;
+    const d = doorInfo(i);
+    text = 'Door #' + d.id + ' to ' + doorLabel(d) + '. Click it to go in.';
+  } else text = signs.get(i);
   if (!text) {
     if (!canEdit(true)) return;
     text = 'This sign is blank. Hold the wrench and click it to write on it.';
@@ -137,6 +334,7 @@ function buildRecipesWorld() {
   trees.clear();
   signs.clear();
   vends.clear();
+  pianoSongs.clear();
   displays.clear();
   manns.clear();
   drops.length = 0;

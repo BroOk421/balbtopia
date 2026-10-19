@@ -304,6 +304,7 @@ const Net = (() => {
       .on('broadcast', { event: 'vend' }, ({ payload }) => N.onVend && N.onVend(payload))
       .on('broadcast', { event: 'show' }, ({ payload }) => N.onShow && N.onShow(payload))
       .on('broadcast', { event: 'sign' }, ({ payload }) => N.onSign && N.onSign(payload))
+      .on('broadcast', { event: 'song' }, ({ payload }) => N.onSong && N.onSong(payload))
       .on('broadcast', { event: 'chat' }, ({ payload }) => payload && N.onChat && N.onChat(payload))
       .on('broadcast', { event: 'clear' }, () => {
         if (snapFg) clearWorldTiles();
@@ -419,6 +420,9 @@ const Net = (() => {
   };
   N.sendSign = (i, text) => {
     if (N.me) send('sign', { i, text });
+  };
+  N.sendSong = (i, s) => {
+    if (N.me) send('song', { i, s });
   };
   N.sendChat = (text) => {
     if (N.me) send('chat', { id: N.me.id, n: playerName, text });

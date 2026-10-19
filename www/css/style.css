@@ -2379,3 +2379,236 @@ button:focus-visible {
   margin-bottom: 8px;
   flex-wrap: wrap;
 }
+
+/* bag open with an item picked: hotbar slots 3-0 glow; click one to put the item there */
+.hb.target {
+  border-color: var(--sun);
+  animation: hbTarget 0.9s ease-in-out infinite;
+}
+@keyframes hbTarget {
+  50% {
+    box-shadow: 0 0 0 2px var(--sun), 0 0 10px var(--sun);
+  }
+}
+
+/* door editor: world box and the small door-ID box on one row */
+.doorrow {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.doorrow input {
+  flex: 1;
+  min-width: 0;
+}
+.doorrow input.doorid {
+  flex: 0 0 5.5em;
+  text-align: center;
+}
+
+/* ---------- Piano: song maker window (music.js) ---------- */
+.songwin {
+  z-index: 6;
+  width: min(96vw, 720px);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.songwin header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.songwin header h2 {
+  white-space: nowrap;
+}
+.songwin #songName {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--pixel);
+  font-size: 9px;
+  padding: 6px 8px;
+  background: var(--slot);
+  color: var(--ink);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+}
+/* the note list: Note Block chips with their names, wrapping */
+.notelist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 4px;
+  max-height: 128px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.nchip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 3px 0 2px;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.nchip canvas {
+  width: 26px;
+  height: 26px;
+  image-rendering: pixelated;
+}
+.nchip span {
+  font-family: var(--pixel);
+  font-size: 6px;
+}
+.nchip.sharp {
+  background: #160c2a;
+}
+.nchip.drum span {
+  font-size: 5px;
+}
+.nchip.on {
+  border-color: var(--sun);
+  box-shadow: 0 0 0 2px var(--sun), 0 0 8px var(--sun);
+}
+.songbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.songbar .tempo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--pixel);
+  font-size: 8px;
+}
+.songbar .tempo input {
+  width: 110px;
+}
+.songhint {
+  color: var(--muted);
+  font-size: 11px;
+}
+/* the grid: a row of column numbers, then SONG_ROWS rows of squares; scrolls sideways */
+.songgrid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 30px);
+  grid-auto-rows: 30px;
+  grid-template-rows: 14px;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 8px;
+  background: var(--night);
+  border-radius: 4px;
+}
+.scol {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--muted);
+  align-self: end;
+}
+.scol.now {
+  color: var(--sun);
+}
+.scell {
+  position: relative;
+  padding: 0;
+  background: var(--slot);
+  border: 1px solid #3a2a5a;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.scell.beat {
+  border-left: 2px solid #5a4a80;
+}
+.scell:hover {
+  border-color: var(--glow);
+}
+.scell.now {
+  background: #4a3480;
+}
+.scell canvas {
+  position: absolute;
+  inset: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  image-rendering: pixelated;
+}
+.scell span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1px;
+  font-family: var(--pixel);
+  font-size: 5px;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000;
+}
+.scell.has.now canvas {
+  filter: brightness(1.4);
+}
+.songlist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.songlist .srow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--slot);
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+.songlist .srow b {
+  font-family: var(--pixel);
+  font-size: 8px;
+}
+.songlist .srow small {
+  color: var(--muted);
+  margin-right: auto;
+}
+.songbtns {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+#songPlay.on {
+  box-shadow: 0 0 0 2px var(--sun), 0 0 8px var(--sun);
+}
+#songStop:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* search box over item pictures (bag, trades, gifts, Vending Machine) */
+.isearch {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  font: 12px var(--body);
+  color: var(--ink);
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+}
+.isearch:focus {
+  outline: none;
+  border-color: var(--glow);
+}
+.pcell[hidden] {
+  display: none;
+}
+.vpickbox .pick {
+  max-height: 24vh;
+}

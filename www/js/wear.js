@@ -750,11 +750,19 @@ function feetSpeed() {
 }
 const heldTool = (h) => (ITEMS[h] && ITEMS[h].tool) || null;
 // punches a block needs with what you hold
+// rarer blocks are tougher: extra punches by rarity tier (Common +0, Uncommon +1, Rare +2, Epic +3, Legendary +4)
+function rarityHits(id) {
+  if ((BLOCK[(ITEMS[id] || {}).block] || {}).easy) return 0; // music notes stay 1 punch
+  const r = typeof rarityOf === 'function' ? rarityOf(id) : null;
+  return !r ? 0 : r <= 5 ? 0 : r <= 15 ? 1 : r <= 40 ? 2 : r <= 80 ? 3 : 4;
+}
 function hitsNeeded(b) {
-  const t = heldTool(hand);
-  if (!t || !t.bonus || b.hits === Infinity) return b.hits;
-  if (t.dirtOnly && b.id !== 'dirt') return b.hits;
-  return Math.max(1, b.hits - t.bonus);
+  if (b.hits === Infinity) return b.hits;
+  const base = b.hits + rarityHits(b.id),
+    t = heldTool(hand);
+  if (!t || !t.bonus) return base;
+  if (t.dirtOnly && b.id !== 'dirt') return base;
+  return Math.max(1, base - t.bonus);
 }
 // tool picture, pointing up and right (head at the top right)
 function toolSprite(id) {

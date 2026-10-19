@@ -151,8 +151,14 @@ const machineOn = (t) => {
   for (let i = 0; i < fg.length; i++) if (fg[i] === t && !(vari[i] & WEATHER_OFF)) return true;
   return false;
 };
+// Only one machine runs at a time: switching one on switches every other machine in the world off, so with
+// two machines each click moves the weather to the one clicked; with one machine it is simply on / off.
+function weatherSolo(i) {
+  for (let k = 0; k < fg.length; k++) if (k !== i && isWeatherT(fg[k])) vari[k] |= WEATHER_OFF;
+}
 function toggleWeather(i) {
   vari[i] ^= WEATHER_OFF;
+  if (!(vari[i] & WEATHER_OFF)) weatherSolo(i);
   toast(BLOCK[fg[i]].name + (vari[i] & WEATHER_OFF ? ': off' : ': on'));
   saveWorld();
 }
@@ -358,8 +364,9 @@ function drawSnow() {
       f.y = -0.02;
       f.x = Math.random();
     }
-    const sx = ((((f.x * W - cam.x * Z * f.d * 0.6) % W) + W) % W),
-      sy = ((((f.y * H - cam.y * Z * f.d * 0.25) % H) + H) % H),
+    // pinned to the world (moves exactly with the camera), so walking doesn't drag the snow along
+    const sx = ((((f.x * W - cam.x * Z) % W) + W) % W),
+      sy = ((((f.y * H - cam.y * Z) % H) + H) % H),
       s = (1.2 + f.d * 2.6) * u;
     g.globalAlpha = 0.45 + f.d * 0.5;
     g.beginPath();
@@ -395,12 +402,17 @@ function drawRain() {
     r.x += dt * (0.9 + r.d * 1.1) * slant * (H / W);
     if (r.y > 1.05) {
       // some land with a splash near the bottom of the screen
-      if (Math.random() < 0.35) SPLASH.push({ x: r.x * W, y: H * (0.78 + Math.random() * 0.2), t: 0 });
+      // (kept in world px so the splash stays where it landed)
+      if (Math.random() < 0.35) {
+        const px = ((((r.x * W - cam.x * Z) % W) + W) % W);
+        SPLASH.push({ x: px / Z + cam.x, y: (H * (0.78 + Math.random() * 0.2)) / Z + cam.y, t: 0 });
+      }
       r.y = -0.05;
       r.x = Math.random();
     }
-    const sx = (((r.x * W - cam.x * Z * r.d * 0.4) % W) + W) % W,
-      sy = (((r.y * H - cam.y * Z * r.d * 0.2) % H) + H) % H,
+    // pinned to the world like the snow
+    const sx = (((r.x * W - cam.x * Z) % W) + W) % W,
+      sy = (((r.y * H - cam.y * Z) % H) + H) % H,
       len = (8 + r.d * 16) * u;
     g.strokeStyle = `rgba(180,210,255,${0.25 + r.d * 0.45})`;
     g.lineWidth = (0.6 + r.d * 1.1) * u;
@@ -421,7 +433,7 @@ function drawRain() {
     g.strokeStyle = `rgba(200,225,255,${a * 0.6})`;
     g.lineWidth = u;
     g.beginPath();
-    g.ellipse(s.x, s.y, (2 + s.t * 30) * u, (0.8 + s.t * 8) * u, 0, 0, Math.PI * 2);
+    g.ellipse((s.x - cam.x) * Z, (s.y - cam.y) * Z, (2 + s.t * 30) * u, (0.8 + s.t * 8) * u, 0, 0, Math.PI * 2);
     g.stroke();
   }
   // a dim grey veil so the whole world looks wet and overcast

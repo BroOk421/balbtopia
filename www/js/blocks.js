@@ -17,7 +17,7 @@ const NEW_ITEMS = [
   { id: 'sign', t: 9, name: 'Sign', kind: 'deco', hits: 2, rarity: 'Common', grow: 60, seed: ['#c98a52', '#6b4424', '#e0b07a'], fx: ['#c98a52', '#8a5a32', '#6b4424'], desc: 'A wooden sign on a post. Sign = Cave Background + Rock.' },
   { id: 'lava_rock', t: 10, name: 'Lava Rock', kind: 'block', hits: 6, rarity: 'Uncommon', grow: 68, seed: ['#3a2b2b', '#ff8a1e', '#5e5050'], fx: ['#3a2b2b', '#ff8a1e', '#5e5050'], edge: ['#120c0c', '#5e5050', '#1e1616'], desc: 'Dark stone with lava still glowing in the cracks. Lava Rock = Cave Background + Lava.' },
   { id: 'wood_block', t: 11, name: 'Wood Block', kind: 'block', hits: 4, rarity: 'Common', grow: 60, seed: ['#a86c3c', '#6b4424', '#c98a52'], fx: ['#a86c3c', '#c98a52', '#6b4424'], edge: ['#2a1a0e', '#c98a52', '#6b4424'], desc: 'Sturdy wooden planks. Wood Block = Dirt + Lava.' },
-  { id: 'glass_pane', t: 12, name: 'Glass Pane', kind: 'block', hits: 3, rarity: 'Common', grow: 60, seed: ['#9fd6f5', '#5a9ec4', '#e8f8ff'], fx: ['#e8f8ff', '#9fd6f5', '#5a9ec4'], desc: 'A see-through glass block. Glass Pane = Rock + Lava.' },
+  { id: 'glass_pane', bgId: 32, oldT: 12, name: 'Glass Pane', kind: 'bg', hits: 3, rarity: 'Common', grow: 60, seed: ['#9fd6f5', '#5a9ec4', '#e8f8ff'], fx: ['#e8f8ff', '#9fd6f5', '#5a9ec4'], desc: 'A see-through glass wall for behind your blocks. Glass Pane = Rock + Lava.' },
   { id: 'bricks', t: 13, name: 'Bricks', kind: 'block', hits: 6, rarity: 'Common', grow: 60, seed: ['#b5502f', '#7a2f18', '#d06a44'], fx: ['#b5502f', '#d06a44', '#cdbb9c'], edge: ['#2a120a', '#d06a44', '#7a2f18'], desc: 'Classic red bricks. Bricks = Grass + Rock.' },
   { id: 'daisy', t: 14, name: 'Daisy', kind: 'deco', hits: 1, rarity: 'Common', grow: 60, seed: ['#f4f4f4', '#ffd23f', '#ffffff'], fx: ['#ffffff', '#ffd23f', '#4caf3a'], desc: 'A little white flower. Daisy = Dirt + Grass.' },
   { id: 'mushroom', t: 15, name: 'Mushroom', kind: 'deco', hits: 1, rarity: 'Common', grow: 60, seed: ['#d6362a', '#f2e6cc', '#ff6a55'], fx: ['#d6362a', '#f2e6cc', '#ffffff'], desc: 'A red cap with white spots. Mushroom = Cave Background + Grass.' },
@@ -159,8 +159,8 @@ const NEW_ITEMS = [
   { id: 'lava_lamp', t: 130, name: 'Lava Lamp', kind: 'deco', hits: 3, rarity: 'Rare', grow: 320, seed: ['#ff5a2a',  '#3a2a4a',  '#ffd040'], fx: ['#ff5a2a',  '#ffd040',  '#8a3aa0'], desc: "Slow blobs of lava rise and fall inside. Lava Lamp = Glass Pane + Lava." },
   { id: 'cherry_blossom', t: 131, name: 'Cherry Blossom', kind: 'deco', hits: 2, rarity: 'Rare', grow: 320, seed: ['#ffb0d0',  '#6a3a2a',  '#ffe0ec'], fx: ['#ffb0d0',  '#ffe0ec',  '#6a3a2a'], desc: "A little blossom tree with drifting pink petals. Cherry Blossom = Grass + Rainbow Block." },
   // Growtopia items (Oct 2026, recipes from growtopiawiki.com): blocks 132-144, backgrounds 27-31
-  { id: 'painting_dink_duck', bgId: 27, name: "Duck Painting", kind: 'bg', rarity: 'Common', grow: 140, seed: ["#ffd23f", "#6b4424", "#fff4b8"], fx: ["#ffd23f", "#fff4b8", "#6b4424"], desc: "A framed painting of a white duck swimming on a pond at sunset. Duck Painting = Yellow Block + Wooden Background." },
-  { id: 'painting_yerfdog', bgId: 28, name: "Dog Painting", kind: 'bg', rarity: 'Common', grow: 140, seed: ["#e8d8c0", "#6b4424", "#6ab0f0"], fx: ["#e8d8c0", "#6ab0f0", "#6b4424"], desc: "A framed painting of a brown puppy with a red ball on the grass. Dog Painting = White Block + Wooden Background." },
+  { id: 'painting_dink_duck', t: 147, oldBg: 27, name: "Duck Painting", kind: 'block', walk: true, hits: 2, rarity: 'Common', grow: 140, seed: ["#ffd23f", "#6b4424", "#fff4b8"], fx: ["#ffd23f", "#fff4b8", "#6b4424"], desc: "A framed painting of a white duck swimming on a pond at sunset. Duck Painting = Yellow Block + Wooden Background." },
+  { id: 'painting_yerfdog', t: 148, oldBg: 28, name: "Dog Painting", kind: 'block', walk: true, hits: 2, rarity: 'Common', grow: 140, seed: ["#e8d8c0", "#6b4424", "#6ab0f0"], fx: ["#e8d8c0", "#6ab0f0", "#6b4424"], desc: "A framed painting of a brown puppy with a red ball on the grass. Dog Painting = White Block + Wooden Background." },
   { id: 'air_duct', bgId: 29, name: "Air Duct", kind: 'bg', rarity: 'Uncommon', grow: 180, seed: ["#8a909e", "#3a3e48", "#c3c9d4"], fx: ["#8a909e", "#c3c9d4", "#3a3e48"], desc: "A riveted metal air duct. Rows of them join into one long tunnel. Air Duct = Dark Grey Block + Grey Block." },
   { id: 'viney_wallpaper', bgId: 30, name: "Vine Wallpaper", kind: 'bg', rarity: 'Common', grow: 172, seed: ["#38732d", "#1a3a14", "#62e4a7"], fx: ["#38732d", "#62e4a7", "#1a3a14"], desc: "A dark jungle wall of tangled vines. Vine Wallpaper = Dark Aqua Block + Grass." },
   { id: 'evil_brick_background', bgId: 31, name: "Dark Brick Wall", kind: 'bg', rarity: 'Rare', grow: 436, seed: ["#2b2b2b", "#140608", "#f40000"], fx: ["#2b2b2b", "#f40000", "#140608"], desc: "Near-black bricks with glowing red mortar, for behind your blocks. Dark Brick Wall = Red Wallpaper + Red Bricks." },
@@ -211,7 +211,7 @@ const NEW_BY_ID = {};
         name: n.name,
         hits: n.hits,
         art: n.kind === 'block' ? 'tex' : 'deco',
-        solid: n.kind === 'block' ? undefined : false,
+        solid: n.kind === 'block' && !n.walk ? undefined : false, // walk: a picture you walk past (paintings)
         plat: n.kind === 'plat' || undefined,
         edge: n.edge,
         fx: n.fx,
@@ -234,7 +234,32 @@ const NEW_BY_ID = {};
 }
 // worlds saved while Stone Wall was a background still show it
 BGS[4] = { id: 'stone_wall', fx: NEW_BY_ID.stone_wall.fx };
+// Items that changed layer (Oct 19 2026): Glass Pane was block 12 and is a background now (32); the Duck and
+// Dog Paintings were backgrounds 27 / 28 and are blocks now (147 / 148). The old numbers still draw and break
+// (dropping the item as it is now), and `migrateTiles` moves them to the new layer when a world loads.
+for (const n of NEW_ITEMS) {
+  if (n.oldT) BLOCK[n.oldT] = { id: n.id, name: n.name, hits: n.hits || 3, art: 'tex', fx: n.fx };
+  if (n.oldBg) BGS[n.oldBg] = { id: n.id, fx: n.fx };
+}
+function migrateTiles() {
+  for (const n of NEW_ITEMS) {
+    if (!n.oldT && !n.oldBg) continue;
+    for (let i = 0; i < fg.length; i++) {
+      if (n.oldT && fg[i] === n.oldT && !bg[i]) {
+        fg[i] = 0;
+        bg[i] = n.bgId;
+      } else if (n.oldBg && bg[i] === n.oldBg && !fg[i]) {
+        bg[i] = 0;
+        fg[i] = n.t;
+      }
+    }
+  }
+}
 for (const id of ['sign', 'crappy_sign', 'pointy_sign']) BLOCK[ITEMS[id].block].sign = true;
+// drawn again in front of players (render.js), so you walk behind it
+BLOCK[ITEMS.picket_fence.block].front = true;
+// Bricks: a 1 px outline where they face air (owner found 2 px too thick)
+BLOCK[ITEMS.bricks.block].edgeW = 1;
 // these old blocks get chip colours here too
 BLOCK[DOOR].fx = ['#a86c3c', '#6b4424', '#c98a52'];
 const isPlat = (x, y) => inW(x, y) && !!(BLOCK[fg[at(x, y)]] || {}).plat;
@@ -1454,7 +1479,37 @@ const HD_TEX = {};
 function decoCanvas(id, f = 0) {
   const k = id + ':' + f;
   if (HD_DECO[id]) return (NEWART[k] ||= hdCanvas((x, h) => HD_DECO[id](x, h, f)));
-  return (NEWART[k] ||= hdPass(cells((h) => DECO[id](h, f))));
+  return (NEWART[k] ||= hdPass(thinOutline(cells((h) => DECO[id](h, f)), THIN_OUTLINE[id])));
+}
+// 2 px art whose dark outline looked too thick (owner): the outline colour is cut to 1 px where it borders
+// empty space. A pixel goes when the side facing out is empty and the other side is outline too, so a
+// 2 px band loses its outer half and 1 px lines stay. Off the top of the tile counts as empty.
+const THIN_OUTLINE = { toilet: '#5a5a66', wooden_platform: '#2a1a0e' };
+function thinOutline(c, col) {
+  if (!col) return c;
+  const x = c.getContext('2d'),
+    W = c.width,
+    H = c.height,
+    im = x.getImageData(0, 0, W, H),
+    d = im.data,
+    r = parseInt(col.slice(1, 3), 16),
+    gg = parseInt(col.slice(3, 5), 16),
+    b = parseInt(col.slice(5, 7), 16),
+    isO = (i, j) => i >= 0 && j >= 0 && i < W && j < H && d[(j * W + i) * 4 + 3] > 0 && d[(j * W + i) * 4] === r && d[(j * W + i) * 4 + 1] === gg && d[(j * W + i) * 4 + 2] === b,
+    empty = (i, j) => (j < 0 ? true : i < 0 || i >= W || j >= H ? false : d[(j * W + i) * 4 + 3] === 0),
+    cut = [];
+  for (let j = 0; j < H; j++)
+    for (let i = 0; i < W; i++) {
+      if (!isO(i, j)) continue;
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]])
+        if (empty(i + di, j + dj) && isO(i - di, j - dj)) {
+          cut.push((j * W + i) * 4);
+          break;
+        }
+    }
+  for (const p of cut) d[p + 3] = 0;
+  x.putImageData(im, 0, 0);
+  return c;
 }
 // ---------- hand-drawn 1 px pictures (fill the whole tile, like a dirt block) ----------
 // helpers: R rect, P pixel, E filled ellipse, RR rounded rect, all in 1 px on a 32x32 canvas
@@ -2000,7 +2055,7 @@ function drawNewBlock(b, x, y, px, py, T) {
   if (b.art === 'mann') return drawMannStand(x, y, px, py, T);
   if (b.art === 'tex') {
     g.drawImage(texCanvas(b.id), px, py, T, T);
-    if (b.edge) drawEdges(maskOf(x, y), px, py, T, b.edge);
+    if (b.edge) drawEdges(maskOf(x, y), px, py, T, b.edge, g, Z, b.edgeW || 2);
   } else {
     // a Checkpoint is green when it is the one you'll come back to
     const f =
@@ -2010,7 +2065,9 @@ function drawNewBlock(b, x, y, px, py, T) {
           : 0
         : b.id === 'wooden_platform'
           ? (x > 0 && fg[at(x - 1, y)] === fg[at(x, y)] ? 1 : 0) | (x < WW - 1 && fg[at(x + 1, y)] === fg[at(x, y)] ? 2 : 0)
-          : decoFrame(b.id);
+          : vari[at(x, y)] & ANIM_OFF && ANIM_TOGGLE.has(b.id)
+            ? 0 // switched off: stays on its first frame
+            : decoFrame(b.id);
     g.drawImage(decoCanvas(b.id, f), px, py, T, T);
   }
 }
@@ -2019,14 +2076,14 @@ function newIcon(id) {
   if (typeof SHOP_ICON !== 'undefined' && SHOP_ICON[id]) return SHOP_ICON[id]();
   if (typeof WEAR_BY_ID !== 'undefined' && (WEAR_BY_ID[id] || TOOLS[id])) return wearIcon(id);
   const n = NEW_BY_ID[id];
-  if (!n) return DECO[id] ? decoCanvas(id) : null;
+  if (!n) return DECO[id] || HD_DECO[id] ? decoCanvas(id) : null; // (HD_DECO: items made outside NEW_ITEMS, e.g. music.js)
   if (n.kind === 'hair') return itemImg(n.id + '_icon');
   const c = document.createElement('canvas');
   c.width = c.height = 32;
   const x = c.getContext('2d');
   if (TEX[id] || HD_TEX[id]) {
     x.drawImage(texCanvas(id), 0, 0);
-    if (n.edge) drawEdges(15, 0, 0, 32, n.edge, x, 1);
+    if (n.edge) drawEdges(15, 0, 0, 32, n.edge, x, 1, (BLOCK[n.t] || {}).edgeW || 2);
   } else x.drawImage(decoCanvas(id), 0, 0);
   return c;
 }
@@ -2220,6 +2277,16 @@ Object.assign(DECO, {
 });
 // animated decorations among them: ms per frame and how many frames
 const NEW_ANIM = { lantern: [180, 2], fish_tank: [320, 4], magic_mushroom: [500, 2], lava_lamp: [600, 4], cherry_blossom: [700, 2], fireplace: [160, 2], disco_ball: [300, 2] };
+// animations a punch stops and the next punch starts again (bit ANIM_OFF of the tile's `vari`, saved and synced;
+// a newly placed one always animates)
+const ANIM_OFF = 32;
+const ANIM_TOGGLE = new Set(['disco_ball']);
+const canStopAnim = (t) => !!(BLOCK[t] && ANIM_TOGGLE.has(BLOCK[t].id));
+function toggleAnim(i) {
+  vari[i] ^= ANIM_OFF;
+  toast(BLOCK[fg[i]].name + (vari[i] & ANIM_OFF ? ': off' : ': on'));
+  saveWorld();
+}
 {
   const prev = decoFrame;
   decoFrame = (id) => (NEW_ANIM[id] ? Math.floor(now / NEW_ANIM[id][0]) % NEW_ANIM[id][1] : prev(id));

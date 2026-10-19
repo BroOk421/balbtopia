@@ -4,7 +4,7 @@ function loop(ts) {
   const dt = Math.min(0.05, (ts - (last || ts)) / 1000);
   last = ts;
   now += dt * 1000;
-  if ($('start').hidden && $('worlds').hidden && $('menu').hidden && !Net.loading) {
+  if ($('start').hidden && $('worlds').hidden && $('menu').hidden && !Net.loading && !doorTrip) {
     let t = dt;
     while (t > 0) {
       const h = Math.min(1 / 120, t);
@@ -13,8 +13,15 @@ function loop(ts) {
     }
     if (ptr.down && $('inv').hidden) {
       actT -= dt;
-      if (actT <= 0) {
+      const t = tileUnder();
+      if (placingHand() && actTile && (t.x !== actTile.x || t.y !== actTile.y)) {
+        // placing blocks / backgrounds / seeds: every new tile the finger or mouse moves onto gets one at once,
+        // tiles skipped between two frames too, so dragging places as smoothly as breaking
+        dragPlace(actTile, t);
+        actT = 0.24;
+      } else if (actT <= 0) {
         act();
+        actTile = t;
         actT = (heldTool(hand) && heldTool(hand).rate) || 0.24; // fancy pickaxes swing faster
       }
     }
@@ -35,7 +42,9 @@ function loop(ts) {
   cam.y = Math.max(-vh * 0.3, Math.min(WH * TS - vh, cam.y));
   shake = Math.max(0, shake - dt * 20);
   Net.tick(dt);
+  const dz = doorZoomBegin(); // walking through a door: the camera zooms into it (signs.js)
   render();
+  doorZoomEnd(dz);
   $('coords').textContent = `X ${Math.floor((P.x + P.w / 2) / TS)}  Y ${Math.floor((P.y + P.h - 1) / TS)}`;
   requestAnimationFrame(loop);
 }

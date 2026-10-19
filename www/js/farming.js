@@ -56,6 +56,7 @@ function plant(x, y, seedItem) {
   const from = ITEMS[seedItem].from;
   trees.set(at(x, y), { seed: from, planted: Date.now(), fruit: randFruit(), spliced: false });
   takeItem(seedItem);
+  Sfx.play('pickup'); // planting sound
   startPlace(x * TS + 16, y * TS + 24);
   smoke(x, y, 4, 0.6);
   addXP(1);
@@ -74,6 +75,7 @@ function splice(x, y, seedItem) {
   const was = t.seed;
   Object.assign(t, { seed: result, planted: Date.now(), fruit: randFruit(), spliced: true, pa: [was, from].sort().join('+') });
   takeItem(seedItem);
+  Sfx.play('pickup');
   smoke(x, y, 10, 1.1);
   addXP(2);
   toast(ITEMS[was].name + ' + ' + ITEMS[from].name + ' = ' + treeName(result) + '!');
@@ -110,6 +112,7 @@ function punchTree(x, y) {
     }
     treeHits.delete(i);
     trees.delete(i);
+    Sfx.play('break');
     burst(x, y, SEED_COLOR[t.seed], 10);
     smoke(x, y, 8, 1.2);
     treeSeeds(t).forEach((s, k, all) =>
@@ -118,6 +121,7 @@ function punchTree(x, y) {
     return;
   }
   trees.delete(i);
+  Sfx.play('break');
   smoke(x, y, 8, 1.2);
   addXP(2 + t.fruit);
   burst(x, y, -2, 10);

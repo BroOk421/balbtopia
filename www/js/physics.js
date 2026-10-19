@@ -68,6 +68,7 @@ function step(dt) {
     P.airJ--;
     P.buf = 0;
     P.vy = -WING_JUMP_V;
+    Sfx.play('jump');
     // a puff of feathers
     for (let k = 0; k < 10; k++)
       parts.push({ x: P.x + P.w / 2 + (Math.random() - 0.5) * 16, y: P.y + P.h * 0.6, vx: (Math.random() - 0.5) * 120, vy: 40 + Math.random() * 80, life: 0.5, c: k % 2 ? '#ffffff' : '#e4ecf8', s: 2 });
@@ -75,6 +76,7 @@ function step(dt) {
   }
   if (P.buf > 0 && (P.coyote > 0 || swim)) {
     P.vy = swim && P.coyote <= 0 ? -300 : -JUMP_V; // a swim stroke, or a normal jump off the ground
+    Sfx.play('jump', swim && P.coyote <= 0 ? 0.6 : 1);
     P.buf = 0;
     P.coyote = 0;
     P.ground = false;
@@ -208,6 +210,7 @@ function stepFx(dt) {
         drops.splice(k, 1);
         Net.takeDrop(d.uid);
         vacs.push({ id: d.id, qty: d.qty, x: d.x, y: d.y + Math.sin(now / 380 + d.ph) * 2.5, t: 0, to: null });
+        Sfx.play('pickup');
       }
     }
   }

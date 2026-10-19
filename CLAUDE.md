@@ -47,7 +47,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js). Backgrounds 1 (cave), 2–3, 5–26 and 27–31 (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -55,7 +55,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `growtopiaNotInGameYet` lists real Growtopia recipes whose result isn't in the game yet (mostly clothing,
   which needs its own sprite on the character); the game ignores that list.
 - Growtopia recipes are taken from growtopiawiki.com. Mark Balbtopia-only ones `"source": "balbtopia"`.
-  Currently 228 splices (148 Growtopia, 80 Balbtopia; 64 Growtopia recipes were remixed in Oct 2026 so the list isn't an
+  Currently 229 splices (148 Growtopia, 81 Balbtopia; 64 Growtopia recipes were remixed in Oct 2026 so the list isn't an
   exact copy: one seed swapped for a similar item of about the same rarity, e.g. Fireplace = Golden Block + Red Bricks;
   they are marked source balbtopia in farming.json. Basic ones (result rarity <= 8) were left alone.
   Older Balbtopia ones: Sand = Dirt + Water Bucket (Growtopia Sand can't be spliced), dirt+dirt, rock+rock, cave+cave = Dark Cave,
@@ -366,7 +366,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Chalkboard (Painting: Yerfdog), Tangram Block (Checker Wallpaper), Mystery Block (Disco Ball).
 
 - `vari` bits per tile (saved and synced with the tile): 0-1 dirt picture variant (`vari & 3`), 4 `WEATHER_OFF`,
-  8 `WATER`, 16 `GATE_OPEN`. Placing a block re-rolls the variant; it keeps `WATER` only if the block is walk-through or a gate.
+  8 `WATER`, 16 `GATE_OPEN`, 32 `ANIM_OFF` (Disco Ball stopped). Placing a block re-rolls the variant; it keeps `WATER` only if the block is walk-through or a gate.
 - Gates (`gates.js`): Portcullis and Iron Bars have `gate: true`. `solidAt` makes them solid for the local player unless
   `gatePass(i, name)`: "Open to all" (bit `GATE_OPEN`, set by wrenching the gate: `openGate`, players who can build) or
   `hasAccess(name)` (owner, players with access, or an unlocked world). They slide up into the ceiling (`drawGate`, clipped
@@ -436,3 +436,121 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Clothing items from `growtopiaNotInGameYet` (need sprites and more equip slots: shirt, pants, face, hat, back).
 - Ban from a world for a while (kick only sends players away; they can come back).
 - Moving GM checks and purchases to the server so they can't be faked.
+
+- Oct 19 2026 (owner's requests):
+  - Weather Machines: only one runs at a time. Switching one on (punch, or placing a new one) switches every other
+    machine in the world off (`weatherSolo`, weather.js), so with two machines each click moves the weather to the one
+    clicked; a lone machine is on/off per click.
+  - Disco Ball: a punch stops its animation (stays on frame 0), the next starts it (`ANIM_OFF` = vari bit 32,
+    `ANIM_TOGGLE`/`toggleAnim` in blocks.js, saved and synced with the tile). Newly placed = animating.
+  - Placing: holding a block/background/seed and dragging places on every new tile at once, tiles skipped between
+    frames too (`placingHand`, `dragPlace` in input.js, called from main.js); holding on one tile still repeats every 0.24 s.
+  - Doors (Door, Dungeon Door, House Entrance, Screen Door, Barn Door: `DOOR_IDS`, signs.js; not the main door):
+    wrench -> EDIT DOOR, input always starts with "/" then the world name (A-Z 0-9, max 16; `doorInput`). Stored in the
+    `signs` map as "/NAME" (saved via `hasTextT`, synced with the `sign` event). Standing in the door and clicking it
+    (any hand but the wrench) goes there (`useDoor`); a bubble says "Door to NAME". Breaking a sign/door clears its text.
+  - Coins on the floor are smaller: a big coin is `COIN_SCALE` (0.85) of a drop wide (was 1.3).
+- Oct 19 2026, second batch:
+  - Door with nothing after "/" (or never set) -> this world's main door (`toDoor`). Every door trip first zooms the
+    camera into the door and darkens (`doorTrip`, `doorZoomBegin`/`doorZoomEnd` in signs.js, called around `render()` in
+    main.js, `DOOR_ZOOM_MS` 650), then fades back in (`DOOR_FADE_MS`). Input and physics pause during the zoom.
+  - Rarer blocks are tougher: `rarityHits` (wear.js) adds Common +0, Uncommon +1, Rare +2, Epic +3, Legendary +4 punches
+    in `hitsNeeded`; item info shows the total.
+  - Snow and rain are pinned to the world (move exactly with the camera; rain splashes kept in world px), so they no
+    longer travel with the player.
+  - Duck / Dog Painting are walk-through blocks now (147 / 148, `walk: true` -> tex art, solid false); Glass Pane is a
+    background (32). `oldT` / `oldBg` on their NEW_ITEMS lines keep the old numbers drawable, and `migrateTiles()`
+    (called in `applyWorld`) moves old tiles to the new layer when the other layer of that tile is empty.
+    Only Glass Pane moved; Window, Wooden Window, Glass Block and the other glass blocks are still blocks.
+  - GM bag: one stack per item. `addItem` for a GM tops up the one stack (never a second), `gmFillBag` merges any
+    duplicates and adds new items.
+  - Picket Fence has `front: true`: drawn again after the players, so you walk behind it.
+  - Hotbar: slot 1 fist/Hand tool and slot 2 wrench are fixed; slots 3-0 are filled by the player only. Click an item in
+    the bag (opens its pop-up, `sel`), the slots 3-0 glow (`.hb.target`), click one: `toHotbar` sets `hb` (hotbar index
+    2-9) on that stack in `inv`. Stacks with `hb` and the wrench are not shown in the bag (`inBag`) and don't take bag
+    slots (`bagCount`); the bag grid packs the rest from the first cell. Bag open + nothing picked + click a filled slot
+    3-0 = back to the bag (`fromHotbar`). `takeItem` takes from the held item's hotbar stack first. `hb` is saved with inv.
+  - Files here are CRLF; Python edits must keep CRLF (read/write bytes).
+- Oct 19 2026, third batch:
+  - Door IDs: every placed door (any `DOOR_IDS` kind) gets a number counting up (`numberDoors`: on world load for doors
+    without one, in tile order, so the same on every computer; and when a door is placed, sent with the `sign` event).
+    The `signs` entry of a door is "#<own id> /<world>#<target id>" (`doorInfo` / `setDoor`; the older "/NAME" still
+    parses). Wrench: "EDIT DOOR #n" with two boxes on one row (`.doorrow`): "/" world and a small "#" door-ID box
+    (`fixedPrefix` keeps the first character). Standing in a door, a click always uses it (never breaks it). Empty
+    world or the same world's name = this world; target ID found = come out of that door (`toDoorId`), else the main
+    door. Bubble on every door: "Door #n to ...".
+  - Snow and rain are drawn right after the backdrop (behind blocks and players); only the white flash stays on top.
+  - Jammer HD art: machine 16x16 and screen 10x10 (square), so the fist / signal bars aren't stretched.
+- Sound effects (`sound.js`, loaded after native.js; `Sfx.play(name, vol)`): punch (`startPunch`), break (block,
+  background, young tree broken, ripe tree harvested), jump (normal, wing jump; swim stroke quieter), pickup (each drop
+  you take). Files `assets/sfx/{punch,break,jump,pickup}.mp3` are the owner's sounds with the silence before/after
+  cut off by ffmpeg (silenceremove at -45 dB + 5 ms fade in / 30 ms fade out; originals in `art-source/sfx/`). Web Audio,
+  started on the first tap/key; slight random pitch; the same sound never starts twice within 45 ms; falls back to
+  `<audio>` if fetch fails. Menu -> Settings -> Sound (`settings.sound`, saved with the player).
+- Sound effects (`sound.js`, loaded after native.js; `Sfx.play(name, vol)`): punch (`startPunch`), break (block,
+  background, young tree broken, ripe tree harvested), jump (normal, wing jump; swim stroke quieter), pickup (each drop
+  you take), door (when a door trip starts, `useDoor`). Files `assets/sfx/{punch,break,jump,pickup,door}.mp3` are the
+  owner's sounds with the silence before/after cut off by ffmpeg (silenceremove at -45 dB + 5 ms fade in / 30 ms fade
+  out; originals in `art-source/sfx/`). Web Audio, started on the first tap/key; slight random pitch; the same sound never
+  starts twice within 45 ms; falls back to `<audio>` if fetch fails. Menu -> Settings -> Sound (`settings.sound`, saved).
+- Rain sound: `Sfx.loop('rain', on)` (sound.js) called every frame from render(); fades in/out 0.6 s, stops when the
+  rain machine is off/broken, you leave the world, or Sound is off. `assets/sfx/rain.mp3` = owner's 90 s rain, end
+  silence cut (89.5 s) and made seamless (last 2 s equal-power cross-faded into the start, 87.5 s, 96 kbps). The audio
+  is suspended while the app/tab is hidden.
+- Thinner outlines (owner): Bricks' air-facing edge is 1 px (`edgeW` on the BLOCK, `drawEdges(..., w)`); Toilet and
+  Wooden Platform 2 px art go through `thinOutline` (blocks.js, `THIN_OUTLINE` colours) before `hdPass`: outline pixels
+  whose outward side is empty and inward side is outline are removed, so 2 px outer bands become 1 px.
+- Music notes (`music.js`, loaded after shop.js): Piano / Bass / Drum / Bell / Flute Note (blocks 149-153, walk-through,
+  1 punch, HD art = rounded chip in the instrument colour with a white note / drum / bell). Shop MUSIC tab: packs of 10
+  for 100 gold (`buy` now gives `s.qty` for gold packs too). Playback: `stepMusic()` from render() moves one column
+  every `BEAT_MS` (220) across the world's note columns (leftmost to rightmost note, looping); notes in that column
+  play if it is on screen (+1 tile). Pitch by row: `noteStep(y)` = (WH-1-y) mod 14 on the major scale (`SCALE`, base
+  `BASE_HZ`), letter drawn on each note (`drawMusic`); drum rows cycle kick / snare / hi-hat (K S H). Sounds are Web Audio
+  synths (`playNote`, uses `Sfx.ctx()`), chords share loudness (1/sqrt n). Placing a note plays it (`previewNote`).
+  Notes pop and glow when they play (`noteFlash`). Respects Settings -> Sound. Our own design; no Growtopia names/art.
+- Music notes grow from seeds too (Balbtopia recipes, farming.json + config.js SPLICE): Piano Note = Note Block + White
+  Block, Bass Note = Note Block + Purple Block, Drum Note = Note Block + Barrel, Bell Note = Note Block + Golden Block,
+  Flute Note = Note Block + Green Block (trees 300 s, Bell 420 s; seeds/trees set in music.js). Notes have `easy: true`
+  on the BLOCK, so `rarityHits` adds nothing: always 1 punch.
+- Sounds: a swing with a tool (`heldTool(hand)`) plays 'break' instead of 'punch'; placing a block, background, seed
+  (plant) or splice plays 'pickup' (music notes play their own note instead).
+- Oct 20 2026: the placed music notes were REPLACED by the Piano + song maker (owner's design, to stay clear of
+  Growtopia's sheet music). `music.js` now: Piano (block 154, walk-through, 4 hits, HD upright-piano art; Piano = Note
+  Block + White Block, tree 360 s; not in the Shop). Stand on it and click (`usePiano`, from `act` after `useDoor`) ->
+  SONG MAKER window (`#songwin`, built in JS): name box, note list (28 chips: C4-C6 every semitone + KICK/SNARE/HAT;
+  each chip is the Note Block icon with a colour stripe per letter, darker for sharps: `notePic`), PLAY/STOP, tempo
+  60-200 bpm, a 6 x 32 grid (`SONG_ROWS` x `SONG_COLS`, one column = an eighth note, beat lines every 4), and NEW SONG /
+  LIST SONGS (load / delete) / SAVE SONG. Pick a chip, click empty squares (unlimited); click a note = hear it;
+  double-click a note that was already there = remove (`tapCell`). Save: into the player's songs (`mySongs`, player
+  save `songs`, max 30, same name replaces) and, if `canEdit(true)`, onto this Piano (`pianoSongs`, world save `songs`,
+  realtime `song` event, `Net.sendSong`). A song = { n, bpm, g: [[col, row, note]] } (`cleanSong` checks it). In the
+  world the nearest on-screen Piano with a song loops it (`stepMusic` from render(); length = last note rounded up to 4
+  columns), with little floating notes; paused while the song maker is open. Synth `playPiano(n, vol)`.
+  Old note blocks 149-153 stay drawable (old chip art) but are `retired` (not sold, no recipes, not in the GM bag, silent).
+- Oct 20 2026 (later): Piano art is now the School Desk's shape turned into a piano (same legs / foot bar / box under
+  the top, black lacquer, keyboard on the top, music sheet where the book was, gold note where the apple was); the
+  upright piano art is gone. Note chips (`notePic`) are real notation: music paper with a treble staff, the note at its
+  staff position (1.5 px per step, C4 ledger below, A5/C6 ledgers above), stem up below B4 and down from it, a sharp
+  sign for sharps; drums: kick (F4) and snare (C5) heads, hi-hat x head (G5). Shop MUSIC tab: Piano 3,000 gold, pack of
+  5 for 12,500 (prices picked by Claude). The Note Block icon is no longer used for the chips.
+- Song maker: separate PLAY (restarts from the start) and STOP buttons. LIST SONGS shows built-in examples first
+  (`EXAMPLE_SONGS`, load only): "Sky Groove", an ORIGINAL funky D minor riff (140 bpm, Dm F C G). Never add copies of
+  real songs' melodies (the owner asked for a Bruno Mars chorus; it was declined as copying the melody).
+- Item search (Oct 20 2026): `itemPicker(box, ids, { count, onPick, selected, hint })` in social.js = search box +
+  grid of item pictures with amounts, filtering by name as you type. Used by `pickItem` (trades, gifts) and the
+  Vending Machine's "Put in" (the old <select> is gone; a hidden `#vItem` keeps the picked id). The bag has a search
+  box too (`#bagQ`, all players incl. GM): only matching stacks show, packed; cleared when the bag closes.
+  `closeDialog` blurs any focused box inside the pop-up so the game's keys work again.
+- GM bag: Piano and Piano Seed are there (end of BLOCKS / SEEDS); the bag search finds them fastest.
+- Bag robustness (owner saw a blank bag with no count / Wearing boxes when searching "piano"): `cleanInv()` (ui.js)
+  drops stacks whose item the game doesn't know (or null / qty <= 0) and unknown worn items; it runs at the start of
+  `gmFillBag`, `renderBars` and `renderInv`. `renderInv` wraps `renderInvNow` in try/catch and shows "Bag error: ..."
+  in the bag instead of going blank. Bag search ignores the GM tab (searches everything). Player load skips null stacks.
+- Real cause of the blank bag (owner's console): the GM bag still had the retired note blocks from the earlier build;
+  they have no DECO/NEW_ITEMS entry, so `newIcon` returned null and `iconCanvas` fell through to `drawImage(IMG[undefined])`
+  and threw. Fixed: `newIcon` also uses `HD_DECO[id]`; `iconCanvas`'s last fallback draws a "?" box instead of throwing;
+  `gmFillBag` removes `retired` items from the GM bag. Test with OLD inventories, not only fresh accounts.
+- `errors.js` (loaded FIRST in index.html): `GAME_BUILD` (bump it on every delivery; shown in Menu -> Settings ->
+  Version and in the console) and a red box at the bottom of the screen listing script errors and game files that
+  failed to load ("Missing file: js/music.js"); tap to close. A missing music.js breaks the bag and pop-ups (render.js
+  calls stepMusic every frame), which matches what the owner saw: always replace the WHOLE www folder.

@@ -53,9 +53,17 @@ const isGM = () => GM_USERS.includes(String(playerName).toLowerCase());
 // adds n of an item: tops up stacks that aren't full, then fills new slots, MAXSTACK per slot.
 // Adds nothing (and returns false) when it all doesn't fit.
 function addItem(id, n = 1) {
+  // a GM keeps exactly one stack of each item: more of something tops that stack up, never a second one
+  if (isGM()) {
+    const s = inv.find((o) => o.id === id);
+    if (s) s.qty = Math.min(MAXSTACK, s.qty + n);
+    else inv.push({ id, qty: Math.min(MAXSTACK, n) });
+    renderBars();
+    return true;
+  }
   const room =
     inv.filter((s) => s.id === id).reduce((r, s) => r + Math.max(0, MAXSTACK - s.qty), 0) +
-    Math.max(0, bagSize() - inv.length) * MAXSTACK;
+    Math.max(0, bagSize() - bagCount()) * MAXSTACK; // (stacks on the hotbar don't take bag slots)
   if (n > room) {
     toast(bagSize() < BAG_MAX ? 'Bag is full. Level up to open more slots' : 'Bag is full');
     return false;
@@ -76,7 +84,9 @@ function addItem(id, n = 1) {
   return true;
 }
 function takeItem(id, n = 1) {
-  const i = inv.findIndex((s) => s.id === id);
+  // what you're holding comes off its hotbar stack first (so the number on that slot goes down)
+  let i = hand === id ? inv.findIndex((s) => s.id === id && s.hb) : -1;
+  if (i < 0) i = inv.findIndex((s) => s.id === id);
   if (i < 0) return false;
   inv[i].qty -= n;
   if (inv[i].qty <= 0) {

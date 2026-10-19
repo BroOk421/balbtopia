@@ -20,6 +20,7 @@ function startPunch(wx, wy) {
   P.punch = { t: 0, x: wx, y: wy };
   P.angry = ANGRY_TIME; // punching and breaking make an angry face
   Net.sendPunch(wx, wy);
+  Sfx.play(heldTool(hand) ? 'break' : 'punch'); // swinging a tool (pickaxe, shovel...) sounds like breaking
 }
 // placing (Growtopia style): the arm is out at once, the hand gives a little shake,
 // and the pose stays for PLACE_POSE seconds (or until you walk)
@@ -63,12 +64,13 @@ function overlapsPlayer(tx, ty) {
   return P.x < tx * TS + TS && P.x + P.w > tx * TS && P.y < ty * TS + TS && P.y + P.h > ty * TS;
 }
 function act() {
-  if (P.dead) return;
+  if (P.dead || doorTrip) return;
   // wrench: click another player (or the wrench next to their name) to open their player menu
   if (hand === 'wrench') {
     const t = tileUnder();
     if (inW(t.x, t.y) && isLockT(fg[at(t.x, t.y)])) return openLockWin();
     if (inW(t.x, t.y) && isSignT(fg[at(t.x, t.y)])) return editSign(t.x, t.y);
+    if (inW(t.x, t.y) && isDoorT(fg[at(t.x, t.y)]) && !isDoorTile(t.x, t.y)) return editDoor(t.x, t.y);
     if (inW(t.x, t.y) && isVendT(fg[at(t.x, t.y)])) return openVend(t.x, t.y);
     if (inW(t.x, t.y) && isDispT(fg[at(t.x, t.y)])) return openDisplay(t.x, t.y);
     if (inW(t.x, t.y) && isMannT(fg[at(t.x, t.y)])) return openMannequin(t.x, t.y);
@@ -85,6 +87,10 @@ function act() {
   if (hand === 'door_mover') return inW(x, y) && moveDoor(x, y);
   if (hand === 'clear_world') return askClearWorld();
   if (!inW(x, y) || !inReach(x, y)) return;
+  // a door with a destination, clicked while standing in it: go to that world (signs.js)
+  if (useDoor(x, y)) return;
+  // a Piano you are standing in: open its song maker (music.js)
+  if (usePiano(x, y)) return;
   const held = ITEMS[hand];
   // fists (or anything that isn't placed) on another player: punch them
   if (hand === 'fist' || !held || held.kind === 'clothing' || held.kind === 'tool') {
@@ -148,6 +154,8 @@ function act() {
       }
       // a Weather Machine: every punch switches it off / on (punch it fast a few times to break it)
       if (isWeatherT(fg[i])) toggleWeather(i);
+      // a Disco Ball: every punch stops / starts its animation (blocks.js)
+      if (canStopAnim(fg[i])) toggleAnim(i);
       dmg[i]++;
       dmgT[i] = now;
       shake = 2.5;
@@ -156,12 +164,15 @@ function act() {
       smoke(x, y, 5, 1);
       toolSparkles(heldTool(hand), x * TS + 16, y * TS + 16, 5, 24);
       if (dmg[i] >= need) {
+        Sfx.play('break');
         burst(x, y, fg[i], 12);
         smoke(x, y, 11, 1.6);
         const id = b.id;
         vends.delete(i);
         displays.delete(i);
         manns.delete(i);
+        if (signs.delete(i)) Net.sendSign(i, ''); // sign text / door destination goes with the block
+        pianoSongs.delete(i); // and a Piano's song
         fg[i] = 0;
         dmg[i] = 0;
         if (y > 0) uproot(x, y - 1);
@@ -190,6 +201,7 @@ function act() {
       toolSparkles(t, x * TS + 16, y * TS + 16, 3, 24);
       if (bgDmg[i] >= (t && t.bonus && !t.dirtOnly ? 1 : 2)) {
         const bk = BGS[bg[i]] || BGS[1];
+        Sfx.play('break');
         burst(x, y, bk.fx, 10);
         bg[i] = 0;
         bgDmg[i] = 0;
@@ -223,12 +235,19 @@ function act() {
     fg[i] = it.block;
     // (bit WEATHER_OFF clear: a new Weather Machine is on; water stays under walk-through blocks, gates.js)
     vari[i] = Math.floor(Math.random() * 3) | (BLOCK[it.block].solid === false || BLOCK[it.block].gate ? vari[i] & WATER : 0);
+    if (isWeatherT(it.block)) weatherSolo(i); // the new machine's weather takes over
+    if (isDoorT(it.block)) {
+      signs.delete(i);
+      numberDoors(true); // a new door gets the next door ID (signs.js)
+    }
     takeItem(hand);
     placeFx(x, y, it.block, true);
+    Sfx.play('pickup'); // placing sound
   } else if (it.kind === 'background') {
     if (bg[i] || isDoorTile(x, y)) return;
     bg[i] = it.bg || 1;
     takeItem(hand);
+    Sfx.play('pickup'); // placing sound
     placeFx(x, y, (BGS[bg[i]] || BGS[1]).fx, true);
   }
 }

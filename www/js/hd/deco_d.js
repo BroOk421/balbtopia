@@ -523,21 +523,29 @@
     R(2, 2, 28, 1, '#4a4266');
     R(2, 2, 1, 28, '#4a4266');
     // antenna with its light
-    R(15, 6, 2, 8, '#14101c');
-    R(15, 7, 1, 6, '#9aa0ad');
+    R(15, 6, 2, 7, '#14101c');
+    R(15, 7, 1, 5, '#9aa0ad');
     R(13, 4, 6, 3, '#14101c');
     R(14, 4, 4, 2, light);
     P(14, 4, glow);
-    // the machine
-    R(6, 14, 20, 12, '#14101c');
-    R(7, 15, 18, 10, '#6a707e');
-    R(7, 15, 18, 1, '#9aa0ad');
-    R(7, 15, 1, 10, '#9aa0ad');
-    R(7, 24, 18, 1, '#4a4f5c');
-    R(9, 17, 14, 6, '#1e2028');
-    R(9, 17, 14, 1, '#2e323c');
+    // the machine: about square, so the picture on its screen isn't stretched sideways
+    // (machine 16x16 and screen 10x10, both square, so nothing on it looks stretched)
+    R(8, 12, 16, 16, '#14101c');
+    R(9, 13, 14, 14, '#6a707e');
+    R(9, 13, 14, 1, '#9aa0ad');
+    R(9, 13, 1, 14, '#9aa0ad');
+    R(9, 26, 14, 1, '#4a4f5c');
+    R(11, 15, 10, 10, '#1e2028');
+    R(11, 15, 10, 1, '#2e323c');
     // bolts
-    for (const [i, j] of [[8, 16], [23, 16], [8, 23], [23, 23]]) P(i, j, '#c3c9d4');
+    for (const [i, j] of [[10, 14], [21, 14], [10, 25], [21, 25]]) P(i, j, '#c3c9d4');
+  }
+  // a red "not allowed" slash across the screen (bottom left to top right)
+  function jamSlash(P) {
+    for (let k = 0; k < 9; k++) {
+      P(11 + k, 24 - k, '#ff4a2a');
+      if (k < 8) P(12 + k, 24 - k, '#c02a14');
+    }
   }
   HD_DECO.signal_jammer = (x, h, f = 0) => {
     const { P, R } = h;
@@ -551,23 +559,20 @@
         P(16 + s * (r - 1) - (s > 0 ? 1 : 0), 3, wc);
         P(16 + s * (r - 1) - (s > 0 ? 1 : 0), 7, wc);
       }
-    // screen: signal bars crossed out, red and green lights
-    for (let k = 0; k < 4; k++) R(11 + k * 2, 21 - k, 1, k + 1, '#7ccf5a');
-    for (let k = 0; k < 6; k++) P(11 + k, 18 + Math.floor(k / 2), '#ff4a2a');
-    P(20, 19, '#ff4a2a');
-    P(21, 21, '#7ccf5a');
+    // screen: four signal bars, crossed out
+    for (const [k, hh] of [2, 4, 6, 8].entries()) R(12 + k * 2, 24 - hh, 1, hh, f ? '#7ccf5a' : '#4c9a3a');
+    jamSlash(P);
   };
   HD_DECO.punch_jammer = (x, h, f = 0) => {
     const { P, R } = h;
     jammerBoxHD(h, f ? '#ffd23f' : '#8a6a10', f ? '#fff4b8' : '#c9a826');
-    // a little fist on the screen with a red line through it
-    R(12, 18, 8, 4, '#f2b786');
-    R(12, 18, 8, 1, '#ffd8b8');
-    for (const i of [14, 16, 18]) P(i, 19, '#c98a6a');
-    R(11, 20, 2, 2, '#f2b786');
-    for (let k = 0; k < 7; k++) {
-      P(11 + k * 2, 22 - k, '#ff4a2a');
-      P(12 + k * 2, 22 - k, '#ff4a2a');
-    }
+    // a small fist on the screen (knuckles up), crossed out
+    R(13, 17, 6, 6, '#f2b786');
+    R(13, 17, 6, 1, '#ffd8b8');
+    for (const i of [15, 17]) P(i, 17, '#c98a6a');
+    R(13, 21, 6, 1, '#d89a6a');
+    R(12, 18, 1, 3, '#f2b786');
+    P(12, 20, '#d89a6a');
+    jamSlash(P);
   };
 })();

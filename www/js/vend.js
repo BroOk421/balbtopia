@@ -59,8 +59,8 @@ function vendOwner(i) {
     `<div class="vend">
       <div class="vrow" id="vTop"></div>
       <div class="lfield">Put in
-        <div class="vline"><select id="vItem">${choices.map((s) => `<option value="${s.id}">${esc(ITEMS[s.id].name)} (${s.qty})</option>`).join('') || '<option value="">Nothing to sell</option>'}</select>
-        <input id="vQty" class="vnum" type="number" min="1" max="${VEND_ADD}" placeholder="Qty" inputmode="numeric" /><button class="btn" id="vAdd" type="button">Add</button></div>
+        <div class="vpickbox"></div><input type="hidden" id="vItem" value="">
+        <div class="vline"><input id="vQty" class="vnum" type="number" min="1" max="${VEND_ADD}" placeholder="Qty" inputmode="numeric" /><button class="btn" id="vAdd" type="button">Add</button></div>
       </div>
       <div class="lfield">Price
         <div class="vline"><input id="vPrice" class="vnum" type="number" min="1" placeholder="Price" value="${v.id ? v.p : ''}" inputmode="numeric" />
@@ -88,7 +88,19 @@ function vendOwner(i) {
     }${stocked ? `<br><small>${esc(priceText(v))}</small>` : ''}</div>`;
     vendIcon(body, id);
   };
-  body.querySelector('#vItem').onchange = top;
+  // what can go in: pictures with how many you have, and a search box (social.js itemPicker)
+  const ids = [...new Set(choices.map((s) => s.id))];
+  body.querySelector('#vItem').value = v.id && ids.includes(v.id) ? v.id : ids[0] || '';
+  if (ids.length)
+    itemPicker(body.querySelector('.vpickbox'), ids, {
+      count: countItem,
+      selected: body.querySelector('#vItem').value,
+      onPick: (id) => {
+        body.querySelector('#vItem').value = id;
+        top();
+      },
+    });
+  else body.querySelector('.vpickbox').innerHTML = '<p class="mnote">Nothing in your bag can go in.</p>';
   top();
   const save = (nv) => {
     setVend(i, nv);

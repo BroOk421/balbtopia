@@ -291,7 +291,9 @@ const shopDesc = (s) =>
     ? ITEMS[s.id].desc
     : s.id === 'diamond_lock'
       ? 'One Crystal Lock, worth 100 Gold Locks. Locks a world too; double-click it in your bag to break it into 100 Gold Locks.'
-      : 'A pack of ' + packName(s) + '. Lock your worlds, trade them, give them away.';
+      : isLockT((ITEMS[s.id] || {}).block)
+        ? 'A pack of ' + packName(s) + '. Lock your worlds, trade them, give them away.'
+        : 'A pack of ' + packName(s) + '. ' + ITEMS[s.id].desc;
 function shopPic(id, cls) {
   const pic = iconCanvas(id).cloneNode();
   pic.getContext('2d').drawImage(iconCanvas(id), 0, 0);
@@ -377,13 +379,14 @@ function buy(s) {
   }
   if (s.peso) return;
   if (P.gold < s.gold) return toast('Not enough gold: ' + it.name + ' costs ' + s.gold.toLocaleString());
-  if (!addItem(s.id, 1)) return;
+  const n = s.qty || 1; // packs (e.g. 10 Piano Notes) give that many
+  if (!addItem(s.id, n)) return;
   P.gold -= s.gold;
   updateGold(true);
   savePlayer();
   closeShop(); // done buying: back to the game
   Native.haptic('medium');
-  toast('Bought ' + it.name + '!');
+  toast('Bought ' + (n > 1 ? n + ' ' + it.name + 's' : it.name) + '!');
 }
 $('shopBtn').onclick = () => ($('shop').hidden ? openShop() : closeShop());
 $('shopx').onclick = closeShop;

@@ -43,11 +43,47 @@ function toast(msg) {
     setTimeout(() => (t.hidden = true), 250);
   }, 1500);
 }
-const HOTBAR_SIZE = 10; // slot 1 is the fist (or the tool in the Hand slot), slots 2-10 are the first 9 items in the bag
+// Hotbar: slot 1 is the fist (or the tool in the Hand slot), slot 2 the wrench; both are fixed.
+// Slots 3-0 hold what YOU put there: click an item in the bag, then click one of those slots. The stack then
+// leaves the bag (its bag slot closes up) and lives on the hotbar (`hb` = hotbar index 2-9 on the stack in `inv`,
+// saved with the bag). Nothing is put there by itself. With the bag open and nothing picked, clicking a filled
+// slot 3-0 puts it back in the bag.
+const HOTBAR_SIZE = 10,
+  HB_FIRST = 2; // first free slot (index; key "3")
+const hbStack = (k) => inv.find((s) => s.hb === k);
+// stacks shown in the bag grid (not on the hotbar, and not the wrench, which is always hotbar slot 2)
+const inBag = (s) => !s.hb && s.id !== 'wrench';
+const bagCount = () => inv.reduce((n, s) => n + (inBag(s) ? 1 : 0), 0);
 function hotbarList() {
-  const list = [bareHand(), ...inv.slice(0, HOTBAR_SIZE - 1).map((s) => s.id)];
-  while (list.length < HOTBAR_SIZE) list.push(null);
+  const list = [bareHand(), inv.some((s) => s.id === 'wrench') ? 'wrench' : null];
+  for (let k = HB_FIRST; k < HOTBAR_SIZE; k++) {
+    const s = hbStack(k);
+    list.push(s ? s.id : null);
+  }
   return list;
+}
+// put the bag stack inv[i] on hotbar slot k (whatever was there goes back into the bag)
+function toHotbar(i, k) {
+  const s = inv[i];
+  if (!s || k < HB_FIRST || k >= HOTBAR_SIZE) return;
+  if (s.id === 'wrench') return toast('The Wrench always has slot 2');
+  const old = hbStack(k);
+  if (old && old !== s) delete old.hb;
+  s.hb = k;
+  closePop();
+  renderBars();
+  savePlayer();
+  toast(ITEMS[s.id].name + ' is on slot ' + ((k + 1) % 10));
+}
+// take hotbar slot k's stack back into the bag
+function fromHotbar(k) {
+  const s = hbStack(k);
+  if (!s) return;
+  if (!isGM() && bagCount() >= bagSize()) return toast('Bag is full: no room to put ' + ITEMS[s.id].name + ' back');
+  delete s.hb;
+  renderBars();
+  savePlayer();
+  toast(ITEMS[s.id].name + ' is back in the bag');
 }
 function selectHand(id, k) {
   // clothes and tools from the bag go into their Wearing slot (tools: the Hand slot, and you hold it)
@@ -62,7 +98,7 @@ function selectHand(id, k) {
 // Worn items live in the Wearing slots, not in the bag (so they don't take bag space).
 // Wearing takes one out of the bag; whatever was in that slot goes back into the bag.
 // is there room in the bag for one more of this item?
-const bagRoom = (id) => inv.some((s) => s.id === id && s.qty < MAXSTACK) || inv.length < bagSize();
+const bagRoom = (id) => inv.some((s) => s.id === id && s.qty < MAXSTACK) || bagCount() < bagSize();
 function wear(id) {
   const it = ITEMS[id],
     sl = slotOf(id),
@@ -141,6 +177,7 @@ function askDrop(id, slot) {
   dropFromSlot(s, 1);
 }
 function renderBars() {
+  cleanInv();
   const hb = $('hotbar');
   hb.innerHTML = '';
   hotbarList().forEach((id, k) => {
@@ -160,15 +197,24 @@ function renderBars() {
       b.appendChild(c);
       b.setAttribute('aria-label', 'Fist, punch blocks');
     } else {
-      const s = k > 0 && inv[k - 1];
+      const s = k >= HB_FIRST ? hbStack(k) : inv.find((o) => o.id === id);
       b.appendChild(iconCanvas(id).cloneNode());
       b.lastChild.getContext('2d').drawImage(iconCanvas(id), 0, 0);
       b.insertAdjacentHTML('beforeend', `<span class="n">${s && s.qty > 1 && !isGM() ? s.qty : ''}</span>`);
       b.setAttribute('aria-label', ITEMS[id].name);
     }
     b.insertAdjacentHTML('afterbegin', `<span class="k">${(k + 1) % 10}</span>`);
-    if (id && k > 0) holdToDrop(b, id, k - 1); // hotbar slot k shows bag slot k - 1
-    if (id)
+    if (id && k >= HB_FIRST) holdToDrop(b, id, inv.indexOf(hbStack(k)));
+    // bag open with an item picked: slots 3-0 light up and take it
+    const picking = !$('inv').hidden && sel >= 0 && inv[sel] && k >= HB_FIRST;
+    if (picking) b.classList.add('target');
+    if (picking || (k >= HB_FIRST && !$('inv').hidden && id))
+      b.onclick = () => {
+        if (Date.now() - hbHeld < 700) return;
+        if (sel >= 0 && inv[sel]) toHotbar(sel, k);
+        else fromHotbar(k);
+      };
+    else if (id)
       b.onclick = () => {
         if (Date.now() - hbHeld < 700) return; // that press was a hold-to-drop
         if (doubleTap('hb' + k) && LOCK_TIERS.includes(id)) return lockTap(id);
@@ -197,10 +243,17 @@ function itemCat(id) {
 // a GM gets every item (a full stack, or one of each thing you wear or hold), topped up again whenever the bag
 // opens; other players are not touched
 function gmFillBag() {
+  cleanInv();
   if (!isGM()) return;
+  // one stack per item: extra stacks of the same item (from pick-ups, trades, older saves) are merged away,
+  // keeping the one on the hotbar if there is one
+  const keep = new Map();
+  for (const o of inv) if (!keep.has(o.id) || (o.hb && !keep.get(o.id).hb)) keep.set(o.id, o);
+  // retired items (the old music note blocks) leave the GM bag too
+  for (let k = inv.length - 1; k >= 0; k--) if (keep.get(inv[k].id) !== inv[k] || ITEMS[inv[k].id].retired) inv.splice(k, 1);
   const worn = Object.values(equipped);
   for (const id in ITEMS) {
-    if (id === 'fist' || id === 'gold' || !ITEMS[id].name) continue;
+    if (id === 'fist' || id === 'gold' || !ITEMS[id].name || ITEMS[id].retired) continue;
     const one = ['clothing', 'tool'].includes(ITEMS[id].kind) || id === 'wrench',
       full = one ? 1 : MAXSTACK,
       s = inv.find((o) => o.id === id);
@@ -228,27 +281,53 @@ function renderGmTabs() {
     bar.appendChild(b);
   }
 }
+// stacks the game doesn't know (an item from a newer or older version, a broken save) are taken out instead of
+// breaking the whole bag; worn items likewise
+function cleanInv() {
+  for (let k = inv.length - 1; k >= 0; k--) {
+    const s = inv[k];
+    if (!s || !ITEMS[s.id] || !(s.qty > 0)) inv.splice(k, 1);
+  }
+  for (const sl in equipped) if (equipped[sl] && !ITEMS[equipped[sl]]) equipped[sl] = null;
+}
+// the bag; if something still goes wrong, the error is shown in the bag (so it can be reported) instead of a blank bag
 function renderInv() {
+  try {
+    cleanInv();
+    renderInvNow();
+  } catch (e) {
+    console.error('bag', e);
+    $('grid').innerHTML = '<p class="mnote">Bag error: ' + esc(String(e && e.message)) + '</p>';
+  }
+}
+function renderInvNow() {
   const gr = $('grid');
   gr.innerHTML = '';
   const open = bagSize(),
     gm = isGM();
   renderGmTabs();
-  for (let i = 0; i < (gm ? inv.length : BAG_MAX); i++) {
-    const s = inv[i];
+  // the bag shows only stacks that aren't on the hotbar, packed from the first cell (no gaps)
+  const shown = [],
+    q = ($('bagQ').value || '').trim().toLowerCase(); // the search box: only items whose name has it
+  inv.forEach((s, i) => inBag(s) && (!q || ITEMS[s.id].name.toLowerCase().includes(q)) && shown.push(i));
+  if (q && !shown.length) gr.innerHTML = '<p class="mnote">No item in your bag matches "' + esc(q) + '"</p>';
+  for (let p = 0; p < (gm || q ? shown.length : BAG_MAX); p++) {
+    const i = p < shown.length ? shown[p] : -1 - p,
+      s = inv[i];
     // GM: only this tab's items
-    if (gm && gmTab !== 'all' && (!s || itemCat(s.id) !== gmTab)) continue;
+    // (while searching, every item counts, whatever tab is open)
+    if (gm && !q && gmTab !== 'all' && (!s || itemCat(s.id) !== gmTab)) continue;
     const b = document.createElement('button');
-    b.className = 'cell' + (s ? ' has' : '') + (i === sel ? ' sel' : '') + (i >= open ? ' locked' : '');
-    b.id = 'slot' + i;
-    if (i >= open) {
+    b.className = 'cell' + (s ? ' has' : '') + (s && i === sel ? ' sel' : '') + (p >= open ? ' locked' : '');
+    b.id = s ? 'slot' + i : 'cellE' + p;
+    if (p >= open) {
       // locked: opens at a higher level
-      b.innerHTML = `<span class="lk"></span><span class="lv">Lv ${slotLevel(i)}</span>`;
-      b.setAttribute('aria-label', 'Locked slot, opens at level ' + slotLevel(i));
+      b.innerHTML = `<span class="lk"></span><span class="lv">Lv ${slotLevel(p)}</span>`;
+      b.setAttribute('aria-label', 'Locked slot, opens at level ' + slotLevel(p));
       b.tabIndex = -1;
       b.onclick = (e) => {
         e.stopPropagation();
-        toast('This slot opens at level ' + slotLevel(i) + ' (you are level ' + level + ')');
+        toast('This slot opens at level ' + slotLevel(p) + ' (you are level ' + level + ')');
       };
     } else if (s) {
       const it = ITEMS[s.id];
@@ -274,7 +353,7 @@ function renderInv() {
     }
     gr.appendChild(b);
   }
-  $('count').textContent = inv.length + ' / ' + open;
+  $('count').textContent = bagCount() + ' / ' + open;
   $('grid').classList.toggle('trashing', trashMode);
   $('trashBtn').classList.toggle('on', trashMode);
   // what you wear and hold: one box per slot (these items are out of the bag); click one to unequip it
@@ -341,17 +420,22 @@ function askTrash(i) {
   );
   body.querySelector('.vpic').appendChild(shopPic(s.id));
 }
+$('bagQ').oninput = () => {
+  closePop();
+  renderInv();
+};
 function toggleInv() {
   const w = $('inv');
   if (w.hidden) {
     gmFillBag();
     w.hidden = false;
-    renderInv();
+    renderBars(); // (the hotbar's clicks work differently while the bag is open)
     const f = $('grid').querySelector('.has');
     f && f.focus();
   } else {
     w.hidden = true;
     trashMode = false;
+    $('bagQ').value = ''; // the search starts empty next time
     closePop();
     $('info').hidden = true;
   }
@@ -359,11 +443,11 @@ function toggleInv() {
 function closePop() {
   $('pop').hidden = true;
   sel = -1;
-  if (!$('inv').hidden) renderInv();
+  renderBars(); // (redraws the bag too when it is open)
 }
 function openPop(i) {
   sel = i;
-  renderInv();
+  renderBars(); // hotbar slots 3-0 light up: click one to put this item there
   const s = inv[i],
     it = ITEMS[s.id],
     pop = $('pop');
@@ -455,7 +539,7 @@ $('aInfo').onclick = () => {
     it.kind === 'seed' ? Object.entries(SPLICE).filter(([k]) => k.split('+').includes(it.from)) : [];
   const extra =
     it.kind === 'block'
-      ? `<dt>Punches to break</dt><dd>${BLOCK[it.block].hits}</dd>`
+      ? `<dt>Punches to break</dt><dd>${BLOCK[it.block].hits + rarityHits(BLOCK[it.block].id)}</dd>`
       : it.kind === 'seed'
         ? `<dt>Grows in</dt><dd>${TREE_TIME[it.from]}s</dd>` +
           (combos.length
