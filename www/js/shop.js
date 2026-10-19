@@ -154,6 +154,7 @@ const SHOP = [
   { id: 'door_mover', gold: 1000, cat: 'world' },
   { id: 'signal_jammer', gold: 2000, cat: 'world' },
   { id: 'punch_jammer', gold: 2000, cat: 'world' },
+  { id: 'snow_weather_machine', gold: 5000, cat: 'world' },
   { id: 'clear_world', gold: 1500, cat: 'world' },
   { id: 'vending_machine', gold: 5000, cat: 'world' },
   { id: 'display_box', gold: 1000, cat: 'world' },
@@ -165,45 +166,72 @@ const SHOP = [
   { id: 'angel_wings', gold: 25000, cat: 'wear' },
   { id: 'tiny_angel_wings', gold: 10000, cat: 'wear' },
   { id: 'golden_wings', gold: 60000, cat: 'wear' },
+  { id: 'golden_aura', gold: 50000, cat: 'wear' },
+  { id: 'red_aura', gold: 50000, cat: 'wear' },
+  { id: 'dark_diamond_aura', gold: 75000, cat: 'wear' },
+  { id: 'diamond_aura', gold: 60000, cat: 'wear' },
+  { id: 'white_aura', gold: 50000, cat: 'wear' },
+  { id: 'super_saiyan_hair', gold: 40000, cat: 'wear' },
+  { id: 'seraph_wings', gold: 30000, cat: 'wear' },
+  { id: 'demon_wings', gold: 35000, cat: 'wear' },
+  { id: 'phoenix_wings', gold: 60000, cat: 'wear' },
+  { id: 'crystal_wings', gold: 50000, cat: 'wear' },
+  { id: 'fairy_wings', gold: 40000, cat: 'wear' },
+  { id: 'shadow_wings', gold: 45000, cat: 'wear' },
+  { id: 'celestial_wings', gold: 70000, cat: 'wear' },
+  { id: 'dragon_wings', gold: 55000, cat: 'wear' },
+  { id: 'leaf_wings', gold: 30000, cat: 'wear' },
+  { id: 'galaxy_wings', gold: 80000, cat: 'wear' },
 ];
 
 // ---------- art ----------
+// the jammers sit in a dark box like the World Lock's (same frame and colours), so they read as
+// world items: a small grey machine inside with an antenna and a blinking light on top
 function jammerBox({ R, P }, light) {
-  R(3, 6, 10, 10, '#1a1d24');
-  R(4, 7, 8, 8, '#6a707e');
-  R(4, 7, 8, 1, '#9aa0ad');
-  R(4, 14, 8, 1, '#4a4f5c');
-  R(5, 9, 6, 3, '#2e323c');
-  P(6, 13, '#9aa0ad');
-  P(9, 13, '#9aa0ad');
-  R(7, 1, 2, 6, '#1a1d24');
-  R(7, 1, 1, 6, '#9aa0ad');
-  R(6, 0, 4, 2, light);
+  // the box (World Lock frame)
+  R(0, 0, 16, 16, '#14101c');
+  R(1, 1, 14, 14, '#3a3350');
+  R(2, 2, 12, 12, '#2a2440');
+  // antenna with its light
+  R(7, 3, 2, 4, '#14101c');
+  P(7, 4, '#9aa0ad');
+  P(7, 5, '#9aa0ad');
+  R(6, 2, 4, 1, light);
+  P(7, 3, light);
+  P(8, 3, light);
+  // the machine
+  R(3, 7, 10, 6, '#14101c');
+  R(4, 8, 8, 4, '#6a707e');
+  R(4, 8, 8, 1, '#9aa0ad');
+  R(4, 11, 8, 1, '#4a4f5c');
+  R(5, 9, 6, 2, '#2e323c');
 }
 DECO.signal_jammer = (h, f = 0) => {
   jammerBox(h, f ? '#ff4a2a' : '#7a1a10');
   const { P } = h;
-  // radio waves
+  // radio waves round the antenna
   for (const [i, j] of [
-    [4, 1],
-    [3, 2],
-    [3, 3],
-    [11, 1],
-    [12, 2],
-    [12, 3],
+    [4, 3],
+    [4, 4],
+    [5, 2],
+    [11, 3],
+    [11, 4],
+    [10, 2],
   ])
     P(i, j, f ? '#ffd23f' : '#c98a12');
+  // red and green lights on the screen
   P(6, 10, '#ff4a2a');
   P(9, 10, '#7ccf5a');
 };
 DECO.punch_jammer = (h, f = 0) => {
   jammerBox(h, f ? '#ffd23f' : '#8a6a10');
   const { R, P } = h;
-  // a little fist with a red line through it
-  R(6, 9, 4, 3, '#f2b786');
+  // a little fist on the screen with a red line through it
+  R(6, 9, 4, 2, '#f2b786');
   P(6, 9, '#c98a6a');
   P(8, 9, '#c98a6a');
-  for (let k = 0; k < 5; k++) P(5 + k, 12 - k, '#ff4a2a');
+  for (let k = 0; k < 4; k++) P(6 + k, 11 - k, '#ff4a2a');
+  P(5, 11, '#ff4a2a');
 };
 const oldDecoFrame = decoFrame;
 decoFrame = (id) => (id === 'signal_jammer' || id === 'punch_jammer' ? Math.floor(now / 450) % 2 : oldDecoFrame(id));

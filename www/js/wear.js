@@ -5,9 +5,19 @@
 //   the fancy pickaxes give off sparkles. Laser Eyes shoot a laser when you punch.
 // Everything is drawn in the body sprite's own pixels (118x215, facing right).
 // ===== wear =====
-const WEAR_SLOTS = ['back', 'shirt', 'pants', 'feet', 'face', 'hair', 'hat'];
-const SLOT_NAME = { back: 'Back', shirt: 'Shirt', pants: 'Pants', feet: 'Feet', face: 'Face', hair: 'Hair', hat: 'Hat' };
-for (const s of WEAR_SLOTS) if (!(s in equipped)) equipped[s] = null;
+const WEAR_SLOTS = ['back', 'shirt', 'pants', 'feet', 'face', 'hair', 'hat', 'aura'];
+const SLOT_NAME = { back: 'Back', shirt: 'Shirt', pants: 'Pants', feet: 'Feet', face: 'Face', hair: 'Hair', hat: 'Hat', aura: 'Aura', hand: 'Hand' };
+// the Wearing row under the bag: every clothing slot, plus Hand (the tool you hold: pickaxes, shovel, sword...)
+const EQ_SLOTS = [...WEAR_SLOTS, 'hand'];
+for (const s of EQ_SLOTS) if (!(s in equipped)) equipped[s] = null;
+// which Wearing slot an item goes in (null: it isn't worn; the Wrench always stays in the bag)
+function slotOf(id) {
+  const it = ITEMS[id];
+  if (!it) return null;
+  if (it.kind === 'clothing') return it.slot;
+  if (it.kind === 'tool' && id !== 'wrench') return 'hand';
+  return null;
+}
 
 // grow: tree seconds; seed: seed colours. Shirts / pants / feet: col (+ pat for patterns).
 // Hair: tint [dark, light] of the spiky hair, or art. Hats, face and back: art (drawn by WEAR_ART below).
@@ -40,16 +50,21 @@ const WEAR = [
   { id: 'brown_shoes', name: 'Brown Shoes', slot: 'feet', col: '#8a5a32', desc: 'Plain brown shoes.' },
   { id: 'patent_leather_shoes', name: 'Patent Leather Shoes', slot: 'feet', col: '#18161c', desc: 'Shiny black shoes.' },
   // hair
-  { id: 'brown_hair', name: 'Brown Hair', slot: 'hair', tint: ['#2a1608', '#a8703a'], desc: 'Spiky brown hair.' },
-  { id: 'blonde_bombshell', name: 'Blonde Bombshell', slot: 'hair', tint: ['#8a6a10', '#ffe680'], desc: 'Bright blonde hair.' },
-  { id: 'spikey_hair', name: 'Spikey Hair', slot: 'hair', tint: ['#8a7a00', '#fff24a'], desc: 'Extra spiky, extra yellow.' },
-  { id: 'messy_auburn_tresses', name: 'Messy Auburn Tresses', slot: 'hair', tint: ['#4a1406', '#d8602a'], desc: 'Messy reddish-brown hair.' },
-  { id: 'grey_hair_bun', name: 'Grey Hair Bun', slot: 'hair', tint: ['#4a4a52', '#e0e0e8'], desc: 'Wise grey hair.' },
-  { id: 'hot_pink_highlights', name: 'Hot Pink Highlights', slot: 'hair', tint: ['#1a0612', '#ff4ab0'], desc: 'Dark hair with hot pink streaks.' },
+  { id: 'brown_hair', name: 'Brown Hair', slot: 'hair', col: '#8a5428', top: -35, iconImg: 'hair_brown_spike_icon', strip: { img: 'hair_brown_spike', frames: 1, ms: 1000, x: -8, y: -31, w: 135, h: 114, icon: [0, 0, 135, 114] }, desc: 'Brown hair brushed up into a tall quiff.' },
+  { id: 'blonde_bombshell', name: 'Blonde Bombshell', slot: 'hair', col: '#e8c47a', top: -15, iconImg: 'hair_blonde_band_icon', strip: { img: 'hair_blonde_band', frames: 1, ms: 1000, x: -17, y: -11, w: 138, h: 188, icon: [0, 0, 138, 138] }, desc: 'Long blonde hair with a white headband.' },
+  { id: 'spikey_hair', name: 'Spikey Hair', slot: 'hair', col: '#3a3432', top: -35, iconImg: 'hair_messy_black_icon', strip: { img: 'hair_messy_black', frames: 1, ms: 1000, x: -17, y: -31, w: 152, h: 116, icon: [0, 0, 152, 116] }, desc: 'Messy, spiky black hair.' },
+  { id: 'messy_auburn_tresses', name: 'Messy Auburn Tresses', slot: 'hair', col: '#8a2a22', top: -23, iconImg: 'hair_red_ponytail_icon', strip: { img: 'hair_red_ponytail', frames: 1, ms: 1000, x: -17, y: -19, w: 137, h: 185, icon: [0, 0, 137, 137] }, desc: 'Long auburn hair in a high ponytail.' },
+  { id: 'grey_hair_bun', name: 'Grey Hair Bun', slot: 'hair', col: '#c8c4c0', top: -20, iconImg: 'hair_silver_icon', strip: { img: 'hair_silver', frames: 1, ms: 1000, x: -13, y: -16, w: 140, h: 103, icon: [0, 0, 140, 103] }, desc: 'Soft silver-grey hair swept to the side.' },
+  { id: 'hot_pink_highlights', name: 'Hot Pink Highlights', slot: 'hair', col: '#f0a0b4', top: -39, iconImg: 'hair_pink_bun_icon', strip: { img: 'hair_pink_bun', frames: 1, ms: 1000, x: -17, y: -35, w: 138, h: 164, icon: [0, 0, 138, 138] }, desc: 'Pink hair in a messy bun with loose strands.' },
   { id: 'unicorn_hair', name: 'Unicorn Hair', slot: 'hair', tint: ['#6a2a9a', '#ffb0f0'], rarity: 'Rare', desc: 'Magical pastel hair.' },
-  { id: 'purple_mohawk', name: 'Purple Mohawk', slot: 'hair', tint: ['#3a0a5a', '#b060ff'], desc: 'Tall and purple.' },
-  { id: 'pigtails', name: 'Pigtails', slot: 'hair', tint: ['#4a200a', '#c87a3a'], art: 'pigtails', desc: 'Two bouncy pigtails.' },
+  { id: 'purple_mohawk', name: 'Black Bob', slot: 'hair', col: '#2a2628', top: -11, iconImg: 'hair_black_bob_icon', strip: { img: 'hair_black_bob', frames: 1, ms: 1000, x: -15, y: -7, w: 136, h: 132, icon: [0, 0, 136, 132] }, desc: 'A short black bob with hair clips.' },
+  { id: 'pigtails', name: 'Black Top Bun', slot: 'hair', col: '#2a2628', top: -27, iconImg: 'hair_black_bun_icon', strip: { img: 'hair_black_bun', frames: 1, ms: 1000, x: -17, y: -23, w: 139, h: 136, icon: [0, 0, 139, 136] }, desc: 'Black hair tied up in a bun.' },
   { id: 'afro', name: 'Afro', slot: 'hair', art: 'afro', desc: 'A big round afro.' },
+  // the owner's animated golden hair (the idle row of his sprite sheet: 9 frames, glow and sparks included),
+  // cut out and fitted on our head: strip frames are w x h in body-sprite pixels, top left at (x, y) of the body
+  { id: 'super_saiyan_hair', name: 'Super Saiyan Hair', slot: 'hair', rarity: 'Legendary', shop: true, top: -112,
+    strip: { img: 'hair_ssj', frames: 9, ms: 110, x: -90, y: -180, w: 300, h: 260, icon: [55, 45, 210, 190] },
+    desc: 'Blazing golden spiky hair with a flickering glow and rising sparks.' },
   // hats
   { id: 'top_hat', name: 'Top Hat', slot: 'hat', art: 'top_hat', rarity: 'Uncommon', desc: 'A tall black hat with a red band.' },
   { id: 'santa_hat', name: 'Santa Hat', slot: 'hat', art: 'santa_hat', desc: 'Ho ho ho!' },
@@ -77,12 +92,30 @@ const WEAR = [
   { id: 'jetpack', name: 'Jetpack', slot: 'back', art: 'jetpack', rarity: 'Rare', desc: 'Twin rockets. Flames come out when you jump.' },
   // long hair (the back part is drawn behind the body)
   { id: 'long_brown_hair', name: 'Long Brown Hair', slot: 'hair', art: 'long_brown', behind: 'long_brown_back', iconBox: [-10, -10, 150, 170], desc: 'Long, straight brown hair.' },
-  { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', art: 'long_black', behind: 'long_black_back', iconBox: [-10, -10, 150, 170], desc: 'Long, shiny black hair.' },
+  { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', col: '#2a2628', top: -8, iconImg: 'hair_long_black_icon', strip: { img: 'hair_long_black', frames: 1, ms: 1000, x: -17, y: -4, w: 141, h: 182, icon: [0, 0, 141, 141] }, desc: 'Long wavy black hair.' },
   { id: 'princess_hair', name: 'Princess Hair', slot: 'hair', art: 'princess', behind: 'princess_back', iconBox: [-10, -30, 150, 190], desc: 'Long golden hair with a pink bow.' },
   // from the Shop
   { id: 'angel_wings', name: 'Angel Wings', slot: 'back', art: 'angel_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-60, 110, 238, 150], desc: 'Soft white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'golden_wings', name: 'Golden Wings', slot: 'back', art: 'golden_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-100, 80, 318, 260], desc: 'Huge shining golden wings, with two small golden wings below them. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'tiny_angel_wings', name: 'Tiny Angel Wings', slot: 'back', art: 'tiny_angel_wings', rarity: 'Epic', shop: true, wings: true, iconBox: [0, 150, 118, 90], desc: 'Teeny little white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
+  // aura slot: a blazing power aura around the whole body (drawn by drawAura, colours in AURAS)
+  { id: 'dark_diamond_aura', name: 'Dark Diamond Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing dark diamond aura of deep purple flames all around you, with violet lightning.' },
+  { id: 'diamond_aura', name: 'Diamond Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing diamond aura of icy blue flames all around you, with diamond-blue lightning.' },
+  { id: 'white_aura', name: 'White Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing pure white aura all around you, with bright white lightning.' },
+  { id: 'red_aura', name: 'Red Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing red aura of fierce flames all around you, with red lightning.' },
+  { id: 'golden_aura', name: 'Golden Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing golden aura of power flames all around you, with swirling streaks of light and rising sparks.' },
+  // (the owner's hairstyle pictures are on the recipe hairs above: Brown Hair, Blonde Bombshell, ...)
+  // wings from the owner's sheet (art-source/items/wings_cut.py): their particles twinkle and float (8 frames)
+  { id: 'seraph_wings', name: 'Seraph Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_seraph', frames: 1, ms: 140, x: -61, y: -19, w: 240, h: 228, icon: [0, 0, 240, 228] }, desc: 'Big soft white feathered wings. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'demon_wings', name: 'Demon Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_demon', frames: 1, ms: 140, x: -61, y: -15, w: 240, h: 219, icon: [0, 0, 240, 219] }, desc: 'Dark red bat wings with black bones. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'phoenix_wings', name: 'Phoenix Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_phoenix', frames: 8, ms: 140, x: -61, y: -21, w: 240, h: 232, icon: [0, 0, 240, 232] }, desc: 'Blazing golden feathers with twinkling embers. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'crystal_wings', name: 'Crystal Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_crystal', frames: 8, ms: 140, x: -61, y: -29, w: 240, h: 248, icon: [0, 0, 240, 248] }, desc: 'Wings of sharp blue crystal with floating shards. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'fairy_wings', name: 'Fairy Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_fairy', frames: 8, ms: 140, x: -61, y: -19, w: 240, h: 228, icon: [0, 0, 240, 228] }, desc: 'Glowing pink and blue butterfly wings with sparkles. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'shadow_wings', name: 'Shadow Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_shadow', frames: 8, ms: 140, x: -61, y: -31, w: 240, h: 253, icon: [0, 0, 240, 253] }, desc: 'Smoky purple shadow wings with dark sparks. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'celestial_wings', name: 'Celestial Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_celestial', frames: 8, ms: 140, x: -61, y: -22, w: 240, h: 234, icon: [0, 0, 240, 234] }, desc: 'Gold and blue wings with glowing orbs and sparkles. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'dragon_wings', name: 'Dragon Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_dragon', frames: 1, ms: 140, x: -61, y: -21, w: 240, h: 231, icon: [0, 0, 240, 231] }, desc: 'Huge red dragon wings. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'leaf_wings', name: 'Leaf Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_leaf', frames: 8, ms: 140, x: -61, y: -23, w: 240, h: 237, icon: [0, 0, 240, 237] }, desc: 'Wings of green leaves and white flowers, with drifting leaves. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'galaxy_wings', name: 'Galaxy Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_galaxy', frames: 8, ms: 140, x: -61, y: -25, w: 240, h: 241, icon: [0, 0, 240, 241] }, desc: 'Starry night-sky wings with halos and twinkling stars. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'laser_eyes', name: 'Laser Eyes', slot: 'face', art: 'laser_eyes', rarity: 'Epic', desc: 'Glowing red eyes. Every punch fires a laser from your eyes, and you reach one tile further.' },
 ];
 const WEAR_BY_ID = {};
@@ -532,6 +565,22 @@ function longHairBack({ L }, col, hi) {
 const ARTS = {};
 // animated drawings: ms per frame (2 frames)
 const ANIM = { hot_head: 120, cyclopean_visor: 300 };
+// an animated picture strip worn on the body (e.g. Super Saiyan Hair); call inside the character transform
+// sx: squeeze sideways round the strip's middle (wings flapping in the air)
+function drawWearStrip(w, top, sc, dy, sx = 1) {
+  const s = w.strip,
+    im = IMG[s.img];
+  if (!im || !im.width) return;
+  const fw = im.width / s.frames,
+    f = Math.floor(now / s.ms) % s.frames,
+    k = sc * Z,
+    mid = (-FR.w / 2 + s.x + s.w / 2) * k;
+  g.save();
+  g.translate(mid, 0);
+  g.scale(sx, 1);
+  g.drawImage(im, f * fw, 0, fw, im.height, (-s.w / 2) * k, top + (s.y + dy) * k, s.w * k, s.h * k);
+  g.restore();
+}
 function wearArt(id, f) {
   if (f === undefined) f = ANIM[id] ? Math.floor(now / ANIM[id]) % 2 : 0;
   const k = id + ':' + f;
@@ -545,16 +594,104 @@ function drawWearArt(id, top, sc, dy, f, art) {
   const c = wearArt(art, f);
   g.drawImage(c, (-FR.w / 2 - ART_PAD) * sc * Z, top + (dy - ART_PAD) * sc * Z, c.width * sc * Z, c.height * sc * Z);
 }
-// what goes behind the body: the back item (wings flap in the air) and the back of long hair
+// ---------- auras (the aura slot) ----------
+// An aura is an animated picture strip (IMG[img]: `frames` pictures side by side, from the owner's
+// sprite sheet, background keyed out; source in art-source/items). It is drawn behind the body,
+// standing on the feet, `h` times the body's height, one frame every `ms` milliseconds.
+const AURAS = {
+  golden_aura: { img: 'aura_golden', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#ff9d00', '#ffd400', '#fffbd0'] },
+  dark_diamond_aura: { img: 'aura_dark', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#5a2aff', '#b49cff', '#f6f0ff'] },
+  red_aura: { img: 'aura_red', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#b00000', '#ff3424', '#ffe4d8'] },
+  diamond_aura: { img: 'aura_diamond', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#1a6aa8', '#3ec8f0', '#e8fbff'] },
+  white_aura: { img: 'aura_white', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#8a9ac4', '#e6ecff', '#ffffff'] },
+};
+function auraFrame(id, f) {
+  const a = AURAS[id],
+    im = a && IMG[a.img];
+  if (!im || !im.width) return null;
+  const fw = im.width / a.frames;
+  return { im, sx: (f % a.frames) * fw, fw, fh: im.height };
+}
+function drawAura(id, top, sc, dy) {
+  const a = AURAS[id],
+    fr = a && auraFrame(id, Math.floor(now / a.ms));
+  if (!fr) return;
+  const h = FR.h * a.h,
+    w = (h * fr.fw) / fr.fh,
+    k = sc * Z;
+  const al = g.globalAlpha;
+  g.globalAlpha = al * (a.alpha ?? 1);
+  g.drawImage(fr.im, fr.sx, 0, fr.fw, fr.fh, (-w / 2) * k, top + (dy + FR.h + a.foot - h) * k, w * k, h * k);
+  g.globalAlpha = al;
+}
+// in front of the body: yellow lightning crackling over the aura. A new set of bolts every LIGHTNING_MS;
+// each one flickers on and off, so it looks alive. Drawn in body-sprite space like drawAura.
+const LIGHTNING_MS = 70;
+function drawAuraFront(c, top, sc, dy) {
+  const id = (c.equipped || {}).aura,
+    a = id && AURAS[id];
+  if (!a || !a.bolt) return;
+  const beat = Math.floor(now / LIGHTNING_MS),
+    // the same random numbers for everyone during one beat (players look alike on every screen)
+    rnd = (n) => {
+      const v = Math.sin(beat * 12.9898 + n * 78.233 + (c.x | 0) * 0.01) * 43758.5453;
+      return v - Math.floor(v);
+    },
+    h = FR.h * a.h,
+    k = sc * Z;
+  g.save();
+  g.translate(0, top + (dy + FR.h + a.foot - h) * k);
+  g.scale(k, k);
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+  for (let b = 0; b < 3; b++) {
+    if (rnd(b * 31 + 1) < 0.45) continue; // this bolt is off for this beat
+    const side = rnd(b * 31 + 2) < 0.5 ? -1 : 1;
+    // start somewhere round the body (more out to the sides than over the face)
+    let x = side * FR.w * (0.18 + rnd(b * 31 + 3) * 0.45),
+      y = h * (0.12 + rnd(b * 31 + 4) * 0.5);
+    const pts = [[x, y]];
+    for (let s = 0; s < 5; s++) {
+      x += (rnd(b * 31 + 10 + s) - 0.5) * 34 - side * 3;
+      y += 12 + rnd(b * 31 + 20 + s) * 16;
+      pts.push([x, y]);
+    }
+    // a short branch from the middle
+    const m = pts[2],
+      br = [m, [m[0] + side * (10 + rnd(b * 31 + 5) * 14), m[1] + 8], [m[0] + side * (18 + rnd(b * 31 + 6) * 16), m[1] + 22]];
+    // glow, yellow bolt, bright core
+    for (const [w, col, al] of [
+      [16, a.bolt[0], 0.3],
+      [8, a.bolt[1], 1],
+      [3, a.bolt[2], 1],
+    ]) {
+      g.globalAlpha = al;
+      g.strokeStyle = col;
+      g.lineWidth = w;
+      for (const line of [pts, br]) {
+        g.beginPath();
+        line.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py)));
+        g.stroke();
+      }
+    }
+  }
+  g.restore();
+}
+// what goes behind the body: the back item (wings flap in the air), the aura and the back of long hair
 function drawBehind(c, top, sc, dy) {
   const eq = c.equipped || {},
     hw = WEAR_BY_ID[eq.hair];
-  if (hw && hw.behind) drawWearArt(eq.hair, top, sc, dy, 0, hw.behind);
+  // back to front: the back item (wings), then the aura, then the back of long hair; the body goes on top
   if (eq.back) {
-    const flap = (WEAR_BY_ID[eq.back] || {}).wings ? (c.ground ? Math.floor(now / 700) % 2 : Math.floor(now / 90) % 2) : undefined;
-    drawWearArt(eq.back, top, sc, dy, flap);
+    // wings stay still (open) on the ground and only flap while jumping / in the air
+    const bw = WEAR_BY_ID[eq.back] || {},
+      flap = bw.wings ? (c.ground ? 0 : Math.floor(now / 90) % 2) : undefined;
+    if (bw.strip) drawWearStrip(bw, top, sc, dy, bw.wings && !c.ground ? 0.72 + 0.28 * Math.abs(Math.cos(now / 95)) : 1);
+    else drawWearArt(eq.back, top, sc, dy, flap);
     if (eq.back === 'jetpack' && !c.ground) drawJetFlame(top, sc, dy);
   }
+  if (eq.aura && AURAS[eq.aura]) drawAura(eq.aura, top, sc, dy);
+  if (hw && hw.behind) drawWearArt(eq.hair, top, sc, dy, 0, hw.behind);
 }
 // jetpack flames while you're in the air
 function drawJetFlame(top, sc, dy) {
@@ -574,9 +711,9 @@ function drawJetFlame(top, sc, dy) {
 const TOOLS = {
   pickaxe: { name: 'Pickaxe', bonus: 1, rarity: 'Rare', head: ['#9aa0ad', '#e0e4ea', '#4a4f5c'], desc: 'Breaks every block in one punch less.' },
   shovel: { name: 'Shovel', bonus: 2, dirtOnly: true, rarity: 'Uncommon', head: ['#9aa0ad', '#e0e4ea', '#4a4f5c'], shovel: true, desc: 'Digs dirt in two punches less (dirt only).' },
-  golden_pickaxe: { name: 'Golden Pickaxe', bonus: 2, rarity: 'Epic', head: ['#f0b020', '#fff0a0', '#a06008'], sparkle: ['#ffd23f', '#fff4b8', '#ffffff'], rate: 0.2, desc: 'Breaks every block in two punches less. Shines with gold sparkles.' },
-  diamond_pickaxe: { name: 'Diamond Pickaxe', bonus: 2, rarity: 'Legendary', head: ['#3ec8f0', '#d0faff', '#1a6aa8'], sparkle: ['#7fe8ff', '#ffffff', '#c8f4ff'], rate: 0.18, desc: 'Breaks every block in two punches less, and swings faster. Glitters with diamond dust.' },
-  black_diamond_pickaxe: { name: 'Black Diamond Pickaxe', bonus: 2, rarity: 'Legendary', head: ['#7a5ad8', '#d0c4ff', '#2e1a66'], sparkle: ['#a99cff', '#6a5aff', '#ffffff'], rate: 0.16, desc: 'Breaks every block in two punches less, and swings fastest. Trails dark purple sparks.' },
+  golden_pickaxe: { name: 'Golden Pickaxe', bonus: 2, rarity: 'Epic', head: ['#f0b020', '#fff0a0', '#a06008'], handle: ['#fff0a0', '#d89a14', '#8a5006', '#b07810'], sparkle: ['#ffd23f', '#fff4b8', '#ffffff'], rate: 0.2, desc: 'Breaks every block in two punches less. Shines with gold sparkles.' },
+  diamond_pickaxe: { name: 'Diamond Pickaxe', bonus: 2, rarity: 'Legendary', head: ['#3ec8f0', '#d0faff', '#1a6aa8'], handle: ['#d0faff', '#30b0e0', '#165a90', '#2088c0'], sparkle: ['#7fe8ff', '#ffffff', '#c8f4ff'], rate: 0.18, desc: 'Breaks every block in two punches less, and swings faster. Glitters with diamond dust.' },
+  black_diamond_pickaxe: { name: 'Black Diamond Pickaxe', bonus: 2, rarity: 'Legendary', head: ['#7a5ad8', '#d0c4ff', '#2e1a66'], handle: ['#c4b4ff', '#6a4ac8', '#26145a', '#4e30a0'], sparkle: ['#a99cff', '#6a5aff', '#ffffff'], rate: 0.16, desc: 'Breaks every block in two punches less, and swings fastest. Trails dark purple sparks.' },
   // held items from recipes (just for show)
   sword: { name: 'Sword', bonus: 0, rarity: 'Uncommon', blade: true, head: ['#c3c9d4', '#ffffff', '#5a606e'], desc: 'A shiny sword. Hold it in your hand.' },
   flashlight: { name: 'Flashlight', bonus: 0, rarity: 'Common', light: true, head: ['#2a2830', '#ffd23f', '#121116'], desc: 'Lights up whatever you point at.' },
@@ -589,6 +726,13 @@ for (const [id, t] of Object.entries(TOOLS)) {
   ITEMS[id + '_seed'] = { name: t.name + ' Seed', kind: 'seed', from: id, desc: 'Plant it on top of a block to grow a ' + t.name + ' Tree.', rarity: t.rarity };
   SEED_COLOR[id] = [t.head[0], t.head[2], t.head[1]];
   TREE_TIME[id] = 300;
+}
+// footwear makes you run faster, more the rarer it is (feet slot; rarityOf in farming.js)
+function feetSpeed() {
+  const id = equipped.feet;
+  if (!id) return 1;
+  const r = typeof rarityOf === 'function' ? rarityOf(id) || 5 : 5;
+  return 1 + Math.min(FEET_SPEED_MAX, FEET_SPEED_BASE + r * FEET_SPEED_PER);
 }
 const heldTool = (h) => (ITEMS[h] && ITEMS[h].tool) || null;
 // punches a block needs with what you hold
@@ -709,6 +853,9 @@ function pickaxeSprite(id, stars) {
   const k = 'pick:' + id + (stars ? ':s' : '');
   if (ARTS[k]) return ARTS[k];
   const [m, l, d] = TOOLS[id].head,
+    // handle colours: light edge, middle, dark edge, grip end. Wood unless the tool has its own
+    // (the Golden / Diamond / Black Diamond Pickaxes have handles of the same stuff as the head)
+    [hl, hm, hd, hg] = TOOLS[id].handle || ['#c98a52', '#8a5a32', '#4e301a', '#6b4424'],
     N = 32,
     px = new Array(N * N).fill(null);
   const C = [2.5, 29.5],
@@ -727,7 +874,7 @@ function pickaxeSprite(id, stars) {
         t = ((x + 0.5 - C[0]) * vx + (y + 0.5 - C[1]) * vy) / (len * len),
         side = ((x + 0.5 - C[0]) * vy - (y + 0.5 - C[1]) * vx) / len;
       if (t < 0.02 || t > 1) continue;
-      if (Math.abs(side) <= 1.6) px[y * N + x] = side < -0.5 ? '#c98a52' : side > 0.6 ? '#4e301a' : t < 0.18 ? '#6b4424' : '#8a5a32';
+      if (Math.abs(side) <= 1.6) px[y * N + x] = side < -0.5 ? hl : side > 0.6 ? hd : t < 0.18 ? hg : hm;
     }
   // head: a crescent around C
   for (let y = 0; y < N; y++)
@@ -786,6 +933,7 @@ function pickaxeSprite(id, stars) {
 const GRIP = [7, 25]; // where the hand holds the tool picture (of 32x32)
 const SHOULDER = [36, 114]; // the back arm's shoulder in the body sprite
 const TOOL_TURN = 1.05; // holding: the handle across the body, head hanging down
+const HOLD_LIFT = 0; // holding (not swinging): the tool sits this many world px higher (0 = in the hand as drawn)
 const SWING_TURN = 2.7; // swinging: the handle carries on along the arm, the head out at the end
 const ARMS = new Map();
 function armParts(img, key) {
@@ -892,7 +1040,7 @@ function armParts(img, key) {
 }
 // draws, in body-sprite space (x 0 = the body's middle, y 0 = its top), the tool held in the hand at
 // `hand`, then the arm over it, all turned by `turn` round the shoulder
-function drawArmWithTool(id, arm, hand, turn, toolTurn = TOOL_TURN) {
+function drawArmWithTool(id, arm, hand, turn, toolTurn = TOOL_TURN, lift = 0) {
   const s = toolSprite(id),
     sz = 17 / (CHAR_H / FR.h), // a tool 17 world px long, in sprite px
     k = sz / 32,
@@ -903,7 +1051,7 @@ function drawArmWithTool(id, arm, hand, turn, toolTurn = TOOL_TURN) {
   g.rotate(turn);
   g.translate(-px, -py);
   g.save();
-  g.translate(hand[0] - FR.w / 2, hand[1]);
+  g.translate(hand[0] - FR.w / 2, hand[1] - lift * (FR.h / CHAR_H));
   g.rotate(toolTurn);
   g.imageSmoothingEnabled = false;
   g.drawImage(s, -GRIP[0] * k, -GRIP[1] * k, sz, sz);
@@ -918,7 +1066,7 @@ function drawHeldTool(id, top, sc, dy, skin, im, key) {
   g.save();
   g.translate(0, top + dy * sc * Z);
   g.scale(sc * Z, sc * Z);
-  drawArmWithTool(id, parts.arm, parts.hand, 0);
+  drawArmWithTool(id, parts.arm, parts.hand, 0, TOOL_TURN, HOLD_LIFT);
   g.restore();
 }
 // how far round the arm is during a swing (sprite space, facing right): raised up behind, then down onto the target
@@ -1022,7 +1170,25 @@ function wearIcon(id) {
     const [sy, sh] = w.slot === 'shirt' ? [98, 64] : w.slot === 'pants' ? [138, 66] : [176, 40];
     x.drawImage(body, 14, sy, 90, sh, 2, 16 - (sh * 28) / 90 / 2, 28, (sh * 28) / 90);
   } else if (w.tint) x.drawImage(itemImg(w.id + '_icon'), 0, 0, 32, 32);
-  else {
+  else if (w.iconImg && IMG[w.iconImg] && IMG[w.iconImg].width) x.drawImage(IMG[w.iconImg], 1, 1, 30, 30);
+  else if (w.strip) {
+    // the strip's first frame, cropped to the hair
+    const im = IMG[w.strip.img],
+      [bx, by, bw, bh] = w.strip.icon,
+      kk = im.height / w.strip.h, // strip pixels per body pixel
+      f = 30 / Math.max(bw, bh), // fit, keeping its shape
+      ix = 16 - (bw * f) / 2,
+      iy = 16 - (bh * f) / 2;
+    if (im && im.width) x.drawImage(im, bx * kk, by * kk, bw * kk, bh * kk, ix, iy, bw * f, bh * f);
+  } else if (w.aura) {
+    // the first frame of the aura, fitted into the icon
+    const fr = auraFrame(id, 0);
+    if (fr) {
+      const ih = 31,
+        iw = (ih * fr.fw) / fr.fh;
+      x.drawImage(fr.im, fr.sx, 0, fr.fw, fr.fh, 16 - iw / 2, 0.5, iw, ih);
+    }
+  } else {
     // hats, faces, back items, hairstyles: the drawing, scaled to fit
     const a = wearArt(w.art),
       box = w.iconBox || { hat: [0, 0, 140, 130], face: [24, 100, 110, 110], back: [0, 150, 60, 80], hair: [-20, 20, 170, 150] }[w.slot];

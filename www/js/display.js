@@ -144,7 +144,7 @@ function openDisplay(x, y) {
   body.querySelector('#dItem').onchange = top;
   top();
 }
-const SLOT_NAMES = { back: 'Back', shirt: 'Shirt', pants: 'Pants', feet: 'Feet', face: 'Face', hair: 'Hair', hat: 'Hat' };
+const SLOT_NAMES = SLOT_NAME;
 function openMannequin(x, y) {
   const i = at(x, y),
     m = manns.get(i) || {};
@@ -316,6 +316,7 @@ function drawMannequinAt(cx, top, eq, tx = 0, ty = 0) {
   drawBehind(c, top, sc, 0);
   g.drawImage(body, (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
   drawWorn(c, top, sc, 0);
+  drawAuraFront(c, top, sc, 0);
   g.restore();
   g.imageSmoothingEnabled = false;
 }

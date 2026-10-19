@@ -37,12 +37,15 @@ const inv = [
   { id: 'world_lock', qty: 1 },
 ];
 let hand = 'fist';
+// an empty hand: the tool in the Hand slot if there is one, else the bare fist
+const bareHand = () => equipped.hand || 'fist';
 const puffs = [],
   drops = [],
   parts = [],
   floats = [];
 // how many bag slots are open at this level
-const bagSize = () => Math.min(BAG_MAX, BAG_FREE + BAG_STEP * Math.max(0, level - BAG_LEVEL + 1));
+// (a GM's bag has room for every item in the game, see gmFillBag)
+const bagSize = () => (isGM() ? Math.max(BAG_MAX, inv.length + 40) : Math.min(BAG_MAX, BAG_FREE + BAG_STEP * Math.max(0, level - BAG_LEVEL + 1)));
 // the level that opens bag slot i (0-based)
 const slotLevel = (i) => BAG_LEVEL + Math.floor((i - BAG_FREE) / BAG_STEP);
 const isGM = () => GM_USERS.includes(String(playerName).toLowerCase());
@@ -77,8 +80,7 @@ function takeItem(id, n = 1) {
   inv[i].qty -= n;
   if (inv[i].qty <= 0) {
     inv.splice(i, 1);
-    if (hand === id) hand = 'fist';
-    for (const k in equipped) if (equipped[k] === id) equipped[k] = null;
+    if (hand === id) hand = bareHand();
   }
   renderBars();
   return true;

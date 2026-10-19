@@ -7,9 +7,50 @@ const treeName = (seed) => ITEMS[seed].name + ' Tree';
 function treeProgress(t) {
   return Math.min(1, (Date.now() - t.planted) / (TREE_TIME[t.seed] * 1000));
 }
+// a seed goes on an empty tile with ground under it: a solid block, or a platform (Wooden Platform, Staircase)
+// ---------- rarity ----------
+// Like Growtopia: the four things you dig up are the base (Dirt 1, Cave 2, Rock 3, Lava 5) and a spliced item is as
+// rare as its two seeds added up (the cheapest recipe if it has more than one). Items that don't grow from a seed
+// (Shop items, locks...) have no rarity number.
+const RARITY_BASE = { dirt: 1, cave: 2, rock: 3, lava: 5 };
+const RARITY = {};
+function rarityOf(id) {
+  if (id && id.endsWith('_seed')) id = id.slice(0, -5);
+  if (id in RARITY) return RARITY[id];
+  if (RARITY_BASE[id]) return (RARITY[id] = RARITY_BASE[id]);
+  RARITY[id] = null; // (stops loops while working it out)
+  let best = null;
+  for (const [k, r] of Object.entries(SPLICE)) {
+    if (r !== id) continue;
+    const [a, b] = k.split('+'),
+      ra = rarityOf(a),
+      rb = rarityOf(b);
+    if (ra && rb && (best === null || ra + rb < best)) best = ra + rb;
+  }
+  return (RARITY[id] = best);
+}
+const rarityTier = (r) => (r <= 5 ? 'Common' : r <= 15 ? 'Uncommon' : r <= 40 ? 'Rare' : r <= 80 ? 'Epic' : 'Legendary');
+// What a broken block or background gives, by its rarity: sometimes the block, sometimes its seed, sometimes gold,
+// sometimes nothing. Rarer blocks give the block and seed back less often but more gold.
+// Things that don't grow from a seed (Shop items, locks) always come back whole.
+function blockDropChance(id) {
+  const r = rarityOf(id);
+  return r ? DROP_BLOCK / (1 + r / 15) : 1;
+}
+function seedDropChance(id) {
+  const r = rarityOf(id);
+  return r && ITEMS[id + '_seed'] ? DROP_SEED / (1 + r / 20) : 0;
+}
+function goldDropAmount(id) {
+  const r = rarityOf(id);
+  if (!r || Math.random() >= GOLD_CHANCE + Math.min(0.35, r / 250)) return 0;
+  return 1 + Math.floor(r / 10) + Math.floor(Math.random() * 3);
+}
 function canPlant(x, y) {
   const i = at(x, y);
-  return inW(x, y + 1) && !fg[i] && !trees.has(i) && !isDoorTile(x, y) && solidAt(x, y + 1);
+  if (!inW(x, y + 1) || fg[i] || trees.has(i) || isDoorTile(x, y)) return false;
+  const under = BLOCK[fg[at(x, y + 1)]];
+  return solidAt(x, y + 1) || !!(under && under.plat);
 }
 function plant(x, y, seedItem) {
   const from = ITEMS[seedItem].from;

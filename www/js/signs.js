@@ -111,15 +111,23 @@ function drawSignBubble(ox, oy) {
 // ---------- the RECIPES world ----------
 const RECIPES_WORLD = 'RECIPES';
 let worldRV = null; // which recipe list the RECIPES world was built from (saved with the world)
-const recipesVersion = () => 'L2:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).join('').length;
+const recipesVersion = () => 'L6:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).join('').length;
+// one entry per item the splices make (an item with two recipes, like Grass, gets one sign with both),
+// sorted A to Z by name
 function recipeList() {
-  return Object.entries(SPLICE).map(([k, r]) => {
+  const by = new Map();
+  for (const [k, r] of Object.entries(SPLICE)) {
     const [a, b] = k.split('+');
-    return { id: r, text: ITEMS[r].name + ' = ' + ITEMS[a].name + ' + ' + ITEMS[b].name };
-  });
+    if (!by.has(r)) by.set(r, []);
+    by.get(r).push(ITEMS[a].name + ' + ' + ITEMS[b].name);
+  }
+  return [...by]
+    .map(([id, ways]) => ({ id, text: ITEMS[id].name + ' = ' + ways.join(' or ') }))
+    .sort((p, q) => ITEMS[p.id].name.localeCompare(ITEMS[q.id].name, 'en', { sensitivity: 'base' }));
 }
 // the whole world is cleared down to the bedrock; on it, shelves of signs (Wooden Platforms you can jump through),
-// and above every sign what that recipe makes: clothes on a Mannequin, anything else in a Display Box
+// and above every sign what that recipe makes: clothes on a Mannequin, anything else in a Display Box.
+// A to Z: the bottom shelf starts at A (left to right), each shelf up carries on, Z at the top
 function buildRecipesWorld() {
   genWorld(RECIPES_WORLD);
   const FLOOR = WH - 6; // the top row of bedrock: the ground
@@ -130,6 +138,8 @@ function buildRecipesWorld() {
   displays.clear();
   manns.clear();
   drops.length = 0;
+  // the door: bottom left of the map, one free tile to its left
+  door.x = 1;
   door.y = FLOOR - 1;
   const SIGN = ITEMS.sign.block,
     PLAT = ITEMS.wooden_platform.block;

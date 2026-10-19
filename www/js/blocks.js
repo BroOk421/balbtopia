@@ -713,10 +713,28 @@ const DECO = {
       P(i - 1, j - 1, '#8a9aff');
     }
   },
-  wooden_platform({ R, P }) {
+  // f: which sides join another Wooden Platform (1 = left, 2 = right). An open side gets a
+  // rounded end; joined sides run straight to the tile edge so a row of them looks like one plank.
+  // f 0 (a platform on its own, and the icon) is rounded on both ends.
+  wooden_platform({ R, P, x }, f = 0) {
     R(0, 0, 16, 4, '#2a1a0e');
     R(0, 1, 16, 2, '#b07a4a');
     R(0, 1, 16, 1, '#d8a066');
+    for (const [open, e, n] of [
+      [!(f & 1), 0, 1],
+      [!(f & 2), 15, -1],
+    ]) {
+      if (!open) continue;
+      // rounded cap: clear the outer corners, then outline the curve
+      x.clearRect(e * 2, 0, 2, 2);
+      x.clearRect(e * 2, 6, 2, 2);
+      P(e, 1, '#2a1a0e');
+      P(e, 2, '#2a1a0e');
+      P(e + n, 0, '#2a1a0e');
+      P(e + n, 3, '#2a1a0e');
+      P(e + n, 1, '#c98a52');
+      P(e + n, 2, '#8a5a32');
+    }
     for (const i of [3, 11]) {
       R(i, 4, 2, 3, '#2a1a0e');
       R(i, 4, 1, 2, '#6b4424');
@@ -1358,7 +1376,14 @@ function drawNewBlock(b, x, y, px, py, T) {
     if (b.edge) drawEdges(maskOf(x, y), px, py, T, b.edge);
   } else {
     // a Checkpoint is green when it is the one you'll come back to
-    const f = b.id === 'checkpoint' ? (P.cp && P.cp.x === x && P.cp.y === y ? 1 : 0) : decoFrame(b.id);
+    const f =
+      b.id === 'checkpoint'
+        ? P.cp && P.cp.x === x && P.cp.y === y
+          ? 1
+          : 0
+        : b.id === 'wooden_platform'
+          ? (x > 0 && fg[at(x - 1, y)] === fg[at(x, y)] ? 1 : 0) | (x < WW - 1 && fg[at(x + 1, y)] === fg[at(x, y)] ? 2 : 0)
+          : decoFrame(b.id);
     g.drawImage(decoCanvas(b.id, f), px, py, T, T);
   }
 }

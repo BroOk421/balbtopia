@@ -437,7 +437,11 @@ const CHAR_H = 32; // drawn height of the character in world pixels (one tile = 
 const CHAR_S = CHAR_H / 56; // scale vs. the old 56px character, for arm/fist sizes
 const FOOT_SINK = 2; // pixels the feet sink into the ground so the player doesn't look like floating
 const PUNCH_TIME = 0.22; // seconds for one punch (out and back)
-const PLACE_POSE = 1; // seconds the arm stays out after placing a block (Growtopia style)
+const PLACE_POSE = 0.5; // seconds the arm stays out after the last block you placed (Growtopia style)
+// shoes and boots: +FEET_SPEED_BASE running speed, + FEET_SPEED_PER per point of rarity, at most +FEET_SPEED_MAX
+const FEET_SPEED_BASE = 0.1,
+  FEET_SPEED_PER = 0.01,
+  FEET_SPEED_MAX = 0.6;
 const WING_JUMPS = 1; // extra jumps in the air with Angel Wings (land to get them back)
 const ANGRY_TIME = 0.6; // seconds the angry face stays after a punch
 const LAVA_HP = 4; // lava burns in a row that kill you
@@ -450,7 +454,10 @@ const DROP_SIZE = 11; // size of a floating drop in world pixels
 // once nobody has collected them for this long (the owner and players with access can always)
 const DROP_LOCK_MS = 60 * 1000;
 const MAX_DROPS = 400; // floating drops kept in a world save
-const GOLD_CHANCE = 0.05; // 5% chance that breaking a block also drops gold
+const GOLD_CHANCE = 0.05; // chance that breaking a block also drops gold (rarer blocks: more, see goldDropAmount)
+// breaking a block of rarity r: the block drops with DROP_BLOCK / (1 + r / 15), its seed with DROP_SEED / (1 + r / 20)
+const DROP_BLOCK = 0.4,
+  DROP_SEED = 0.55;
 const GOLD_AMOUNT = [1, 3]; // how much gold one drop gives (min, max)
 // game masters: everything in the Shop is free for them (lower-case usernames)
 const GM_USERS = ['tae123'];
@@ -461,3 +468,10 @@ const BAG_MAX = 80,
   BAG_STEP = 2;
 const MAXSTACK = 200,
   REACH = 3; // tiles in every direction from the tile the player stands in (breaking and placing)
+// world chat: the longest message, and the spam limit (CHAT_BURST messages within CHAT_WINDOW
+// seconds, then a CHAT_COOLDOWN-second wait before the next one)
+const CHAT_MAX = 80,
+  CHAT_BURST = 3,
+  CHAT_WINDOW = 8,
+  CHAT_COOLDOWN = 5;
+const CHAT_BUBBLE_W = 84; // widest a speech bubble's text gets (world pixels); longer text wraps to more lines

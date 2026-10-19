@@ -105,6 +105,7 @@ function playerData() {
     inv,
     gold: P.gold,
     equipped,
+    wornV: 2, // 2: worn items are out of the bag (older saves kept them in it too)
     hand, // the tool or block in your hand
     world: worldName,
     walkStyle,
@@ -116,12 +117,21 @@ function playerData() {
   };
 }
 // what you wear, from a save: every slot is emptied first (so nothing carries over from another account),
-// then each saved item goes back on if it still exists, fits that slot and is still in the bag
-function setWorn(saved) {
+// then each saved item goes back on if it still exists and fits that slot.
+// Worn items are kept out of the bag. Older saves (no wornV) kept them in the bag as well:
+// those are only worn if still in the bag, and one of each is taken out of it.
+function setWorn(saved, outOfBag) {
   for (const k in equipped) equipped[k] = null;
   for (const [sl, id] of Object.entries(saved || {})) {
-    const it = id && ITEMS[id];
-    if (it && it.kind === 'clothing' && it.slot === sl && inv.some((s) => s.id === id)) equipped[sl] = id;
+    if (!id || !(sl in SLOT_NAME) || slotOf(id) !== sl) continue;
+    if (outOfBag) {
+      equipped[sl] = id;
+      continue;
+    }
+    const k = inv.findIndex((s) => s.id === id);
+    if (k < 0) continue;
+    if (--inv[k].qty <= 0) inv.splice(k, 1);
+    equipped[sl] = id;
   }
 }
 function applyPlayer(p) {
@@ -135,9 +145,12 @@ function applyPlayer(p) {
   level = p.level || 1;
   playDays = p.playDays || [];
   Object.assign(settings, p.settings || {});
-  setWorn(p.equipped);
+  setWorn(p.equipped, p.wornV >= 2);
   // the held item comes back if it is still in the bag (wearables are worn, not held)
-  hand = p.hand && p.hand !== 'fist' && ITEMS[p.hand] && ITEMS[p.hand].kind !== 'clothing' && inv.some((s) => s.id === p.hand) ? p.hand : 'fist';
+  hand =
+    p.hand && p.hand !== 'fist' && ITEMS[p.hand] && ITEMS[p.hand].kind !== 'clothing' && (inv.some((s) => s.id === p.hand) || equipped.hand === p.hand)
+      ? p.hand
+      : bareHand();
   worldName = p.world || START_WORLD;
   if (p.walkStyle) walkStyle = p.walkStyle;
   myFriends.length = 0;
@@ -171,8 +184,39 @@ function listWorlds() {
 }
 
 // ---------- entering a world ----------
-// online, the world is fetched first; returns false (and stays put) when that fails
+// While a world loads, the screen blurs behind a LOADING box (#wload) that blocks every tap and key,
+// and asking for another world meanwhile is ignored, so entering can't be spammed.
+// It shows for at least WLOAD_MIN ms so it doesn't just flash.
+const WLOAD_MIN = 700;
+let entering = false;
 async function enterWorld(name) {
+  if (entering) return false;
+  entering = true;
+  for (const k in keys) keys[k] = false;
+  ptr.down = false;
+  const box = $('wload'),
+    t0 = Date.now();
+  $('wloadN').textContent = name;
+  box.classList.remove('out');
+  box.hidden = false;
+  let ok = false;
+  try {
+    ok = await enterWorldNow(name);
+  } finally {
+    const left = WLOAD_MIN - (Date.now() - t0);
+    if (left > 0) await new Promise((r) => setTimeout(r, left));
+    for (const k in keys) keys[k] = false;
+    // fade the blur away, then let input through again
+    box.classList.add('out');
+    await new Promise((r) => setTimeout(r, 250));
+    box.hidden = true;
+    box.classList.remove('out');
+    entering = false;
+  }
+  return ok;
+}
+// online, the world is fetched first; returns false (and stays put) when that fails
+async function enterWorldNow(name) {
   let w = null;
   if (Net.online) {
     Net.loading = true;

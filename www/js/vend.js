@@ -186,23 +186,47 @@ function vendBuyer(i) {
 }
 
 // ---------- drawing ----------
+// a red machine that is mostly one big glass window (the item for sale shows large inside it),
+// a glowing sign strip on top, and a tray, coin slot and button along the bottom
 const VEND_ART = ({ R, P }) => {
-  R(1, 0, 14, 16, K);
-  R(2, 1, 12, 14, '#c62f2a');
-  R(2, 1, 12, 1, '#ff6a5a');
-  R(3, 2, 8, 9, K);
-  R(4, 3, 6, 7, '#bfe8ff');
-  R(12, 3, 1, 2, '#ffd23f');
-  R(12, 6, 1, 1, '#7ccf5a');
-  R(12, 8, 1, 1, '#9aa0ad');
-  R(3, 12, 10, 2, K);
-  R(4, 12, 8, 1, '#2a2830');
-  P(2, 15, K);
-  P(13, 15, K);
+  R(0, 0, 16, 16, K);
+  R(1, 1, 14, 14, '#c62f2a');
+  R(1, 1, 14, 1, '#ff6a5a');
+  R(1, 1, 1, 14, '#e04a3a');
+  R(14, 1, 1, 14, '#8a1a16');
+  // sign strip
+  R(3, 1, 10, 1, '#ffd23f');
+  P(5, 1, '#fff4b8');
+  P(10, 1, '#fff4b8');
+  // the glass window
+  R(2, 2, 12, 11, K);
+  R(3, 3, 10, 9, '#bfe8ff');
+  R(3, 3, 10, 1, '#e8f8ff');
+  R(3, 11, 10, 1, '#9fd0ec');
+  // tray, coin slot, button
+  R(3, 13, 6, 2, K);
+  R(4, 13, 4, 1, '#2a2830');
+  P(11, 13, '#ffd23f');
+  P(11, 14, K);
+  P(12, 13, '#7ccf5a');
+  P(12, 14, '#9aa0ad');
 };
+// the window: 10 x 9 cells from cell (3, 3)
+const VEND_GLASS = { x: 3 / 16, y: 3 / 16, w: 10 / 16, h: 9 / 16 };
 function drawVend(x, y, px, py, T) {
   g.drawImage((NEWART.vend ||= cells(VEND_ART)), px, py, T, T);
   const v = vends.get(at(x, y));
-  if (v && v.id && v.n > 0) g.drawImage(iconCanvas(v.id), px + T * 0.25, py + T * 0.19, T * 0.375, T * 0.44);
+  if (!(v && v.id && v.n > 0)) return;
+  // the item, as big as the glass allows (cropped to its picture, like in the Display Box)
+  const s = T * VEND_GLASS.h * 0.96;
+  drawFitted(px + T * (VEND_GLASS.x + VEND_GLASS.w / 2) - s / 2, py + T * (VEND_GLASS.y + VEND_GLASS.h / 2) - s / 2, s, v.id);
+  // glass shine over it
+  g.fillStyle = 'rgba(255,255,255,.28)';
+  g.beginPath();
+  g.moveTo(px + T * 0.6, py + T * VEND_GLASS.y);
+  g.lineTo(px + T * 0.72, py + T * VEND_GLASS.y);
+  g.lineTo(px + T * 0.5, py + T * (VEND_GLASS.y + VEND_GLASS.h));
+  g.lineTo(px + T * 0.38, py + T * (VEND_GLASS.y + VEND_GLASS.h));
+  g.fill();
 }
 SHOP_ICON.vending_machine = () => cells(VEND_ART);

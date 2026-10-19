@@ -183,13 +183,15 @@ function pickItem(title, cb) {
 }
 // how many? a pop-up with the item, a number box (−, +, MAX), Cancel and a confirm button
 // calls back with a whole number from 1 to max
-function askQty(title, id, max, okLabel, cb) {
+// note: what the number under the name means (default "You have")
+// start: the number it starts at (default: all of them)
+function askQty(title, id, max, okLabel, cb, note = 'You have', start = max) {
   const body = dialog(
     title,
-    `<div class="vend"><div class="vrow"><div class="vpic"></div><div><b>${esc(itemName(id))}</b><br>You have ${max.toLocaleString()}</div></div>
+    `<div class="vend"><div class="vrow"><div class="vpic"></div><div><b>${esc(itemName(id))}</b><br>${esc(note)} ${max.toLocaleString()}</div></div>
       <div class="lfield">How many<div class="vline qline">
         <button type="button" class="btn ghost" data-d="-1" aria-label="One less">−</button>
-        <input id="qtyN" type="number" min="1" max="${max}" value="${max}" inputmode="numeric" aria-label="How many" />
+        <input id="qtyN" type="number" min="1" max="${max}" value="${start}" inputmode="numeric" aria-label="How many" />
         <button type="button" class="btn ghost" data-d="1" aria-label="One more">+</button>
         <button type="button" class="btn ghost" data-max>MAX</button>
       </div></div></div>`,
@@ -667,15 +669,17 @@ function openChat() {
   const body = dialog(
     'CHAT · ' + worldName,
     `<ul class="chatlog" id="chatLog">${rows}</ul>
-     <div class="chatrow"><input id="chatText" maxlength="120" placeholder="Say something…" autocomplete="off" enterkeyhint="send" /></div>`,
+     <div class="chatrow"><input id="chatText" maxlength="${CHAT_MAX}" placeholder="Say something…" autocomplete="off" enterkeyhint="send" /><span class="chatcount" id="chatCount">0/${CHAT_MAX}</span></div>`,
     [
       { label: 'Close', cls: 'ghost', run: () => {} },
       { label: 'Send', run: (b) => sendChat(b.querySelector('#chatText').value) },
     ],
   );
   const input = body.querySelector('#chatText'),
-    log = body.querySelector('#chatLog');
+    log = body.querySelector('#chatLog'),
+    count = body.querySelector('#chatCount');
   log.scrollTop = log.scrollHeight;
+  input.oninput = () => (count.textContent = input.value.length + '/' + CHAT_MAX);
   // focus right away (inside the tap) so the phone keyboard comes up
   input.focus();
   input.onkeydown = (e) => {
@@ -685,18 +689,40 @@ function openChat() {
     }
   };
 }
+// spam limit: up to CHAT_BURST messages close together, then a cooldown
+let chatTimes = [],
+  chatWaitUntil = 0;
+function chatWait() {
+  return Math.max(0, Math.ceil((chatWaitUntil - Date.now()) / 1000));
+}
 function sendChat(raw) {
-  const text = String(raw || '').trim().slice(0, 120);
+  const text = String(raw || '').trim().slice(0, CHAT_MAX);
   if (!text) return false;
+  if (chatWait()) return toast('Too fast! Wait ' + chatWait() + 's before chatting again'), false;
+  const t = Date.now();
+  chatTimes = chatTimes.filter((s) => t - s < CHAT_WINDOW * 1000);
+  chatTimes.push(t);
+  if (chatTimes.length >= CHAT_BURST) {
+    chatTimes = [];
+    chatWaitUntil = t + CHAT_COOLDOWN * 1000;
+  }
   P.say = { text, t: 4 };
   chatLog.push({ name: playerName, text, mine: true });
   if (chatLog.length > 60) chatLog.shift();
   Net.sendChat(text);
 }
+// other players get the same limit here too, so a changed game can't flood everyone's screen
+const chatHeard = new Map(); // player id -> times of their recent messages
 Net.onChat = (p) => {
-  const text = String(p.text || '').slice(0, 120),
+  const text = String(p.text || '').slice(0, CHAT_MAX),
     name = String(p.n || 'Player').slice(0, 16);
   if (!text) return;
+  const t = Date.now(),
+    // a normal game never sends more than CHAT_BURST within one cooldown (a bit less, for network jitter)
+    heard = (chatHeard.get(p.id) || []).filter((s) => t - s < CHAT_COOLDOWN * 800);
+  if (heard.length >= CHAT_BURST) return;
+  heard.push(t);
+  chatHeard.set(p.id, heard);
   const r = Net.remotes.get(p.id);
   if (r) r.say = { text, t: 5 };
   chatLog.push({ name, text, mine: false });
