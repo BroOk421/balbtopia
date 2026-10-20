@@ -2471,6 +2471,13 @@ button:focus-visible {
 .nchip.drum span {
   font-size: 5px;
 }
+.ngroup {
+  grid-column: 1 / -1;
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--sun);
+  padding: 4px 2px 0;
+}
 .nchip.on {
   border-color: var(--sun);
   box-shadow: 0 0 0 2px var(--sun), 0 0 8px var(--sun);

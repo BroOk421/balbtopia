@@ -1,12 +1,14 @@
-// Sound effects: punch, breaking a block, jumping, picking something up, going through a door.
+// Sound effects: punch, breaking a block, jumping, picking something up, going through a door,
+// ouch (you died) and fire (a lava burn).
 // The sounds are short mp3s in assets/sfx (cut from the owner's files; the silence before and after was removed,
 // originals in art-source/sfx). Played with Web Audio so several can overlap with no delay; the audio starts on
 // the first tap or key (browsers and phones only allow sound after the player does something).
 // Menu -> Settings -> Sound turns them off (settings.sound).
 // ===== sound =====
 const Sfx = (() => {
-  const NAMES = ['punch', 'break', 'jump', 'pickup', 'door', 'rain'],
-    VOL = { punch: 0.55, break: 0.7, jump: 0.45, pickup: 0.6, door: 0.75 },
+  const NAMES = ['punch', 'break', 'jump', 'pickup', 'door', 'rain', 'ouch', 'fire'],
+    // ouch / fire files are normalised so that with these volumes they are as loud as break / jump / door
+    VOL = { punch: 0.55, break: 0.7, jump: 0.45, pickup: 0.6, door: 0.75, ouch: 0.5, fire: 0.6 },
     GAP = 45; // ms: the same sound never starts twice closer than this (picking up a pile, holding the punch)
   let ctx = null;
   const bufs = {},
