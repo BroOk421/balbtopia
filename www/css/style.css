@@ -2471,6 +2471,13 @@ button:focus-visible {
 .nchip.drum span {
   font-size: 5px;
 }
+.ngroup {
+  grid-column: 1 / -1;
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--sun);
+  padding: 4px 2px 0;
+}
 .nchip.on {
   border-color: var(--sun);
   box-shadow: 0 0 0 2px var(--sun), 0 0 8px var(--sun);
@@ -2490,10 +2497,6 @@ button:focus-visible {
 }
 .songbar .tempo input {
   width: 110px;
-}
-.songhint {
-  color: var(--muted);
-  font-size: 11px;
 }
 /* the grid: a row of column numbers, then SONG_ROWS rows of squares; scrolls sideways */
 .songgrid {
@@ -2527,6 +2530,32 @@ button:focus-visible {
 }
 .scell.beat {
   border-left: 2px solid #5a4a80;
+}
+.scell.sbar {
+  border-left: 2px solid #8a74c0;
+}
+/* the bigger grid (12 x 256) scrolls both ways inside the window; the column numbers stay on top.
+   Only 5 rows show at once (owner: smaller on phones); scroll down for the rest.
+   Height = numbers 14 + 5 rows x (30 + 2 gap) */
+.songgrid {
+  overflow: auto;
+  flex: none;
+  padding: 0 2px; /* no top padding: the sticky numbers sit flush, no squares peek above them */
+  max-height: calc(14px + 5 * 32px + 9px); /* + the 9 px sideways scrollbar */
+}
+.songgrid .scol {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: flex-end;
+  background: var(--night);
+  /* also cover the 2 px gaps right of and under each number, so no square shows through */
+  box-shadow: 2px 0 0 var(--night), 0 2px 0 var(--night), 2px 2px 0 var(--night);
+}
+.songgrid .scol.sbar {
+  color: var(--sun);
 }
 .scell:hover {
   border-color: var(--glow);
@@ -2577,9 +2606,18 @@ button:focus-visible {
   color: var(--muted);
   margin-right: auto;
 }
-.songbtns {
-  justify-content: center;
+.songbar .songbtns {
+  display: flex;
+  gap: 6px;
   flex-wrap: wrap;
+  margin-left: auto;
+}
+.songbar .btn {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.dlg .songlist {
+  max-height: 46vh;
 }
 
 #songPlay.on {

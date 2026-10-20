@@ -429,7 +429,6 @@ const SPLICE = {
   'grey_wallpaper+ice_crust_block': 'skeleton',
   'happy_joy_plaque+seaweed': 'sugar_cane',
   'grass+rainbow_block': 'cherry_blossom',
-  'note_block+white_block': 'piano',
 };
 // read data/farming.json (tree grow times and splice recipes); keeps the built-in ones if it can't
 function loadFarming() {
@@ -474,7 +473,7 @@ const FEET_SPEED_BASE = 0.1,
   FEET_SPEED_MAX = 0.6;
 const WING_JUMPS = 1; // extra jumps in the air with Angel Wings (land to get them back)
 const ANGRY_TIME = 0.6; // seconds the angry face stays after a punch
-const LAVA_HP = 4; // lava burns in a row that kill you
+const LAVA_HP = 5; // lava burns in a row that kill you (hidden: no hearts shown)
 const HEAL_TIME = 6; // seconds without a burn before your hearts are full again
 const DEATH_TIME = 2.2; // seconds of the death animation before you come back at the door
 const SPAWN_FADE = 0.6; // seconds of fading in at the door

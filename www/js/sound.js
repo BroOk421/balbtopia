@@ -1,12 +1,14 @@
-// Sound effects: punch, breaking a block, jumping, picking something up, going through a door.
+// Sound effects: punch, breaking a block, jumping, picking something up, going through a door,
+// ouch (you died) and fire (a lava burn). Loops: rain, and the fireplace crackle near a Fireplace.
 // The sounds are short mp3s in assets/sfx (cut from the owner's files; the silence before and after was removed,
 // originals in art-source/sfx). Played with Web Audio so several can overlap with no delay; the audio starts on
 // the first tap or key (browsers and phones only allow sound after the player does something).
 // Menu -> Settings -> Sound turns them off (settings.sound).
 // ===== sound =====
 const Sfx = (() => {
-  const NAMES = ['punch', 'break', 'jump', 'pickup', 'door', 'rain'],
-    VOL = { punch: 0.55, break: 0.7, jump: 0.45, pickup: 0.6, door: 0.75 },
+  const NAMES = ['punch', 'break', 'jump', 'pickup', 'door', 'rain', 'ouch', 'fire', 'fireplace'],
+    // ouch / fire files are normalised so that with these volumes they are as loud as break / jump / door
+    VOL = { punch: 0.55, break: 0.7, jump: 0.45, pickup: 0.6, door: 0.75, ouch: 0.5, fire: 0.6 },
     GAP = 45; // ms: the same sound never starts twice closer than this (picking up a pile, holding the punch)
   let ctx = null;
   const bufs = {},
@@ -52,15 +54,26 @@ const Sfx = (() => {
     s.connect(gn).connect(ctx.destination);
     s.start();
   }
-  // ---------- loops: rain plays over and over while the rain weather is on ----------
-  // rain.mp3 is the owner's 90 s rain, made seamless (its last 2 s cross-fade into its start).
-  // loop(name, on) is called every frame; it fades in when it starts and fades out when it stops.
-  const LOOP_VOL = { rain: 0.5 },
+  // ---------- loops: rain plays over and over while the rain weather is on, the fireplace near a Fireplace ----------
+  // rain.mp3 is the owner's 90 s rain, made seamless (its last 2 s cross-fade into its start); fireplace.mp3 is the
+  // owner's 36 s bonfire made seamless the same way (33.9 s; original in art-source/sfx/bonfire-original.mp3).
+  // loop(name, on, vol) is called every frame; it fades in when it starts and fades out when it stops. vol (0..1)
+  // scales it while it plays (the fireplace: louder the closer you are), changing smoothly.
+  const LOOP_VOL = { rain: 0.5, fireplace: 0.9 },
     FADE = 0.6; // seconds
   const loops = {};
-  function loop(n, on) {
+  function loop(n, on, vol = 1) {
     if (typeof settings !== 'undefined' && settings.sound === false) on = false;
+    if (vol <= 0.001) on = false;
     const L = loops[n];
+    if (on && L) {
+      // already playing: follow the new loudness (a short glide, so walking doesn't click)
+      if (Math.abs(L.vol - vol) > 0.01) {
+        L.vol = vol;
+        L.gn.gain.setTargetAtTime(LOOP_VOL[n] * vol, ctx.currentTime, 0.12);
+      }
+      return;
+    }
     if (on && !L) {
       if (!ctx || !bufs[n] || bufs[n] === 'tag' || ctx.state !== 'running') return;
       const s = ctx.createBufferSource(),
@@ -69,10 +82,10 @@ const Sfx = (() => {
       s.buffer = bufs[n];
       s.loop = true;
       gn.gain.setValueAtTime(0, t);
-      gn.gain.linearRampToValueAtTime(LOOP_VOL[n], t + FADE);
+      gn.gain.linearRampToValueAtTime(LOOP_VOL[n] * vol, t + FADE);
       s.connect(gn).connect(ctx.destination);
       s.start();
-      loops[n] = { s, gn };
+      loops[n] = { s, gn, vol };
     } else if (!on && L) {
       const t = ctx.currentTime;
       L.gn.gain.cancelScheduledValues(t);

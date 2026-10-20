@@ -117,6 +117,12 @@ function signIn(id) {
 }
 // online: load this account's save from the server; returns an error message or null
 async function signInOnline() {
+  // the server's word first: the account's fixed name, GM, and whether it is banned
+  const banned = await Net.whoami();
+  if (banned) {
+    await Net.signOut();
+    return banned;
+  }
   account = Net.me.id;
   playerName = Net.me.name;
   try {

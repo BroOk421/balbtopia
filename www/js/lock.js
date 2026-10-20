@@ -141,17 +141,17 @@ function askKick(to, k) {
         cls: out ? 'danger' : '',
         run: () => {
           if (!isOwner()) return;
-          Net.sendKick(to, out ? 'out' : 'spawn');
-          toast((out ? 'Kicked ' : 'Sent back to the door: ') + who);
+          Net.sendKick(to, out ? 'out' : 'spawn').then((err) => toast(err || (out ? 'Kicked ' : 'Sent back to the door: ') + who));
         },
       },
     ],
   );
 }
-// we got kicked: only counts when it comes from this world's owner (and never kicks the owner)
+// we got kicked: only counts when it comes from this world's owner (and never kicks the owner). verified: the
+// server checked it (claim_kick in net.js), which also allows a GM's kick
 Net.onKick = (p) => {
   if (!inWorld || !Net.me || (p.to !== '*' && p.to !== Net.me.id)) return;
-  if (!worldOwner || lc(p.n) !== lc(worldOwner) || isOwner()) return;
+  if (isOwner() || (!p.verified && (!worldOwner || lc(p.n) !== lc(worldOwner)))) return;
   for (const id of ['lockwin', 'worlds', 'shop', 'pmenu']) if ($(id)) $(id).hidden = true;
   if (p.k === 'out' && worldName !== LOBBY_WORLD) {
     const from = worldName;

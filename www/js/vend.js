@@ -23,7 +23,8 @@ const vendBusy = (i) => {
   return !!v && (v.n > 0 || v.e > 0);
 };
 function setVend(i, v) {
-  if (v && (v.id || v.e)) vends.set(i, { id: v.id || null, n: v.n | 0, p: Math.max(1, v.p | 0), per: !!v.per, e: v.e | 0 });
+  // c: how many times the owner has collected (a visitor's old copy from before a collect isn't taken: vendSaleOk)
+  if (v && (v.id || v.e)) vends.set(i, { id: v.id || null, n: v.n | 0, p: Math.max(1, v.p | 0), per: !!v.per, e: v.e | 0, c: v.c | 0 });
   else vends.delete(i);
 }
 function vendChanged(i) {
@@ -31,9 +32,21 @@ function vendChanged(i) {
   saveWorld();
   savePlayer();
 }
-Net.onVend = (p) => {
-  if (p && Number.isInteger(p.i) && p.i >= 0 && p.i < fg.length) setVend(p.i, p.v);
+// trusted: from build:NAME (a builder). Otherwise it is a visitor's sale, taken only if it looks like one: same
+// item, price and kind, stock down and earnings up by at least what it cost (the server checks the same: vend_ok)
+Net.onVend = (p, trusted = true) => {
+  if (!p || !Number.isInteger(p.i) || p.i < 0 || p.i >= fg.length) return;
+  if (!trusted && !vendSaleOk(vends.get(p.i), p.v)) return;
+  setVend(p.i, p.v);
 };
+function vendSaleOk(o, n) {
+  if (!o || !n || typeof n !== 'object' || typeof n.n !== 'number' || typeof n.e !== 'number') return false;
+  if (n.id !== o.id || (n.p | 0) !== o.p || !!n.per !== o.per || (n.c | 0) !== o.c) return false;
+  const sold = o.n - (n.n | 0),
+    paid = (n.e | 0) - o.e;
+  if (sold < 0 || paid < 0 || (n.n | 0) < 0) return false;
+  return o.per ? paid * o.p >= sold : paid >= sold * o.p;
+}
 const priceText = (v) => (v.per ? v.p.toLocaleString() + ' for 1 Gold Lock' : v.p.toLocaleString() + ' Gold Lock' + (v.p > 1 ? 's' : '') + ' each');
 const sellable = (id) => ITEMS[id] && ITEMS[id].kind !== 'tool' && !LOCK_TIERS.includes(id) && id !== 'vending_machine';
 
@@ -138,7 +151,7 @@ function vendOwner(i) {
     if (v.e <= 0 || !addItem('world_lock', v.e)) return;
     toast('Collected ' + v.e.toLocaleString() + ' Gold Locks');
     Native.haptic('medium');
-    save({ ...v, e: 0 });
+    save({ ...v, e: 0, c: (v.c | 0) + 1 });
   };
 }
 // a visitor: how many, then buy

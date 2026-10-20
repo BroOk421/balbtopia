@@ -2,7 +2,14 @@
 // Turned on by filling in SUPABASE_URL and SUPABASE_ANON_KEY in online-config.js.
 // Without them, Net.online is false and the game keeps everything on this device.
 //
-// Realtime (one channel per world, "world:NAME"):
+// Security (supabase/schema.sql, SECURITY section): the server decides who a player is (whoami), who is a GM and
+// who is banned; worlds are saved through save_world (owner / access / open checks there); kicks go through
+// kick_player / claim_kick. Channels are private: "world:NAME" for everyone, "build:NAME:LOCKV" only for players
+// who may build there (blocks, signs, songs, displays, Clear World, world sync, machine changes). LOCKV is the
+// world's lock version (goes up when its owner or access changes), so rights are checked again after every change.
+// Servers that haven't run the new schema yet: everything falls back to the old way (N.secure false, public channels).
+//
+// Realtime (world:NAME and build:NAME):
 //   p        position, facing, walking, skin and clothes, about 10 times a second
 //   punch    someone threw a punch at a point
 //   tiles    blocks, backgrounds, trees or the world owner changed
@@ -48,7 +55,7 @@ const Net = (() => {
   } catch (e) {
     console.error('Supabase setup failed', e);
   }
-  const N = { online: !!sb, why, sb, me: null, remotes: new Map(), worldList: [], loading: false };
+  const N = { online: !!sb, why, sb, me: null, remotes: new Map(), worldList: [], loading: false, secure: false, gm: false };
   // Supabase accounts need an email; players only pick a username, so we make one up from it
   const emailOf = (u) => u.toLowerCase() + '@players.balbtopia.app';
 
@@ -121,9 +128,41 @@ const Net = (() => {
     }
     return N.me;
   };
+  // after logging in: the server's word on this account (its fixed name, GM, banned). Returns an error to show
+  // (banned) or null. Old servers without whoami(): N.secure stays false and the account's own name is used.
+  N.whoami = async () => {
+    N.secure = N.gm = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let data = null,
+        error = null;
+      try {
+        ({ data, error } = await sb.rpc('whoami'));
+      } catch (e) {
+        error = e;
+      }
+      if (!error && data) {
+        if (!data.name) return 'This account has no player name on the server. Make a new account.';
+        N.secure = true;
+        N.me.name = data.name;
+        N.gm = !!data.gm;
+        if (data.banned !== null && data.banned !== undefined) return 'This account is banned' + (data.banned ? ': ' + data.banned : '');
+        return null;
+      }
+      // the function isn't on the server: an old setup, play the old way
+      const code = (error && (error.code || '')) + ' ' + ((error && error.message) || '');
+      if (/PGRST202|42883|Could not find the function/i.test(code)) {
+        console.warn('whoami missing: run the new supabase/schema.sql for the server checks');
+        return null;
+      }
+      await new Promise((ok) => setTimeout(ok, 700));
+    }
+    return "Couldn't reach the server. Check your connection and try again.";
+  };
   N.signOut = async () => {
     try {
-      if (ch) await sb.removeChannel(ch);
+      await dropChannel(ch);
+      await dropChannel(bch);
+      ch = bch = null;
       await sb.auth.signOut();
     } catch (e) {}
   };
@@ -136,6 +175,8 @@ const Net = (() => {
     if (/42501|permission denied|row-level security/i.test(m))
       return 'No permission: run supabase/schema.sql again in the Supabase SQL Editor';
     if (/fetch|network|Failed to/i.test(m)) return "Couldn't reach the server. Check your connection.";
+    if (/banned/i.test(m)) return 'This account is banned';
+    if (/P0001|Too many/i.test(m)) return (e && e.message) || m; // the server's own message (e.g. mail limit)
     return 'Server error: ' + m;
   };
 
@@ -180,9 +221,11 @@ const Net = (() => {
   N.savingPlayer = () => playerBusy || !!playerNext;
   const lastWorld = {};
   // returns { ...world } or null when the world doesn't exist yet; throws when offline
+  const lockV = {}; // world -> its lock version on the server (null: not saved yet)
   N.loadWorld = async (name) => {
-    const { data, error } = await sb.from('worlds').select('data,owner').eq('name', name).maybeSingle();
+    const { data, error } = await sb.from('worlds').select(N.secure ? 'data,owner,lockv' : 'data,owner').eq('name', name).maybeSingle();
     if (error) throw error;
+    lockV[name] = data ? data.lockv | 0 : null;
     if (!data) return null;
     lastWorld[name] = JSON.stringify(data.data);
     return { ...data.data, owner: data.owner };
@@ -193,13 +236,16 @@ const Net = (() => {
       j = JSON.stringify(rest);
     if (!force && lastWorld[name] === j) return;
     lastWorld[name] = j;
-    sb.from('worlds')
-      .upsert({ name, data: rest, owner: w.owner, updated_at: new Date().toISOString() })
-      .then(({ error }) => {
+    // new servers: save_world checks who may change what (visitors only change drops and Vending Machine sales);
+    // old servers: the table directly
+    const req = N.secure
+      ? sb.rpc('save_world', { p_name: name, p_data: rest })
+      : sb.from('worlds').upsert({ name, data: rest, owner: w.owner, updated_at: new Date().toISOString() });
+    req.then(({ data, error }) => {
         if (error) {
           delete lastWorld[name];
           console.error('save world', error);
-        }
+        } else if (N.secure && data && typeof data.v === 'number') gotLockV(name, data.v, true);
       });
   };
   // the worlds this player has locked (Menu -> Worlds); returns true when the list changed
@@ -241,7 +287,10 @@ const Net = (() => {
   };
 
   // ---------- realtime ----------
-  let ch = null,
+  let ch = null, // world:NAME
+    bch = null, // build:NAME (private channels only)
+    bJoined = false,
+    privRT = true, // private channels; false after they failed once (server not set up for them yet)
     synced = false,
     syncTimer = 0;
   let snapFg = null,
@@ -264,18 +313,103 @@ const Net = (() => {
   const send = (event, payload) => {
     if (ch && joined) ch.send({ type: 'broadcast', event, payload });
   };
-  let joined = false;
+  // building changes: on build:NAME (only players who may build here can send there); old way: world:NAME
+  const sendB = (event, payload) => {
+    if (!privRT) return send(event, payload);
+    if (bch && bJoined) bch.send({ type: 'broadcast', event, payload });
+  };
+  const mayBuild = () => typeof canEdit === 'function' && canEdit(true);
+  let joined = false,
+    joinedName = '';
+  const chOpts = (presence) => ({
+    config: { private: privRT, broadcast: { self: false }, ...(presence ? { presence: { key: N.me.id } } : {}) },
+  });
+  // channel(topic) hands back an old channel with the same topic until it has fully left, so wait for that (and
+  // make sure a channel that never got in is gone too) before making a new one
+  async function dropChannel(c) {
+    if (!c) return;
+    try {
+      await sb.removeChannel(c);
+    } catch (e) {}
+    try {
+      if (sb.getChannels().includes(c)) {
+        c.teardown();
+        sb.realtime._remove(c);
+      }
+    } catch (e) {}
+  }
+  // (re)join build:NAME:LOCKV. The server works out once, on joining, whether we may send there; when the world's
+  // owner or access changes its lock version goes up and everyone moves to the new topic (checked again).
+  let buildSeq = 0;
+  async function joinBuild(name) {
+    const seq = ++buildSeq,
+      old = bch;
+    bch = null;
+    bJoined = false;
+    await dropChannel(old);
+    if (seq !== buildSeq || !privRT || !sb || !N.me || name !== joinedName) return;
+    const b = sb.channel('build:' + name + ':' + (lockV[name] | 0), chOpts(false));
+    bch = b;
+    onBuild(b, true);
+    b.on('broadcast', { event: 'lockv' }, () => checkLockV(name));
+    b.subscribe((status) => {
+      if (b === bch && status === 'SUBSCRIBED') bJoined = true;
+    });
+  }
+  // our save came back with the world's lock version (mine) or someone said it changed: move if it did. Our own
+  // change: first tell the others on the old topic, where they still are (they check the server, not the message).
+  function gotLockV(name, v, mine) {
+    const old = lockV[name];
+    if (old === v && name !== joinedName) return;
+    if (old === v && bch) return;
+    lockV[name] = v;
+    if (name !== joinedName || !privRT) return;
+    if (mine && old !== null && old !== undefined && bch && bJoined) bch.send({ type: 'broadcast', event: 'lockv', payload: {} });
+    joinBuild(name);
+  }
+  let checkingV = false;
+  async function checkLockV(name) {
+    if (checkingV || name !== joinedName) return;
+    checkingV = true;
+    try {
+      const { data } = await sb.from('worlds').select('lockv').eq('name', name).maybeSingle();
+      if (data && name === joinedName) gotLockV(name, data.lockv | 0, false);
+    } catch (e) {}
+    checkingV = false;
+  }
+  // the building events, on whichever channel carries them; trusted: it came from build: (or the old setup)
+  function onBuild(c, trusted) {
+    c.on('broadcast', { event: 'tiles' }, ({ payload }) => applyTiles(payload))
+      .on('broadcast', { event: 'sign' }, ({ payload }) => N.onSign && N.onSign(payload))
+      .on('broadcast', { event: 'song' }, ({ payload }) => N.onSong && N.onSong(payload))
+      .on('broadcast', { event: 'show' }, ({ payload }) => N.onShow && N.onShow(payload))
+      .on('broadcast', { event: 'vend' }, ({ payload }) => N.onVend && N.onVend(payload, trusted))
+      .on('broadcast', { event: 'clear' }, () => {
+        if (snapFg) clearWorldTiles();
+      })
+      .on('broadcast', { event: 'sync' }, ({ payload }) => onSync(payload));
+  }
+  let worldSeq = 0;
   N.joinWorld = (name) => {
     N.remotes.clear();
     snapshot();
     if (!sb || !N.me) return;
-    if (ch) sb.removeChannel(ch);
+    const seq = ++worldSeq,
+      old = ch;
+    ch = null;
     joined = synced = false;
+    joinedName = name;
     clearTimeout(syncTimer);
-    const c = sb.channel('world:' + name, {
-      config: { broadcast: { self: false }, presence: { key: N.me.id } },
-    });
+    dropChannel(old).then(() => seq === worldSeq && openWorld(name, seq));
+  };
+  function openWorld(name, seq) {
+    const c = sb.channel('world:' + name, chOpts(true));
     ch = c;
+    if (privRT) {
+      joinBuild(name);
+      // a Vending Machine sale from a visitor (only a paid-for sale is taken from here)
+      c.on('broadcast', { event: 'vend' }, ({ payload }) => N.onVend && N.onVend(payload, false));
+    } else onBuild(c, true);
     c.on('broadcast', { event: 'p' }, ({ payload }) => onPos(payload))
       .on('broadcast', { event: 'punch' }, ({ payload }) => {
         const r = N.remotes.get(payload.id);
@@ -298,25 +432,16 @@ const Net = (() => {
           if (r) r.shove = (payload.d || 1) * 10;
         }
       })
-      .on('broadcast', { event: 'tiles' }, ({ payload }) => applyTiles(payload))
       .on('broadcast', { event: 'drop' }, ({ payload }) => netDrop(payload))
       .on('broadcast', { event: 'take' }, ({ payload }) => payload && netTake(payload.u, payload.by))
-      .on('broadcast', { event: 'vend' }, ({ payload }) => N.onVend && N.onVend(payload))
-      .on('broadcast', { event: 'show' }, ({ payload }) => N.onShow && N.onShow(payload))
-      .on('broadcast', { event: 'sign' }, ({ payload }) => N.onSign && N.onSign(payload))
-      .on('broadcast', { event: 'song' }, ({ payload }) => N.onSong && N.onSong(payload))
       .on('broadcast', { event: 'chat' }, ({ payload }) => payload && N.onChat && N.onChat(payload))
-      .on('broadcast', { event: 'clear' }, () => {
-        if (snapFg) clearWorldTiles();
-      })
       .on('broadcast', { event: 'die' }, ({ payload }) => {
         const r = payload && N.remotes.get(payload.id);
         if (r) r.dead = { t: 0 };
       })
       .on('broadcast', { event: 'fly' }, ({ payload }) => N.onFly && N.onFly(payload))
-      .on('broadcast', { event: 'kick' }, ({ payload }) => payload && N.onKick && N.onKick(payload))
+      .on('broadcast', { event: 'kick' }, ({ payload }) => payload && onKickMsg(payload))
       .on('broadcast', { event: 'sync_req' }, ({ payload }) => onSyncReq(payload))
-      .on('broadcast', { event: 'sync' }, ({ payload }) => onSync(payload))
       .on('presence', { event: 'leave' }, ({ key }) => {
         gone.set(key, now);
         const r = N.remotes.get(key);
@@ -325,8 +450,16 @@ const Net = (() => {
           toast(r.name + ' left');
         }
       })
-      .subscribe((status) => {
-        if (c !== ch) return;
+      .subscribe((status, err) => {
+        if (c !== ch || seq !== worldSeq) return;
+        // private channels refused before we ever got in: the server has no realtime rules for them (old schema, or
+        // Supabase didn't let schema.sql add them). Play on with public channels (needs "Allow public access" ON).
+        if (status === 'CHANNEL_ERROR' && privRT && !joined) {
+          console.warn('Private channels refused, using public ones', err);
+          privRT = false;
+          N.joinWorld(name);
+          return;
+        }
         if (status === 'SUBSCRIBED') {
           joined = true;
           c.track({ name: playerName, skin });
@@ -334,7 +467,7 @@ const Net = (() => {
           sendPos(true);
         }
       });
-  };
+  }
 
   // other players: we only get a few updates a second, so they glide between them
   const gone = new Map(); // players who just left: ignore their last few messages
@@ -412,28 +545,49 @@ const Net = (() => {
   N.takeDrop = (u) => {
     if (N.me) send('take', { u, by: N.me.id });
   };
+  // a Vending Machine: builders send any change on build:; a visitor's sale goes on world: (others check it)
   N.sendVend = (i, v) => {
-    if (N.me) send('vend', { i, v });
+    if (N.me) (mayBuild() ? sendB : send)('vend', { i, v });
   };
   N.sendShow = (i, k, v) => {
-    if (N.me) send('show', { i, k, v });
+    if (N.me) sendB('show', { i, k, v });
   };
   N.sendSign = (i, text) => {
-    if (N.me) send('sign', { i, text });
+    if (N.me) sendB('sign', { i, text });
   };
   N.sendSong = (i, s) => {
-    if (N.me) send('song', { i, s });
+    if (N.me) sendB('song', { i, s });
   };
   N.sendChat = (text) => {
     if (N.me) send('chat', { id: N.me.id, n: playerName, text });
   };
   // the world owner sends a player (to: their id, or '*' for everyone) back to the door (k 'spawn')
   // or out of the world (k 'out')
-  N.sendKick = (to, k) => {
-    if (N.me) send('kick', { to, k, n: playerName });
+  // new servers: the kick is made on the server (only the owner may) and only its id goes out; each player asks
+  // the server whether it is real and for them (claim_kick). Returns an error message or null.
+  N.sendKick = async (to, k) => {
+    if (!N.me) return null;
+    if (!N.secure) {
+      send('kick', { to, k, n: playerName });
+      return null;
+    }
+    const { data, error } = await sb.rpc('kick_player', { p_world: worldName, p_to: to, p_kind: k });
+    if (error) return /owner/i.test(error.message || '') ? 'Only the owner of this world can do that' : N.dbError(error);
+    send('kick', { kid: data });
+    return null;
   };
+  async function onKickMsg(p) {
+    if (!N.onKick) return;
+    if (p.kid === undefined) {
+      if (!N.secure) N.onKick(p); // old servers only: on new ones a kick without an id is fake
+      return;
+    }
+    const { data, error } = await sb.rpc('claim_kick', { p_id: p.kid });
+    const k = !error && Array.isArray(data) && data[0];
+    if (k && k.world === worldName) N.onKick({ to: N.me.id, k: k.kind, n: k.from_name, verified: true });
+  }
   N.sendClear = () => {
-    if (N.me) send('clear', {});
+    if (N.me) sendB('clear', {});
   };
   // after a big change everyone makes the same way (Clear World): don't send it tile by tile
   N.resnap = () => snapshot();
@@ -487,7 +641,7 @@ const Net = (() => {
       msg.lk = lockCfg;
       snapLock = lk;
     }
-    if (Object.keys(msg).length) send('tiles', msg);
+    if (Object.keys(msg).length) sendB('tiles', msg);
   }
   function applyTiles(m) {
     if (!snapFg) return;
@@ -535,10 +689,11 @@ const Net = (() => {
   }
   function onSyncReq(p) {
     if (!inWorld || !p || p.from === N.me.id) return;
+    if (privRT && !mayBuild()) return; // only builders answer (on build:, where only they can send)
     clearTimeout(syncTimer);
     // whoever answers first wins; the others see the answer and stay quiet
     // now: our clock, so they can line up how old each drop is with theirs
-    syncTimer = setTimeout(() => send('sync', { to: p.from, w: worldData(), now: Date.now() }), 60 + Math.random() * 400);
+    syncTimer = setTimeout(() => sendB('sync', { to: p.from, w: worldData(), now: Date.now() }), 60 + Math.random() * 400);
   }
   function onSync(p) {
     clearTimeout(syncTimer);
@@ -586,7 +741,13 @@ const Net = (() => {
       sendPos(false);
       diffTiles();
     }
+    // safety net: every 15 s check the world's lock version, in case the "it changed" message was missed
+    if (privRT && N.secure && joinedName && (lockCheckT += dt) >= 15) {
+      lockCheckT = 0;
+      checkLockV(joinedName);
+    }
   };
+  let lockCheckT = 0;
   // the other player whose body is under a world point (for punching them), or null
   N.bodyAt = (x, y) => {
     for (const r of N.remotes.values()) if (x > r.x - 3 && x < r.x + r.w + 3 && y > r.y - 2 && y < r.y + r.h + 2) return r;
@@ -632,7 +793,7 @@ const Net = (() => {
   };
   N.joinLobby = () => {
     if (!sb || !N.me || lobby) return;
-    const c = sb.channel('lobby', { config: { broadcast: { self: false }, presence: { key: N.me.id } } });
+    const c = sb.channel('lobby', chOpts(true));
     lobby = c;
     for (const ev of LOBBY_EVENTS)
       c.on('broadcast', { event: ev }, ({ payload }) => {
@@ -647,6 +808,12 @@ const Net = (() => {
       }
       if (lobbyH.people) lobbyH.people();
     }).subscribe((status) => {
+      if (status === 'CHANNEL_ERROR' && privRT && !lobbyJoined && lobby === c) {
+        privRT = false; // see openWorld: the server isn't set up for private channels yet
+        lobby = null;
+        dropChannel(c).then(() => N.joinLobby());
+        return;
+      }
       if (status === 'SUBSCRIBED') {
         lobbyJoined = true;
         c.track({ name: playerName, world: inWorld ? worldName : '' });

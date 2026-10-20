@@ -49,7 +49,14 @@ const puffs = [],
 const bagSize = () => (isGM() ? Math.max(BAG_MAX, inv.length + 40) : Math.min(BAG_MAX, BAG_FREE + BAG_STEP * Math.max(0, level - BAG_LEVEL + 1)));
 // the level that opens bag slot i (0-based)
 const slotLevel = (i) => BAG_LEVEL + Math.floor((i - BAG_FREE) / BAG_STEP);
-const isGM = () => GM_USERS.includes(String(playerName).toLowerCase());
+// online with the new server (Net.secure): the server's GM list (table gms) decides; offline / old servers: GM_USERS
+// (Net is a const in net.js, loaded later: reading it before then throws, hence the try)
+const isGM = () => {
+  try {
+    if (Net.online && Net.secure) return Net.gm;
+  } catch (e) {}
+  return GM_USERS.includes(String(playerName).toLowerCase());
+};
 // adds n of an item: tops up stacks that aren't full, then fills new slots, MAXSTACK per slot.
 // Adds nothing (and returns false) when it all doesn't fit.
 function addItem(id, n = 1) {

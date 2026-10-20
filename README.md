@@ -241,12 +241,35 @@ Ang code ay nasa `www/js/net.js` (lahat ng online), `www/js/auth.js` (login scre
 
 Kailangan ng table na `mail` para sa Email; nasa `supabase/schema.sql` na ito, kaya **patakbuhin ulit ang buong `schema.sql`** sa SQL Editor kung na-setup mo na dati.
 
+### Security (Oktubre 2026): i-setup ito
+
+Ang server na ngayon ang nagpapasya sa mga mahalagang bagay, hindi ang browser ng player. Tatlong hakbang:
+
+1. **Patakbuhin ulit ang buong `supabase/schema.sql`** sa SQL Editor. Ligtas itong patakbuhin nang ilang beses.
+2. **I-off ang public channels:** *Realtime → Settings*, i-off ang **Allow public access**, tapos i-save. Kung hindi ito i-off, gagana pa rin ang game pero hindi naka-enforce ang private channels.
+3. **Auth settings** (*Authentication → Providers/Policies*, depende sa bersyon ng dashboard): i-on ang leaked-password protection kung meron sa plan mo.
+
+Pagkatapos nito:
+
+- **Pangalan:** Nakatakda na mula sa pag-sign-up (sa table na `usernames`), at hindi na mababago ng player.
+- **GM:** Nasa table na `gms`. Pagdagdag ng GM sa SQL Editor: `insert into gms (name) values ('pangalan');`. Pag-alis: `delete from gms where name = 'pangalan';`.
+- **Worlds:** Dumadaan na sa `save_world`. Ang owner, mga may access, open worlds at GM lang ang makakapagbago ng blocks. Ang owner at GM lang ang makakapagpalit ng lock o access. Ang bisita ay floating drops at bayad na Vending Machine sales lang ang nababago.
+- **Kick:** Sa server ginagawa (`kick_player`), at tinitingnan ng game ng bawat player kung totoo (`claim_kick`).
+- **Realtime:** Ang blocks, signs, songs, display, Clear World at world sync ay dumadaan sa `build:WORLD`, kung saan ang mga may karapatang mag-build lang ang makakapagpadala.
+- **Mail:** Ang server ang naglalagay ng pangalan ng nagpadala. May limit: 5 bawat minuto at 100 bawat araw.
+- **Ban:** Ang naka-ban ay hindi makaka-login, makaka-save, makakapagpadala ng mail o makakasali sa channels.
+  - Pag-ban sa SQL Editor: `insert into bans (id, reason) select id, 'dahilan' from usernames where lower(name) = lower('pangalan');`
+  - Pag-unban: `delete from bans where id = (select id from usernames where lower(name) = lower('pangalan'));`
+- **Cheat log:** Sa *Table Editor → cheat_log* makikita ang mga save na biglang tumaas ang gold (higit 100,000) o items (higit 3,000) sa isang save. Hindi nito pinipigilan ang save; listahan lang ito ng titingnan, at ikaw ang magpapasya kung iba-ban.
+- **Backups:** Ang daily backups ay depende sa plan mo sa Supabase (tingnan ang *Database → Backups*). Kung wala, mag-export paminsan-minsan.
+
 ### Mga limitasyon sa ngayon
 
-- **Ang drops ay sa iyo lang.** Ikaw lang ang nakakakita ng item na nahulog mula sa block na sinira mo, kaya walang agawan.
-- **Sa browser ang patakaran.** Ang browser ng player ang nagpapasya kung pwedeng sirain ang block, at kahit sinong naka-login ay kayang baguhin ang world sa database. Pang-laro ito kasama ang mga kaibigan; kung magiging public, kailangan ng sariling game server para iwas-cheat.
+- **Ang gold at items ay galing pa rin sa browser ng player.** Ang phone o browser ang gumagawa ng drops at gold kapag nag-break ng block, kaya kayang dayain ng marunong. Ang cheat log at ban ang depensa. Para tuluyang mapigilan, kailangang ang server ang magpatakbo ng game mismo.
+- **GM extras sa game (libreng Shop, buong bag)** ay nasa browser pa rin. Pero ngayon, sa server na nanggagaling ang pagkilala kung sino ang GM.
+- **Mga pangalan sa chat at sa ibabaw ng player** ay ipinapadala pa rin ng player mismo, kaya puwedeng pekein ang ipinapakitang pangalan sa chat. Hindi nito nabibigyan ng kapangyarihan ang nagpepeke (kick, build at mail ay tinitingnan ng server).
+- **Pagkuha at paghulog ng floating drops** ay galing pa rin sa sinumang player sa world.
 - **Free plan ng Supabase**: sapat para sa maliit na grupo. Bawat player ay nagpapadala ng mga 10 mensahe bawat segundo habang gumagalaw.
-- Ang trade, gift at mga patakaran ng lock ay sinusunod ng browser ng bawat player, hindi ng server. Pang-barkada ito; para sa public na game, kailangan ng sariling server para iwas-cheat.
 - Hindi nalilipat sa online account ang offline save na nasa device.
 
 ## Pwede ba itong i-online?

@@ -124,16 +124,17 @@ function step(dt) {
     }
   if (spiky) hot = true;
   // each burn takes one heart; the hearts come back after HEAL_TIME without burns
+  // the hearts are hidden (no toast): you just die after LAVA_HP burns
   if (hot && P.hurt <= 0) {
     P.hp--;
     P.healT = HEAL_TIME;
+    if (!spiky) Sfx.play('fire'); // burned by lava
     if (P.hp <= 0) return die(spiky ? 'spikes' : 'lava');
     P.vy = -520;
     P.vx = -P.face * 140;
     P.hurt = 0.8;
     shake = 5;
     Native.haptic('heavy');
-    toast((spiky ? 'Ouch! That is sharp  ' : 'Ouch! Lava is hot  ') + '♥'.repeat(P.hp) + '♡'.repeat(LAVA_HP - P.hp));
   }
   P.hurt = Math.max(0, P.hurt - dt);
   P.x = Math.max(0, Math.min(WW * TS - P.w, P.x));
@@ -152,6 +153,7 @@ function die(why) {
   P.healT = 0;
   shake = 6;
   Native.haptic('heavy');
+  if (why !== 'spawn') Sfx.play('ouch'); // not for Menu -> SPAWN
   toast(why === 'fell' ? 'You fell out of the world!' : why === 'spikes' ? 'Ouch! You got spiked!' : why === 'spawn' ? 'Going back to the door…' : 'You burned up in the lava!');
   Net.sendDie();
 }

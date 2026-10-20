@@ -533,6 +533,7 @@ function render() {
   g.clearRect(0, 0, cv.width, cv.height);
   drawBg();
   Sfx.loop('rain', weatherNow === 'rain' && inWorld); // rain sound while it rains (sound.js)
+  Sfx.loop('fireplace', inWorld, fireplaceVol()); // crackling fire near a Fireplace
   // weather (snow / rain) sits behind the world, over the backdrop only (weather.js)
   if (weatherNow === 'snow') drawSnow();
   else if (weatherNow === 'rain') drawRain();
@@ -1515,4 +1516,22 @@ function drawSprout(put) {
   };
   leaf(20.5, 5, 5, 2.4, -0.45);
   leaf(11.8, 5.8, 3.6, 1.8, Math.PI + 0.5);
+}
+// how loud the Fireplace crackle is: 1 standing on a Fireplace, fading in a straight line to 0 at FIRE_HEAR tiles
+// (owner: from the fireplace tile, gone by 5 tiles). Only the nearest Fireplace counts; only tiles within reach are checked.
+const FIRE_HEAR = 5;
+function fireplaceVol() {
+  if (!inWorld) return 0;
+  const T = ITEMS.fireplace && ITEMS.fireplace.block;
+  if (!T) return 0;
+  const px = (P.x + P.w / 2) / TS,
+    py = (P.y + P.h / 2) / TS;
+  let best = FIRE_HEAR;
+  for (let y = Math.floor(py - FIRE_HEAR); y <= Math.ceil(py + FIRE_HEAR); y++)
+    for (let x = Math.floor(px - FIRE_HEAR); x <= Math.ceil(px + FIRE_HEAR); x++) {
+      if (!inW(x, y) || fg[at(x, y)] !== T) continue;
+      // tile centre to your centre: 0 on the Fireplace, 5 when it is 5 tiles away (silent)
+      best = Math.min(best, Math.hypot(x + 0.5 - px, y + 0.5 - py));
+    }
+  return 1 - best / FIRE_HEAR;
 }

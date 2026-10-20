@@ -55,7 +55,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `growtopiaNotInGameYet` lists real Growtopia recipes whose result isn't in the game yet (mostly clothing,
   which needs its own sprite on the character); the game ignores that list.
 - Growtopia recipes are taken from growtopiawiki.com. Mark Balbtopia-only ones `"source": "balbtopia"`.
-  Currently 229 splices (148 Growtopia, 81 Balbtopia; 64 Growtopia recipes were remixed in Oct 2026 so the list isn't an
+  Currently 228 splices (148 Growtopia, 80 Balbtopia; 64 Growtopia recipes were remixed in Oct 2026 so the list isn't an
   exact copy: one seed swapped for a similar item of about the same rarity, e.g. Fireplace = Golden Block + Red Bricks;
   they are marked source balbtopia in farming.json. Basic ones (result rarity <= 8) were left alone.
   Older Balbtopia ones: Sand = Dirt + Water Bucket (Growtopia Sand can't be spliced), dirt+dirt, rock+rock, cave+cave = Dark Cave,
@@ -69,7 +69,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - New pixel art: add a painter to `TEX` (solid blocks/backgrounds) or `DECO` (walk-through), drawn on a 16x16 grid
   of 2px cells with the `cells()` helpers `R` (rect), `P` (pixel), `D` (disc). Seeds and trees are coloured
   automatically from the item's `seed` colours.
-- Everything is client-side. GM status (`GM_USERS`, free Shop) and prices are not enforced by a server.
+- Gameplay is client-side (drops, gold, Shop prices, GM extras). Since Oct 20 2026 the SERVER decides identity, GM,
+  bans, world writes, kicks, build-channel sends and mail names (see "Security" at the end).
 
 ## Features added (Oct 2026)
 
@@ -554,3 +555,55 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Version and in the console) and a red box at the bottom of the screen listing script errors and game files that
   failed to load ("Missing file: js/music.js"); tap to close. A missing music.js breaks the bag and pop-ups (render.js
   calls stepMusic every frame), which matches what the owner saw: always replace the WHOLE www folder.
+- Oct 20 2026 (later 2): Song maker notes completed (47): note numbers are permanent (saved in songs): 0-24 piano
+  C4-C6, 25-27 kick/snare/hi-hat, 28-39 piano C3-B3, 40-46 low/mid/high tom, clap, open hi-hat, ride, crash (`DRUMS`,
+  `noteSemi`). The note list shows `NOTE_GROUPS`: PIANO (C3 -> C6) then DRUMS (kick, toms, snare, clap, hats, ride,
+  crash), each sorted low to high, with a `.ngroup` label. C3-B3 chips use a bass staff (bluer paper, small bass clef).
+- Oct 20 2026 (later 3): Song maker: one row = PLAY, STOP, tempo, NEW SONG, LIST SONGS, SAVE SONG (`.songbtns` in
+  `.songbar`); the hint text is gone. LIST SONGS is a pop-up (`openSongList`, the normal `dialog()`; Load closes it,
+  Delete asks then reopens the list). Playback is `preview` = { song, col, timer }, separate from the window: a song
+  started with PLAY keeps playing after X, until STOP or leaving the world; reopening a Piano shows that song with its
+  playhead. World Pianos (`stepMusic`) are silent while `preview` plays. The Piano has NO recipe any more (removed
+  from farming.json and the SPLICE fallback): Shop MUSIC only. `piano_seed` is `retired` (old seeds/trees still work).
+  With no recipe it has no rarity, so breaking it always drops the Piano itself, no seed, no gold (like the Vending
+  Machine).
+- Oct 20 2026 (later 4): bigger song grid: `SONG_ROWS` 12 x `SONG_COLS` 256 (32 bars of eighths), at most
+  `SONG_NOTES_MAX` (1500) notes per song (`cleanSong` cuts the rest). Old 6 x 32 songs still load. The grid scrolls
+  both ways (`.songgrid` overflow auto, sticky column numbers; bar starts every 8 columns are `.sbar`, never `.bar`,
+  which is a global class). For speed `renderSong` builds the grid only on open / load / new; picking a note
+  (`pickNote`) and tapping a square (`tapCell` -> `paintCell`, one delegated click handler on `#songGrid`) only
+  change what they touch.
+- Song grid shows only 5 rows at once (owner: smaller on phones); `.songgrid` max-height = 14 + 5 x 32 + 9 (scrollbar),
+  no top padding, the sticky numbers' box-shadow covers the 2 px gaps so squares don't show through when scrolled.
+- Fireplace sound: `assets/sfx/fireplace.mp3` = owner's bonfire (art-source/sfx/bonfire-original.mp3, 35.8 s) made
+  seamless like the rain (last 2.2 s cross-faded into the start, 33.9 s, mono 96 kbps). `Sfx.loop('fireplace', inWorld,
+  fireplaceVol())` every frame from render(); `loop(n, on, vol)` now takes a loudness 0..1 and glides to it
+  (`setTargetAtTime` 0.12 s). `fireplaceVol` (end of render.js): nearest Fireplace (block 138) by tile centre to the
+  player's centre, 1 on it, straight down to 0 at `FIRE_HEAR` (5) tiles; only tiles within 5 are checked.
+- Security (Oct 20 2026; schema.sql SECURITY section, README "Security"; tested in PGlite with a mocked auth/realtime,
+  and in two browser tabs with a mock Supabase): `usernames` (filled by a trigger on auth.users from the e-mail at
+  sign-up; user_metadata can be changed by players, so never trust it), `my_name()`, `gms` + `is_gm()`, `bans`,
+  `whoami()` (game calls it in `signInOnline` via `Net.whoami`: sets `Net.me.name`, `Net.gm`, `Net.secure`; banned
+  -> sign out with the reason). `isGM()` uses `Net.gm` when `Net.secure`, else `GM_USERS` (offline / old server).
+  Worlds: no direct insert/update; `save_world(p_name, p_data)`: editors (`world_can_edit`: unowned, owner, GM, open,
+  access list) save all; only owner/GM change owner or lock (a new world can only be locked for yourself); visitors
+  only change `drops` and paid-for `vends` (`vend_ok`: same id/price/per, stock down, earnings up by the cost).
+  `Net.saveWorld` uses the RPC when `Net.secure`. Kicks: `kick_player` -> id broadcast as `{ kid }` -> receivers
+  `claim_kick`; kicks without an id are ignored when secure (`onKickMsg`); `Net.sendKick` is async and returns an error.
+  Mail: trigger sets from_id/from_name/to_name, 5/min and 100/day. Player saves: trigger forces `username`, refuses
+  banned, logs gold +100,000 / items +3,000 in one save to `cheat_log` (GMs can read). Realtime: all channels
+  `private: true` (`chOpts`); `world:NAME` everyone, `build:NAME:LOCKV` (tiles, sign, song, show, clear, sync,
+  builders' vend) only senders allowed by `can_send_build` (right lock version + may build), `lobby`. Policies on
+  realtime.messages; the owner must turn OFF "Allow public access". Realtime checks send rights only on join, so
+  `worlds.lockv` goes up whenever owner or lock changes (`save_world` returns { r, v }); the saver sends `lockv` on the
+  OLD topic, receivers re-read lockv from the server (`checkLockV`, never trusting the message) and `joinBuild` the new
+  topic; also checked every 15 s in `N.tick`. `channel(topic)` in realtime-js returns a still-leaving channel with the
+  same topic, so always `await dropChannel(old)` before making a new one (joinWorld -> openWorld, joinBuild). Only
+  builders answer `sync_req`. Visitor vend events on world: are taken only if `vendSaleOk` (vend.js; machines have a
+  collect counter `c`, so a stale copy can't restore collected earnings). `Net.whoami` only falls back to the old
+  way when the function is missing (PGRST202/42883); other errors retry, then block the login. Private channels refused before joining (no realtime rules) fall back to
+  public ones (`privRT` false). schema.sql must NOT alter realtime.messages (Supabase owns it: "must be owner"); it
+  only adds the two policies, inside an exception block so the rest of the file still runs if that is refused. Visitors' drops: at most 400.
+  Mail receivers can only update `read`. Accounts whose e-mail isn't username@players.balbtopia.app get no name. NOT secured (needs a server-run game): gold/items/drops come from the client; GM Shop/bag extras;
+  names in chat/position messages are self-reported. LOBBY/RECIPES: a non-GM can't create them locked to the GM
+  (owner would be null), so they must already exist on the server (they do).
