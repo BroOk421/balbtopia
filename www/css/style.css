@@ -2498,10 +2498,6 @@ button:focus-visible {
 .songbar .tempo input {
   width: 110px;
 }
-.songhint {
-  color: var(--muted);
-  font-size: 11px;
-}
 /* the grid: a row of column numbers, then SONG_ROWS rows of squares; scrolls sideways */
 .songgrid {
   display: grid;
@@ -2584,9 +2580,18 @@ button:focus-visible {
   color: var(--muted);
   margin-right: auto;
 }
-.songbtns {
-  justify-content: center;
+.songbar .songbtns {
+  display: flex;
+  gap: 6px;
   flex-wrap: wrap;
+  margin-left: auto;
+}
+.songbar .btn {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.dlg .songlist {
+  max-height: 46vh;
 }
 
 #songPlay.on {

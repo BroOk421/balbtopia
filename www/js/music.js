@@ -1,10 +1,12 @@
 // Music: the Piano and its song maker (Balbtopia's own design).
-// Piano (block 154, walk-through, grows from Note Block + White Block): stand on it and click it to open the
+// Piano (block 154, walk-through, Shop MUSIC tab only: it has no recipe, and breaking it always gives the Piano back,
+// like the Vending Machine): stand on it and click it to open the
 // SONG MAKER. At the top is the note list in two groups: PIANO (three full octaves C3-C6 with every sharp, low to
 // high) and DRUMS (a full kit, low to high). Click a note to pick it (it lights up and plays), then click empty squares in the grid to put it
 // there; a note can be used as many times as you like. Double-click a note in the grid to take it out. The song
-// plays left to right, one column per step, every note in a column at once. Buttons: NEW SONG, LIST SONGS (your
-// saved songs: load or delete), SAVE SONG (keeps it in your songs and, if you can build here, puts it on this
+// plays left to right, one column per step, every note in a column at once. One row of buttons: PLAY, STOP, tempo,
+// NEW SONG, LIST SONGS (a pop-up with your saved songs: load or delete), SAVE SONG. A song started with PLAY keeps
+// playing after the window is closed, until STOP (or leaving the world). (keeps it in your songs and, if you can build here, puts it on this
 // Piano). A Piano with a song plays it over and over and is heard everywhere in the world (the nearest one only).
 // Songs are saved per player (`mySongs`, player save `songs`) and per Piano tile (`pianoSongs`, world save `songs`,
 // realtime event `song`). Sounds are Web Audio synths (no files).
@@ -38,8 +40,9 @@ for (const m of OLD_NOTES) {
 // ---------- the Piano block ----------
 const PIANO = 154;
 BLOCK[PIANO] = { id: 'piano', name: 'Piano', hits: 4, art: 'deco', solid: false, fx: ['#1a1210', '#f2f2f6', '#8a5a32'] };
-ITEMS.piano = { name: 'Piano', kind: 'block', block: PIANO, desc: 'A little piano. Stand on it and click it to make songs; it plays its song for everyone nearby. Grows from Note Block + White Block, or buy it in the Shop.', rarity: 'Uncommon' };
-ITEMS.piano_seed = { name: 'Piano Seed', kind: 'seed', from: 'piano', desc: 'Plant it on top of a block to grow a Piano Tree.', rarity: 'Uncommon' };
+ITEMS.piano = { name: 'Piano', kind: 'block', block: PIANO, desc: 'A little piano. Stand on it and click it to make songs; it plays its song for everyone nearby. Buy it in the Shop (MUSIC).', rarity: 'Uncommon' };
+// the Piano can't be spliced any more: its seed is retired (old seeds and trees still grow; not in the GM bag)
+ITEMS.piano_seed = { name: 'Piano Seed', kind: 'seed', from: 'piano', desc: 'An old Piano seed. Pianos are only sold in the Shop now.', rarity: 'Uncommon', retired: true };
 SEED_COLOR.piano = ['#2a2420', '#f2f2f6', '#8a5a32'];
 TREE_TIME.piano = 360;
 SEED_CHANCE.piano = 0.3;
@@ -360,7 +363,7 @@ Net.onSong = (p) => {
 // ---------- a Piano in the world plays its song ----------
 let worldPlay = { i: -1, col: -1 };
 function stepMusic() {
-  if (!inWorld || songWin) return;
+  if (!inWorld || songWin || preview) return;
   // the nearest Piano with a song, anywhere in the world (heard on the whole map at full volume)
   const v0 = Math.floor(cam.x / TS) - 1,
     v1 = Math.ceil((cam.x + cv.width / Z) / TS) + 1,
@@ -412,32 +415,33 @@ songEl.innerHTML = `
   <div class="notelist" id="noteList" role="listbox" aria-label="Notes"></div>
   <div class="songbar"><button class="btn" id="songPlay" type="button">PLAY</button><button class="btn ghost" id="songStop" type="button">STOP</button>
     <span class="tempo"><small>Tempo</small><input type="range" id="songBpm" min="${BPM_MIN}" max="${BPM_MAX}" step="10" aria-label="Tempo"><b id="songBpmN"></b></span>
-    <small class="songhint">Pick a note, click a square. Double-click a note to take it out.</small></div>
-  <div class="songgrid" id="songGrid"></div>
-  <div class="songlist" id="songList" hidden></div>
-  <div class="dlgbtns songbtns">
-    <button class="btn ghost" id="songNew" type="button">NEW SONG</button>
+    <span class="songbtns"><button class="btn ghost" id="songNew" type="button">NEW SONG</button>
     <button class="btn ghost" id="songListBtn" type="button">LIST SONGS</button>
-    <button class="btn" id="songSave" type="button">SAVE SONG</button>
-  </div>`;
+    <button class="btn" id="songSave" type="button">SAVE SONG</button></span></div>
+  <div class="songgrid" id="songGrid"></div>`;
 $('wrap').appendChild(songEl);
 const emptySong = () => ({ n: 'My Song', bpm: 120, g: [] });
 // example songs everyone has in LIST SONGS (load only). Original Balbtopia tunes, not copies of real songs.
 // Sky Groove: a funky D minor riff, 4 bars (Dm, F, C, G): melody, chord fifths, root stabs, hi-hat, snare, kick.
 const EXAMPLE_SONGS = [{ n: 'Sky Groove', bpm: 140, g: [[0,0,14],[2,0,17],[3,0,19],[4,0,21],[6,0,19],[8,0,17],[10,0,21],[11,0,24],[12,0,21],[14,0,17],[16,0,16],[18,0,19],[19,0,16],[20,0,12],[22,0,14],[24,0,14],[26,0,11],[27,0,14],[28,0,19],[30,0,17],[2,1,9],[6,1,9],[0,2,2],[3,2,2],[6,2,2],[10,1,12],[14,1,12],[8,2,5],[11,2,5],[14,2,5],[18,1,7],[22,1,7],[16,2,0],[19,2,0],[22,2,0],[26,1,14],[30,1,14],[24,2,7],[27,2,7],[30,2,7],[1,3,27],[3,3,27],[5,3,27],[7,3,27],[9,3,27],[11,3,27],[13,3,27],[15,3,27],[17,3,27],[19,3,27],[21,3,27],[23,3,27],[25,3,27],[27,3,27],[29,3,27],[31,3,27],[4,4,26],[12,4,26],[20,4,26],[28,4,26],[0,5,25],[8,5,25],[11,5,25],[16,5,25],[24,5,25],[27,5,25]] }];
+// the song maker's song while it plays: { song, col, timer }. It keeps playing after the window is closed
+// (the world's Pianos wait meanwhile) until STOP, or until you leave the world.
+let preview = null;
 function openSongMaker(i) {
   for (const k in keys) keys[k] = false;
   ptr.down = false;
   const s = pianoSongs.get(i);
-  songWin = { i, song: s ? cleanSong(s) : emptySong(), pick: 0, playing: false, timer: null, col: -1, tap: null };
+  // a song still playing from before comes back into the window, so it can be edited or stopped
+  const song = preview ? preview.song : s ? cleanSong(s) : emptySong();
+  songWin = { i, song, pick: 0, tap: null };
   songEl.hidden = false;
   renderSong();
 }
 function closeSongMaker() {
   if (!songWin) return;
-  stopSong();
   songWin = null;
   songEl.hidden = true;
+  if ($('dlg') && !$('dlg').hidden) closeDialog();
   cv.focus();
 }
 function cellAt(x, y) {
@@ -448,8 +452,10 @@ function renderSong() {
   $('songName').value = W.song.n;
   $('songBpm').value = W.song.bpm;
   $('songBpmN').textContent = W.song.bpm;
-  $('songPlay').classList.toggle('on', W.playing);
-  $('songStop').disabled = !W.playing;
+  const playing = !!preview && preview.song === W.song,
+    nowCol = playing ? preview.col : -1;
+  $('songPlay').classList.toggle('on', playing);
+  $('songStop').disabled = !preview;
   // the note list
   const nl = $('noteList');
   nl.innerHTML = '';
@@ -482,7 +488,7 @@ function renderSong() {
   gr.style.setProperty('--cols', SONG_COLS);
   for (let x = 0; x < SONG_COLS; x++) {
     const h = document.createElement('div');
-    h.className = 'scol' + (x % 4 === 0 ? ' beat' : '') + (x === W.col ? ' now' : '');
+    h.className = 'scol' + (x % 4 === 0 ? ' beat' : '') + (x === nowCol ? ' now' : '');
     h.textContent = x % 4 === 0 ? x / 4 + 1 : '';
     gr.appendChild(h);
   }
@@ -491,7 +497,7 @@ function renderSong() {
       const c = cellAt(x, y),
         b = document.createElement('button');
       b.type = 'button';
-      b.className = 'scell' + (c ? ' has' : '') + (x % 4 === 0 ? ' beat' : '') + (x === W.col ? ' now' : '');
+      b.className = 'scell' + (c ? ' has' : '') + (x % 4 === 0 ? ' beat' : '') + (x === nowCol ? ' now' : '');
       b.setAttribute('aria-label', c ? noteName(c[2]) + ' at ' + (x + 1) : 'Empty, step ' + (x + 1));
       if (c) {
         const pic = notePic(c[2]).cloneNode();
@@ -528,30 +534,32 @@ function tapCell(x, y) {
   renderSong();
 }
 function playStep() {
-  const W = songWin;
-  if (!W || !W.playing) return;
-  W.col = (W.col + 1) % songLen(W.song);
-  const hit = W.song.g.filter((c) => c[0] === W.col);
+  const S = preview;
+  if (!S) return;
+  if (!inWorld) return stopSong(); // left the world: the song stops
+  S.col = (S.col + 1) % songLen(S.song);
+  const hit = S.song.g.filter((c) => c[0] === S.col);
   for (const c of hit) playPiano(c[2], 1 / Math.sqrt(hit.length));
-  // move the playhead without rebuilding the grid
+  S.timer = setTimeout(playStep, stepMs(S.song));
+  // the window is open on this song: move the playhead without rebuilding the grid
+  if (!songWin || songWin.song !== S.song) return;
   songEl.querySelectorAll('.now').forEach((e) => e.classList.remove('now'));
   const gr = $('songGrid'),
     kids = gr.children;
-  kids[W.col] && kids[W.col].classList.add('now');
+  kids[S.col] && kids[S.col].classList.add('now');
   for (let y = 0; y < SONG_ROWS; y++) {
-    const k = kids[SONG_COLS + y * SONG_COLS + W.col];
+    const k = kids[SONG_COLS + y * SONG_COLS + S.col];
     if (k) k.classList.add('now');
   }
   // keep the playhead in view
-  const head = kids[W.col];
+  const head = kids[S.col];
   if (head && (head.offsetLeft < gr.scrollLeft || head.offsetLeft > gr.scrollLeft + gr.clientWidth - 30)) gr.scrollLeft = head.offsetLeft - 40;
-  W.timer = setTimeout(playStep, stepMs(W.song));
 }
 function stopSong() {
-  if (!songWin) return;
-  clearTimeout(songWin.timer);
-  songWin.playing = false;
-  songWin.col = -1;
+  if (!preview) return;
+  clearTimeout(preview.timer);
+  preview = null;
+  worldPlay = { i: -1, col: -1 }; // the world's Pianos start again
 }
 // PLAY starts the song from the beginning (again, if it is already playing); STOP stops it
 $('songPlay').onclick = () => {
@@ -559,16 +567,14 @@ $('songPlay').onclick = () => {
   if (!W) return;
   if (!W.song.g.length) return toast('Put some notes in the grid first');
   stopSong();
-  W.playing = true;
-  W.col = -1;
+  preview = { song: W.song, col: -1, timer: null };
   $('songPlay').classList.add('on');
   $('songStop').disabled = false;
   playStep();
 };
 $('songStop').onclick = () => {
-  if (!songWin) return;
   stopSong();
-  renderSong();
+  if (songWin) renderSong();
 };
 $('songBpm').oninput = () => {
   if (!songWin) return;
@@ -583,49 +589,43 @@ $('songNew').onclick = async () => {
   if (W.song.g.length && !(await ask('NEW SONG', 'Start a new song? Notes you have not saved will be lost.', 'New song', 'Cancel'))) return;
   stopSong();
   W.song = emptySong();
-  $('songList').hidden = true;
   renderSong();
 };
-$('songListBtn').onclick = () => {
-  const el = $('songList');
-  el.hidden = !el.hidden;
-  if (!el.hidden) renderSongList();
-};
-function renderSongList() {
-  const el = $('songList');
-  el.innerHTML = mySongs.length ? '' : '<p class="mnote">No saved songs yet. Make one and press SAVE SONG.</p>';
+// LIST SONGS: a pop-up over the song maker with the examples and your saved songs
+$('songListBtn').onclick = () => songWin && openSongList();
+function loadSong(s, msg) {
+  stopSong();
+  songWin.song = cleanSong(s);
+  closeDialog();
+  renderSong();
+  toast(msg);
+}
+function openSongList() {
+  const body = dialog('LIST SONGS', '<div class="songlist" id="songList"></div>', [{ label: 'Close', cls: 'ghost', run: () => {} }]);
+  const el = body.querySelector('#songList');
   // the examples first: Load only
   for (const s of EXAMPLE_SONGS) {
     const row = document.createElement('div');
     row.className = 'srow example';
     row.innerHTML = `<b>${esc(s.n)}</b><small>Example · ${s.g.length} notes · ${s.bpm} bpm</small><button class="btn" type="button">Load</button>`;
-    row.querySelector('button').onclick = () => {
-      stopSong();
-      songWin.song = cleanSong(s);
-      el.hidden = true;
-      renderSong();
-      toast('Loaded ' + s.n + ': press PLAY');
-    };
+    row.querySelector('button').onclick = () => loadSong(s, 'Loaded ' + s.n + ': press PLAY');
     el.appendChild(row);
   }
+  if (!mySongs.length) el.insertAdjacentHTML('beforeend', '<p class="mnote">No saved songs yet. Make one and press SAVE SONG.</p>');
   mySongs.forEach((s, k) => {
     const row = document.createElement('div');
     row.className = 'srow';
     row.innerHTML = `<b>${esc(s.n)}</b><small>${s.g.length} notes · ${s.bpm} bpm</small>
       <button class="btn" type="button">Load</button><button class="btn ghost" type="button">Delete</button>`;
     const [load, del] = row.querySelectorAll('button');
-    load.onclick = () => {
-      stopSong();
-      songWin.song = cleanSong(s);
-      el.hidden = true;
-      renderSong();
-      toast('Loaded ' + s.n);
-    };
+    load.onclick = () => loadSong(s, 'Loaded ' + s.n);
     del.onclick = async () => {
-      if (!(await ask('DELETE SONG', 'Delete "' + s.n + '" from your songs?', 'Delete', 'Cancel'))) return;
-      mySongs.splice(k, 1);
-      savePlayer();
-      renderSongList();
+      const yes = await ask('DELETE SONG', 'Delete "' + s.n + '" from your songs?', 'Delete', 'Cancel');
+      if (yes) {
+        mySongs.splice(k, 1);
+        savePlayer();
+      }
+      if (songWin) openSongList(); // back to the list
     };
     el.appendChild(row);
   });
@@ -635,6 +635,7 @@ $('songSave').onclick = () => {
   if (!W) return;
   const s = cleanSong({ ...W.song, n: ($('songName').value || 'My Song').trim() || 'My Song' });
   if (!s.g.length) return toast('Put some notes in the grid first');
+  if (preview && preview.song === W.song) preview.song = s; // a playing song keeps playing the saved copy
   W.song = s;
   // your songs: same name = the newer one replaces it
   const k = mySongs.findIndex((o) => o.n.toLowerCase() === s.n.toLowerCase());
@@ -649,10 +650,9 @@ $('songSave').onclick = () => {
     saveWorld();
     toast('Saved "' + s.n + '": this Piano plays it now');
   } else toast('Saved "' + s.n + '" to your songs (only builders here can put it on this Piano)');
-  if (!$('songList').hidden) renderSongList();
 };
 addEventListener('keydown', (e) => {
-  if (songWin && e.code === 'Escape') closeSongMaker();
+  if (songWin && e.code === 'Escape') $('dlg').hidden ? closeSongMaker() : closeDialog();
 });
 // clicking a Piano you are standing in opens the song maker (a click never breaks it while you stand there)
 function usePiano(x, y) {

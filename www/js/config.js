@@ -429,7 +429,6 @@ const SPLICE = {
   'grey_wallpaper+ice_crust_block': 'skeleton',
   'happy_joy_plaque+seaweed': 'sugar_cane',
   'grass+rainbow_block': 'cherry_blossom',
-  'note_block+white_block': 'piano',
 };
 // read data/farming.json (tree grow times and splice recipes); keeps the built-in ones if it can't
 function loadFarming() {
