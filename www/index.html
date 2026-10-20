@@ -26,6 +26,9 @@
         <div class="gold" id="gold" aria-label="Gold">
           <canvas id="goldIcon" width="32" height="32"></canvas><span id="goldN">0</span>
         </div>
+        <div class="gold bcbox" id="bcBox" aria-label="Balb Coins">
+          <canvas id="bcIcon" width="64" height="64"></canvas><span id="bcN">0</span>
+        </div>
         <button class="shopbtn" id="shopBtn" aria-label="Shop">SHOP</button>
         <button class="chatbtn" id="chatBtn" aria-label="Chat"><span class="cb"></span>CHAT</button>
         <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span><b class="badge" id="badge" hidden></b></button>
@@ -83,6 +86,7 @@
         <header>
           <h2>SHOP</h2>
           <span class="shopgold"><canvas id="shopCoin" width="32" height="32"></canvas><span id="shopGold">0</span></span>
+          <span class="shopgold bcg"><canvas id="shopBCIcon" width="64" height="64"></canvas><span id="shopBC">0</span></span>
           <button class="x" id="shopx" aria-label="Close shop">X</button>
         </header>
         <div class="stabs" id="shopTabs" role="tablist" aria-label="Shop categories"></div>
@@ -118,9 +122,8 @@
           <button id="pmTrade">Trade</button>
           <button id="pmFriend">Add Friend</button>
           <button id="pmMessage">Message</button>
-          <button id="pmEmail">Email</button>
-          <button id="pmGift">Gift</button>
           <button id="pmAccess" hidden>Allow building here</button>
+          <button id="pmPull" hidden>Pull here</button>
           <button id="pmClose" class="close">Close</button>
         </div>
       </section>
@@ -273,6 +276,9 @@
     <script src="js/hd/tools.js"></script>
     <script src="js/hd/wear_hats.js"></script>
     <script src="js/hd/wear_face_back.js"></script>
+    <script src="js/keys.js"></script>
+    <script src="js/economy.js"></script>
+    <script src="js/quests.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

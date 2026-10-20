@@ -266,16 +266,16 @@ function drawSignBubble(ox, oy) {
   let i = signUnderPlayer(),
     text;
   if (i < 0) {
-    // standing in a door that leads somewhere: say where
+    // standing in a door that leads somewhere: say where (a door not set up yet says nothing: it gets a wrench
+    // badge instead, drawSetupBadges)
     i = doorUnderPlayer();
     if (i < 0) return;
     const d = doorInfo(i);
+    if (!d.to && !d.at) return;
     text = 'Door #' + d.id + ' to ' + doorLabel(d) + '. Click it to go in.';
   } else text = signs.get(i);
-  if (!text) {
-    if (!canEdit(true)) return;
-    text = 'This sign is blank. Hold the wrench and click it to write on it.';
-  }
+  // a blank sign shows no bubble (owner, Oct 2026): builders see a wrench badge on it instead
+  if (!text) return;
   const x = i % WW,
     y = (i / WW) | 0,
     cx = ox + (x * TS + TS / 2) * Z,
@@ -303,6 +303,51 @@ function drawSignBubble(ox, oy) {
   g.textBaseline = 'top';
   lines.forEach((l, k) => g.fillText(l, bx + 5 * U, by + 4 * U + k * lh + U * 0.5));
   g.textBaseline = 'alphabetic';
+}
+
+// ---------- wrench badges (owner, Oct 2026) ----------
+// Blocks that are set up with the wrench but aren't yet get a small wrench in their top-right corner, seen only by
+// players who could set them up, and only while they hold the wrench: a blank sign, a door without a destination, an empty Display Box or Mannequin,
+// and (for the world's owner) an empty Vending Machine. The wrench bobs a little.
+function needsSetup(i) {
+  const t = fg[i];
+  if (!t) return false;
+  if (isDoorT(t)) {
+    if (door.x === i % WW && door.y === ((i / WW) | 0)) return false; // (the main door is never set up)
+    const d = doorInfo(i);
+    return !d.to && !d.at;
+  }
+  if (isSignT(t)) return !signs.get(i);
+  if (isDispT(t)) return !displays.get(i);
+  if (isMannT(t)) {
+    const m = manns.get(i);
+    return !m || !Object.values(m).some(Boolean);
+  }
+  if (isVendT(t)) {
+    const v = vends.get(i);
+    return isOwner() && (!v || !v.id);
+  }
+  return false;
+}
+function drawSetupBadges(ox, oy, T, vx0, vy0, vx1, vy1) {
+  // only while the wrench is in hand (owner, Oct 2026)
+  if (!inWorld || hand !== 'wrench' || !canEdit(true)) return;
+  const s = Math.max(8, Math.round(T * 0.42)),
+    bob = Math.round(Math.sin(now / 320) * T * 0.04),
+    w = wrenchSprite();
+  for (let y = Math.max(0, vy0); y <= Math.min(WH - 1, vy1); y++)
+    for (let x = Math.max(0, vx0); x <= Math.min(WW - 1, vx1); x++) {
+      const i = at(x, y);
+      if (!needsSetup(i)) continue;
+      // display boxes and machines only for players with access (hasAccess), like their wrench menus
+      const bx = ox + x * T + T - s + T * 0.06,
+        by = oy + y * T - T * 0.06 + bob;
+      g.fillStyle = 'rgba(28,16,51,0.72)';
+      g.beginPath();
+      g.arc(bx + s / 2, by + s / 2, s * 0.62, 0, 7);
+      g.fill();
+      g.drawImage(w, bx, by, s, s);
+    }
 }
 
 // ---------- the RECIPES world ----------

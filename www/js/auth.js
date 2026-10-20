@@ -136,6 +136,8 @@ async function signInOnline() {
     return Net.dbError(e);
   }
   playerName = Net.me.name;
+  syncKeys(); // World Keys in the bag = the server's list (keys.js)
+  await Wallet.load(); // gold = the wallet on the server (economy.js)
   Net.joinLobby();
   Net.loadMail().then(updateBadge);
   return null;

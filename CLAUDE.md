@@ -47,7 +47,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -69,8 +69,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - New pixel art: add a painter to `TEX` (solid blocks/backgrounds) or `DECO` (walk-through), drawn on a 16x16 grid
   of 2px cells with the `cells()` helpers `R` (rect), `P` (pixel), `D` (disc). Seeds and trees are coloured
   automatically from the item's `seed` colours.
-- Gameplay is client-side (drops, gold, Shop prices, GM extras). Since Oct 20 2026 the SERVER decides identity, GM,
-  bans, world writes, kicks, build-channel sends and mail names (see "Security" at the end).
+- Gameplay is client-side (drops, ordinary items, GM bag). Since Oct 20 2026 the SERVER decides identity, GM, bans,
+  world writes, kicks, build-channel sends, mail names, gold and Shop purchases (see "Security" and "Economy" at the end).
 
 ## Features added (Oct 2026)
 
@@ -432,8 +432,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 
 ## Ideas the owner may ask for next
 
-- Stripe checkout for World Lock packs (needs a server: e.g. a Supabase Edge Function that creates the Checkout
-  Session and a webhook that adds the locks to the player).
+- Paid top-ups (TOP UP tab is ready, SOON): a Philippine provider (PayMongo / Xendit; Stripe doesn't take PH
+  businesses): an Edge Function that creates the checkout and a webhook that adds the gold to `wallets`.
 - Clothing items from `growtopiaNotInGameYet` (need sprites and more equip slots: shirt, pants, face, hat, back).
 - Ban from a world for a while (kick only sends players away; they can come back).
 - Moving GM checks and purchases to the server so they can't be faked.
@@ -607,3 +607,87 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Mail receivers can only update `read`. Accounts whose e-mail isn't username@players.balbtopia.app get no name. NOT secured (needs a server-run game): gold/items/drops come from the client; GM Shop/bag extras;
   names in chat/position messages are self-reported. LOBBY/RECIPES: a non-GM can't create them locked to the GM
   (owner would be null), so they must already exist on the server (they do).
+- Oct 20 2026 (owner): no access = no touching. Every functional block already checked `canEdit`/`hasAccess` (signs,
+  doors' destinations, display, mannequin, gates, water, splice/plant/harvest, punching incl. weather / disco
+  toggles); the Piano didn't: `usePiano` now refuses players who can't build (they still hear its song). Still
+  open to visitors on purpose: walking through doors, buying from Vending Machines, sitting/sleeping, checkpoints,
+  reading signs, picking up drops (60 s rule).
+- Pull (player wrench menu `#pmPull`, owner of a locked world, Net.secure): `Net.sendKick(id, 'pull', P.x, P.y)` ->
+  `kick_player(world, to, 'pull', x, y)` (world_kicks has px/py; kind 'pull'; not for '*') -> receiver `claim_kick`
+  -> `Net.onKick` (lock.js) moves the player there (verified pulls only).
+- World Keys (`keys.js`, loaded before main.js): owner wrenches the lock -> GET THE KEY (`get_world_key`, one per
+  world) -> item `wkey_NAME` (made on the fly by `ensureKey`: ITEMS entry `kind: 'key', key: true`, gold key
+  `keyIcon`). Tradable/giftable only when Net.secure (`tradable`); the giver's game calls `give_world_key` when a
+  trade (`tryFinishTrade`) or gift (`gift_ok`) goes through. Holder wrenches that world's lock -> USE THE KEY
+  (`use_world_key`: becomes owner, access cleared, lockv+1; the owner's own key = PUT THE KEY BACK). The server's
+  `world_keys` is the truth: `syncKeys()` after login matches the bag to `my_world_keys()`. A key dies when the owner
+  changes another way (save_world deletes it). Keys can't be dropped, trashed, sold, displayed or added to the GM
+  bag. After a key is used the new owner calls `Net.lockChanged` (sends `lockv` on world:, rejoins build:); others
+  `checkLockV` (now also reads owner + lock and applies them when lockv changed). A save that comes back as
+  'visitor' with a new lockv also triggers `checkLockV` (never just takes the version).
+- Player wrench menu (Oct 20 2026, owner): Email and Gift buttons removed (Email stays in Menu -> Email; incoming gifts
+  from older game versions are still received, and a key in such a gift still moves on the server).
+- Economy (Oct 20 2026, owner chose: gold + Shop-only items on the server, over-limit = LOG, never refuse a save;
+  schema.sql ECONOMY, README "Gold at Shop sa server", `economy.js` `Wallet`; reviewed, 112 PGlite tests):
+  `wallets` (gold, held, leaky-bucket `earned_hour`/`hour_start`) are the truth. Made ONCE by schema.sql from the
+  existing saves (grandfathered gold + Shop-only items, big ones logged), and empty (0) for every new name
+  (`balbtopia_new_wallet` trigger on usernames); `my_wallet()` never reads a save (a fake save before the wallet
+  existed would have minted gold). Player save trigger forces `data.gold` = wallet. `earn_gold` (picked-up coins,
+  batched by `Wallet.earn` -> `flush` every 1.5 s, also on pagehide): 10,000 per rolling hour, the rest -> `held`
+  (logged once an hour; a GM releases it by SQL). `shop_buy(item, qty)` uses `shop_prices` (seeded from the game's
+  SHOP list; rows no longer in it are deleted): CHANGE BOTH when the Shop changes. `buy()` in shop.js checks bag
+  room (`roomFor`) first, then pays on the server, then gives the item. Trades: gold is settled by `trade_gold(with,
+  give, get)` from BOTH clients (second matching call moves both in one transaction; lobby `gold_done` tells the
+  other side to `Wallet.load`); `give_gold` was dropped. Shop-only (`shop_prices.tracked`: no recipe, not a lock)
+  items: `owned_items` counts; `give_item` (giver, in trades) moves only what the giver really owned; a save with more
+  than owned is logged once a day per item. Vending Machines: `vend_track(world, old, new)` from save_world: tracked
+  stock going in must come out of the saver's own count (into `vend_backed`, per world+tile; extra = logged, backs
+  nothing), stock going out (sale or take-out) credits the saver from the backing; changing a machine's item forfeits
+  its backing. Internal helpers (`add_owned`, `vend_track`) are revoked from anon/authenticated. Offline / old server
+  (`Wallet.on()` false): the old client-side gold. Known false positives in the log: Shop items picked up from drops
+  or taken from someone's Display Box / Mannequin.
+- TOP UP (Oct 20 2026, owner): Shop tab `topup` (pushed in economy.js, so it is last), gold packs `TOPUP`: P50 = 5,200,
+  P100 = 10,400, P200 = 20,800 (owner's), P500 = 52,000, P1,000 = 104,000 (same 104 gold a peso). Paying is NOT open:
+  Stripe doesn't accept Philippine businesses (checked Oct 2026: not on stripe.com/global), so a local provider
+  (PayMongo / Xendit) is the way later; owner chose "coming soon" for now, cards say SOON. Not enough gold in
+  `buy()` (client check, or the server's 'Not enough gold') -> `goTopUp(s)`: toast with the missing amount, Shop
+  switches to TOP UP, the smallest pack that covers it gets `.best` + an ENOUGH badge, and `.tneed` ("You need N more
+  gold") sits ABOVE `#shopList` (inside the grid it would take a whole card row). `renderShop` is wrapped in
+  economy.js. When payments come: server-side credit (a webhook adding to `wallets`), never the client.
+- Wrench badges (Oct 20 2026, owner): a blank sign and a door without a destination show NO bubble any more
+  (`drawSignBubble`); instead blocks still to be set up get a small bobbing wrench in their top-right corner
+  (`needsSetup` / `drawSetupBadges` in signs.js, called from render() before the bubbles): blank sign, door with no
+  destination (not the main door), empty Display Box, Mannequin with nothing on, and an empty Vending Machine (owner
+  only). Only players who `canEdit(true)` see them.
+- Mannequin quick dressing (Oct 20 2026, owner): hold a wearable or a tool (picked on the hotbar, `hand` = its id)
+  and click a Mannequin: `useMannequin` (display.js, called from `act` after `usePiano`) puts it on (tools into the
+  Mannequin's `hand`; from the Hand slot `equipped.hand` or a bag/hotbar stack), whatever was in that slot comes back
+  to the bag (undone if there's no room); clicking with the fist takes everything off into the bag (as much as fits).
+  Players with access only (`hasAccess`), like the wrench menu. Mannequins now use `EQ_SLOTS` (wear slots + hand):
+  `setMann` keeps an item when `slotOf(id) === slot`; `drawMannequinAt` draws a held tool with `drawHeldTool`, the arm
+  cut out of the Mannequin's own body (`armParts` key 'mannarm_' + shirt|pants|feet). The wrench menu lists Hand too.
+- Smoke (Oct 20 2026, owner: more detailed): puffs are pixel-art clouds (`puffSprite(look, shade, size, thin)` in
+  render.js, cached): 1 big + 3 small lobes per look (`PUFF_LOOKS` 4, seeded), lit from the top left in 5 tones
+  (edge, dark, mid, light, shine from `SMOKE[shade]`) with a light Bayer dither, dark rim along the bottom/right; size in
+  steps of 2 game px (crisp at 1 game px = 1 picture px); after 55% of its life a puff thins with dither holes (3
+  levels), then fades. Each puff gets `v` (look) and `f` (mirrored) in `smoke()`. Dressing a Mannequin has no effect.
+- Balb Coins + Genie Teapot (Oct 20 2026, owner): second money `P.bc` (server `wallets.bc`; `my_wallet` / `earn_gold` /
+  `shop_buy` / `trade_gold` return `bc`; the player-save trigger forces `data.bc` = wallet like gold). SHOP entries
+  with `bc` cost Balb Coins (`costOf` / `shortOf` in shop.js; `shop_prices.bc` > 0 -> `shop_buy` takes coins, gold 0
+  in that row); rare wear + Diamond / Black Diamond Pickaxe are BC, Golden Pickaxe 50,000 gold. The coin is drawn by
+  `balbCoin()` (economy.js, 64 px, cached once the head sprite is loaded): emerald rim/groove/field + the head of
+  `skin_honey_open` (rows 0-124) recoloured by luminance as a relief; shown in `#bcBox` (top bar, beside gold),
+  `#shopBCIcon`, `.bcc` price canvases (`paintCoins`). TOP UP has a GOLD / BALB COINS switch (`.tswitch`,
+  `topupBC`), BC packs `TOPUP_BC` P25 a coin; `goTopUp` is currency-aware (badge ENOUGH, or BEST if no pack covers
+  it). Genie Teapot = block 155 (`quests.js`, after economy.js; walk-through deco, HD_DECO art, Shop WORLD 1,000
+  gold, tracked). Wrench it (`act` wrench branch -> `openTeapot`, needs `canEdit()`): description + today's quest
+  from `QUEST_POOL` (harvest / break / plant counts via `questTick` hooks in `punchTree` ripe branch, `act` block
+  break, `plant()`; or `give`: SEND takes the items, then CLAIM). Quest = hash(day + name); day = server's
+  `quest_today().day` online (Asia/Manila), else `manilaDay()`. Progress saved as player `quest` {day, n, sent,
+  done} (wrapped playerData / applyPlayer). CLAIM online -> `claim_daily_quest(p_day)` (+1 bc, once per Manila day
+  via `wallets.quest_day`; wrong day / already -> error), offline local +1. Counting is client-side (only 1 BC/day
+  at stake). 124 PGlite tests.
+- Balb Coin reward animation (owner): CLAIM closes the pop-up and `bcReward(n, shown)` (quests.js) pushes a flyer
+  (social.js `flyers` now take optional pic / label / col / spark / size / land) from the teapot tile to the player:
+  the 64 px coin, "+1 Balb Coin" in green, green sparkles on landing; the counter shows the old amount until then,
+  then `updateGold()` + `bcPop()` (coinpop on `#bcBox`), pickup sound, toast.

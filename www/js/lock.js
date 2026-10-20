@@ -152,6 +152,20 @@ function askKick(to, k) {
 Net.onKick = (p) => {
   if (!inWorld || !Net.me || (p.to !== '*' && p.to !== Net.me.id)) return;
   if (isOwner() || (!p.verified && (!worldOwner || lc(p.n) !== lc(worldOwner)))) return;
+  // pulled: to the owner's spot (only server-checked pulls exist)
+  if (p.k === 'pull') {
+    if (!p.verified || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
+    P.dead = null;
+    P.rest = null;
+    P.punch = P.place = null;
+    P.x = Math.max(0, Math.min(WW * TS - P.w, p.x));
+    P.y = Math.max(0, Math.min(WH * TS - P.h, p.y));
+    P.vx = P.vy = 0;
+    P.spawnT = SPAWN_FADE;
+    smoke(Math.floor((P.x + P.w / 2) / TS), Math.floor((P.y + P.h / 2) / TS), 10, 1.2);
+    toast(p.n + ' pulled you');
+    return;
+  }
   for (const id of ['lockwin', 'worlds', 'shop', 'pmenu']) if ($(id)) $(id).hidden = true;
   if (p.k === 'out' && worldName !== LOBBY_WORLD) {
     const from = worldName;

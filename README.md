@@ -255,6 +255,8 @@ Pagkatapos nito:
 - **GM:** Nasa table na `gms`. Pagdagdag ng GM sa SQL Editor: `insert into gms (name) values ('pangalan');`. Pag-alis: `delete from gms where name = 'pangalan';`.
 - **Worlds:** Dumadaan na sa `save_world`. Ang owner, mga may access, open worlds at GM lang ang makakapagbago ng blocks. Ang owner at GM lang ang makakapagpalit ng lock o access. Ang bisita ay floating drops at bayad na Vending Machine sales lang ang nababago.
 - **Kick:** Sa server ginagawa (`kick_player`), at tinitingnan ng game ng bawat player kung totoo (`claim_kick`).
+- **Pull:** Sa wrench ng player, "Pull here" (owner lang). Dumadaan din sa server gaya ng kick.
+- **World Key:** Sa wrench ng lock, "GET THE KEY" (owner). Puwedeng i-trade o i-gift ang susi. Ang may hawak nito ay magwe-wrench sa lock ng world na iyon at pipindot ng "USE THE KEY" para maging owner. Sa server (table `world_keys`) nakatala kung sino ang may hawak, kaya hindi mapepeke. Isang susi lang bawat world, at hindi na ito gagana kapag nagbago ang owner sa ibang paraan.
 - **Realtime:** Ang blocks, signs, songs, display, Clear World at world sync ay dumadaan sa `build:WORLD`, kung saan ang mga may karapatang mag-build lang ang makakapagpadala.
 - **Mail:** Ang server ang naglalagay ng pangalan ng nagpadala. May limit: 5 bawat minuto at 100 bawat araw.
 - **Ban:** Ang naka-ban ay hindi makaka-login, makaka-save, makakapagpadala ng mail o makakasali sa channels.
@@ -263,9 +265,33 @@ Pagkatapos nito:
 - **Cheat log:** Sa *Table Editor → cheat_log* makikita ang mga save na biglang tumaas ang gold (higit 100,000) o items (higit 3,000) sa isang save. Hindi nito pinipigilan ang save; listahan lang ito ng titingnan, at ikaw ang magpapasya kung iba-ban.
 - **Backups:** Ang daily backups ay depende sa plan mo sa Supabase (tingnan ang *Database → Backups*). Kung wala, mag-export paminsan-minsan.
 
+### Gold at Shop sa server (Oktubre 2026)
+
+Pagkatapos patakbuhin ang bagong `schema.sql`, nasa server na ang gold ng bawat player (table `wallets`):
+
+- **Pagpulot ng coins** (galing sa pag-break ng block at pag-harvest ng tree): hanggang **10,000 gold kada oras** ang tinatanggap. Ang sobra ay hindi nawawala: itinatabi ito sa `held` at nakalista sa `cheat_log`.
+- **Pagbigay ng nakatabing gold** (kung tapat ang player), sa SQL Editor:
+  `update wallets set gold = gold + held, held = 0 where id = (select id from usernames where lower(name) = lower('pangalan'));`
+- **Shop:** Sa server ang bayad at presyo (table `shop_prices`). Kapag binago mo ang presyo o nagdagdag ng item sa Shop ng game, kailangang baguhin din ang `shop_prices` sa `schema.sql`. Gagawin ko iyon tuwing may babaguhin sa Shop.
+- **Trade:** Inililipat ng server ang gold at Shop items.
+- **Shop-only items** (wings, auras, tools, machines, Piano...): binibilang ng server kung ilan ang nabili o natanggap mo. Kapag mas marami sa save kaysa doon, ilalagay sa `cheat_log` (isang beses kada araw bawat item). Hindi tinatanggihan ang save.
+- **Sa unang login pagkatapos ng update,** ang gold at items na hawak na ng player ay tinatanggap bilang panimula.
+- **Puwedeng ma-log ang tapat na player** kapag napulot niya ang Shop item na inihulog o kinuha sa Display Box ng iba. Tingnan muna bago mag-ban.
+
+### Balb Coins at Genie Teapot (Oktubre 2026)
+
+- **Balb Coins** ang pangalawang pera (berdeng coin na may mukha ng character, katabi ng gold sa itaas). Nasa server din ito (`wallets.bc`).
+- **Rare items sa Shop** (wings, auras, Super Saiyan Hair, Diamond at Black Diamond Pickaxe) ay Balb Coins na ang presyo. Ang Golden Pickaxe ay 50,000 gold na.
+- **Genie Teapot** (Shop, WORLD, 1,000 gold): i-wrench para makita ang daily quest (mag-harvest, mag-break, mag-plant, o mag-SEND ng blocks/seeds). Kapag tapos na, may CLAIM button: **1 Balb Coin**. Isang beses lang kada araw (oras ng Pilipinas); ang server ang nagbabantay nito.
+- Players lang na may access sa world ang puwedeng gumamit ng teapot doon.
+- **Pagbigay ng Balb Coins** (GM), sa SQL Editor:
+  `update wallets set bc = bc + 10 where id = (select id from usernames where lower(name) = lower('pangalan'));`
+- **TOP UP:** may GOLD at BALB COINS na packs na (₱25 bawat coin). Coming soon pa rin ang bayad.
+
 ### Mga limitasyon sa ngayon
 
-- **Ang gold at items ay galing pa rin sa browser ng player.** Ang phone o browser ang gumagawa ng drops at gold kapag nag-break ng block, kaya kayang dayain ng marunong. Ang cheat log at ban ang depensa. Para tuluyang mapigilan, kailangang ang server ang magpatakbo ng game mismo.
+- **Ang ordinaryong items (blocks, seeds) at ang kinikita sa pagmimina ay galing pa rin sa browser.** May limit ang gold (10,000 kada oras) at nakalista ang mga Shop item, pero kayang magdagdag ng marunong ng ordinaryong blocks. Para tuluyang mapigilan, kailangang ang server ang magpatakbo ng game mismo.
+- **Ang progress ng daily quest** (ilang na-harvest/na-break/na-plant) ay binibilang ng browser. Ang server ang nagsisiguro na isang Balb Coin lang kada araw.
 - **GM extras sa game (libreng Shop, buong bag)** ay nasa browser pa rin. Pero ngayon, sa server na nanggagaling ang pagkilala kung sino ang GM.
 - **Mga pangalan sa chat at sa ibabaw ng player** ay ipinapadala pa rin ng player mismo, kaya puwedeng pekein ang ipinapakitang pangalan sa chat. Hindi nito nabibigyan ng kapangyarihan ang nagpepeke (kick, build at mail ay tinitingnan ng server).
 - **Pagkuha at paghulog ng floating drops** ay galing pa rin sa sinumang player sa world.

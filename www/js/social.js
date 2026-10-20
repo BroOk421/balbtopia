@@ -69,7 +69,7 @@ const needOnline = () => {
 
 // ---------- flying items (gifts and trades) ----------
 // the item's icon and "3 Dirt" fly in an arc from the giver to whoever gets it, following them if they move
-const flyers = []; // { id, qty, from: () => {x,y}, to: () => {x,y}, t0, dur }
+const flyers = []; // { id, qty, from: () => {x,y}, to: () => {x,y}, t0, dur } (+ optional pic, label, col, spark, size, land)
 const posOf = (who) => () =>
   who === 'me'
     ? { x: P.x + P.w / 2, y: P.y + P.h * 0.35 }
@@ -100,9 +100,13 @@ function drawFlyers(ox, oy) {
     const a = f.from(),
       b = f.to();
     if (!a || !b || u >= 1) {
-      if (b && u >= 1)
-        for (let n = 0; n < 8; n++)
-          parts.push({ x: b.x, y: b.y, vx: (Math.random() - 0.5) * 140, vy: -60 - Math.random() * 120, life: 0.4, c: n % 2 ? '#fff6c8' : '#ffd23f', s: 2 });
+      if (b && u >= 1) {
+        const sp = f.spark || ['#fff6c8', '#ffd23f'],
+          many = f.spark ? 16 : 8;
+        for (let n = 0; n < many; n++)
+          parts.push({ x: b.x, y: b.y, vx: (Math.random() - 0.5) * 140, vy: -60 - Math.random() * 120, life: 0.4, c: sp[n % sp.length], s: 2 });
+        if (f.land) f.land();
+      }
       flyers.splice(k, 1);
       continue;
     }
@@ -110,18 +114,19 @@ function drawFlyers(ox, oy) {
       lift = Math.sin(Math.PI * u) * (28 + Math.hypot(b.x - a.x, b.y - a.y) * 0.25),
       x = a.x + (b.x - a.x) * e,
       y = a.y + (b.y - a.y) * e - lift,
-      s = 13 * (1 + Math.sin(Math.PI * u) * 0.25);
+      s = (f.size || 13) * (1 + Math.sin(Math.PI * u) * 0.25);
     g.save();
     g.globalAlpha = u > 0.85 ? (1 - u) / 0.15 : 1;
     g.imageSmoothingEnabled = false;
-    g.drawImage(iconCanvas(f.id), ox + (x - s / 2) * Z, oy + (y - s / 2) * Z, s * Z, s * Z);
+    g.imageSmoothingEnabled = !!f.pic; // (the Balb Coin is drawn at 64 px: smooth when shrunk)
+    g.drawImage(f.pic || iconCanvas(f.id), ox + (x - s / 2) * Z, oy + (y - s / 2) * Z, s * Z, s * Z);
     g.font = `${5 * Z}px "Press Start 2P", monospace`;
     g.textAlign = 'center';
     g.lineWidth = 2 * Z;
     g.strokeStyle = 'rgba(20,10,30,.9)';
-    const label = f.qty + ' ' + itemName(f.id);
+    const label = f.label || f.qty + ' ' + itemName(f.id);
     g.strokeText(label, ox + x * Z, oy + (y - s / 2 - 3) * Z);
-    g.fillStyle = '#ffd23f';
+    g.fillStyle = f.col || '#ffd23f';
     g.fillText(label, ox + x * Z, oy + (y - s / 2 - 3) * Z);
     g.restore();
   }
@@ -130,7 +135,8 @@ function drawFlyers(ox, oy) {
 // ---------- bag helpers ----------
 const have = (id) => (id === 'gold' ? P.gold : inv.filter((s) => s.id === id).reduce((n, s) => n + s.qty, 0));
 const itemName = (id) => (id === 'gold' ? 'Gold' : ITEMS[id] ? ITEMS[id].name : id);
-const tradable = (id) => id === 'gold' || (ITEMS[id] && id !== 'wrench');
+// World Keys (keys.js) only with the new server, which moves them
+const tradable = (id) => id === 'gold' || (isKeyId(id) ? Net.secure && ensureKey(id) : ITEMS[id] && id !== 'wrench');
 function takeN(id, n) {
   if (id === 'gold') {
     P.gold -= n;
@@ -283,17 +289,8 @@ $('pmMessage').onclick = () => {
   closePlayerMenu();
   if (o && needOnline()) composeMessage(o.id, o.name);
 };
-$('pmEmail').onclick = () => {
-  const o = other();
-  closePlayerMenu();
-  if (o && needOnline()) composeMail(o.id, o.name);
-};
-$('pmGift').onclick = () => {
-  const o = other();
-  closePlayerMenu();
-  if (!o || !needOnline()) return;
-  pickItem('Gift to ' + o.name, (id, qty) => sendGift(o, id, qty));
-};
+// (Email and Gift were taken out of the player menu, owner Oct 20 2026: Email stays in Menu -> Email; gifts that
+// still arrive from older versions of the game are still received)
 $('pmAccess').onclick = () => {
   const o = other();
   closePlayerMenu();
@@ -307,10 +304,20 @@ $('pmAccess').onclick = () => {
   }
   saveWorld();
 };
-// show the owner-only button with the right label whenever the menu opens
+// the owner pulls the player to where the owner stands (checked by the server like a kick: lock.js / net.js)
+$('pmPull').onclick = () => {
+  const o = other();
+  closePlayerMenu();
+  if (!o || !isOwner()) return;
+  if (!Net.remotes.has(o.id)) return toast(o.name + ' already left');
+  Net.sendKick(o.id, 'pull', Math.round(P.x), Math.round(P.y)).then((err) => toast(err || 'Pulled ' + o.name + ' here'));
+};
+// show the owner-only buttons with the right label whenever the menu opens
 const _openPM = openPlayerMenu;
 openPlayerMenu = function (o) {
   _openPM(o);
+  // Pull: owner of a locked world, the player is in this world, and a server that checks it
+  $('pmPull').hidden = !(o && isOwner() && worldOwner && Net.secure && Net.remotes.has(o.id));
   const b = $('pmAccess');
   b.hidden = !(o && isOwner());
   if (o) b.textContent = lockCfg.access.includes(lc(o.name)) ? 'Remove building access' : 'Allow building here';
@@ -458,6 +465,7 @@ Net.onLobby('gift_ok', (p) => {
   if (!g) return;
   clearTimeout(g.t);
   pendingGifts.delete(p.gid);
+  if (isKeyId(g.id)) giveKeyTo(keyWorld(g.id), g.to); // the key moves on the server too
   savePlayer();
   flyItems('me', g.to, [{ id: g.id, qty: g.qty }], true);
   toast(g.name + ' got your gift');
@@ -585,7 +593,14 @@ function tryFinishTrade() {
       return endTrade("You don't have the items anymore. Trade cancelled");
     }
   for (const x of T.mine) takeN(x.id, x.qty);
+  // what we give moves on the server too: World Keys, gold, Shop-only items (keys.js, economy.js)
+  for (const x of T.mine)
+    if (isKeyId(x.id)) giveKeyTo(keyWorld(x.id), T.with);
+    else if (SHOP.some((s) => s.id === x.id)) Wallet.giveItem(T.with, x.id, x.qty);
   for (const x of T.theirs) giveN(x.id, x.qty);
+  // the gold of both sides is settled by the server at once (economy.js); our screen follows its answer
+  const goldOf = (list) => list.filter((x) => x.id === 'gold').reduce((n, x) => n + x.qty, 0);
+  Wallet.tradeGold(T.with, goldOf(T.mine), goldOf(T.theirs));
   savePlayer();
   flyItems('me', T.with, T.mine, true); // each side tells the world about its own items
   flyItems(T.with, 'me', T.theirs, false);

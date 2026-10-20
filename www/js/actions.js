@@ -75,6 +75,7 @@ function act() {
     if (inW(t.x, t.y) && isDispT(fg[at(t.x, t.y)])) return openDisplay(t.x, t.y);
     if (inW(t.x, t.y) && isMannT(fg[at(t.x, t.y)])) return openMannequin(t.x, t.y);
     if (inW(t.x, t.y) && isGateT(fg[at(t.x, t.y)])) return openGate(t.x, t.y);
+    if (inW(t.x, t.y) && isTeapotT(fg[at(t.x, t.y)])) return openTeapot(t.x, t.y); // daily quest (quests.js)
     const other = Net.playerAt(ptr.x, ptr.y);
     if (other) return openPlayerMenu(other);
     const onSelf = ptr.x > P.x - 4 && ptr.x < P.x + P.w + 4 && ptr.y > P.y - 14 && ptr.y < P.y + P.h + 4;
@@ -91,6 +92,8 @@ function act() {
   if (useDoor(x, y)) return;
   // a Piano you are standing in: open its song maker (music.js)
   if (usePiano(x, y)) return;
+  // a Mannequin: dress it with what you hold, or take its things back with the fist (display.js)
+  if (useMannequin(x, y)) return;
   const held = ITEMS[hand];
   // fists (or anything that isn't placed) on another player: punch them
   if (hand === 'fist' || !held || held.kind === 'clothing' || held.kind === 'tool') {
@@ -177,6 +180,7 @@ function act() {
         dmg[i] = 0;
         if (y > 0) uproot(x, y - 1);
         addXP(1);
+        questTick('break', id); // daily quest (quests.js)
         if (Math.random() < blockDropChance(id)) spawnDrop(id, x * TS + 16, y * TS + 16);
         if (b.lock) {
           worldOwner = null;
@@ -318,6 +322,8 @@ function smoke(x, y, n, power) {
       t: 0,
       life,
       shade: Math.floor(Math.random() * 3),
+      v: Math.floor(Math.random() * PUFF_LOOKS), // which cloud shape (render.js puffSprite)
+      f: Math.random() < 0.5, // mirrored
     });
   }
 }

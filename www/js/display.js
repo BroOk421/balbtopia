@@ -2,7 +2,9 @@
 //   Display Box: a glass box that shows one item. Anyone who can build here wrenches it to put an item from
 //     their bag in, or to take it back out. It is solid (you can stand on it).
 //   Mannequin: a dummy you dress. Wrench it to put clothes from your bag on it (one per slot) or take them off.
-//     The clothes are drawn exactly like on a player, so they fit. You walk through it.
+//     The clothes are drawn exactly like on a player, so they fit. You walk through it. Quick way (owner, Oct 2026):
+//     hold a wearable or a tool (picked on the hotbar) and click the Mannequin: it puts it on (in its hand for a
+//     tool), whatever was in that slot comes back to you; click it with the fist and everything comes back to the bag.
 //   Neither can be broken while something is in it or on it; Clear World leaves those alone.
 // ===== display =====
 const DISPLAY_BOX = 118,
@@ -36,9 +38,10 @@ function setDisplay(i, id) {
 }
 function setMann(i, m) {
   const clean = {};
-  for (const sl of WEAR_SLOTS) {
+  // every wear slot, and the hand (a tool, never the wrench)
+  for (const sl of EQ_SLOTS) {
     const id = m && m[sl];
-    if (id && ITEMS[id] && ITEMS[id].kind === 'clothing' && ITEMS[id].slot === sl) clean[sl] = id;
+    if (id && slotOf(id) === sl) clean[sl] = id;
   }
   if (mannEmpty(clean)) manns.delete(i);
   else manns.set(i, clean);
@@ -54,7 +57,7 @@ Net.onShow = (p) => {
   else if (p.k === 'm') setMann(p.i, p.v);
 };
 // what can go in a Display Box: anything but the wrench and the fist
-const displayable = (id) => ITEMS[id] && id !== 'wrench' && id !== 'fist';
+const displayable = (id) => ITEMS[id] && id !== 'wrench' && id !== 'fist' && !ITEMS[id].key;
 // the item picture cropped to what is drawn in it, so small things (a mustache, a visor) still fill the space
 const ICON_FIT = {};
 function iconFit(id) {
@@ -149,14 +152,14 @@ function openMannequin(x, y) {
   const i = at(x, y),
     m = manns.get(i) || {};
   if (!hasAccess(playerName)) {
-    const on = WEAR_SLOTS.filter((s) => m[s]).map((s) => ITEMS[m[s]].name);
+    const on = EQ_SLOTS.filter((s) => m[s]).map((s) => ITEMS[m[s]].name);
     return toast(on.length ? 'Mannequin: ' + on.join(', ') : 'This Mannequin wears nothing');
   }
-  const choices = inv.filter((s) => ITEMS[s.id] && ITEMS[s.id].kind === 'clothing');
+  const choices = inv.filter((s) => slotOf(s.id)); // clothes and tools (into the hand)
   const body = dialog(
     'MANNEQUIN',
     `<div class="vend">
-      <div class="mslots">${WEAR_SLOTS.map(
+      <div class="mslots">${EQ_SLOTS.map(
         (s) => `<div class="mslot" data-slot="${s}"><div class="vpic"></div><small>${SLOT_NAMES[s]}</small>
           ${m[s] ? `<button class="btn ghost" type="button" data-off="${s}">Take off</button>` : '<span class="mnone">empty</span>'}</div>`,
       ).join('')}</div>
@@ -168,7 +171,7 @@ function openMannequin(x, y) {
     </div>`,
     [{ label: 'Close', cls: 'ghost', run: () => {} }],
   );
-  for (const s of WEAR_SLOTS) if (m[s]) body.querySelector(`.mslot[data-slot="${s}"] .vpic`).appendChild(shopPic(m[s]));
+  for (const s of EQ_SLOTS) if (m[s]) body.querySelector(`.mslot[data-slot="${s}"] .vpic`).appendChild(shopPic(m[s]));
   body.querySelectorAll('[data-off]').forEach((b) => {
     b.onclick = () => {
       const sl = b.dataset.off,
@@ -183,17 +186,18 @@ function openMannequin(x, y) {
   });
   body.querySelector('#mOn').onclick = () => {
     const id = body.querySelector('#mItem').value,
-      it = ITEMS[id];
-    if (!id || !it) return toast('You have no clothes to put on it');
+      it = ITEMS[id],
+      sl = slotOf(id);
+    if (!id || !it || !sl) return toast('You have no clothes to put on it');
     const cur = manns.get(i) || {},
-      old = cur[it.slot];
+      old = cur[sl];
     // the item comes out of your bag; whatever was in that slot goes back in
     if (!takeItem(id, 1)) return;
     if (old && !addItem(old, 1)) {
       addItem(id, 1);
       return;
     }
-    setMann(i, { ...cur, [it.slot]: id });
+    setMann(i, { ...cur, [sl]: id });
     showChanged(i, 'm');
     renderBars();
     toast('The Mannequin wears ' + it.name);
@@ -317,8 +321,59 @@ function drawMannequinAt(cx, top, eq, tx = 0, ty = 0) {
   g.drawImage(body, (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
   drawWorn(c, top, sc, 0);
   drawAuraFront(c, top, sc, 0);
+  // a tool in its hand, held like a player holds one (the arm is cut out of the Mannequin's own body)
+  if (eq.hand && heldTool(eq.hand))
+    drawHeldTool(eq.hand, top, sc, 0, MANN_SKIN, body, 'mannarm_' + ['shirt', 'pants', 'feet'].map((s) => eq[s] || '').join('|'));
   g.restore();
   g.imageSmoothingEnabled = false;
+}
+// clicking a Mannequin (from act): with a wearable or a tool in hand it goes on; with the fist everything comes
+// off into the bag. Returns true when the click was used. Only players with access (like the wrench menu).
+function useMannequin(x, y) {
+  const i = at(x, y);
+  if (!isMannT(fg[i]) || !hasAccess(playerName)) return false;
+  const m = manns.get(i) || {},
+    sl = hand !== 'fist' ? slotOf(hand) : null;
+  if (sl) {
+    const id = hand,
+      old = m[sl];
+    // where it comes from: the Hand slot (a tool you hold) or a stack in the bag / hotbar
+    const fromHand = sl === 'hand' && equipped.hand === id && !inv.some((s) => s.id === id);
+    if (fromHand) {
+      equipped.hand = null;
+      hand = bareHand();
+    } else if (!takeItem(id, 1)) return false;
+    if (old && !addItem(old, 1)) {
+      // no room for what it wore: undo
+      if (fromHand) (equipped.hand = id), (hand = id);
+      else addItem(id, 1);
+      toast('Bag is full: no room for the ' + ITEMS[old].name);
+      return true;
+    }
+    setMann(i, { ...m, [sl]: id });
+    showChanged(i, 'm');
+    renderBars();
+    toast('Put ' + ITEMS[id].name + ' on the Mannequin' + (old ? ' (took off ' + ITEMS[old].name + ')' : ''));
+    return true;
+  }
+  if (hand === 'fist' && !mannEmpty(m)) {
+    // everything back into the bag, as long as there is room
+    const left = { ...m };
+    let n = 0;
+    for (const s of EQ_SLOTS)
+      if (left[s]) {
+        if (!addItem(left[s], 1)) break;
+        left[s] = null;
+        n++;
+      }
+    if (!n) return toast('Bag is full'), true;
+    setMann(i, left);
+    showChanged(i, 'm');
+    renderBars();
+    toast(mannEmpty(manns.get(i)) ? 'Took everything off the Mannequin' : 'Bag is full: took off ' + n);
+    return true;
+  }
+  return false;
 }
 SHOP_ICON.display_box = () => {
   const c = cells(DISP_ART);

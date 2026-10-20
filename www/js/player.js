@@ -15,6 +15,7 @@ const P = {
   walkT: 0,
   walkPh: 0,
   gold: 0,
+  bc: 0, // Balb Coins (economy.js)
   punch: null, // {t, x, y} while the fist is flying out
   place: null, // {t, x, y} arm held out after placing a block
   kbT: 0, // knockback: seconds left without control

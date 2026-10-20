@@ -245,7 +245,12 @@ const Net = (() => {
         if (error) {
           delete lastWorld[name];
           console.error('save world', error);
-        } else if (N.secure && data && typeof data.v === 'number') gotLockV(name, data.v, true);
+        } else if (N.secure && data && typeof data.v === 'number') {
+          // saved as a builder: our owner / lock are the server's. Saved as a visitor: the server may know a newer
+          // owner or lock (e.g. a World Key was used), so read them before taking its version
+          if (data.r === 'saved') gotLockV(name, data.v, true);
+          else if (data.v !== lockV[name]) checkLockV(name);
+        }
       });
   };
   // the worlds this player has locked (Menu -> Worlds); returns true when the list changed
@@ -372,11 +377,33 @@ const Net = (() => {
     if (checkingV || name !== joinedName) return;
     checkingV = true;
     try {
-      const { data } = await sb.from('worlds').select('lockv').eq('name', name).maybeSingle();
-      if (data && name === joinedName) gotLockV(name, data.lockv | 0, false);
+      const { data } = await sb.from('worlds').select('lockv,owner,lock:data->lock').eq('name', name).maybeSingle();
+      if (data && name === joinedName && (data.lockv | 0) !== lockV[name]) {
+        // the owner or the lock changed on the server (e.g. a World Key was used): take the server's
+        if ((data.owner || null) !== worldOwner) {
+          worldOwner = snapOwner = data.owner || null;
+          updateWorldLabel();
+        }
+        if (data.lock) {
+          setLockCfg(data.lock);
+          snapLock = JSON.stringify(lockCfg);
+        }
+        if (!$('lockwin').hidden) renderLockWin();
+        gotLockV(name, data.lockv | 0, false);
+      }
     } catch (e) {}
     checkingV = false;
   }
+  // the lock changed on the server outside a world save (a World Key was used, keys.js): note the new version,
+  // tell everyone here to check the server (world:, where anyone may send; they never trust the message itself)
+  // and move to the new build topic
+  N.lockChanged = (name, v) => {
+    lockV[name] = v;
+    snapOwner = worldOwner;
+    snapLock = JSON.stringify(lockCfg);
+    if (ch && joined) ch.send({ type: 'broadcast', event: 'lockv', payload: {} });
+    if (name === joinedName && privRT) joinBuild(name);
+  };
   // the building events, on whichever channel carries them; trusted: it came from build: (or the old setup)
   function onBuild(c, trusted) {
     c.on('broadcast', { event: 'tiles' }, ({ payload }) => applyTiles(payload))
@@ -409,6 +436,8 @@ const Net = (() => {
       joinBuild(name);
       // a Vending Machine sale from a visitor (only a paid-for sale is taken from here)
       c.on('broadcast', { event: 'vend' }, ({ payload }) => N.onVend && N.onVend(payload, false));
+      // someone changed the lock outside a save (World Key): check the server
+      c.on('broadcast', { event: 'lockv' }, () => checkLockV(name));
     } else onBuild(c, true);
     c.on('broadcast', { event: 'p' }, ({ payload }) => onPos(payload))
       .on('broadcast', { event: 'punch' }, ({ payload }) => {
@@ -565,13 +594,17 @@ const Net = (() => {
   // or out of the world (k 'out')
   // new servers: the kick is made on the server (only the owner may) and only its id goes out; each player asks
   // the server whether it is real and for them (claim_kick). Returns an error message or null.
-  N.sendKick = async (to, k) => {
+  // k: 'spawn' | 'out' | 'pull' (x, y: where to, world pixels; pull needs the new server)
+  N.sendKick = async (to, k, x, y) => {
     if (!N.me) return null;
     if (!N.secure) {
+      if (k === 'pull') return 'Pull needs the new server setup (supabase/schema.sql)';
       send('kick', { to, k, n: playerName });
       return null;
     }
-    const { data, error } = await sb.rpc('kick_player', { p_world: worldName, p_to: to, p_kind: k });
+    const args = { p_world: worldName, p_to: to, p_kind: k };
+    if (k === 'pull') Object.assign(args, { p_x: x, p_y: y });
+    const { data, error } = await sb.rpc('kick_player', args);
     if (error) return /owner/i.test(error.message || '') ? 'Only the owner of this world can do that' : N.dbError(error);
     send('kick', { kid: data });
     return null;
@@ -584,7 +617,7 @@ const Net = (() => {
     }
     const { data, error } = await sb.rpc('claim_kick', { p_id: p.kid });
     const k = !error && Array.isArray(data) && data[0];
-    if (k && k.world === worldName) N.onKick({ to: N.me.id, k: k.kind, n: k.from_name, verified: true });
+    if (k && k.world === worldName) N.onKick({ to: N.me.id, k: k.kind, n: k.from_name, x: k.px, y: k.py, verified: true });
   }
   N.sendClear = () => {
     if (N.me) sendB('clear', {});
@@ -780,6 +813,7 @@ const Net = (() => {
     'trade_accept',
     'trade_cancel',
     'mail_ping',
+    'gold_done', // a trade's gold was settled on the server (economy.js)
   ];
   const lobbyH = {};
   let lobby = null,

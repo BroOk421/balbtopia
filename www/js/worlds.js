@@ -117,6 +117,7 @@ function playerData() {
     skin,
     inv,
     gold: P.gold,
+    bc: P.bc, // Balb Coins (online: the server's wallet decides)
     equipped,
     wornV: 2, // 2: worn items are out of the bag (older saves kept them in it too)
     hand, // the tool or block in your hand
@@ -156,9 +157,10 @@ function applyPlayer(p) {
     .slice(0, SEEN_MAX);
   if (SKINS.includes(p.skin)) skin = p.skin;
   inv.length = 0;
-  for (const it of Array.isArray(p.inv) ? p.inv : []) if (it && ITEMS[it.id] && it.qty > 0) inv.push(it);
+  for (const it of Array.isArray(p.inv) ? p.inv : []) if (it && (ITEMS[it.id] || ensureKey(it.id)) && it.qty > 0) inv.push(it);
   if (!inv.some((s) => s.id === 'wrench')) inv.unshift({ id: 'wrench', qty: 1 });
   P.gold = p.gold || 0;
+  P.bc = p.bc | 0;
   xp = p.xp || 0;
   level = p.level || 1;
   playDays = p.playDays || [];

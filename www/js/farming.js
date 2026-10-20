@@ -56,6 +56,7 @@ function plant(x, y, seedItem) {
   const from = ITEMS[seedItem].from;
   trees.set(at(x, y), { seed: from, planted: Date.now(), fruit: randFruit(), spliced: false });
   takeItem(seedItem);
+  questTick('plant', from); // daily quest (quests.js)
   Sfx.play('pickup'); // planting sound
   startPlace(x * TS + 16, y * TS + 24);
   smoke(x, y, 4, 0.6);
@@ -124,6 +125,7 @@ function punchTree(x, y) {
   Sfx.play('break');
   smoke(x, y, 8, 1.2);
   addXP(2 + t.fruit);
+  questTick('harvest', t.seed); // daily quest (quests.js)
   burst(x, y, -2, 10);
   for (let k = 0; k < t.fruit; k++)
     spawnDrop(t.seed, x * TS + 8 + Math.random() * 16, y * TS + 10 + Math.random() * 10);

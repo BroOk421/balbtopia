@@ -4,7 +4,7 @@
 //                Punch Blocker stops players punching each other in the world
 //   Clear World  use it, confirm: every block, background and tree is gone; the door,
 //                the Gold Lock and blocks that can't be broken stay
-//   Gold Locks  packs for pesos (Stripe), coming soon
+//   Gold Locks  packs for pesos, coming soon (TOP UP tab: gold packs for pesos, economy.js)
 // Door Mover and Clear World only work in a world you own (one with your Gold Lock).
 // ===== shop =====
 const SIGNAL_JAMMER = 56,
@@ -137,7 +137,8 @@ function doubleTap(k) {
   return dbl;
 }
 
-// what the Shop sells; gold: price in gold, peso: real money (not open yet); cat: which tab it is under
+// what the Shop sells; gold: price in gold, bc: price in Balb Coins (the rare things, owner Oct 2026; economy.js),
+// peso: real money (not open yet); cat: which tab it is under. The server's shop_prices (schema.sql) must match.
 const SHOP_TABS = [
   { id: 'locks', label: 'LOCKS' },
   { id: 'world', label: 'WORLD' },
@@ -162,28 +163,28 @@ const SHOP = [
   { id: 'display_box', gold: 1000, cat: 'world' },
   { id: 'mannequin', gold: 2500, cat: 'world' },
   { id: 'shovel', gold: 1500, cat: 'tools' },
-  { id: 'golden_pickaxe', gold: 10000, cat: 'tools' },
-  { id: 'diamond_pickaxe', gold: 30000, cat: 'tools' },
-  { id: 'black_diamond_pickaxe', gold: 75000, cat: 'tools' },
-  { id: 'angel_wings', gold: 25000, cat: 'wear' },
-  { id: 'tiny_angel_wings', gold: 10000, cat: 'wear' },
-  { id: 'golden_wings', gold: 60000, cat: 'wear' },
-  { id: 'golden_aura', gold: 50000, cat: 'wear' },
-  { id: 'red_aura', gold: 50000, cat: 'wear' },
-  { id: 'dark_diamond_aura', gold: 75000, cat: 'wear' },
-  { id: 'diamond_aura', gold: 60000, cat: 'wear' },
-  { id: 'white_aura', gold: 50000, cat: 'wear' },
-  { id: 'super_saiyan_hair', gold: 40000, cat: 'wear' },
-  { id: 'seraph_wings', gold: 30000, cat: 'wear' },
-  { id: 'demon_wings', gold: 35000, cat: 'wear' },
-  { id: 'phoenix_wings', gold: 60000, cat: 'wear' },
-  { id: 'crystal_wings', gold: 50000, cat: 'wear' },
-  { id: 'fairy_wings', gold: 40000, cat: 'wear' },
-  { id: 'shadow_wings', gold: 45000, cat: 'wear' },
-  { id: 'celestial_wings', gold: 70000, cat: 'wear' },
-  { id: 'dragon_wings', gold: 55000, cat: 'wear' },
-  { id: 'leaf_wings', gold: 30000, cat: 'wear' },
-  { id: 'galaxy_wings', gold: 80000, cat: 'wear' },
+  { id: 'golden_pickaxe', gold: 50000, cat: 'tools' },
+  { id: 'diamond_pickaxe', bc: 15, cat: 'tools' },
+  { id: 'black_diamond_pickaxe', bc: 40, cat: 'tools' },
+  { id: 'angel_wings', bc: 10, cat: 'wear' },
+  { id: 'tiny_angel_wings', bc: 5, cat: 'wear' },
+  { id: 'golden_wings', bc: 24, cat: 'wear' },
+  { id: 'golden_aura', bc: 20, cat: 'wear' },
+  { id: 'red_aura', bc: 20, cat: 'wear' },
+  { id: 'dark_diamond_aura', bc: 30, cat: 'wear' },
+  { id: 'diamond_aura', bc: 24, cat: 'wear' },
+  { id: 'white_aura', bc: 20, cat: 'wear' },
+  { id: 'super_saiyan_hair', bc: 16, cat: 'wear' },
+  { id: 'seraph_wings', bc: 12, cat: 'wear' },
+  { id: 'demon_wings', bc: 14, cat: 'wear' },
+  { id: 'phoenix_wings', bc: 24, cat: 'wear' },
+  { id: 'crystal_wings', bc: 20, cat: 'wear' },
+  { id: 'fairy_wings', bc: 16, cat: 'wear' },
+  { id: 'shadow_wings', bc: 18, cat: 'wear' },
+  { id: 'celestial_wings', bc: 28, cat: 'wear' },
+  { id: 'dragon_wings', bc: 22, cat: 'wear' },
+  { id: 'leaf_wings', bc: 12, cat: 'wear' },
+  { id: 'galaxy_wings', bc: 32, cat: 'wear' },
 ];
 
 // ---------- art ----------
@@ -304,18 +305,25 @@ function shopPic(id, cls) {
 // GMs get the peso packs too, for free
 const gmFree = (s) => s.peso && isGM();
 const onSale = (s) => !s.peso || gmFree(s);
+// the price in its own money: Balb Coins (s.bc) or gold
+const costOf = (s) => (s.bc ? s.bc : s.gold);
+const shortOf = (s) => !isGM() && !s.peso && (s.bc ? P.bc < s.bc : P.gold < s.gold); // not enough money
 function priceHtml(s) {
   if (gmFree(s)) return '<span class="peso">₱</span><span class="free">FREE</span>';
   if (s.peso) return '<span class="peso">₱</span>Pesos';
+  const coin = s.bc ? '<canvas class="bcc" width="64" height="64"></canvas>' : '<canvas width="32" height="32"></canvas>';
   return isGM()
-    ? `<canvas width="32" height="32"></canvas><s>${s.gold.toLocaleString()}</s><span class="free">FREE</span>`
-    : `<canvas width="32" height="32"></canvas>${s.gold.toLocaleString()}`;
+    ? `${coin}<s>${costOf(s).toLocaleString()}</s><span class="free">FREE</span>`
+    : `${coin}${costOf(s).toLocaleString()}`;
 }
 function paintCoins(el) {
-  el.querySelectorAll('.sprice canvas').forEach((c) => drawCoin(c.getContext('2d')));
+  el.querySelectorAll('.sprice canvas').forEach((c) =>
+    c.classList.contains('bcc') ? c.getContext('2d').drawImage(balbCoin(), 0, 0, 64, 64) : drawCoin(c.getContext('2d')),
+  );
 }
 function renderShop() {
   $('shopGold').textContent = isGM() ? 'GM · FREE' : P.gold.toLocaleString();
+  if ($('shopBC')) $('shopBC').textContent = isGM() ? '' : P.bc.toLocaleString();
   // the category tabs
   const tabs = $('shopTabs');
   tabs.innerHTML = '';
@@ -337,7 +345,7 @@ function renderShop() {
   SHOP.filter((s) => s.cat === shopTab).forEach((s) => {
     const card = document.createElement('button');
     card.type = 'button';
-    card.className = 'scard' + (onSale(s) ? '' : ' soon') + (!s.peso && P.gold < priceOf(s) ? ' poor' : '');
+    card.className = 'scard' + (onSale(s) ? '' : ' soon') + (shortOf(s) ? ' poor' : '');
     card.setAttribute('aria-label', shopTitle(s));
     card.title = shopTitle(s);
     card.innerHTML = `<div class="spic"></div>${s.qty > 1 ? `<span class="sqty">x${s.qty.toLocaleString()}</span>` : ''}
@@ -355,7 +363,7 @@ function shopItem(s) {
     shopTitle(s),
     `<div class="sdet"><div class="spic big"></div><p>${esc(shopDesc(s))}</p>
       <div class="sprice">${priceHtml(s)}</div>
-      ${!onSale(s) ? '<p class="snote">Paying in pesos (with Stripe) is coming soon.</p>' : isGM() ? '<p class="snote">You are a GM: everything in the Shop is free.</p>' : `<p class="snote">You have ${P.gold.toLocaleString()} gold.</p>`}</div>`,
+      ${!onSale(s) ? '<p class="snote">Paying in pesos is coming soon.</p>' : isGM() ? '<p class="snote">You are a GM: everything in the Shop is free.</p>' : s.bc ? `<p class="snote">You have ${P.bc.toLocaleString()} Balb Coin${P.bc === 1 ? '' : 's'}.</p>` : `<p class="snote">You have ${P.gold.toLocaleString()} gold.</p>`}</div>`,
     !onSale(s)
       ? [{ label: 'Close', run: () => {} }]
       : [
@@ -367,8 +375,33 @@ function shopItem(s) {
   paintCoins(body);
 }
 const priceOf = (s) => (isGM() ? 0 : s.gold);
+let buying = false;
 function buy(s) {
   const it = ITEMS[s.id];
+  // online with the new server: the server takes the gold (its own price; a GM pays nothing), then the item is
+  // given (economy.js). Checked for bag room first, so gold is never taken for nothing.
+  if (Wallet.on()) {
+    if (s.peso || buying) return;
+    const n = s.qty || 1;
+    if (shortOf(s)) return goTopUp(s); // not enough gold / Balb Coins: to the TOP UP tab (economy.js)
+    if (!roomFor(s.id, n)) return toast(bagSize() < BAG_MAX ? 'Bag is full. Level up to open more slots' : 'Bag is full');
+    buying = true;
+    Wallet.buy(s.id, n).then((err) => {
+      buying = false;
+      if (err) {
+        Wallet.load(); // show the server's gold again
+        if (/not enough (gold|balb)/i.test(err)) return goTopUp(s);
+        return toast(err);
+      }
+      addItem(s.id, n);
+      updateGold(true);
+      savePlayer();
+      closeShop();
+      Native.haptic('medium');
+      toast((isGM() ? 'GM: got ' : 'Bought ') + (n > 1 ? n.toLocaleString() + ' ' + it.name + 's' : it.name) + (isGM() ? ' for free' : '!'));
+    });
+    return;
+  }
   if (isGM()) {
     const n = s.qty || 1;
     if (!addItem(s.id, n)) return;
@@ -378,10 +411,11 @@ function buy(s) {
     return toast('GM: got ' + (n > 1 ? n.toLocaleString() + ' ' + it.name + 's' : it.name) + ' for free');
   }
   if (s.peso) return;
-  if (P.gold < s.gold) return toast('Not enough gold: ' + it.name + ' costs ' + s.gold.toLocaleString());
+  if (shortOf(s)) return goTopUp(s);
   const n = s.qty || 1; // packs (e.g. 10 Piano Notes) give that many
   if (!addItem(s.id, n)) return;
-  P.gold -= s.gold;
+  if (s.bc) P.bc -= s.bc;
+  else P.gold -= s.gold;
   updateGold(true);
   savePlayer();
   closeShop(); // done buying: back to the game

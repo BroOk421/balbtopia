@@ -691,6 +691,11 @@ function usePiano(x, y) {
   const tx = Math.floor((P.x + P.w / 2) / TS),
     on = [P.y + P.h - 2, P.y + P.h / 2].some((py) => tx === x && Math.floor(py / TS) === y);
   if (!on) return false;
+  // in a locked world only players who may build here can use it (everyone still hears its song)
+  if (!canEdit(true)) {
+    toast('Only players who can build here can use this Piano');
+    return true;
+  }
   openSongMaker(i);
   return true;
 }

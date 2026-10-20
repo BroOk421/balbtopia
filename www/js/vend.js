@@ -48,7 +48,7 @@ function vendSaleOk(o, n) {
   return o.per ? paid * o.p >= sold : paid >= sold * o.p;
 }
 const priceText = (v) => (v.per ? v.p.toLocaleString() + ' for 1 Gold Lock' : v.p.toLocaleString() + ' Gold Lock' + (v.p > 1 ? 's' : '') + ' each');
-const sellable = (id) => ITEMS[id] && ITEMS[id].kind !== 'tool' && !LOCK_TIERS.includes(id) && id !== 'vending_machine';
+const sellable = (id) => ITEMS[id] && ITEMS[id].kind !== 'tool' && !ITEMS[id].key && !LOCK_TIERS.includes(id) && id !== 'vending_machine';
 
 // wrench on a machine
 function openVend(x, y) {

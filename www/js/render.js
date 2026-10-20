@@ -501,29 +501,94 @@ const SMOKE = [
   ['#6f6f7a', '#9a9aa6', '#c4c4ce'],
   ['#85858f', '#b4b4bd', '#dcdce2'],
 ];
+// Smoke puffs (owner, Oct 2026: more detailed): each puff is a little pixel-art cloud made of a few round lobes,
+// lit from the top left (4 tones blended with an ordered dither), a darker edge along its bottom and right, and a
+// soft shine. Pictures are made once per look x shade x size (1 game px = 1 picture px, so they match the HD art)
+// and drawn pixel-sharp. Late in its life a puff thins out (dither holes), then fades.
+const PUFF_LOOKS = 4;
+const PUFF_PICS = new Map();
+const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const hexRGB = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+function puffSprite(look, shade, D, thin) {
+  const key = look + ':' + shade + ':' + D + ':' + thin;
+  if (PUFF_PICS.has(key)) return PUFF_PICS.get(key);
+  const c = document.createElement('canvas');
+  c.width = c.height = D;
+  const x = c.getContext('2d'),
+    img = x.createImageData(D, D),
+    px = img.data;
+  // the lobes: a big body and three smaller bumps; a fixed little random per look
+  let seed = look * 977 + 13;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const lobes = [[0.5, 0.56, 0.36]];
+  for (let k = 0; k < 3; k++) {
+    const a = -Math.PI / 2 + (k - 1) * 1.05 + (rnd() - 0.5) * 0.5;
+    lobes.push([0.5 + Math.cos(a) * 0.2, 0.52 + Math.sin(a) * 0.2, 0.2 + rnd() * 0.08]);
+  }
+  const [dark, mid, light] = SMOKE[shade].map(hexRGB),
+    edge = dark.map((v) => Math.round(v * 0.72)),
+    shine = light.map((v) => Math.min(255, v + 22)),
+    tones = [edge, dark, mid, light, shine];
+  // inside test + light: the nearest lobe gives the surface direction
+  const sample = (sx, sy) => {
+    let best = null;
+    for (const [lx, ly, lr] of lobes) {
+      const dx = sx / D - lx,
+        dy = sy / D - ly,
+        d = Math.hypot(dx, dy) / lr;
+      if (d <= 1 && (!best || d - 1 < best.k)) best = { k: d - 1, nx: dx / lr, ny: dy / lr, d };
+    }
+    return best;
+  };
+  for (let j = 0; j < D; j++)
+    for (let i = 0; i < D; i++) {
+      const s = sample(i + 0.5, j + 0.5);
+      if (!s) continue;
+      const b = BAYER4[(j & 3) * 4 + (i & 3)] / 16;
+      // thinning: holes grow from the puff's rim inwards
+      if (thin && b < thin * 0.22 * (0.4 + s.d)) continue;
+      // light from the top left, a bit of roundness (the middle is fuller)
+      const lit = -(s.nx * 0.62 + s.ny * 0.78) * 0.8 + (1 - s.d) * 0.55;
+      let t = lit * 2.2 + 1.6 + (b - 0.5) * 0.6; // dithered between tones (lightly: smooth, not grainy)
+      // a darker edge along the bottom and right rims
+      const below = !sample(i + 0.5, j + 1.5),
+        right = !sample(i + 1.5, j + 0.5);
+      if (below || (right && s.ny > -0.2)) t = 0;
+      const tone = tones[Math.max(0, Math.min(4, Math.round(t)))],
+        k = (j * D + i) * 4;
+      px[k] = tone[0];
+      px[k + 1] = tone[1];
+      px[k + 2] = tone[2];
+      px[k + 3] = 255;
+    }
+  x.putImageData(img, 0, 0);
+  if (PUFF_PICS.size > 600) PUFF_PICS.clear();
+  PUFF_PICS.set(key, c);
+  return c;
+}
 function drawSmoke(ox, oy) {
+  g.imageSmoothingEnabled = false;
   for (const p of puffs) {
     const u = p.t / p.life,
       ease = 1 - (1 - u) * (1 - u);
     const r = p.r0 + p.grow * ease,
       a = p.ang + p.spin * u;
-    const x = ox + (p.cx + Math.cos(a) * r) * Z,
-      y = oy + (p.cy + Math.sin(a) * r - p.rise * ease) * Z;
-    const s = (p.s0 + p.sg * ease) * Z,
-      c = SMOKE[p.shade];
-    g.globalAlpha = 0.85 * (1 - u * u);
-    g.fillStyle = c[0];
-    g.beginPath();
-    g.arc(x, y, s, 0, 7);
-    g.fill();
-    g.fillStyle = c[1];
-    g.beginPath();
-    g.arc(x - s * 0.12, y - s * 0.14, s * 0.8, 0, 7);
-    g.fill();
-    g.fillStyle = c[2];
-    g.beginPath();
-    g.arc(x - s * 0.32, y - s * 0.34, s * 0.34, 0, 7);
-    g.fill();
+    const wx = p.cx + Math.cos(a) * r,
+      wy = p.cy + Math.sin(a) * r - p.rise * ease;
+    // size in game px, in steps of 2 so the pixels stay crisp
+    const D = Math.max(6, Math.min(40, Math.round(((p.s0 + p.sg * ease) * 2.1) / 2) * 2)),
+      thin = u < 0.55 ? 0 : Math.min(3, Math.floor((u - 0.55) / 0.15) + 1),
+      pic = puffSprite(p.v || 0, p.shade, D, thin),
+      sx = Math.round(ox + (wx - D / 2) * Z),
+      sy = Math.round(oy + (wy - D / 2) * Z);
+    g.globalAlpha = 0.92 * (1 - u * u * u);
+    if (p.f) {
+      g.save();
+      g.translate(sx + D * Z, sy);
+      g.scale(-1, 1);
+      g.drawImage(pic, 0, 0, D * Z, D * Z);
+      g.restore();
+    } else g.drawImage(pic, sx, sy, D * Z, D * Z);
   }
   g.globalAlpha = 1;
 }
@@ -714,6 +779,7 @@ function render() {
   }
   drawSmoke(ox, oy);
   drawPlaces(ox, oy, T);
+  drawSetupBadges(ox, oy, T, vx0, vy0, vx1, vy1); // signs.js: wrench on blocks still to be set up
   drawSignBubble(ox, oy);
   drawTreeBubble(ox, oy);
   drawFlyers(ox, oy);

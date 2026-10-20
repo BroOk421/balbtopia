@@ -206,8 +206,9 @@ function stepFx(dt) {
         dropHint(d);
         continue;
       }
-      // gold is money, not a bag item (the counter goes up when the coin reaches you)
-      const ok = d.id === 'gold' ? ((P.gold += d.qty), true) : addItem(d.id, d.qty);
+      // gold is money, not a bag item (the counter goes up when the coin reaches you); online it goes to the
+      // wallet on the server (economy.js)
+      const ok = d.id === 'gold' ? (Wallet.earn(d.qty), true) : addItem(d.id, d.qty);
       if (ok) {
         drops.splice(k, 1);
         Net.takeDrop(d.uid);

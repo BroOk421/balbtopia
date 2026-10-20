@@ -2,6 +2,7 @@
 // ===== ui =====
 function updateGold(pop) {
   $('goldN').textContent = P.gold.toLocaleString();
+  $('bcN').textContent = (P.bc | 0).toLocaleString(); // Balb Coins beside the gold (economy.js)
   if (pop) {
     // restart the coin's pop every time (even when gold comes in quickly)
     const el = $('gold');
@@ -171,6 +172,7 @@ function askDrop(id, slot) {
   const s = inv[slot] && inv[slot].id === id ? inv[slot] : inv.find((o) => o.id === id);
   if (!inWorld || P.dead || !s) return;
   if (id === 'wrench') return toast("You can't drop your " + ITEMS[id].name);
+  if (ITEMS[id].key) return toast('A World Key can only be traded or given');
   // a GM's items never run out: always ask how many (up to a full stack), and nothing leaves the bag
   if (isGM()) return askQty('DROP', id, MAXSTACK, 'Drop', (q) => spawnItemDrop(id, q), 'Up to', 1);
   if (s.qty > 1) return askQty('DROP', id, s.qty, 'Drop', (q) => dropFromSlot(s, q), 'In this slot');
@@ -253,7 +255,7 @@ function gmFillBag() {
   for (let k = inv.length - 1; k >= 0; k--) if (keep.get(inv[k].id) !== inv[k] || ITEMS[inv[k].id].retired) inv.splice(k, 1);
   const worn = Object.values(equipped);
   for (const id in ITEMS) {
-    if (id === 'fist' || id === 'gold' || !ITEMS[id].name || ITEMS[id].retired) continue;
+    if (id === 'fist' || id === 'gold' || !ITEMS[id].name || ITEMS[id].retired || ITEMS[id].key) continue;
     const one = ['clothing', 'tool'].includes(ITEMS[id].kind) || id === 'wrench',
       full = one ? 1 : MAXSTACK,
       s = inv.find((o) => o.id === id);
@@ -286,6 +288,7 @@ function renderGmTabs() {
 function cleanInv() {
   for (let k = inv.length - 1; k >= 0; k--) {
     const s = inv[k];
+    if (s) ensureKey(s.id); // World Keys are made on the fly (keys.js)
     if (!s || !ITEMS[s.id] || !(s.qty > 0)) inv.splice(k, 1);
   }
   for (const sl in equipped) if (equipped[sl] && !ITEMS[equipped[sl]]) equipped[sl] = null;
@@ -391,6 +394,7 @@ function askTrash(i) {
   if (!s) return;
   const it = ITEMS[s.id];
   if (s.id === 'wrench') return toast("You can't throw away your Wrench");
+  if (it && it.key) return toast('A World Key can only be traded or given');
   const body = dialog(
     'THROW AWAY?',
     `<div class="vend"><div class="vrow"><div class="vpic"></div><div><b>${esc(it.name)}</b><br>You have ${s.qty.toLocaleString()}</div></div>

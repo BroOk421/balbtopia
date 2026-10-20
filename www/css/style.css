@@ -2650,3 +2650,125 @@ button:focus-visible {
 .vpickbox .pick {
   max-height: 24vh;
 }
+
+/* lock window: GET THE KEY / USE THE KEY (keys.js) */
+.lkey {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #3a2a5a;
+}
+.lkey small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* TOP UP tab (economy.js): gold packs for pesos */
+.scard.topup .spic canvas[width='40'] {
+  width: 64px;
+  height: 52px;
+}
+.tgold {
+  text-align: center;
+  font-family: var(--pixel);
+  font-size: 10px;
+  color: var(--sun);
+}
+.scard.best {
+  border-color: var(--sun);
+  box-shadow: 0 0 0 2px var(--sun), 0 0 10px rgba(255, 210, 63, 0.5);
+}
+.tneed {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.tneed b {
+  color: var(--sun);
+}
+
+/* Balb Coins (economy.js): beside the gold in the top bar and the Shop header; the coin is drawn at 64 px */
+.gold.bcbox {
+  color: #4fe3a1;
+}
+.gold.bcbox canvas,
+.shopgold.bcg canvas,
+.sprice canvas.bcc {
+  image-rendering: auto;
+}
+.shopgold.bcg {
+  color: #4fe3a1;
+  margin-left: 6px; /* right beside the gold */
+}
+/* TOP UP: a heading row per money, Balb Coin pack pictures */
+#shop .tswitch {
+  display: flex;
+  gap: 6px;
+}
+#shop .tswitch .btn {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 12px;
+}
+.scard.tbc .tgold {
+  color: #4fe3a1;
+}
+.spic canvas.bcpic {
+  width: 36px;
+  height: 36px;
+  image-rendering: auto;
+}
+.spic.big canvas.bcpic {
+  width: 64px;
+  height: 64px;
+}
+/* Genie Teapot: today's quest (quests.js) */
+.qwin .qbox {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(154, 82, 232, 0.14);
+  border: 1px solid rgba(180, 108, 255, 0.45);
+  border-radius: 10px;
+  padding: 8px 10px;
+  text-align: left;
+}
+.qwin .qlabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #c79cff;
+}
+.qwin .qtask {
+  font-weight: 800;
+  font-size: 15px;
+  margin: 2px 0 6px;
+}
+.qwin .qbar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.qwin .qbar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #7a3ad0, #4fe3a1);
+}
+.qwin .qrew {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.qwin .qrew canvas {
+  width: 18px;
+  height: 18px;
+}
+.qwin .qok,
+.qwin .qdone {
+  font-weight: 800;
+  color: #4fe3a1;
+}
