@@ -7,6 +7,20 @@ function tileUnder() {
 function playerTile() {
   return { x: Math.floor((P.x + P.w / 2) / TS), y: Math.floor((P.y + P.h - 1) / TS) };
 }
+// is this a block the wrench opens a pop-up for? (the main door isn't: it opens the world list)
+function wrenchBlock(x, y) {
+  if (!inW(x, y)) return false;
+  const t = fg[at(x, y)];
+  if (!t) return false;
+  if (isDoorT(t)) return !isDoorTile(x, y);
+  return isLockT(t) || isSignT(t) || isVendT(t) || isDispT(t) || isMannT(t) || isGateT(t) || isTeapotT(t);
+}
+// close enough to use the wrench on a block: WRENCH_REACH tiles round the tile you stand in
+function inWrenchReach(tx, ty) {
+  const p = playerTile();
+  return Math.abs(tx - p.x) <= WRENCH_REACH && Math.abs(ty - p.y) <= WRENCH_REACH;
+}
+let farWrenchT = -1e9;
 // a square of REACH tiles around that tile (up, down, left and right)
 function inReach(tx, ty) {
   const p = playerTile(),
@@ -68,6 +82,14 @@ function act() {
   // wrench: click another player (or the wrench next to their name) to open their player menu
   if (hand === 'wrench') {
     const t = tileUnder();
+    // too far from the block: nothing opens (owner, Oct 21 2026)
+    if (wrenchBlock(t.x, t.y) && !inWrenchReach(t.x, t.y)) {
+      if (now - farWrenchT > 1500) {
+        farWrenchT = now;
+        toast('Move closer to use the wrench on it');
+      }
+      return;
+    }
     if (inW(t.x, t.y) && isLockT(fg[at(t.x, t.y)])) return openLockWin();
     if (inW(t.x, t.y) && isSignT(fg[at(t.x, t.y)])) return editSign(t.x, t.y);
     if (inW(t.x, t.y) && isDoorT(fg[at(t.x, t.y)]) && !isDoorTile(t.x, t.y)) return editDoor(t.x, t.y);
@@ -159,6 +181,8 @@ function act() {
       if (isWeatherT(fg[i])) toggleWeather(i);
       // a Disco Ball: every punch stops / starts its animation (blocks.js)
       if (canStopAnim(fg[i])) toggleAnim(i);
+      // a Signal Jammer / Punch Blocker: every punch switches it off / on (shop.js)
+      if (isJamT(fg[i])) toggleJam(i);
       dmg[i]++;
       dmgT[i] = now;
       shake = 2.5;

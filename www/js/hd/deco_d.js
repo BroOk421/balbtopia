@@ -515,64 +515,82 @@
       P(i, j, c);
     });
 
-  // ---------- jammers: a small machine in the Gold Lock's dark box; light blinks (2 frames) ----------
-  function jammerBoxHD({ P, R }, light, glow) {
+  // ---------- jammers: a small machine in the Gold Lock's dark box ----------
+  // Frames (shop.js): 0-3 switched ON = the light blinks, the signal waves spread out / the fist shakes, the screen
+  // glows; 4 = switched OFF = dark grey machine, light out, black screen, nothing moves (looks dead).
+  function jammerBoxHD({ P, R }, light, glow, off) {
     R(0, 0, 32, 32, '#14101c');
-    R(2, 2, 28, 28, '#3a3350');
-    R(4, 4, 24, 24, '#2a2440');
-    R(2, 2, 28, 1, '#4a4266');
-    R(2, 2, 1, 28, '#4a4266');
+    R(2, 2, 28, 28, off ? '#2c2a34' : '#3a3350');
+    R(4, 4, 24, 24, off ? '#211f28' : '#2a2440');
+    R(2, 2, 28, 1, off ? '#38363f' : '#4a4266');
+    R(2, 2, 1, 28, off ? '#38363f' : '#4a4266');
     // antenna with its light
     R(15, 6, 2, 7, '#14101c');
-    R(15, 7, 1, 5, '#9aa0ad');
+    R(15, 7, 1, 5, off ? '#5c606a' : '#9aa0ad');
     R(13, 4, 6, 3, '#14101c');
     R(14, 4, 4, 2, light);
     P(14, 4, glow);
     // the machine: about square, so the picture on its screen isn't stretched sideways
     // (machine 16x16 and screen 10x10, both square, so nothing on it looks stretched)
     R(8, 12, 16, 16, '#14101c');
-    R(9, 13, 14, 14, '#6a707e');
-    R(9, 13, 14, 1, '#9aa0ad');
-    R(9, 13, 1, 14, '#9aa0ad');
-    R(9, 26, 14, 1, '#4a4f5c');
-    R(11, 15, 10, 10, '#1e2028');
-    R(11, 15, 10, 1, '#2e323c');
+    R(9, 13, 14, 14, off ? '#45484f' : '#6a707e');
+    R(9, 13, 14, 1, off ? '#5a5d65' : '#9aa0ad');
+    R(9, 13, 1, 14, off ? '#5a5d65' : '#9aa0ad');
+    R(9, 26, 14, 1, off ? '#33353b' : '#4a4f5c');
+    R(11, 15, 10, 10, off ? '#0c0d10' : '#1e2028');
+    R(11, 15, 10, 1, off ? '#16171b' : '#2e323c');
     // bolts
-    for (const [i, j] of [[10, 14], [21, 14], [10, 25], [21, 25]]) P(i, j, '#c3c9d4');
+    for (const [i, j] of [[10, 14], [21, 14], [10, 25], [21, 25]]) P(i, j, off ? '#7a7e88' : '#c3c9d4');
   }
-  // a red "not allowed" slash across the screen (bottom left to top right)
-  function jamSlash(P) {
+  // a red "not allowed" slash across the screen (bottom left to top right); dull when off, pulsing when on
+  function jamSlash(P, f) {
+    const off = f >= 4,
+      hot = !off && f % 2 === 0;
     for (let k = 0; k < 9; k++) {
-      P(11 + k, 24 - k, '#ff4a2a');
-      if (k < 8) P(12 + k, 24 - k, '#c02a14');
+      P(11 + k, 24 - k, off ? '#4a2a28' : hot ? '#ff6a4a' : '#ff4a2a');
+      if (k < 8) P(12 + k, 24 - k, off ? '#33201f' : hot ? '#e0381e' : '#c02a14');
     }
   }
   HD_DECO.signal_jammer = (x, h, f = 0) => {
-    const { P, R } = h;
-    jammerBoxHD(h, f ? '#ff4a2a' : '#7a1a10', f ? '#ffb0a0' : '#a83a2a');
-    // radio waves round the antenna
-    const wc = f ? '#ffd23f' : '#c98a12';
-    for (const s of [-1, 1])
-      for (let k = 0; k < 2; k++) {
-        const r = 5 + k * 3;
-        for (let t = -1; t <= 1; t++) P(16 + s * r - (s > 0 ? 1 : 0), 5 + t, wc);
-        P(16 + s * (r - 1) - (s > 0 ? 1 : 0), 3, wc);
-        P(16 + s * (r - 1) - (s > 0 ? 1 : 0), 7, wc);
-      }
-    // screen: four signal bars, crossed out
-    for (const [k, hh] of [2, 4, 6, 8].entries()) R(12 + k * 2, 24 - hh, 1, hh, f ? '#7ccf5a' : '#4c9a3a');
-    jamSlash(P);
+    const { P, R } = h,
+      off = f >= 4,
+      blink = !off && f % 2 === 0;
+    jammerBoxHD(h, off ? '#3a3a42' : blink ? '#ff4a2a' : '#7a1a10', off ? '#4a4a52' : blink ? '#ffb0a0' : '#a83a2a', off);
+    // radio waves round the antenna, spreading out: ring 0 then ring 1, bright when new, dim as it goes
+    // (frame 0 none, 1 inner, 2 inner dim + outer, 3 outer dim); none when off
+    if (!off) {
+      const rings = [[], [[0, '#ffd23f']], [[0, '#c98a12'], [1, '#ffd23f']], [[1, '#c98a12']]][f];
+      for (const [k, wc] of rings)
+        for (const s of [-1, 1]) {
+          const r = 5 + k * 3;
+          for (let t = -1; t <= 1; t++) P(16 + s * r - (s > 0 ? 1 : 0), 5 + t, wc);
+          P(16 + s * (r - 1) - (s > 0 ? 1 : 0), 3, wc);
+          P(16 + s * (r - 1) - (s > 0 ? 1 : 0), 7, wc);
+        }
+    }
+    // screen: four signal bars filling up one by one (all dark grey when off), crossed out
+    for (const [k, hh] of [2, 4, 6, 8].entries())
+      R(12 + k * 2, 24 - hh, 1, hh, off ? '#2e3036' : k <= f ? '#7ccf5a' : '#2f5a28');
+    jamSlash(P, f);
   };
   HD_DECO.punch_jammer = (x, h, f = 0) => {
-    const { P, R } = h;
-    jammerBoxHD(h, f ? '#ffd23f' : '#8a6a10', f ? '#fff4b8' : '#c9a826');
-    // a small fist on the screen (knuckles up), crossed out
-    R(13, 17, 6, 6, '#f2b786');
-    R(13, 17, 6, 1, '#ffd8b8');
-    for (const i of [15, 17]) P(i, 17, '#c98a6a');
-    R(13, 21, 6, 1, '#d89a6a');
-    R(12, 18, 1, 3, '#f2b786');
-    P(12, 20, '#d89a6a');
-    jamSlash(P);
+    const { P, R } = h,
+      off = f >= 4,
+      blink = !off && f % 2 === 0,
+      // the fist shakes left and right (still when off)
+      dx = off ? 0 : [0, 1, 0, -1][f];
+    jammerBoxHD(h, off ? '#3a3a42' : blink ? '#ffd23f' : '#8a6a10', off ? '#4a4a52' : blink ? '#fff4b8' : '#c9a826', off);
+    // a small fist on the screen (knuckles up), crossed out; grey when off
+    const sk = off ? '#5c5a58' : '#f2b786',
+      hi = off ? '#6c6a68' : '#ffd8b8',
+      sh = off ? '#46444a' : '#d89a6a',
+      kn = off ? '#46444a' : '#c98a6a';
+    R(13 + dx, 17, 6, 6, sk);
+    R(13 + dx, 17, 6, 1, hi);
+    for (const i of [15, 17]) P(i + dx, 17, kn);
+    R(13 + dx, 21, 6, 1, sh);
+    R(12 + dx, 18, 1, 3, sk);
+    P(12 + dx, 20, sh);
+    jamSlash(P, f);
   };
 })();

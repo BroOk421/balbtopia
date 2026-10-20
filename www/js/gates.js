@@ -50,6 +50,9 @@ function gateAmount(i) {
   const cur = gateOpen.get(i) || 0,
     tgt = gateTarget(i),
     next = tgt > cur ? Math.min(tgt, cur + GATE_SPEED * dt) : Math.max(tgt, cur - GATE_SPEED * dt);
+  // a shut gate starting to open plays the owner's portcullis sound (Portcullis and Iron Bars; only gates on
+  // screen are drawn, so only those are heard; a column of gates opening together plays it once: Sfx GAP)
+  if (!cur && next > 0) Sfx.play('portcullis');
   if (next) gateOpen.set(i, next);
   else gateOpen.delete(i);
   return next;

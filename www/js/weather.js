@@ -384,10 +384,10 @@ function drawWeatherFlash() {
 }
 
 // ---------- rain (screen space, in front of the world) ----------
-// slanted streaks with depth (nearer = longer, brighter, faster), and little splashes where they land low on the screen
+// slanted streaks with depth (nearer = longer, brighter, faster). They fall straight on past the bottom of the
+// screen and come back in at the top: no splash rings (owner, Oct 21 2026)
 const DROPS = [];
 for (let i = 0; i < 260; i++) DROPS.push({ x: Math.random(), y: Math.random(), d: 0.3 + Math.random() * 0.7 });
-const SPLASH = [];
 let rainLast = 0;
 function drawRain() {
   const dt = Math.min(0.05, Math.max(0, (now - rainLast) / 1000));
@@ -401,13 +401,7 @@ function drawRain() {
     r.y += dt * (0.9 + r.d * 1.1);
     r.x += dt * (0.9 + r.d * 1.1) * slant * (H / W);
     if (r.y > 1.05) {
-      // some land with a splash near the bottom of the screen
-      // (kept in world px so the splash stays where it landed)
-      if (Math.random() < 0.35) {
-        const px = ((((r.x * W - cam.x * Z) % W) + W) % W);
-        SPLASH.push({ x: px / Z + cam.x, y: (H * (0.78 + Math.random() * 0.2)) / Z + cam.y, t: 0 });
-      }
-      r.y = -0.05;
+      r.y -= 1.1;
       r.x = Math.random();
     }
     // pinned to the world like the snow
@@ -419,21 +413,6 @@ function drawRain() {
     g.beginPath();
     g.moveTo(sx, sy);
     g.lineTo(sx - len * slant, sy - len);
-    g.stroke();
-  }
-  // splashes: a small ring that widens and fades
-  for (let k = SPLASH.length - 1; k >= 0; k--) {
-    const s = SPLASH[k];
-    s.t += dt;
-    if (s.t > 0.35) {
-      SPLASH.splice(k, 1);
-      continue;
-    }
-    const a = 1 - s.t / 0.35;
-    g.strokeStyle = `rgba(200,225,255,${a * 0.6})`;
-    g.lineWidth = u;
-    g.beginPath();
-    g.ellipse((s.x - cam.x) * Z, (s.y - cam.y) * Z, (2 + s.t * 30) * u, (0.8 + s.t * 8) * u, 0, 0, Math.PI * 2);
     g.stroke();
   }
   // a dim grey veil so the whole world looks wet and overcast

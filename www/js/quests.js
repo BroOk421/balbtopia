@@ -18,22 +18,52 @@ ITEMS.genie_teapot = {
 };
 const isTeapotT = (t) => t === TEAPOT;
 // art: a gold genie teapot (round body, long spout, loop handle, domed lid with a knob, a red gem) with purple
-// magic curling up out of the spout
-HD_DECO.genie_teapot = (x, { P, R, E }) => {
+// magic curling up out of the spout. Placed in a world the smoke moves (owner, Oct 21 2026): TEAPOT_FRAMES frames
+// (NEW_ANIM, blocks.js) in which puffs leave the spout, curl up along MAG_PATH, swell, then shrink away at the top,
+// with sparkles twinkling round them. Frame 0 is the Shop / bag picture.
+const TEAPOT_FRAMES = 8;
+NEW_ANIM.genie_teapot = [140, TEAPOT_FRAMES];
+// the smoke's path (spout tip to the top) and its puff radius there
+const MAG_PATH = [
+  [29, 12, 1.4], [28.5, 10, 1.8], [27, 8, 2.1], [25, 6.5, 2.2], [23.5, 4.8, 2], [24.5, 3, 1.6], [26.5, 1.8, 1.0],
+];
+function magAt(u) {
+  const n = MAG_PATH.length - 1,
+    t = Math.min(n - 1e-6, Math.max(0, u * n)),
+    k = Math.floor(t),
+    a = MAG_PATH[k],
+    b = MAG_PATH[k + 1],
+    s = t - k;
+  return [a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s, a[2] + (b[2] - a[2]) * s];
+}
+HD_DECO.genie_teapot = (x, { P, R, E }, f = 0) => {
   const O = '#4a2c06',
     D = '#a66f10',
     M = '#e3b12a',
     L = '#ffe27a',
     W = '#fff8d0';
-  // magic from the spout, behind everything
-  const MAG = [
-    [29, 12, 1.6], [28.5, 10, 1.9], [27, 8, 2.1], [25, 6.5, 2.2], [23.5, 4.8, 2], [24.5, 3, 1.6], [26.5, 2.4, 1.2],
-  ];
-  for (const [i, j, r] of MAG) E(i, j, r + 0.8, r + 0.8, '#5a2a8a');
-  for (const [i, j, r] of MAG) E(i, j, r, r, '#9a52e8');
-  for (const [i, j, r] of MAG) E(i - 0.5, j - 0.5, r * 0.55, r * 0.55, '#d6a8ff');
-  for (const [i, j] of [[21, 3], [30, 6], [27, 1]]) P(i, j, '#ffffff');
-  P(22, 7, '#e6c4ff');
+  // magic from the spout, behind everything: PUFFS puffs spaced along the path, all moving up one step a frame
+  const PUFFS = 7,
+    ph = (f % TEAPOT_FRAMES) / TEAPOT_FRAMES,
+    puffs = [];
+  for (let p = 0; p < PUFFS; p++) {
+    const u = (p + ph) / PUFFS,
+      [i, j, r0] = magAt(u),
+      sway = Math.sin((u * 2.2 + ph) * Math.PI * 2) * 0.5, // a gentle side to side wobble
+      grow = u < 0.12 ? 0.55 + u * 3.6 : 1; // a puff starts small at the spout
+    puffs.push([i + sway, j, r0 * grow]);
+  }
+  for (const [i, j, r] of puffs) E(i, j, r + 0.8, r + 0.8, '#5a2a8a');
+  for (const [i, j, r] of puffs) E(i, j, r, r, '#9a52e8');
+  for (const [i, j, r] of puffs) if (r > 1.1) E(i - 0.5, j - 0.5, r * 0.55, r * 0.55, '#d6a8ff');
+  // sparkles: each one twinkles on its own beat (white, then pale, then gone)
+  const SPARKS = [[21, 3, 0], [30, 6, 3], [27, 1, 5], [22, 7, 2], [30, 9, 6], [20, 5, 4]];
+  for (const [i, j, o] of SPARKS) {
+    const s = (f + o) % TEAPOT_FRAMES;
+    if (s < 2) P(i, j, '#ffffff');
+    else if (s < 4) P(i, j, '#e6c4ff');
+    if (s === 0) for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) P(i + di, j + dj, '#d6a8ff');
+  }
   // the foot
   R(10, 29, 12, 2, O);
   R(11, 29, 10, 1, D);
@@ -94,25 +124,45 @@ SHOP_ICON.genie_teapot = () => decoCanvas('genie_teapot');
 SHOP.push({ id: 'genie_teapot', gold: 1000, cat: 'world' });
 
 // ---------- the quests ----------
-// what a day's quest can be; anything whose item isn't in the game is left out
-const QUEST_POOL = [
-  { k: 'harvest', n: 5 },
-  { k: 'harvest', id: 'dirt', n: 3 },
-  { k: 'harvest', id: 'rock', n: 2 },
-  { k: 'break', n: 60 },
-  { k: 'break', id: 'dirt', n: 40 },
-  { k: 'break', id: 'rock', n: 25 },
-  { k: 'plant', n: 8 },
-  { k: 'plant', id: 'dirt', n: 5 },
-  { k: 'give', id: 'dirt', n: 50 },
-  { k: 'give', id: 'rock', n: 30 },
-  { k: 'give', id: 'lava', n: 10 },
-  { k: 'give', id: 'wood_block', n: 10 },
-  { k: 'give', id: 'sand', n: 15 },
-  { k: 'give', id: 'dirt_seed', n: 5 },
-  { k: 'give', id: 'rock_seed', n: 3 },
+// what a day's quest can be (owner, Oct 21 2026: harder, and by rarity). Three general ones with big counts, then
+// for every growable block of rarity 1 to QUEST_MAX_R (farming.js rarityOf: Dirt 1, Rock 3, Lava 5, spliced = sum)
+// a harvest / plant / break / send quest whose count comes from its rarity: rarer = fewer, but each one is harder
+// to get (Dirt: harvest 16 trees, send 200; rarity 16: harvest 4 trees, send 29). Built once the recipes are in and
+// sorted by id, so every device gets the same list (the day's quest = hash(day + name) into it).
+const QUEST_MAX_R = 20;
+const QUEST_GENERAL = [
+  { k: 'harvest', n: 12 },
+  { k: 'break', n: 150 },
+  { k: 'plant', n: 20 },
 ];
-const questPool = () => QUEST_POOL.filter((q) => !q.id || ITEMS[q.id]);
+const questCount = (base, min, r, p = 0.5) => Math.max(min, Math.round(base / Math.pow(r, p)));
+let questList = null,
+  questKey = '';
+function questPool() {
+  const key = Object.keys(SPLICE).length + ':' + Object.keys(ITEMS).length;
+  if (questList && questKey === key) return questList;
+  const list = [...QUEST_GENERAL],
+    ids = Object.keys(ITEMS)
+      .filter((id) => {
+        const it = ITEMS[id];
+        if (!it || it.kind !== 'block' || it.retired || !ITEMS[id + '_seed'] || ITEMS[id + '_seed'].retired) return false;
+        const r = rarityOf(id);
+        return r && r <= QUEST_MAX_R;
+      })
+      .sort();
+  for (const id of ids) {
+    const r = rarityOf(id);
+    list.push(
+      { k: 'harvest', id, r, n: questCount(16, 2, r) },
+      { k: 'plant', id, r, n: questCount(24, 3, r) },
+      { k: 'break', id, r, n: questCount(120, 10, r) },
+      { k: 'give', id, r, n: questCount(200, 5, r, 0.7) },
+      { k: 'give', id: id + '_seed', r, n: questCount(30, 2, r) },
+    );
+  }
+  questKey = key;
+  return (questList = list);
+}
 // today in the Philippines, 'YYYY-MM-DD' (online the server's day is used once known)
 const manilaDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
 let questDay = null; // the server's day (online)
@@ -183,7 +233,7 @@ function showTeapot() {
     'GENIE TEAPOT',
     `<div class="sdet qwin"><div class="spic big"></div>
       <p>Rub, rub... The genie gives you one quest a day. Finish it to get <b>1 Balb Coin</b>.</p>
-      <div class="qbox"><div class="qlabel">TODAY'S QUEST</div><div class="qtask">${esc(questText(q))}</div>
+      <div class="qbox"><div class="qlabel">TODAY'S QUEST${q.r ? ' · ' + rarityTier(q.r).toUpperCase() : ''}</div><div class="qtask">${esc(questText(q))}</div>
         <div class="qbar"><i style="width:${pct}%"></i></div>
         <div class="qrew">Reward: <canvas class="bcc" width="64" height="64"></canvas> 1 Balb Coin</div></div>
       ${state}</div>`,

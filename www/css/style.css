@@ -2214,6 +2214,10 @@ button:focus-visible {
 .vline .btn {
   flex: none;
 }
+/* Qty, Add, Take out, Collect on one row; wraps on narrow screens */
+.vline.vwrap {
+  flex-wrap: wrap;
+}
 
 /* ---------- every scrollbar: gold, rounded ---------- */
 ::-webkit-scrollbar {

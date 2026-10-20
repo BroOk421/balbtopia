@@ -265,15 +265,9 @@ function drawSignBubble(ox, oy) {
   if (P.dead) return;
   let i = signUnderPlayer(),
     text;
-  if (i < 0) {
-    // standing in a door that leads somewhere: say where (a door not set up yet says nothing: it gets a wrench
-    // badge instead, drawSetupBadges)
-    i = doorUnderPlayer();
-    if (i < 0) return;
-    const d = doorInfo(i);
-    if (!d.to && !d.at) return;
-    text = 'Door #' + d.id + ' to ' + doorLabel(d) + '. Click it to go in.';
-  } else text = signs.get(i);
+  // standing in a door shows NO bubble any more (owner, Oct 21 2026: only the door itself shows); only signs do
+  if (i < 0) return;
+  text = signs.get(i);
   // a blank sign shows no bubble (owner, Oct 2026): builders see a wrench badge on it instead
   if (!text) return;
   const x = i % WW,
@@ -306,9 +300,12 @@ function drawSignBubble(ox, oy) {
 }
 
 // ---------- wrench badges (owner, Oct 2026) ----------
-// Blocks that are set up with the wrench but aren't yet get a small wrench in their top-right corner, seen only by
-// players who could set them up, and only while they hold the wrench: a blank sign, a door without a destination, an empty Display Box or Mannequin,
-// and (for the world's owner) an empty Vending Machine. The wrench bobs a little.
+// While you hold the wrench, every block the wrench opens a pop-up for (`wrenchBlock`, actions.js) shows a small
+// pulsing wrench in the middle of the tile, set up or not (a Vending Machine with stock too), but only the ones within
+// WRENCH_REACH of the tile you stand in: further away the badge is gone and clicking does nothing (owner, Oct 21 2026).
+// Who sees it: Gold Locks and Vending Machines everyone (anyone can look at the lock / buy); the rest only players who
+// can build here (canEdit), like their pop-ups.
+// needsSetup: blocks still to be set up (blank sign, door without a destination, empty box / Mannequin / machine).
 function needsSetup(i) {
   const t = fg[i];
   if (!t) return false;
@@ -329,24 +326,25 @@ function needsSetup(i) {
   }
   return false;
 }
-function drawSetupBadges(ox, oy, T, vx0, vy0, vx1, vy1) {
-  // only while the wrench is in hand (owner, Oct 2026)
-  if (!inWorld || hand !== 'wrench' || !canEdit(true)) return;
-  const s = Math.max(8, Math.round(T * 0.42)),
-    bob = Math.round(Math.sin(now / 320) * T * 0.04),
-    w = wrenchSprite();
-  for (let y = Math.max(0, vy0); y <= Math.min(WH - 1, vy1); y++)
-    for (let x = Math.max(0, vx0); x <= Math.min(WW - 1, vx1); x++) {
-      const i = at(x, y);
-      if (!needsSetup(i)) continue;
-      // display boxes and machines only for players with access (hasAccess), like their wrench menus
-      const bx = ox + x * T + T - s + T * 0.06,
-        by = oy + y * T - T * 0.06 + bob;
-      g.fillStyle = 'rgba(28,16,51,0.72)';
-      g.beginPath();
-      g.arc(bx + s / 2, by + s / 2, s * 0.62, 0, 7);
-      g.fill();
-      g.drawImage(w, bx, by, s, s);
+function drawSetupBadges(ox, oy, T) {
+  // only while the wrench is in hand
+  if (!inWorld || hand !== 'wrench' || P.dead) return;
+  const w = wrenchSprite(),
+    me = playerTile(),
+    edit = canEdit(true);
+  for (let y = Math.max(0, me.y - WRENCH_REACH); y <= Math.min(WH - 1, me.y + WRENCH_REACH); y++)
+    for (let x = Math.max(0, me.x - WRENCH_REACH); x <= Math.min(WW - 1, me.x + WRENCH_REACH); x++) {
+      if (!wrenchBlock(x, y)) continue;
+      const t = fg[at(x, y)];
+      if (!edit && !isLockT(t) && !isVendT(t)) continue;
+      // the wrench sits in the MIDDLE of the tile (owner, Oct 21 2026: a corner badge made players tap the badge
+      // instead of the block), only the wrench (no dark box behind it), gently pulsing and bobbing.
+      // Drawn before the players (render.js), so it is behind the character.
+      const px = ox + x * T,
+        py = oy + y * T,
+        ws = T * (0.6 + Math.sin(now / 260) * 0.05),
+        bob = Math.sin(now / 320) * T * 0.04;
+      g.drawImage(w, px + (T - ws) / 2, py + (T - ws) / 2 + bob, ws, ws);
     }
 }
 

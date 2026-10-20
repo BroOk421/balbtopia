@@ -611,7 +611,7 @@ function render() {
     vy0 = Math.max(0, Math.floor(cam.y / TS)),
     vx1 = Math.min(WW - 1, Math.ceil((cam.x + cv.width / Z) / TS)),
     vy1 = Math.min(WH - 1, Math.ceil((cam.y + cv.height / Z) / TS));
-  // background walls + soft shade under blocks. A background also shows behind whatever stands on
+  // background walls (no shade round blocks). A background also shows behind whatever stands on
   // its tile (signs, platforms, decorations, locks, see-through blocks): the block is drawn on top.
   // Not behind the ground itself (dirt, rock, lava, bedrock, dark cave), so its rounded edges
   // still show the sky and not the cave wall.
@@ -624,11 +624,9 @@ function render() {
       const px = ox + x * T,
         py = oy + y * T;
       g.drawImage(bgImage(bg[i]), px, py, T, T);
+      // (owner, Oct 21 2026: no more dark shade on a background next to / under a block; walls look the same
+      // everywhere, blocks just sit on top of them)
       if (fg[i]) continue;
-      g.fillStyle = 'rgba(8,4,2,.32)';
-      if (y > 0 && fg[at(x, y - 1)]) g.fillRect(px, py, T, T * 0.22);
-      if (x > 0 && fg[at(x - 1, y)]) g.fillRect(px, py, T * 0.16, T);
-      if (x < WW - 1 && fg[at(x + 1, y)]) g.fillRect(px + T * 0.84, py, T * 0.16, T);
       if (bgDmg[i]) drawCrack(px, py, T, bgDmg[i] / 2);
     }
   // blocks
@@ -670,44 +668,20 @@ function render() {
   // main door (1 tile), drawn in front of the wall and behind the player
   g.drawImage(doorSprite(), ox + door.x * T, oy + door.y * T, T, T);
   drawTrees(ox, oy, T);
-  // holding the wrench: a wrench shows inside every Gold Lock; click it for the lock's settings
-  if (hand === 'wrench')
-    for (let i = 0; i < fg.length; i++) {
-      if (!isLockT(fg[i])) continue;
-      const px = ox + (i % WW) * T,
-        py = oy + ((i / WW) | 0) * T;
-      if (px < -T || py < -T || px > cv.width || py > cv.height) continue;
-      const s = T * (0.56 + Math.sin(now / 260) * 0.04);
-      g.fillStyle = 'rgba(20,10,30,.45)';
-      g.fillRect(px + T * 0.18, py + T * 0.18, T * 0.64, T * 0.64);
-      g.drawImage(wrenchSprite(), px + (T - s) / 2, py + (T - s) / 2, s, s);
-    }
+  // holding the wrench: a wrench on every nearby block the wrench opens (signs.js), drawn here so it is behind the
+  // drops and the players (owner, Oct 21 2026)
+  drawSetupBadges(ox, oy, T);
   // floating drops: bob up and down; picked up by walking into them
   for (const d of drops) {
     const bob = Math.sin(now / 380 + d.ph) * 2.5,
       s = DROP_SIZE,
       x = ox + d.x * Z,
       y = oy + (d.y + bob) * Z;
-    // a drop this visitor can't take yet: see-through, with a ring that fills up over the minute
-    const locked = !canTakeDrop(d);
-    if (locked) g.globalAlpha = 0.6;
+    // every drop looks the same, also one this visitor can't take yet (owner, Oct 21 2026: no see-through,
+    // no timer ring; walking into it still says how many seconds are left, see dropHint)
     if (d.id === 'gold') drawGoldPile(d, x, y, s);
     else drawIcon(d.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
     // floating drops show no number, only the item
-    g.globalAlpha = 1;
-    if (locked) {
-      const f = Math.min(1, Math.max(0, (Date.now() - d.born) / DROP_LOCK_MS)),
-        rr = (s / 2 + 2.5) * Z;
-      g.lineWidth = Z;
-      g.strokeStyle = 'rgba(20,10,30,.55)';
-      g.beginPath();
-      g.arc(x, y, rr, 0, Math.PI * 2);
-      g.stroke();
-      g.strokeStyle = '#ffd23f';
-      g.beginPath();
-      g.arc(x, y, rr, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2);
-      g.stroke();
-    }
   }
   // drops flying into whoever picked them up
   for (const v of vacs) {
@@ -779,7 +753,6 @@ function render() {
   }
   drawSmoke(ox, oy);
   drawPlaces(ox, oy, T);
-  drawSetupBadges(ox, oy, T, vx0, vy0, vx1, vy1); // signs.js: wrench on blocks still to be set up
   drawSignBubble(ox, oy);
   drawTreeBubble(ox, oy);
   drawFlyers(ox, oy);
@@ -818,7 +791,7 @@ function render() {
   if (ptr.inside && $('inv').hidden) {
     const { x, y } = tileUnder();
     if (inW(x, y)) {
-      const ok = inReach(x, y);
+      const ok = hand === 'wrench' && wrenchBlock(x, y) ? inWrenchReach(x, y) : inReach(x, y);
       g.lineWidth = Z;
       g.strokeStyle = ok ? 'rgba(255,255,255,.85)' : 'rgba(255,90,90,.6)';
       g.strokeRect(ox + x * T + Z / 2, oy + y * T + Z / 2, T - Z, T - Z);

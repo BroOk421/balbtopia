@@ -488,7 +488,8 @@ const GRAVITY = 1700,
 const DROP_SIZE = 15; // size of a floating drop in world pixels (was 11; owner wanted drops bigger)
 // in a locked world, visitors without access can see floating drops but can only pick them up
 // once nobody has collected them for this long (the owner and players with access can always)
-const DROP_LOCK_MS = 60 * 1000;
+// (owner, Oct 21 2026: 60 s was too long -> 15 s)
+const DROP_LOCK_MS = 15 * 1000;
 const MAX_DROPS = 400; // floating drops kept in a world save
 // gold coins on one tile: 5 of a kind turn into 1 of the next; gold bars never join
 const COIN_KINDS = [
@@ -516,7 +517,12 @@ const BAG_MAX = 80,
   BAG_LEVEL = 10,
   BAG_STEP = 2;
 const MAXSTACK = 200,
-  REACH = 3; // tiles in every direction from the tile the player stands in (breaking and placing)
+  // tiles in every direction from the tile the player stands in (punching, breaking and placing blocks and seeds).
+  // Owner, Oct 21 2026: 2 (was 3), so the reach is 3 tiles counting your own: the tile you stand in + 2.
+  REACH = 2,
+  // the wrench on a block with a pop-up (Gold Lock, sign, door, Vending Machine, Display Box, Mannequin, gate,
+  // Genie Teapot) only works, and its wrench badge only shows, this close (same square as REACH)
+  WRENCH_REACH = 2;
 // world chat: the longest message, and the spam limit (CHAT_BURST messages within CHAT_WINDOW
 // seconds, then a CHAT_COOLDOWN-second wait before the next one)
 const CHAT_MAX = 80,

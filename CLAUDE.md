@@ -691,3 +691,52 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   (social.js `flyers` now take optional pic / label / col / spark / size / land) from the teapot tile to the player:
   the 64 px coin, "+1 Balb Coin" in green, green sparkles on landing; the counter shows the old amount until then,
   then `updateGold()` + `bcPop()` (coinpop on `#bcBox`), pickup sound, toast.
+- Oct 21 2026 (owner):
+  - Floating drops in a locked world: no see-through and no timer ring any more (every drop looks the same);
+    `DROP_LOCK_MS` is 15 s (was 60 s). Walking into one you can't take yet still toasts the seconds left (`dropHint`).
+  - Jammers switch on/off: one punch = off, the next = on (`toggleJam`, bit `JAM_OFF` = 64 of `vari`, saved/synced;
+    a newly placed one is on). `jammed(t)` only counts jammers that are on, so an off Punch Blocker lets punches
+    through and an off Signal Jammer lets the world show in lists (`jamInfo` in the world save). `hits` 8 (was 4), like
+    the Weather Machines. Art: on = 4 frames (`JAM_FRAMES`, 220 ms: light blinks, signal waves spread and bars fill /
+    fist shakes, slash pulses); off = frame `JAM_OFF_FRAME` (4): dark grey box, light out, black screen, still
+    (picked in drawDeco from the tile bit).
+  - Genie Teapot: the purple smoke moves (`NEW_ANIM.genie_teapot` = 8 frames of 140 ms; puffs travel along `MAG_PATH`
+    from the spout and curl up, sparkles twinkle). Holding the wrench shows the bobbing wrench badge on every teapot
+    (`drawSetupBadges`, players who `canEdit(true)`), like the other wrench blocks.
+  - Reach: `REACH` 2 (was 3): punching, breaking, placing blocks / backgrounds / seeds reach 3 tiles counting the
+    tile you stand in (+1 with Red Visor / Laser Eyes, as before).
+  - Wrench on blocks with a pop-up (`wrenchBlock` in actions.js: Gold Lock, sign, door except the main door, Vending
+    Machine, Display Box, Mannequin, Portcullis / Iron Bars, Genie Teapot) only works within `WRENCH_REACH` (2) of
+    your tile (`inWrenchReach`); further away nothing opens (toast "Move closer..."). Badges (`drawSetupBadges`,
+    signs.js) now show on EVERY such block in that square while you hold the wrench, filled or not (Gold Lock: wrench
+    in the middle, the old all-locks drawing in render.js is gone; Locks + Vending Machines for everyone, the rest
+    for players who `canEdit`). The cursor square is red outside the reach. `needsSetup` is no longer used for badges.
+  - Wrench badges are now drawn in the MIDDLE of the tile (dark see-through square + pulsing wrench, the Gold Lock
+    look) for every block, not in the top-right corner: players tapped the corner badge instead of the block.
+  - No shade on backgrounds any more: render.js used to darken a background tile's top (block above) and left / right
+    edges (block beside it) with rgba(8,4,2,.32). Removed; walls look the same next to blocks. (That was the only
+    such shadow; checked render.js, blocks.js, hd/.)
+  - Rain: no splash rings; streaks fall on past the bottom of the screen and come back in at the top (`drawRain`).
+  - Portcullis sound: `assets/sfx/portcullis.mp3` = owner's file (art-source/sfx/portcullis-original.mp3, 2.04 s) with
+    the silence cut (-45 dB, 5 ms fade in / 30 ms fade out, mono 128 kbps, 0.94 s). `Sfx.play('portcullis')` in
+    `gateAmount` (gates.js) when a shut gate (Portcullis or Iron Bars) on screen starts to open; VOL 0.7.
+  - Wrench badges: just the wrench (no dark box), pulsing + bobbing in the middle of the tile, drawn BEFORE drops and
+    players (render.js, where the old Gold Lock wrench was), so it is behind the character.
+  - Daily quests harder, by rarity (`questPool`, quests.js): 3 general ones (harvest 12 trees, break 150 blocks,
+    plant 20 seeds) + for every growable block (`kind: 'block'` with a `<id>_seed`) of rarity 1..`QUEST_MAX_R` (20):
+    harvest 16/sqrt(r) (min 2), plant 24/sqrt(r) (min 3), break 120/sqrt(r) (min 10), send 200/r^0.7 (min 5), send
+    30/sqrt(r) seeds (min 2). Sorted by id so every device has the same list; the pop-up label shows the tier
+    ("TODAY'S QUEST · UNCOMMON"). The day's pick changed for everyone when this went in.
+  - Balb Coin prices up (shop.js SHOP + schema.sql shop_prices, re-run schema.sql): Golden Pickaxe is BC now (10; was
+    50,000 gold), Diamond 25, Black Diamond 60; auras Golden / Red / White 30, Diamond 36, Dark Diamond 45; wings Tiny
+    Angel 8, Angel 15, Seraph 18, Leaf 18, Demon 21, Fairy 24, Shadow 27, Crystal 30, Dragon 33, Golden 36, Phoenix 36,
+    Celestial 42, Galaxy 48 (about x1.5, prices picked by Claude). Golden Spike Hair unchanged (16).
+  - Then doubled (owner, same day): Golden Pickaxe 20, Diamond 50, Black Diamond 120; auras Golden / Red / White 60,
+    Diamond 72, Dark Diamond 90; wings Tiny Angel 16, Angel 30, Seraph 36, Leaf 36, Demon 42, Fairy 48, Shadow 54,
+    Crystal 60, Dragon 66, Golden 72, Phoenix 72, Celestial 84, Galaxy 96. schema.sql matches; re-run it.
+  - Wings (owner: at least 100, except Golden Wings which stays 72): Tiny Angel 100, Angel 110, Seraph 120, Leaf 120,
+    Demon 130, Fairy 140, Shadow 150, Crystal 160, Dragon 170, Phoenix 180, Celestial 200, Galaxy 220. schema.sql matches.
+  - CORRECTION (owner meant): pickaxes and auras at least 100, wings the cheap ones, Golden + Phoenix Wings the
+    dear wings. Now: Golden Pickaxe 100, Diamond 150, Black Diamond 250; Golden / Red / White Aura 120, Diamond 150,
+    Dark Diamond 200; wings back to 16-96 (Tiny Angel 16, Angel 30, Seraph 36, Leaf 36, Demon 42, Fairy 48, Shadow 54,
+    Crystal 60, Dragon 66, Celestial 84, Galaxy 96) except Golden Wings 120 and Phoenix Wings 150. schema.sql matches.

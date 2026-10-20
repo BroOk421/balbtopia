@@ -2067,7 +2067,9 @@ function drawNewBlock(b, x, y, px, py, T) {
           ? (x > 0 && fg[at(x - 1, y)] === fg[at(x, y)] ? 1 : 0) | (x < WW - 1 && fg[at(x + 1, y)] === fg[at(x, y)] ? 2 : 0)
           : vari[at(x, y)] & ANIM_OFF && ANIM_TOGGLE.has(b.id)
             ? 0 // switched off: stays on its first frame
-            : decoFrame(b.id);
+            : isJamT(fg[at(x, y)]) && jamOff(at(x, y))
+              ? JAM_OFF_FRAME // a jammer switched off: dark and still (shop.js)
+              : decoFrame(b.id);
     g.drawImage(decoCanvas(b.id, f), px, py, T, T);
   }
 }

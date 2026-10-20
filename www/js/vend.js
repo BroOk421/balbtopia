@@ -70,37 +70,22 @@ function vendOwner(i) {
   const body = dialog(
     'VENDING MACHINE',
     `<div class="vend">
-      <div class="vrow" id="vTop"></div>
       <div class="lfield">Put in
         <div class="vpickbox"></div><input type="hidden" id="vItem" value="">
-        <div class="vline"><input id="vQty" class="vnum" type="number" min="1" max="${VEND_ADD}" placeholder="Qty" inputmode="numeric" /><button class="btn" id="vAdd" type="button">Add</button></div>
+        <div class="vline vwrap"><input id="vQty" class="vnum" type="number" min="1" max="${VEND_ADD}" placeholder="Qty" inputmode="numeric" /><button class="btn" id="vAdd" type="button">Add</button>
+        <button class="btn ghost" id="vTake" type="button" ${v.n > 0 ? '' : 'disabled'}>${v.n > 0 ? 'Take out ' + v.n.toLocaleString() : 'Take out'}</button>
+        <button class="btn" id="vCollect" type="button" ${v.e > 0 ? '' : 'disabled'}>Collect ${v.e.toLocaleString()} WL</button></div>
       </div>
       <div class="lfield">Price
         <div class="vline"><input id="vPrice" class="vnum" type="number" min="1" placeholder="Price" value="${v.id ? v.p : ''}" inputmode="numeric" />
         <select id="vPer"><option value="each" ${v.per ? '' : 'selected'}>WL each</option><option value="per" ${v.per ? 'selected' : ''}>for 1 WL</option></select>
         <button class="btn" id="vSetPrice" type="button">Set</button></div>
       </div>
-      <div class="vline">
-        <button class="btn ghost" id="vTake" type="button" ${v.n > 0 ? '' : 'disabled'}>Take all out</button>
-        <button class="btn" id="vCollect" type="button" ${v.e > 0 ? '' : 'disabled'}>Collect ${v.e.toLocaleString()} WL</button>
-      </div>
     </div>`,
     [{ label: 'Close', cls: 'ghost', run: () => {} }],
   );
-  // the top: picture, name and how many (inside the machine, or in your bag for the item picked to put in)
-  const top = () => {
-    const stocked = v.id && v.n > 0,
-      id = stocked ? v.id : body.querySelector('#vItem').value,
-      el = body.querySelector('#vTop');
-    if (!id) {
-      el.innerHTML = '<p class="dmsg">Empty. You have nothing in your bag to sell.</p>';
-      return;
-    }
-    el.innerHTML = `<div class="vpic"></div><div><b>${esc(ITEMS[id].name)}</b><br>${
-      stocked ? v.n.toLocaleString() + ' inside' : 'Empty · you have ' + countItem(id).toLocaleString()
-    }${stocked ? `<br><small>${esc(priceText(v))}</small>` : ''}</div>`;
-    vendIcon(body, id);
-  };
+  // (owner, Oct 21 2026: the top row with the picture, name and count is gone to keep the pop-up small; the picker
+  // shows the picked item and how many you have, Take out shows how many are inside)
   // what can go in: pictures with how many you have, and a search box (social.js itemPicker)
   const ids = [...new Set(choices.map((s) => s.id))];
   body.querySelector('#vItem').value = v.id && ids.includes(v.id) ? v.id : ids[0] || '';
@@ -110,11 +95,9 @@ function vendOwner(i) {
       selected: body.querySelector('#vItem').value,
       onPick: (id) => {
         body.querySelector('#vItem').value = id;
-        top();
       },
     });
   else body.querySelector('.vpickbox').innerHTML = '<p class="mnote">Nothing in your bag can go in.</p>';
-  top();
   const save = (nv) => {
     setVend(i, nv);
     vendChanged(i);

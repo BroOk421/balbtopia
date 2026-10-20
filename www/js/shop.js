@@ -9,8 +9,10 @@
 // ===== shop =====
 const SIGNAL_JAMMER = 56,
   PUNCH_JAMMER = 57;
-BLOCK[SIGNAL_JAMMER] = { id: 'signal_jammer', name: 'Signal Jammer', hits: 4, art: 'deco', fx: ['#5a606e', '#9aa0ad', '#ff4a2a'] };
-BLOCK[PUNCH_JAMMER] = { id: 'punch_jammer', name: 'Punch Blocker', hits: 4, art: 'deco', fx: ['#5a606e', '#9aa0ad', '#ffd23f'] };
+// hits 8 like the Weather Machines: every punch switches a jammer off / on (toggleJam), so a single click
+// doesn't almost break it; punching fast 8 times does
+BLOCK[SIGNAL_JAMMER] = { id: 'signal_jammer', name: 'Signal Jammer', hits: 8, art: 'deco', fx: ['#5a606e', '#9aa0ad', '#ff4a2a'] };
+BLOCK[PUNCH_JAMMER] = { id: 'punch_jammer', name: 'Punch Blocker', hits: 8, art: 'deco', fx: ['#5a606e', '#9aa0ad', '#ffd23f'] };
 Object.assign(ITEMS, {
   door_mover: {
     name: 'Door Mover',
@@ -22,14 +24,14 @@ Object.assign(ITEMS, {
     name: 'Signal Jammer',
     kind: 'block',
     block: SIGNAL_JAMMER,
-    desc: 'Place it in a world and the world is hidden from everyone else\'s world list. They can still come in by typing its name.',
+    desc: 'Place it in a world and the world is hidden from everyone else\'s world list. They can still come in by typing its name. Punch it to switch it off or on.',
     rarity: 'Rare',
   },
   punch_jammer: {
     name: 'Punch Blocker',
     kind: 'block',
     block: PUNCH_JAMMER,
-    desc: 'Place it in a world and nobody can punch other players there.',
+    desc: 'Place it in a world and nobody can punch other players there. Punch it to switch it off or on.',
     rarity: 'Rare',
   },
   clear_world: {
@@ -163,28 +165,28 @@ const SHOP = [
   { id: 'display_box', gold: 1000, cat: 'world' },
   { id: 'mannequin', gold: 2500, cat: 'world' },
   { id: 'shovel', gold: 1500, cat: 'tools' },
-  { id: 'golden_pickaxe', gold: 50000, cat: 'tools' },
-  { id: 'diamond_pickaxe', bc: 15, cat: 'tools' },
-  { id: 'black_diamond_pickaxe', bc: 40, cat: 'tools' },
-  { id: 'angel_wings', bc: 10, cat: 'wear' },
-  { id: 'tiny_angel_wings', bc: 5, cat: 'wear' },
-  { id: 'golden_wings', bc: 24, cat: 'wear' },
-  { id: 'golden_aura', bc: 20, cat: 'wear' },
-  { id: 'red_aura', bc: 20, cat: 'wear' },
-  { id: 'dark_diamond_aura', bc: 30, cat: 'wear' },
-  { id: 'diamond_aura', bc: 24, cat: 'wear' },
-  { id: 'white_aura', bc: 20, cat: 'wear' },
+  { id: 'golden_pickaxe', bc: 100, cat: 'tools' },
+  { id: 'diamond_pickaxe', bc: 150, cat: 'tools' },
+  { id: 'black_diamond_pickaxe', bc: 250, cat: 'tools' },
+  { id: 'angel_wings', bc: 30, cat: 'wear' },
+  { id: 'tiny_angel_wings', bc: 16, cat: 'wear' },
+  { id: 'golden_wings', bc: 120, cat: 'wear' },
+  { id: 'golden_aura', bc: 120, cat: 'wear' },
+  { id: 'red_aura', bc: 120, cat: 'wear' },
+  { id: 'dark_diamond_aura', bc: 200, cat: 'wear' },
+  { id: 'diamond_aura', bc: 150, cat: 'wear' },
+  { id: 'white_aura', bc: 120, cat: 'wear' },
   { id: 'super_saiyan_hair', bc: 16, cat: 'wear' },
-  { id: 'seraph_wings', bc: 12, cat: 'wear' },
-  { id: 'demon_wings', bc: 14, cat: 'wear' },
-  { id: 'phoenix_wings', bc: 24, cat: 'wear' },
-  { id: 'crystal_wings', bc: 20, cat: 'wear' },
-  { id: 'fairy_wings', bc: 16, cat: 'wear' },
-  { id: 'shadow_wings', bc: 18, cat: 'wear' },
-  { id: 'celestial_wings', bc: 28, cat: 'wear' },
-  { id: 'dragon_wings', bc: 22, cat: 'wear' },
-  { id: 'leaf_wings', bc: 12, cat: 'wear' },
-  { id: 'galaxy_wings', bc: 32, cat: 'wear' },
+  { id: 'seraph_wings', bc: 36, cat: 'wear' },
+  { id: 'demon_wings', bc: 42, cat: 'wear' },
+  { id: 'phoenix_wings', bc: 150, cat: 'wear' },
+  { id: 'crystal_wings', bc: 60, cat: 'wear' },
+  { id: 'fairy_wings', bc: 48, cat: 'wear' },
+  { id: 'shadow_wings', bc: 54, cat: 'wear' },
+  { id: 'celestial_wings', bc: 84, cat: 'wear' },
+  { id: 'dragon_wings', bc: 66, cat: 'wear' },
+  { id: 'leaf_wings', bc: 36, cat: 'wear' },
+  { id: 'galaxy_wings', bc: 96, cat: 'wear' },
 ];
 
 // ---------- art ----------
@@ -236,8 +238,12 @@ DECO.punch_jammer = (h, f = 0) => {
   for (let k = 0; k < 4; k++) P(6 + k, 11 - k, '#ff4a2a');
   P(5, 11, '#ff4a2a');
 };
+// switched on: 4 frames (light blinks, waves / fist move); switched off: frame JAM_OFF_FRAME (dark, still),
+// picked in drawDeco (blocks.js) from the tile's JAM_OFF bit
+const JAM_FRAMES = 4,
+  JAM_OFF_FRAME = 4;
 const oldDecoFrame = decoFrame;
-decoFrame = (id) => (id === 'signal_jammer' || id === 'punch_jammer' ? Math.floor(now / 450) % 2 : oldDecoFrame(id));
+decoFrame = (id) => (id === 'signal_jammer' || id === 'punch_jammer' ? Math.floor(now / 220) % JAM_FRAMES : oldDecoFrame(id));
 const SHOP_ICON = {
   door_mover: () =>
     cells((h) => {
@@ -501,8 +507,21 @@ function clearWorldTiles() {
   }
   Net.resnap();
 }
-// jammers: is one placed in this world?
-const jammed = (t) => fg.includes(t);
+// jammers: is one placed AND switched on in this world?
+// One punch switches a jammer off, the next on again (owner, Oct 21 2026): bit JAM_OFF of the tile's `vari`,
+// saved with the world and synced like the tile (same as the Weather Machines' WEATHER_OFF). A newly placed one is on.
+const JAM_OFF = 64;
+const isJamT = (t) => t === SIGNAL_JAMMER || t === PUNCH_JAMMER;
+const jamOff = (i) => !!(vari[i] & JAM_OFF);
+const jammed = (t) => {
+  for (let i = 0; i < fg.length; i++) if (fg[i] === t && !(vari[i] & JAM_OFF)) return true;
+  return false;
+};
+function toggleJam(i) {
+  vari[i] ^= JAM_OFF;
+  toast(BLOCK[fg[i]].name + (vari[i] & JAM_OFF ? ': off' : ': on'));
+  saveWorld();
+}
 const jamInfo = () => ({ signal: jammed(SIGNAL_JAMMER), punch: jammed(PUNCH_JAMMER) });
 // worlds with a Signal Jammer don't show in other players' lists (yours, and the one you're in, still do)
 const listedWorld = (w) => !(w.jam && w.jam.signal) || lc(w.owner) === lc(playerName) || w.name === worldName;
