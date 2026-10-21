@@ -118,6 +118,8 @@ function act() {
   if (useMannequin(x, y)) return;
   // a Vending Machine clicked while holding something to sell: its pop-up, with that item (vend.js)
   if (useVend(x, y)) return;
+  // a Display Box clicked while holding something: an empty box takes one of it (display.js)
+  if (useDisplay(x, y)) return;
   const held = ITEMS[hand];
   // fists (or anything that isn't placed) on another player: punch them
   if (hand === 'fist' || !held || held.kind === 'clothing' || held.kind === 'tool') {
@@ -270,6 +272,8 @@ function act() {
     // (bit WEATHER_OFF clear: a new Weather Machine is on; water stays under walk-through blocks, gates.js)
     // water always stays on its tile, whatever is built on it (owner, Oct 21 2026); only a Sponge takes it away
     vari[i] = Math.floor(Math.random() * 3) | (vari[i] & WATER);
+    // chairs and couches face the way you face (furniture.js)
+    if (typeof FACING !== 'undefined' && FACING.has(it.block) && P.face < 0) vari[i] |= FACE_LEFT;
     if (isWeatherT(it.block)) weatherSolo(i); // the new machine's weather takes over
     if (isDoorT(it.block)) {
       signs.delete(i);

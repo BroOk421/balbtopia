@@ -47,7 +47,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -740,3 +740,36 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     dear wings. Now: Golden Pickaxe 100, Diamond 150, Black Diamond 250; Golden / Red / White Aura 120, Diamond 150,
     Dark Diamond 200; wings back to 16-96 (Tiny Angel 16, Angel 30, Seraph 36, Leaf 36, Demon 42, Fairy 48, Shadow 54,
     Crystal 60, Dragon 66, Celestial 84, Galaxy 96) except Golden Wings 120 and Phoenix Wings 150. schema.sql matches.
+- Oct 22 2026 (owner):
+  - Display Box works like the Vending Machine: hold any item (block, seed, clothes, a tool from the Hand slot) and click
+    the box (`useDisplay`, display.js, called from `act` after `useVend`; players with access, within `WRENCH_REACH`):
+    an empty box takes one at once. A box that already shows something takes nothing else (toast: wrench it and take it
+    out first; same item = "already on display"). Wrench on an empty box only shows that hint (the item list is gone);
+    wrench on a full box = Take out, as before.
+  - Furniture (`furniture.js`, loaded after bushes.js): Wooden Chair has new 1 px art, slanted (side view, a little from
+    above, back leaning back); Couch (block 160, walk-through, seat `SEATS.couch` 10) in the same look, couches side by
+    side that face the same way join into one long couch (arms only at the ends, one cushion per tile). Chair and Couch
+    face the way the player faces when placing them: bit `FACE_LEFT` (128) of `vari` (set in `act`, actions.js; art is
+    drawn facing right and mirrored). Sitting turns you the way the seat faces (rest.js `drawResting`). Foliage (block
+    161, walk-through, `front: true`): a bunch of pointed leaves drawn in front of players (you hide in it), sways in
+    2 frames, every other tile mirrored. Art is painted by `furnCanvas` (polygons + automatic outline that skips joined
+    sides). Recipes (Balbtopia): Couch = Wooden Chair + Red Block, Foliage = Grass + Vine Block (farming.json + SPLICE).
+  - Bigger hairs: `strip.grow` (x factor; `growY` for y, default the same) scales a strip hair round (`ax`, `ay`) body px;
+    `ax` defaults to the hair's right edge (the face side stays put, the hair grows over the back of the head), `ay` to
+    `HAIR_GROW_Y` (80, about the eyes). The five bang hairs (moved 12 px right earlier, which showed the back of the
+    head) all use `HAIR_GROW` 1.15: Long Black, Long Blonde, Messy Red (ponytail), Black Bob, Pink Streak Hair (owner
+    picked 1.15 for the pink one too, over a bigger 1.26 that hid the ear). Their name-tag `top`s were raised to match.
+  - Couch art redrawn (owner: like a professional artist): red velvet in 6 tones (`COUCH_COL`), tufted back cushion
+    with 2 dimpled buttons per tile, plump seat cushion with a shine on its front edge, piping, rolled arms (scroll line,
+    shine), the right arm's side panel, shadow where the seat meets the back and arms, tapered walnut feet.
+  - Bookcase is a platform now (`BLOCK.plat`, set in furniture.js): stand on it from above, jump up through it, plant
+    seeds on top (`canPlant` accepts plat), like Wooden Platform / Staircase. You still walk past it.
+  - Foliage redrawn to the owner's reference: a SQUARE bush (no outline), deep-green inside filled first, then ~230
+    leaf chunks of 2-3 px in 8 greens (+ a few olive), lighter towards the top, then ~170 small see-through gaps (1-2 px,
+    never touching, the leaf above each gap darkened) so a player inside shows through; ragged darker edge on open
+    sides only, joined sides run to the edge (`paintFoliage(m, v)`, seeded so every device draws the same; 4 patterns
+    by tile x/y parity).
+  - Sitting colour: the sitting picture (`sit.png`) is a warmer orange skin than the standing frames, so sitting looked
+    like a different colour. `sitBody` now scales its skin pixels so their most common colour equals the standing
+    face's most common colour (`commonColor` / `faceColor`, rest.js), for every skin incl. porcelain.
+

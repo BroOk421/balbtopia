@@ -2399,6 +2399,18 @@
       "result": "romantic_bush_block",
       "source": "balbtopia",
       "note": "Rose Hedge (id romantic_bush_block) = Romantic Bushes + Dirt (Oct 21 2026)"
+    },
+    {
+      "seeds": ["wooden_chair", "red_block"],
+      "result": "couch",
+      "source": "balbtopia",
+      "note": "Couch = Wooden Chair + Red Block (joins with couches beside it, faces the way you face; Oct 22 2026)"
+    },
+    {
+      "seeds": ["grass", "viney_block"],
+      "result": "foliage",
+      "source": "balbtopia",
+      "note": "Foliage = Grass + Vine Block (walk-through leaves drawn in front of players; Oct 22 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

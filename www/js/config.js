@@ -380,6 +380,8 @@ const SPLICE = {
   'sand+yellow_block': 'sponge',
   'bush+dirt': 'bush_block',
   'dirt+romantic_bushes': 'romantic_bush_block',
+  'red_block+wooden_chair': 'couch',
+  'grass+viney_block': 'foliage',
   'wooden_background+yellow_block': 'painting_dink_duck',
   'white_block+wooden_background': 'painting_yerfdog',
   'dark_grey_block+grey_block': 'air_duct',

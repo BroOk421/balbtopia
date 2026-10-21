@@ -15,7 +15,7 @@ ITEMS.display_box = {
   name: 'Display Box',
   kind: 'block',
   block: DISPLAY_BOX,
-  desc: 'A glass box that shows off one item. Hold the wrench and click it to put an item in or take it out.',
+  desc: 'A glass box that shows off one item. Hold an item and click the box to put it in; wrench it to take it out.',
   rarity: 'Uncommon',
 };
 ITEMS.mannequin = {
@@ -117,35 +117,36 @@ function openDisplay(x, y) {
     vendIcon(body, id);
     return;
   }
-  const choices = inv.filter((s) => displayable(s.id));
-  if (!choices.length) return toast('Nothing in your bag to put on display');
-  const body = dialog(
-    'DISPLAY BOX',
-    `<div class="vend"><div class="vrow" id="dTop"></div>
-      <div class="lfield">Put on display
-        <select id="dItem" class="vfull">${choices.map((s) => `<option value="${s.id}">${esc(ITEMS[s.id].name)} (${s.qty})</option>`).join('')}</select>
-      </div></div>`,
-    [
-      { label: 'Cancel', cls: 'ghost', run: () => {} },
-      {
-        label: 'Put in',
-        run: (b) => {
-          const nid = b.querySelector('#dItem').value;
-          if (!nid || displays.has(i) || !takeItem(nid, 1)) return;
-          setDisplay(i, nid);
-          showChanged(i, 'd');
-          toast(ITEMS[nid].name + ' is on display');
-        },
-      },
-    ],
-  );
-  const top = () => {
-    const nid = body.querySelector('#dItem').value;
-    body.querySelector('#dTop').innerHTML = `<div class="vpic"></div><div><b>${esc(ITEMS[nid].name)}</b><br>Empty · you have ${countItem(nid).toLocaleString()}</div>`;
-    vendIcon(body, nid);
-  };
-  body.querySelector('#dItem').onchange = top;
-  top();
+  // empty: like the Vending Machine, what goes in is the item you HOLD when you click the box (useDisplay)
+  dialog('DISPLAY BOX', '<div class="vend"><p class="mnote">This Display Box is empty. Hold the item you want to show (a block, a seed, clothes...) and click the box to put it in.</p></div>', [
+    { label: 'Close', cls: 'ghost', run: () => {} },
+  ]);
+}
+// clicking a Display Box while holding something (owner, Oct 22 2026, like the Vending Machine): an empty box
+// takes one of it at once. A box that already shows something takes nothing else: wrench it and Take out first.
+// Players with access only, within WRENCH_REACH of your tile. Called from act (actions.js); true = click used.
+function useDisplay(x, y) {
+  const i = at(x, y);
+  if (!isDispT(fg[i]) || !hand || hand === 'fist' || hand === 'wrench' || !displayable(hand) || !hasAccess(playerName)) return false;
+  if (!inWrenchReach(x, y)) return toast('Move closer to the Display Box'), true;
+  const cur = displays.get(i),
+    id = hand;
+  if (cur) {
+    toast(cur === id ? ITEMS[id].name + ' is already on display' : 'This box shows ' + ITEMS[cur].name + ': wrench it and take it out first');
+    return true;
+  }
+  // from a bag / hotbar stack, or the tool held in the Hand slot
+  if (!takeItem(id, 1)) {
+    if (equipped.hand !== id) return true;
+    equipped.hand = null;
+    hand = bareHand();
+  }
+  setDisplay(i, id);
+  showChanged(i, 'd');
+  renderBars();
+  Sfx.play('pickup');
+  toast(ITEMS[id].name + ' is on display');
+  return true;
 }
 const SLOT_NAMES = SLOT_NAME;
 function openMannequin(x, y) {

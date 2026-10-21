@@ -25,15 +25,16 @@ function sitBody(skinName) {
   c.height = im.height;
   const x = c.getContext('2d');
   x.drawImage(im, 0, 0);
-  const to = ARM_COLOR[skinName],
-    from = ARM_COLOR.porcelain;
-  if (to && skinName !== 'porcelain')
+  // the sitting picture's own skin is a warmer orange than the standing frames (owner: the colour changed when
+  // sitting down), so every skin tone, porcelain too, is matched to the standing face's most common colour
+  const stand = IMG['skin_' + skinName + '_open'];
+  if (stand && stand.width)
     try {
       const d = x.getImageData(0, 0, c.width, c.height),
         p = d.data,
-        rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)),
-        a = rgb(from.skin),
-        b = rgb(to.skin),
+        isSkin = (r, gg, bb) => r > 120 && r - bb > 30 && r - bb < 150 && gg < r && bb > 50,
+        a = commonColor(p, (r, gg, bb) => isSkin(r, gg, bb)),
+        b = faceColor(stand),
         kk = [0, 1, 2].map((i) => b[i] / a[i]);
       for (let i = 0; i < p.length; i += 4) {
         const r = p[i],
@@ -47,6 +48,30 @@ function sitBody(skinName) {
       x.putImageData(d, 0, 0);
     } catch (e) {}
   return (SITS[skinName] = c);
+}
+// the most common colour among the pixels that pass ok (rgba data)
+function commonColor(p, ok) {
+  const n = new Map();
+  let best = [253, 207, 172],
+    most = 0;
+  for (let i = 0; i < p.length; i += 4) {
+    if (p[i + 3] < 200 || !ok(p[i], p[i + 1], p[i + 2])) continue;
+    const k = (p[i] << 16) | (p[i + 1] << 8) | p[i + 2],
+      v = (n.get(k) || 0) + 1;
+    n.set(k, v);
+    if (v > most) (most = v), (best = [p[i], p[i + 1], p[i + 2]]);
+  }
+  return best;
+}
+// the skin colour of a standing frame: the most common colour on the face (not the outline, eyes or eye whites)
+function faceColor(im) {
+  const c = document.createElement('canvas');
+  c.width = im.width;
+  c.height = im.height;
+  const x = c.getContext('2d');
+  x.drawImage(im, 0, 0);
+  const p = x.getImageData(Math.round(im.width * 0.25), Math.round(im.height * 0.14), Math.round(im.width * 0.5), Math.round(im.height * 0.3)).data;
+  return commonColor(p, (r, gg, bb) => r + gg + bb > 150 && !(r > 235 && gg > 235 && bb > 235));
 }
 let stillT = 0,
   stillAt = -1;
@@ -115,7 +140,8 @@ function drawResting(c, ox, oy) {
       cx = tileX + (TS / 2) * Z,
       top = Math.round(seatY - SIT_SEAT_ROW * k + breathe * 0.3 * Z);
     g.translate(Math.round(cx), 0);
-    g.scale(c.face, 1);
+    // a chair or couch turned to the left (furniture.js) turns you left too
+    g.scale(typeof faceLeftAt === 'function' && FACING.has(fg[at(r.tx, r.ty)]) ? (faceLeftAt(at(r.tx, r.ty)) ? -1 : 1) : c.face, 1);
     drawBehind(c, top, sc, 0);
     if (body) g.drawImage(body, (-FR.w / 2 - SIT_PAD) * k, top, body.width * k, body.height * k);
     drawTalk(c, top, sc, 0, SIT_MOUTH_Y);

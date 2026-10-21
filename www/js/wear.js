@@ -21,6 +21,8 @@ function slotOf(id) {
 
 // grow: tree seconds; seed: seed colours. Shirts / pants / feet: col (+ pat for patterns).
 // Hair: tint [dark, light] of the spiky hair, or art. Hats, face and back: art (drawn by WEAR_ART below).
+const HAIR_GROW = 1.15; // the five long / bang hairs drawn 15% bigger (owner: the back of the head showed behind them)
+const HAIR_GROW_Y = 80; // body px the bigger hairs grow from (about the eyes), so the bangs stay about where they were
 const HAIR_SPLIT = 108; // long hair: body px just below the neck; below it the hair is behind the body (drawWearStrip)
 const WEAR = [
   // shirts
@@ -52,13 +54,13 @@ const WEAR = [
   { id: 'patent_leather_shoes', name: 'Patent Leather Shoes', slot: 'feet', col: '#18161c', desc: 'Shiny black shoes.' },
   // hair
   { id: 'brown_hair', name: 'Brown Hair', slot: 'hair', col: '#8a5428', top: -30, iconImg: 'hair_brown_spike_icon', strip: { img: 'hair_brown_spike', frames: 1, ms: 1000, x: -2, y: -26, w: 115, h: 102, icon: [0, 0, 115, 102] }, desc: 'Brown hair brushed up into a tall quiff.' },
-  { id: 'blonde_bombshell', name: 'Long Blonde Hair', slot: 'hair', col: '#e8c47a', top: -13, iconImg: 'hair_blonde_band_icon', strip: { img: 'hair_blonde_band', frames: 1, ms: 1000, split: HAIR_SPLIT, x: -1, y: -9, w: 125, h: 180, icon: [0, 0, 125, 125] }, desc: 'Long blonde hair with a white headband.' },
+  { id: 'blonde_bombshell', name: 'Long Blonde Hair', slot: 'hair', col: '#e8c47a', top: -27, iconImg: 'hair_blonde_band_icon', strip: { img: 'hair_blonde_band', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: -1, y: -9, w: 125, h: 180, icon: [0, 0, 125, 125] }, desc: 'Long blonde hair with a white headband.' },
   { id: 'spikey_hair', name: 'Spikey Hair', slot: 'hair', col: '#3a3432', top: -30, iconImg: 'hair_messy_black_icon', strip: { img: 'hair_messy_black', frames: 1, ms: 1000, x: -11, y: -26, w: 135, h: 104, icon: [0, 0, 135, 104] }, desc: 'Messy, spiky black hair.' },
-  { id: 'messy_auburn_tresses', name: 'Messy Red Hair', slot: 'hair', col: '#8a2a22', top: -35, iconImg: 'hair_red_ponytail_icon', strip: { img: 'hair_red_ponytail', frames: 1, ms: 1000, split: HAIR_SPLIT, x: 0, y: -31, w: 120, h: 192, icon: [0, 0, 120, 120] }, desc: 'Long auburn hair in a high ponytail.' },
+  { id: 'messy_auburn_tresses', name: 'Messy Red Hair', slot: 'hair', col: '#8a2a22', top: -52, iconImg: 'hair_red_ponytail_icon', strip: { img: 'hair_red_ponytail', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: 0, y: -31, w: 120, h: 192, icon: [0, 0, 120, 120] }, desc: 'Long auburn hair in a high ponytail.' },
   { id: 'grey_hair_bun', name: 'Grey Hair Bun', slot: 'hair', col: '#c8c4c0', top: -18, iconImg: 'hair_silver_icon', strip: { img: 'hair_silver', frames: 1, ms: 1000, x: -13, y: -14, w: 137, h: 93, icon: [0, 0, 137, 93] }, desc: 'Soft silver-grey hair swept to the side.' },
-  { id: 'hot_pink_highlights', name: 'Pink Streak Hair', slot: 'hair', col: '#f0a0b4', top: -40, iconImg: 'hair_pink_bun_icon', strip: { img: 'hair_pink_bun', frames: 1, ms: 1000, split: HAIR_SPLIT, x: 0, y: -36, w: 131, h: 193, icon: [0, 0, 131, 131] }, desc: 'Pink hair in a messy bun with loose strands.' },
+  { id: 'hot_pink_highlights', name: 'Pink Streak Hair', slot: 'hair', col: '#f0a0b4', top: -54, iconImg: 'hair_pink_bun_icon', strip: { img: 'hair_pink_bun', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: 0, y: -36, w: 131, h: 193, icon: [0, 0, 131, 131] }, desc: 'Pink hair in a messy bun with loose strands.' },
   { id: 'unicorn_hair', name: 'Pastel Hair', slot: 'hair', tint: ['#6a2a9a', '#ffb0f0'], rarity: 'Rare', desc: 'Magical pastel hair.' },
-  { id: 'purple_mohawk', name: 'Black Bob', slot: 'hair', col: '#2a2628', top: -9, iconImg: 'hair_black_bob_icon', strip: { img: 'hair_black_bob', frames: 1, ms: 1000, x: 4, y: -5, w: 119, h: 115, icon: [0, 0, 119, 115] }, desc: 'A short black bob with hair clips.' },
+  { id: 'purple_mohawk', name: 'Black Bob', slot: 'hair', col: '#2a2628', top: -22, iconImg: 'hair_black_bob_icon', strip: { img: 'hair_black_bob', frames: 1, ms: 1000, grow: HAIR_GROW, x: 4, y: -5, w: 119, h: 115, icon: [0, 0, 119, 115] }, desc: 'A short black bob with hair clips.' },
   { id: 'pigtails', name: 'Black Top Bun', slot: 'hair', col: '#2a2628', top: -25, iconImg: 'hair_black_bun_icon', strip: { img: 'hair_black_bun', frames: 1, ms: 1000, x: -11, y: -21, w: 122, h: 120, icon: [0, 0, 122, 120] }, desc: 'Black hair tied up in a bun.' },
   { id: 'afro', name: 'Afro', slot: 'hair', art: 'afro', desc: 'A big round afro.' },
   // the owner's animated golden hair (the idle row of his sprite sheet: 9 frames, glow and sparks included),
@@ -93,7 +95,7 @@ const WEAR = [
   { id: 'jetpack', name: 'Jetpack', slot: 'back', art: 'jetpack', rarity: 'Rare', desc: 'Twin rockets. Flames come out when you jump.' },
   // long hair (the back part is drawn behind the body)
   { id: 'long_brown_hair', name: 'Long Brown Hair', slot: 'hair', art: 'long_brown', behind: 'long_brown_back', iconBox: [-10, -10, 150, 170], desc: 'Long, straight brown hair.' },
-  { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', col: '#2a2628', top: -4, iconImg: 'hair_long_black_icon', strip: { img: 'hair_long_black', frames: 1, ms: 1000, split: HAIR_SPLIT, x: -3, y: 0, w: 137, h: 183, icon: [0, 0, 137, 137] }, desc: 'Long wavy black hair.' },
+  { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', col: '#2a2628', top: -16, iconImg: 'hair_long_black_icon', strip: { img: 'hair_long_black', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: -3, y: 0, w: 137, h: 183, icon: [0, 0, 137, 137] }, desc: 'Long wavy black hair.' },
   { id: 'princess_hair', name: 'Princess Hair', slot: 'hair', art: 'princess', behind: 'princess_back', iconBox: [-10, -30, 150, 190], desc: 'Long golden hair with a pink bow.' },
   // from the Shop
   { id: 'angel_wings', name: 'Angel Wings', slot: 'back', art: 'angel_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-60, 110, 238, 150], desc: 'Soft white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
@@ -579,7 +581,17 @@ function drawWearStrip(w, top, sc, dy, sx = 1, part) {
   const fw = im.width / s.frames,
     f = Math.floor(now / s.ms) % s.frames,
     k = sc * Z,
-    mid = (-FR.w / 2 + s.x + s.w / 2) * k;
+    // grow (owner, Oct 22 2026): the hair drawn bigger round (ax, ay) in body px. ax defaults to the hair's right
+    // edge, so the face side stays where it was and the hair grows out over the back of the head and hides it
+    gx = s.grow || 1,
+    gy = s.growY || gx,
+    ax = s.ax !== undefined ? s.ax : s.x + s.w,
+    ay = s.ay !== undefined ? s.ay : HAIR_GROW_Y,
+    ex = ax + (s.x - ax) * gx,
+    ey = ay + (s.y - ay) * gy,
+    ew = s.w * gx,
+    eh = s.h * gy,
+    mid = (-FR.w / 2 + ex + ew / 2) * k;
   g.save();
   if (part && s.split) {
     const yc = Math.round(top + (s.split + dy) * k), // on a whole pixel, so no seam shows at the cut
@@ -591,7 +603,7 @@ function drawWearStrip(w, top, sc, dy, sx = 1, part) {
   }
   g.translate(mid, 0);
   g.scale(sx, 1);
-  g.drawImage(im, f * fw, 0, fw, im.height, (-s.w / 2) * k, top + (s.y + dy) * k, s.w * k, s.h * k);
+  g.drawImage(im, f * fw, 0, fw, im.height, (-ew / 2) * k, top + (ey + dy) * k, ew * k, eh * k);
   g.restore();
 }
 function wearArt(id, f) {
