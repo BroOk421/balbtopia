@@ -15,7 +15,6 @@ const WATER = 8,
   GATE_OPEN = 16;
 const GATE_SPEED = 4; // how fast a gate opens and closes (whole openings per second)
 const GATE_REACH = 10; // px around the tile that count as "walking up to it"
-const WATER_KEEP = 0.9; // chance to get the bucket back when you take water away
 
 for (const id of ['portcullis', 'iron_bars']) if (ITEMS[id]) BLOCK[ITEMS[id].block].gate = true;
 // Death Spikes and Stalactite kill at once (Cactus still only hurts)
@@ -106,22 +105,20 @@ function openGate(x, y) {
 }
 
 // ---------- water ----------
-// use the Water Bucket on tile (x, y): add water, or take it away again
+// use the Water Bucket on tile (x, y): one bucket = one tile of water (owner, Oct 21 2026: 100 buckets -> 99).
+// The bucket no longer takes water back: only a Sponge does (sponge.js). Water stays on its tile under whatever
+// is built there later. A bucket on a dry Sponge soaks it (Wet Sponge) instead.
 function useWaterBucket(x, y) {
   const i = at(x, y);
   if (!canEdit()) return;
   if (isDoorTile(x, y)) return toast("Can't put water on the main door");
-  if (hasWater(i)) {
-    vari[i] &= ~WATER;
-    splash(x, y, 10);
-    if (Math.random() < WATER_KEEP) addItem('water_bucket', 1);
-    else toast('The bucket broke');
-    return;
-  }
+  if (hasWater(i)) return toast('There is water here already (a Sponge takes it away)');
+  if (typeof soakSponge === 'function' && soakSponge(i, x, y, true)) return;
   if (fg[i] && BLOCK[fg[i]].solid !== false && !isGateT(fg[i])) return toast('Water only goes where nothing solid is');
   vari[i] |= WATER;
   takeItem('water_bucket');
   splash(x, y, 14);
+  Sfx.play('water'); // water.mp3: the owner's splash, silence cut off (original in art-source/sfx)
   startPlace(x * TS + 16, y * TS + 16);
 }
 function splash(x, y, n) {

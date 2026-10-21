@@ -221,7 +221,8 @@ function stepFx(dt) {
     const v = vacs[k];
     if ((v.t += dt) < VAC_TIME) continue;
     vacs.splice(k, 1);
-    if (!v.to && v.id === 'gold') updateGold(true);
+    // your coins then fly up to the gold counter (liven.js); the counter goes up when they get there
+    if (!v.to && v.id === 'gold') typeof coinsToCounter === 'function' ? coinsToCounter(v.qty) : updateGold(true);
   }
   if (P.punch) {
     P.punch.t += dt;

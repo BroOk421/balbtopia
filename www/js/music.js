@@ -6,8 +6,10 @@
 // there; a note can be used as many times as you like. Double-click a note in the grid to take it out. The song
 // plays left to right, one column per step, every note in a column at once. One row of buttons: PLAY, STOP, tempo,
 // NEW SONG, LIST SONGS (a pop-up with your saved songs: load or delete), SAVE SONG. A song started with PLAY keeps
-// playing after the window is closed, until STOP (or leaving the world). (keeps it in your songs and, if you can build here, puts it on this
-// Piano). A Piano with a song plays it over and over and is heard everywhere in the world (the nearest one only).
+// playing after the window is closed, until STOP (or leaving the world). SAVE SONG keeps it in your songs and, if you can build
+// here, puts it on this Piano. PLAY also puts the song on this Piano and switches the Piano on; STOP switches it off
+// (owner, Oct 21 2026). A Piano that is on plays its song over and over, also after logging out and back in, and is
+// heard everywhere in ITS world only (the nearest Piano that is on; other worlds never hear it).
 // Songs are saved per player (`mySongs`, player save `songs`) and per Piano tile (`pianoSongs`, world save `songs`,
 // realtime event `song`). Sounds are Web Audio synths (no files).
 // The old Piano / Bass / Drum / Bell / Flute Note blocks (149-153) are retired: worlds that have them still draw
@@ -346,11 +348,13 @@ function cleanSong(s) {
     seen.add(x + ',' + y);
     g.push([x, y, n]);
   }
-  return {
+  const c = {
     n: String(s.n || 'Song').slice(0, SONG_NAME_MAX),
     bpm: Math.max(BPM_MIN, Math.min(BPM_MAX, s.bpm | 0 || 120)),
     g,
   };
+  if (s.off === true) c.off = true; // a Piano's song that was STOPped: kept on the Piano, but silent
+  return c;
 }
 // how many columns a song loops over: up to its last note, rounded up to a bar of 4
 const songLen = (s) => Math.max(4, Math.ceil((Math.max(-1, ...s.g.map((c) => c[0])) + 1) / 4) * 4);
@@ -378,7 +382,7 @@ function stepMusic() {
   let best = -1,
     bd = 1e9;
   for (const [i, s] of pianoSongs) {
-    if (!isPianoT(fg[i])) continue;
+    if (!isPianoT(fg[i]) || s.off) continue; // a Piano switched off with STOP stays quiet
     const x = i % WW,
       y = (i / WW) | 0;
     const d = Math.hypot(x + 0.5 - px, y + 0.5 - py);
@@ -436,7 +440,7 @@ function openSongMaker(i) {
   ptr.down = false;
   const s = pianoSongs.get(i);
   // a song still playing from before comes back into the window, so it can be edited or stopped
-  const song = preview ? preview.song : s ? cleanSong(s) : emptySong();
+  const song = preview ? preview.song : s ? cleanSong({ ...s, off: false }) : emptySong();
   songWin = { i, song, pick: 0, tap: null };
   songEl.hidden = false;
   renderSong();
@@ -461,7 +465,8 @@ function renderSong() {
   const playing = !!preview && preview.song === W.song,
     nowCol = playing ? preview.col : -1;
   $('songPlay').classList.toggle('on', playing);
-  $('songStop').disabled = !preview;
+  const ps = pianoSongs.get(W.i);
+  $('songStop').disabled = !preview && !(ps && !ps.off);
   // the note list
   const nl = $('noteList');
   nl.innerHTML = '';
@@ -566,7 +571,7 @@ function tapCell(x, y, b) {
 function playStep() {
   const S = preview;
   if (!S) return;
-  if (!inWorld) return stopSong(); // left the world: the song stops
+  if (!inWorld || S.w !== worldName) return stopSong(); // left the world (or went to another one): the song stops
   S.col = (S.col + 1) % songLen(S.song);
   const hit = S.song.g.filter((c) => c[0] === S.col);
   for (const c of hit) playPiano(c[2], 1 / Math.sqrt(hit.length));
@@ -597,15 +602,30 @@ $('songPlay').onclick = () => {
   if (!W) return;
   if (!W.song.g.length) return toast('Put some notes in the grid first');
   stopSong();
-  preview = { song: W.song, col: -1, timer: null };
+  preview = { song: W.song, col: -1, timer: null, w: worldName };
   $('songPlay').classList.add('on');
   $('songStop').disabled = false;
   playStep();
+  // this Piano plays it from now on, for everyone in this world, and keeps playing it after you log out and back in
+  pianoSwitch(W.i, W.song, true);
 };
 $('songStop').onclick = () => {
   stopSong();
+  if (songWin) pianoSwitch(songWin.i, null, false); // the Piano itself goes quiet too (saved)
   if (songWin) renderSong();
 };
+// put a song on Piano tile i and/or switch it on or off; saved with the world and sent to the players here.
+// song null = keep the Piano's own song. Only for players who can build here (the song maker needs that anyway).
+function pianoSwitch(i, song, on) {
+  if (!isPianoT(fg[i]) || !canEdit(true)) return;
+  const base = song || pianoSongs.get(i);
+  if (!base) return;
+  const s = cleanSong({ ...base, off: !on });
+  if (!s.g.length) return;
+  pianoSongs.set(i, s);
+  Net.sendSong(i, s);
+  saveWorld();
+}
 $('songBpm').oninput = () => {
   if (!songWin) return;
   songWin.song.bpm = +$('songBpm').value;
@@ -663,7 +683,7 @@ function openSongList() {
 $('songSave').onclick = () => {
   const W = songWin;
   if (!W) return;
-  const s = cleanSong({ ...W.song, n: ($('songName').value || 'My Song').trim() || 'My Song' });
+  const s = cleanSong({ ...W.song, off: false, n: ($('songName').value || 'My Song').trim() || 'My Song' });
   if (!s.g.length) return toast('Put some notes in the grid first');
   if (preview && preview.song === W.song) preview.song = s; // a playing song keeps playing the saved copy
   W.song = s;
@@ -675,10 +695,13 @@ $('songSave').onclick = () => {
   savePlayer();
   // this Piano plays it (only if you can build here)
   if (isPianoT(fg[W.i]) && canEdit(true)) {
-    pianoSongs.set(W.i, s);
-    Net.sendSong(W.i, s);
+    // the Piano keeps its on / off: a Piano that was STOPped stays quiet until PLAY
+    const old = pianoSongs.get(W.i),
+      off = !!(old && old.off) && !(preview && preview.song === s);
+    pianoSongs.set(W.i, off ? { ...s, off: true } : s);
+    Net.sendSong(W.i, pianoSongs.get(W.i));
     saveWorld();
-    toast('Saved "' + s.n + '": this Piano plays it now');
+    toast('Saved "' + s.n + '"' + (off ? ': press PLAY to play it on this Piano' : ': this Piano plays it now'));
   } else toast('Saved "' + s.n + '" to your songs (only builders here can put it on this Piano)');
 };
 addEventListener('keydown', (e) => {

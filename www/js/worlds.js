@@ -99,6 +99,8 @@ function applyWorld(w, skew = 0) {
 }
 function saveWorld(force) {
   if (!inWorld) return;
+  // your own copy of the LOBBY is never saved (only its builders save it: the lobby everyone gets)
+  if (worldName === LOBBY_WORLD && !canEdit(true)) return;
   const w = worldData();
   if (Net.online) return Net.saveWorld(worldName, w, force);
   const s = store();

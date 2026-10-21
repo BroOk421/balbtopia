@@ -2669,6 +2669,15 @@
       "result": "sand",
       "source": "balbtopia",
       "note": "Sand = Dirt + Water Bucket (Growtopia Sand can't be spliced)"
+    },
+    {
+      "seeds": [
+        "sand",
+        "yellow_block"
+      ],
+      "result": "sponge",
+      "source": "balbtopia",
+      "note": "Sponge = Sand + Yellow Block (soaks up water placed with the Water Bucket; Oct 21 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

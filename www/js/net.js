@@ -425,9 +425,18 @@ const Net = (() => {
       old = ch;
     ch = null;
     joined = synced = false;
-    joinedName = name;
+    // the LOBBY is private: everyone gets their own copy (no channel, so no other players, chat or live changes)
+    const own = name === LOBBY_WORLD;
+    joinedName = own ? '' : name;
     clearTimeout(syncTimer);
-    dropChannel(old).then(() => seq === worldSeq && openWorld(name, seq));
+    dropChannel(old).then(() => {
+      if (seq !== worldSeq) return;
+      if (own) {
+        if (bch) dropChannel(bch);
+        bch = null;
+        bJoined = false;
+      } else openWorld(name, seq);
+    });
   };
   function openWorld(name, seq) {
     const c = sb.channel('world:' + name, chOpts(true));
@@ -528,6 +537,7 @@ const Net = (() => {
       hand: typeof p.hd === 'string' ? p.hd : 'fist',
       hurt: p.hu ? 0.3 : 0,
       rest: restFromNet(p.rs),
+      typing: !!p.ty,
       seen: now,
     });
     if (!r.walking) r.walkPh = 0;
@@ -553,6 +563,7 @@ const Net = (() => {
       hd: hand, // what's in the hand (tools show)
       hu: P.hurt > 0 || P.hitT > 0 ? 1 : 0,
       rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
+      ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)
     };
     const j = JSON.stringify(p);
     if (!force && j === lastPos && now - beatT < 1500) return;

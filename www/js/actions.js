@@ -124,7 +124,8 @@ function act() {
   }
   // clicking the main door opens the world list, but only while standing in it
   if (isDoorTile(x, y)) {
-    if (onDoor()) openWorlds();
+    // the main door of a world takes you out to your lobby; the lobby's own main door opens the world list
+    if (onDoor()) worldName === LOBBY_WORLD ? openWorlds() : exitToLobby();
     else toast('Stand in the door, then click it');
     return;
   }
@@ -194,7 +195,7 @@ function act() {
         Sfx.play('break');
         burst(x, y, fg[i], 12);
         smoke(x, y, 11, 1.6);
-        const id = b.id;
+        const id = b.dropAs || b.id; // (a Wet Sponge drops like a Sponge)
         vends.delete(i);
         displays.delete(i);
         manns.delete(i);
@@ -205,7 +206,8 @@ function act() {
         if (y > 0) uproot(x, y - 1);
         addXP(1);
         questTick('break', id); // daily quest (quests.js)
-        if (Math.random() < blockDropChance(id)) spawnDrop(id, x * TS + 16, y * TS + 16);
+        const gotBlock = Math.random() < blockDropChance(id);
+        if (gotBlock) spawnDrop(id, x * TS + 16, y * TS + 16);
         if (b.lock) {
           worldOwner = null;
           setLockCfg(null);
@@ -215,7 +217,9 @@ function act() {
           saveWorld();
           return;
         }
-        dropSeed(id, x, y);
+        const gotSeed = dropSeed(id, x, y);
+        // a Wet Sponge always gives something back: its Sponge or, failing that, a Sponge seed (sponge.js)
+        if (b.dropAs && !gotBlock && !gotSeed) spawnDrop(id + '_seed', x * TS + 16, y * TS + 20);
         const gold = goldDropAmount(id);
         if (gold) spawnDrop('gold', x * TS + 16 + (Math.random() < 0.5 ? -7 : 7), y * TS + 12, gold);
       }
@@ -262,7 +266,8 @@ function act() {
     }
     fg[i] = it.block;
     // (bit WEATHER_OFF clear: a new Weather Machine is on; water stays under walk-through blocks, gates.js)
-    vari[i] = Math.floor(Math.random() * 3) | (BLOCK[it.block].solid === false || BLOCK[it.block].gate ? vari[i] & WATER : 0);
+    // water always stays on its tile, whatever is built on it (owner, Oct 21 2026); only a Sponge takes it away
+    vari[i] = Math.floor(Math.random() * 3) | (vari[i] & WATER);
     if (isWeatherT(it.block)) weatherSolo(i); // the new machine's weather takes over
     if (isDoorT(it.block)) {
       signs.delete(i);
@@ -271,6 +276,7 @@ function act() {
     takeItem(hand);
     placeFx(x, y, it.block, true);
     Sfx.play('pickup'); // placing sound
+    if (typeof soakSponge === 'function') soakSponge(i, x, y, false); // a Sponge on water soaks it up (sponge.js)
   } else if (it.kind === 'background') {
     if (bg[i] || isDoorTile(x, y)) return;
     bg[i] = it.bg || 1;
@@ -354,8 +360,9 @@ function smoke(x, y, n, power) {
 // an item floating in the world; joins a nearby drop of the same kind
 // seeds fall out of broken blocks (and harvested trees), less often the rarer the item (seedDropChance)
 function dropSeed(id, x, y) {
-  if (Math.random() < seedDropChance(id))
-    spawnDrop(id + '_seed', x * TS + 16 + (Math.random() < 0.5 ? -6 : 6), y * TS + 20);
+  if (Math.random() >= seedDropChance(id)) return false;
+  spawnDrop(id + '_seed', x * TS + 16 + (Math.random() < 0.5 ? -6 : 6), y * TS + 20);
+  return true;
 }
 // every drop has an id (uid) so all players in the world see the same drop, a time it was
 // dropped (born, ms since 1970) and, when a player dropped it from their bag, who (by)
@@ -396,6 +403,8 @@ function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
 // everyone else (builders with access and "everyone can build" worlds too) waits DROP_LOCK_MS
 // after it fell out of a block (or was dropped), unless they dropped it themselves
 function canTakeDrop(d) {
+  // everyone has their own copy of the LOBBY (nothing there is shared live), so only its builders take its drops
+  if (worldName === LOBBY_WORLD) return canEdit(true);
   return !worldOwner || isOwner() || (!!d.by && lc(d.by) === lc(playerName)) || Date.now() - d.born >= DROP_LOCK_MS;
 }
 const dropWait = (d) => Math.max(1, Math.ceil((DROP_LOCK_MS - (Date.now() - d.born)) / 1000));
@@ -403,6 +412,7 @@ let dropHintT = -1e9;
 function dropHint(d) {
   if (now - dropHintT < 2500) return;
   dropHintT = now;
+  if (worldName === LOBBY_WORLD) return toast("Items in the lobby can't be picked up");
   toast('This belongs to ' + worldOwner + "'s world. You can take it in " + dropWait(d) + 's');
 }
 // another player dropped something (or a drop got bigger); a: how many ms ago it was dropped

@@ -592,6 +592,9 @@ function drawSmoke(ox, oy) {
   }
   g.globalAlpha = 1;
 }
+// how long a cracked block stays cracked after the last punch: blocks that break fast heal fast too
+// (owner, Oct 21 2026): 2 punches -> 1.7 s, 3 -> 2.4 s, ... at most 5 s (backgrounds count as 2)
+const healMs = (need) => Math.min(5000, 300 + 700 * Math.max(1, need));
 function render() {
   stepGates(); // gates.js
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -654,12 +657,12 @@ function render() {
         if (t === DIRT && m & 1) g.drawImage(grassTop(), ox + x * T, oy + y * T, T, T);
       }
       if (dmg[i]) {
-        if (now - dmgT[i] > 5000) {
+        if (now - dmgT[i] > healMs(hitsNeeded(b))) {
           dmg[i] = 0;
         } else drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b));
       }
     }
-  for (let i = 0; i < bgDmg.length; i++) if (bgDmg[i] && now - dmgT[i] > 5000) bgDmg[i] = 0;
+  for (let i = 0; i < bgDmg.length; i++) if (bgDmg[i] && now - dmgT[i] > healMs(2)) bgDmg[i] = 0;
   // music notes: the beat plays the next column, then the notes get their letters and pops (music.js)
   stepMusic();
   drawMusic(ox, oy, T, vx0, vy0, vx1, vy1);

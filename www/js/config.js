@@ -410,6 +410,7 @@ const SPLICE = {
   'mushroom+torch': 'magic_mushroom',
   'glass_pane+lava': 'lava_lamp',
   'dirt+water_bucket': 'sand',
+  'sand+yellow_block': 'sponge',
   'wooden_background+yellow_block': 'painting_dink_duck',
   'white_block+wooden_background': 'painting_yerfdog',
   'dark_grey_block+grey_block': 'air_duct',
