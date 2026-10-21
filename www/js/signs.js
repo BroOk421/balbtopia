@@ -210,23 +210,43 @@ function useDoor(x, y) {
   };
   return true;
 }
-// called by the game loop around render(): zooms the camera into the door, darkening, then goes
+// called by the game loop around render(): zooms into the door, darkening, then goes.
+// Smooth (owner, Oct 21 2026: it used to jump): the world is drawn as usual, then the finished picture is scaled up
+// around the door, which glides from where it is on screen to the middle, so there is no jump at the start and no
+// seams between tiles from an in-between zoom.
+let doorBuf = null;
 function doorZoomBegin() {
   if (!doorTrip) return null;
   const u = Math.min(1, (now - doorTrip.t0) / DOOR_ZOOM_MS),
-    e = u * u * (3 - 2 * u),
-    z0 = Z;
-  Z = z0 * (1 + 1.6 * e);
-  cam.x = doorTrip.x - cv.width / Z / 2;
-  cam.y = doorTrip.y - cv.height / Z / 2;
-  return { z0, e, done: u >= 1 };
+    e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2; // ease in-out (cubic)
+  return { e, done: u >= 1 };
 }
 function doorZoomEnd(st) {
   if (st) {
-    Z = st.z0;
+    const W = cv.width,
+      H = cv.height,
+      s = 1 + 1.6 * st.e,
+      dx = (doorTrip.x - cam.x) * Z, // the door on screen now
+      dy = (doorTrip.y - cam.y) * Z,
+      cx = dx + (W / 2 - dx) * st.e, // ... gliding to the middle
+      cy = dy + (H / 2 - dy) * st.e;
+    if (!doorBuf) doorBuf = document.createElement('canvas');
+    if (doorBuf.width !== W || doorBuf.height !== H) {
+      doorBuf.width = W;
+      doorBuf.height = H;
+    }
+    const b = doorBuf.getContext('2d');
+    b.clearRect(0, 0, W, H);
+    b.drawImage(cv, 0, 0);
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.fillStyle = `rgba(0,0,0,${st.e})`;
-    g.fillRect(0, 0, cv.width, cv.height);
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, W, H);
+    // never past the edge of the picture (near the map's left / right end the door stays off-centre instead)
+    const x0 = Math.min(0, Math.max(W - W * s, cx - dx * s)),
+      y0 = Math.min(0, Math.max(H - H * s, cy - dy * s));
+    g.drawImage(doorBuf, x0, y0, W * s, H * s);
+    g.fillStyle = `rgba(0,0,0,${Math.pow(st.e, 1.6)})`; // darkens a bit later than it zooms
+    g.fillRect(0, 0, W, H);
     if (st.done) {
       const go = doorTrip.go;
       doorTrip = null;

@@ -421,7 +421,7 @@ function drawCharacter(c, ox, oy) {
   const headTop = top + Math.min(4, hairTop, eq.hat ? (eq.hat === 'top_hat' ? -52 : -26) : 4) * sc * Z;
   const tagW = drawNameTag(c.name, cx, headTop - 4 * Z);
   if (c.say) drawBubble(c.say.text, cx, headTop - 11 * Z, Math.min(1, c.say.t * 2));
-  return { cx, headTop, tagW };
+  return { cx, headTop, tagW, bald: top + 4 * sc * Z }; // bald: the top of the bare head (no hair / hat)
 }
 // the arm: a punch flies out and back; after placing a block (c.place) it is simply out,
 // with the hand giving a quick shake at the start, like in Growtopia

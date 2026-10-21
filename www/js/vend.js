@@ -63,16 +63,24 @@ function vendIcon(body, id) {
   const box = body.querySelector('.vpic');
   if (box && id) box.appendChild(shopPic(id));
 }
-// the owner: fill it, price it, empty it, collect
-function vendOwner(i) {
+// the owner: fill it, price it, empty it, collect. What goes in is the item you HOLD when you click the machine
+// (owner, Oct 21 2026: no search box or item list any more): hold a block, seed, wearable... and click the machine
+// from up to WRENCH_REACH tiles away (useVend). The top shows that item's picture, how many are inside and how many
+// you have; under it the amount to put in. With the wrench it opens on what is already inside.
+function vendOwner(i, held) {
   const v = vends.get(i) || { id: null, n: 0, p: 1, per: false, e: 0 };
-  const choices = inv.filter((s) => sellable(s.id) && (!v.id || v.n === 0 || s.id === v.id));
+  const id = held || (v.id && v.n > 0 ? v.id : null),
+    have = id ? countItem(id) : 0;
+  const head = id
+    ? `<div class="vrow"><div class="vpic"></div><div><b>${esc(ITEMS[id].name)}</b><br>${(v.id === id ? v.n : 0).toLocaleString()} inside<br><small>You have ${have.toLocaleString()}</small></div></div>`
+    : '<p class="mnote">Hold the item you want to sell and click the machine to put it in.</p>';
   const body = dialog(
     'VENDING MACHINE',
     `<div class="vend">
+      ${head}
+      <input type="hidden" id="vItem" value="${id && have > 0 ? esc(id) : ''}">
       <div class="lfield">Put in
-        <div class="vpickbox"></div><input type="hidden" id="vItem" value="">
-        <div class="vline vwrap"><input id="vQty" class="vnum" type="number" min="1" max="${VEND_ADD}" placeholder="Qty" inputmode="numeric" /><button class="btn" id="vAdd" type="button">Add</button>
+        <div class="vline vwrap"><input id="vQty" class="vnum" type="number" min="1" max="${VEND_ADD}" placeholder="Qty" inputmode="numeric" ${id && have > 0 ? '' : 'disabled'} /><button class="btn" id="vAdd" type="button" ${id && have > 0 ? '' : 'disabled'}>Add</button>
         <button class="btn ghost" id="vTake" type="button" ${v.n > 0 ? '' : 'disabled'}>${v.n > 0 ? 'Take out ' + v.n.toLocaleString() : 'Take out'}</button>
         <button class="btn" id="vCollect" type="button" ${v.e > 0 ? '' : 'disabled'}>Collect ${v.e.toLocaleString()} WL</button></div>
       </div>
@@ -84,29 +92,26 @@ function vendOwner(i) {
     </div>`,
     [{ label: 'Close', cls: 'ghost', run: () => {} }],
   );
-  // (owner, Oct 21 2026: the top row with the picture, name and count is gone to keep the pop-up small; the picker
-  // shows the picked item and how many you have, Take out shows how many are inside)
-  // what can go in: pictures with how many you have, and a search box (social.js itemPicker)
-  const ids = [...new Set(choices.map((s) => s.id))];
-  body.querySelector('#vItem').value = v.id && ids.includes(v.id) ? v.id : ids[0] || '';
-  if (ids.length)
-    itemPicker(body.querySelector('.vpickbox'), ids, {
-      count: countItem,
-      selected: body.querySelector('#vItem').value,
-      onPick: (id) => {
-        body.querySelector('#vItem').value = id;
-      },
-    });
-  else body.querySelector('.vpickbox').innerHTML = '<p class="mnote">Nothing in your bag can go in.</p>';
+  if (id) vendIcon(body, id);
+  // holding an item: the amount box is ready to type in, and Enter adds
+  const qty = body.querySelector('#vQty');
+  if (held && have > 0) setTimeout(() => qty.focus(), 0);
+  qty.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      body.querySelector('#vAdd').click();
+    }
+  };
   const save = (nv) => {
     setVend(i, nv);
     vendChanged(i);
-    vendOwner(i);
+    vendOwner(i, held && countItem(held) > 0 ? held : null);
   };
   body.querySelector('#vAdd').onclick = () => {
     const id = body.querySelector('#vItem').value,
       want = Math.floor(Number(body.querySelector('#vQty').value) || 0);
-    if (!id) return toast('Nothing in your bag can go in');
+    if (!id) return toast('Hold the item you want to sell and click the machine');
+    if (v.id && v.n > 0 && v.id !== id) return toast('Take out the ' + ITEMS[v.id].name + ' first: a machine sells one kind of item');
     if (want > VEND_ADD) return toast('You can put in up to ' + VEND_ADD + ' at a time');
     const n = Math.min(want, countItem(id), VEND_MAX - (v.id === id ? v.n : 0));
     if (n <= 0) return toast(want > 0 ? 'The machine is full' : 'Type how many to put in');
@@ -136,6 +141,20 @@ function vendOwner(i) {
     Native.haptic('medium');
     save({ ...v, e: 0, c: (v.c | 0) + 1 });
   };
+}
+// clicking a Vending Machine while holding something it can sell (owner only, within WRENCH_REACH of your tile,
+// like the wrench): its pop-up opens with that item ready to put in (called from act, actions.js)
+function useVend(x, y) {
+  const i = at(x, y);
+  if (!isVendT(fg[i]) || !isOwner() || !hand || hand === 'fist' || hand === 'wrench' || !sellable(hand)) return false;
+  if (!inWrenchReach(x, y)) {
+    toast('Move closer to the Vending Machine');
+    return true;
+  }
+  const v = vends.get(i);
+  if (v && v.id && v.n > 0 && v.id !== hand) toast('This machine sells ' + ITEMS[v.id].name + ': take it out first to sell something else');
+  vendOwner(i, hand);
+  return true;
 }
 // a visitor: how many, then buy
 function vendBuyer(i) {

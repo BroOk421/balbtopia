@@ -684,7 +684,7 @@ drawCharacter = ((prev) =>
       g.globalAlpha = 0.3;
       g.imageSmoothingEnabled = false;
       // close to the head, a little to the right (owner): its tail touches the top right of the head
-      g.drawImage(pic, Math.round(m.cx + 5 * Z), Math.round(m.headTop + 1 * Z - h), w, h);
+      g.drawImage(pic, Math.round(m.cx + 5 * Z), Math.round((m.bald !== undefined ? m.bald : m.headTop) + 1 * Z - h), w, h); // always by the head itself, not the hair or hat
       g.restore();
     }
     return m;

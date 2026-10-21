@@ -863,15 +863,6 @@
     },
     {
       "seeds": [
-        "grass",
-        "red_block"
-      ],
-      "result": "red_hair",
-      "source": "growtopia",
-      "note": "Red Hair = Grass + Red Block"
-    },
-    {
-      "seeds": [
         "bricks",
         "amber_glass"
       ],
@@ -1799,33 +1790,6 @@
     },
     {
       "seeds": [
-        "dirt",
-        "rock_background"
-      ],
-      "result": "tan_shirt",
-      "source": "growtopia",
-      "note": "Tan Shirt = Dirt + Rock Background"
-    },
-    {
-      "seeds": [
-        "dirt",
-        "wood_block"
-      ],
-      "result": "cargo_shorts",
-      "source": "growtopia",
-      "note": "Cargo Shorts = Dirt + Wood Block"
-    },
-    {
-      "seeds": [
-        "dirt",
-        "mushroom"
-      ],
-      "result": "stinky_socks",
-      "source": "growtopia",
-      "note": "Yellow Socks = Dirt + Mushroom"
-    },
-    {
-      "seeds": [
         "grass",
         "mushroom"
       ],
@@ -1844,24 +1808,6 @@
     },
     {
       "seeds": [
-        "black_block",
-        "door"
-      ],
-      "result": "black_pants",
-      "source": "growtopia",
-      "note": "Black Pants = Black Block + Door"
-    },
-    {
-      "seeds": [
-        "black_block",
-        "rock"
-      ],
-      "result": "boots",
-      "source": "growtopia",
-      "note": "Boots = Black Block + Rock"
-    },
-    {
-      "seeds": [
         "lava",
         "red_block"
       ],
@@ -1871,30 +1817,12 @@
     },
     {
       "seeds": [
-        "grey_block",
-        "rose"
-      ],
-      "result": "tuxedo",
-      "source": "growtopia",
-      "note": "Tuxedo = Grey Block + Rose"
-    },
-    {
-      "seeds": [
         "black_block",
         "mushroom"
       ],
       "result": "top_hat",
       "source": "growtopia",
       "note": "Top Hat = Black Block + Mushroom"
-    },
-    {
-      "seeds": [
-        "black_block",
-        "amber_glass"
-      ],
-      "result": "shades",
-      "source": "balbtopia",
-      "note": "Shades = Black Block + Amber Glass (Balbtopia recipe)"
     },
     {
       "seeds": [
@@ -1917,56 +1845,11 @@
     {
       "seeds": [
         "black_block",
-        "white_block"
-      ],
-      "result": "referee_shirt",
-      "source": "growtopia",
-      "note": "Referee Shirt = Black Block + White Block"
-    },
-    {
-      "seeds": [
-        "black_block",
         "bush"
       ],
       "result": "afro",
       "source": "growtopia",
       "note": "Afro = Black Block + Bush"
-    },
-    {
-      "seeds": [
-        "grass",
-        "green_block"
-      ],
-      "result": "green_shirt",
-      "source": "growtopia",
-      "note": "Green Shirt = Grass + Green Block"
-    },
-    {
-      "seeds": [
-        "bush",
-        "green_block"
-      ],
-      "result": "green_blouse",
-      "source": "growtopia",
-      "note": "Green Blouse = Bush + Green Block"
-    },
-    {
-      "seeds": [
-        "green_block",
-        "poppy"
-      ],
-      "result": "green_skirt",
-      "source": "growtopia",
-      "note": "Green Skirt = Green Block + Poppy"
-    },
-    {
-      "seeds": [
-        "bush",
-        "red_bricks"
-      ],
-      "result": "red_coat",
-      "source": "balbtopia",
-      "note": "Red Coat = Bush + Red Bricks (Balbtopia recipe)"
     },
     {
       "seeds": [
@@ -1976,33 +1859,6 @@
       "result": "biker_stache",
       "source": "growtopia",
       "note": "Long Mustache = Brown Block + Grass"
-    },
-    {
-      "seeds": [
-        "brown_block",
-        "dirt"
-      ],
-      "result": "brown_hair",
-      "source": "growtopia",
-      "note": "Brown Hair = Brown Block + Dirt"
-    },
-    {
-      "seeds": [
-        "brown_block",
-        "cave"
-      ],
-      "result": "brown_shoes",
-      "source": "growtopia",
-      "note": "Brown Shoes = Brown Block + Cave Background"
-    },
-    {
-      "seeds": [
-        "daisy",
-        "orange_block"
-      ],
-      "result": "pigtails",
-      "source": "growtopia",
-      "note": "Pigtails = Daisy + Orange Block"
     },
     {
       "seeds": [
@@ -2024,15 +1880,6 @@
     },
     {
       "seeds": [
-        "brick_background",
-        "grey_block"
-      ],
-      "result": "patent_leather_shoes",
-      "source": "growtopia",
-      "note": "Patent Leather Shoes = Brick Background + Grey Block"
-    },
-    {
-      "seeds": [
         "black_block",
         "yellow_block"
       ],
@@ -2048,15 +1895,6 @@
       "result": "pencil",
       "source": "growtopia",
       "note": "Pencil = Wood Block + Yellow Block"
-    },
-    {
-      "seeds": [
-        "grass",
-        "yellow_block"
-      ],
-      "result": "blonde_bombshell",
-      "source": "growtopia",
-      "note": "Long Blonde Hair = Grass + Yellow Block"
     },
     {
       "seeds": [
@@ -2096,24 +1934,6 @@
     },
     {
       "seeds": [
-        "aqua_block",
-        "rock"
-      ],
-      "result": "jeans",
-      "source": "growtopia",
-      "note": "Jeans = Aqua Block + Rock"
-    },
-    {
-      "seeds": [
-        "bush",
-        "wooden_platform"
-      ],
-      "result": "baseball_cap",
-      "source": "growtopia",
-      "note": "Baseball Cap = Bush + Wooden Platform"
-    },
-    {
-      "seeds": [
         "lava",
         "white_block"
       ],
@@ -2129,24 +1949,6 @@
       "result": "cyclopean_visor",
       "source": "growtopia",
       "note": "Red Visor = Red Block + Window"
-    },
-    {
-      "seeds": [
-        "window",
-        "wooden_window"
-      ],
-      "result": "big_glasses",
-      "source": "growtopia",
-      "note": "Big Glasses = Window + Wooden Window"
-    },
-    {
-      "seeds": [
-        "crappy_sign",
-        "red_block"
-      ],
-      "result": "messy_auburn_tresses",
-      "source": "balbtopia",
-      "note": "Messy Red Hair = Old Sign + Red Block (Balbtopia recipe)"
     },
     {
       "seeds": [
@@ -2177,48 +1979,12 @@
     },
     {
       "seeds": [
-        "grey_block",
-        "olde_timey_radio"
-      ],
-      "result": "grey_hair_bun",
-      "source": "growtopia",
-      "note": "Grey Hair Bun = Grey Block + Old Radio"
-    },
-    {
-      "seeds": [
         "brown_block",
         "olde_timey_radio"
       ],
       "result": "old_timey_hat",
       "source": "growtopia",
       "note": "Old-Timey Hat = Brown Block + Old Radio"
-    },
-    {
-      "seeds": [
-        "black_block",
-        "neon_lights"
-      ],
-      "result": "hot_pink_highlights",
-      "source": "growtopia",
-      "note": "Pink Streak Hair = Black Block + Neon Lights"
-    },
-    {
-      "seeds": [
-        "rainbow_block",
-        "rustic_fence"
-      ],
-      "result": "unicorn_hair",
-      "source": "balbtopia",
-      "note": "Pastel Hair = Rainbow Block + Rustic Fence (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "purple_block",
-        "rustic_fence"
-      ],
-      "result": "purple_mohawk",
-      "source": "balbtopia",
-      "note": "Black Bob = Purple Block + Rustic Fence (Balbtopia recipe)"
     },
     {
       "seeds": [
@@ -2231,57 +1997,12 @@
     },
     {
       "seeds": [
-        "white_block",
-        "white_wallpaper"
-      ],
-      "result": "plain_white_tee",
-      "source": "growtopia",
-      "note": "Plain White Tee = White Block + White Wallpaper"
-    },
-    {
-      "seeds": [
-        "happy_joy_plaque",
-        "polka_dot_block"
-      ],
-      "result": "clown_pants",
-      "source": "growtopia",
-      "note": "Clown Pants = Smiley Plaque + Polka Dot Block"
-    },
-    {
-      "seeds": [
-        "checker_wallpaper",
-        "polka_dot_block"
-      ],
-      "result": "tie_dyed_shirt",
-      "source": "growtopia",
-      "note": "Tie Dyed Shirt = Checker Wallpaper + Polka Dot Block"
-    },
-    {
-      "seeds": [
-        "polka_dot_block",
-        "rose"
-      ],
-      "result": "sexy_boxers",
-      "source": "growtopia",
-      "note": "Heart Boxers = Polka Dot Block + Rose"
-    },
-    {
-      "seeds": [
         "rose",
         "white_wallpaper"
       ],
       "result": "wedding_dress",
       "source": "growtopia",
       "note": "Wedding Dress = Rose + White Wallpaper"
-    },
-    {
-      "seeds": [
-        "death_spikes",
-        "yellow_block"
-      ],
-      "result": "spikey_hair",
-      "source": "growtopia",
-      "note": "Spikey Hair = Death Spikes + Yellow Block"
     },
     {
       "seeds": [
@@ -2300,15 +2021,6 @@
       "result": "jetpack",
       "source": "growtopia",
       "note": "Jetpack = Lava + Steel Block"
-    },
-    {
-      "seeds": [
-        "bed",
-        "checker_wallpaper"
-      ],
-      "result": "checkered_pajamas",
-      "source": "growtopia",
-      "note": "Checkered Pajamas = Bed + Checker Wallpaper"
     },
     {
       "seeds": [
@@ -2354,15 +2066,6 @@
       "result": "long_brown_hair",
       "source": "growtopia",
       "note": "Long Brown Hair = Grass + Wooden Table"
-    },
-    {
-      "seeds": [
-        "black_block",
-        "portcullis"
-      ],
-      "result": "long_black_hair",
-      "source": "growtopia",
-      "note": "Long Black Hair = Black Block + Portcullis"
     },
     {
       "seeds": [
@@ -2678,6 +2381,24 @@
       "result": "sponge",
       "source": "balbtopia",
       "note": "Sponge = Sand + Yellow Block (soaks up water placed with the Water Bucket; Oct 21 2026)"
+    },
+    {
+      "seeds": [
+        "bush",
+        "dirt"
+      ],
+      "result": "bush_block",
+      "source": "balbtopia",
+      "note": "Hedge (id bush_block) = Bush + Dirt (a solid trimmed hedge block; Oct 21 2026)"
+    },
+    {
+      "seeds": [
+        "dirt",
+        "romantic_bushes"
+      ],
+      "result": "romantic_bush_block",
+      "source": "balbtopia",
+      "note": "Rose Hedge (id romantic_bush_block) = Romantic Bushes + Dirt (Oct 21 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

@@ -116,6 +116,8 @@ function act() {
   if (usePiano(x, y)) return;
   // a Mannequin: dress it with what you hold, or take its things back with the fist (display.js)
   if (useMannequin(x, y)) return;
+  // a Vending Machine clicked while holding something to sell: its pop-up, with that item (vend.js)
+  if (useVend(x, y)) return;
   const held = ITEMS[hand];
   // fists (or anything that isn't placed) on another player: punch them
   if (hand === 'fist' || !held || held.kind === 'clothing' || held.kind === 'tool') {

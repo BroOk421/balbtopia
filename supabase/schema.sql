@@ -659,10 +659,51 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('galaxy_wings', 1, 0, true, 96),
   ('piano', 1, 3000, true, 0),
   ('piano', 5, 12500, true, 0),
-  ('genie_teapot', 1, 1000, true, 0)
+  ('genie_teapot', 1, 1000, true, 0),
+  -- outfit sets (sets.js): the set gives its pieces, which have recipes no more but aren't tracked
+  ('set_gentleman', 1, 20000, false, 0),
+  ('set_sporty', 1, 20000, false, 0),
+  ('set_biker', 1, 20000, false, 0),
+  ('set_lolo', 1, 20000, false, 0),
+  ('set_chill_guy', 1, 20000, false, 0),
+  ('set_sunshine', 1, 20000, false, 0),
+  ('set_cozy_night', 1, 20000, false, 0),
+  ('set_autumn_red', 1, 20000, false, 0),
+  ('set_pastel_pop', 1, 20000, false, 0),
+  ('set_lady_green', 1, 20000, false, 0),
+  ('set_pink_rock', 1, 20000, false, 0),
+  -- pets (pets.js): Shop-only, tracked
+  ('pet_puppy', 1, 15000, true, 0),
+  ('pet_kitten', 1, 15000, true, 0),
+  ('pet_bunny', 1, 15000, true, 0),
+  ('pet_chick', 1, 15000, true, 0),
+  ('pet_piglet', 1, 15000, true, 0),
+  ('pet_turtle', 1, 15000, true, 0),
+  ('pet_bee', 1, 15000, true, 0),
+  ('pet_sprout_slime', 1, 15000, true, 0),
+  ('pet_penguin', 1, 30000, true, 0),
+  ('pet_parrot', 1, 30000, true, 0),
+  ('pet_panda', 1, 30000, true, 0),
+  ('pet_fox', 1, 30000, true, 0),
+  ('pet_husky', 1, 30000, true, 0),
+  ('pet_arctic_fox', 1, 30000, true, 0),
+  ('pet_bat', 1, 30000, true, 0),
+  ('pet_jellyfish', 1, 30000, true, 0),
+  ('pet_shark', 1, 30000, true, 0),
+  ('pet_snow_owl', 1, 30000, true, 0),
+  ('pet_farmer_cat', 1, 30000, true, 0),
+  ('pet_lion', 1, 30000, true, 0),
+  ('pet_green_dragon', 1, 60000, true, 0),
+  ('pet_ice_dragon', 1, 60000, true, 0),
+  ('pet_unicorn', 1, 60000, true, 0),
+  ('pet_phoenix', 1, 60000, true, 0),
+  ('pet_cosmic_dragon', 1, 100000, true, 0),
+  ('pet_fire_dragon', 1, 100000, true, 0),
+  ('pet_trex', 1, 80000, true, 0),
+  ('pet_raptor', 1, 80000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('world_lock', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('display_box', 1), ('mannequin', 1), ('shovel', 1), ('golden_pickaxe', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('piano', 5), ('genie_teapot', 1));
+delete from public.shop_prices where (item, qty) not in (values ('world_lock', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('display_box', 1), ('mannequin', 1), ('shovel', 1), ('golden_pickaxe', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('piano', 5), ('genie_teapot', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,

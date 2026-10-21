@@ -107,7 +107,8 @@ function punchTree(x, y) {
     shake = 1.5;
     burst(x, y, SEED_COLOR[t.seed], 3);
     smoke(x, y, 3, 0.7);
-    if (n < TREE_HITS) {
+    // a Frost / Flame Dragon pet takes one hit off (pets.js)
+    if (n < Math.max(1, TREE_HITS - (typeof petHitBonus === 'function' ? petHitBonus() : 0))) {
       treeHits.set(i, { n, t: now / 1000 });
       return;
     }

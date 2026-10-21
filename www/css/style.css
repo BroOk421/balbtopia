@@ -1856,6 +1856,15 @@ button:focus-visible {
   width: 80px;
   height: 80px;
 }
+/* an outfit set: the character wearing it (sets.js) */
+.sdet .spic.big:has(.setpic) {
+  height: 150px;
+}
+.sdet .spic.big img.setpic {
+  width: auto;
+  height: 146px;
+  image-rendering: pixelated;
+}
 .sdet p {
   margin: 0;
   font-size: 13px;
