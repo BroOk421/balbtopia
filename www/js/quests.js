@@ -1,7 +1,7 @@
 // GENIE TEAPOT and DAILY QUESTS (owner, Oct 2026). The Genie Teapot is a block from the Shop (WORLD, 1,000 gold).
 // Wrench it: a pop-up with what it does and today's quest. A quest is one of: harvest trees, break blocks, plant
 // seeds (a count, kept while you play), or send blocks / seeds (SEND takes them out of the bag). When it's done, CLAIM
-// gives 1 Balb Coin. One quest a day, new every day at midnight Philippine time, the same for a player all day
+// gives a reward (owner, Oct 23 2026: 1 Balb Coin for a rare quest, random gold for a common one). One quest a day, new every day at midnight Philippine time, the same for a player all day
 // (picked from the day and the player's name).
 // Online the server decides: quest_today says the day and whether today's coin was claimed; claim_daily_quest adds
 // the coin, once a day (supabase/schema.sql). Offline the coin is only local.
@@ -13,7 +13,7 @@ ITEMS.genie_teapot = {
   name: 'Genie Teapot',
   kind: 'block',
   block: TEAPOT,
-  desc: 'A magic teapot. Wrench it for a daily quest; finish it to get 1 Balb Coin. A new quest every day.',
+  desc: 'A magic teapot. Wrench it for a daily quest; finish it for a reward: 1 Balb Coin for a rare quest, random gold for a common one. A new quest every day.',
   rarity: 'Rare',
 };
 const isTeapotT = (t) => t === TEAPOT;
@@ -193,9 +193,25 @@ function questTick(k, id) {
   if (quest.done || q.k !== k || quest.n >= q.n) return;
   if (q.id && q.id !== id) return;
   quest.n++;
-  if (quest.n === q.n) toast('Daily quest done! Wrench a Genie Teapot to claim your Balb Coin');
+  if (quest.n === q.n) toast('Daily quest done! Wrench a Genie Teapot to claim your reward');
 }
 const questReady = (q) => (q.k === 'give' ? quest.sent : quest.n >= q.n);
+
+// ---------- the reward (owner, Oct 23 2026) ----------
+// A RARE quest (rarity tier Rare or higher) gives 1 Balb Coin; every other one
+// (Common, Uncommon and the three general quests) gives a random amount of gold, picked when you CLAIM. Online the server rolls the amount (claim_daily_quest
+// with p_kind, supabase/schema.sql); the ranges here are only for the pop-up text and offline play. Keep both the same.
+const QUEST_REWARD = { bc: [1, 1], gold: [250, 1000] }; // rare: always 1 Balb Coin (owner, Oct 23 2026)
+const questKind = (q) => (q.r && ['Rare', 'Epic', 'Legendary'].includes(rarityTier(q.r)) ? 'bc' : 'gold');
+const rewardText = (kind) => {
+  const [a, b] = QUEST_REWARD[kind];
+  if (a === b) return a.toLocaleString() + (kind === 'bc' ? ' Balb Coin' + (a === 1 ? '' : 's') : ' gold');
+  return a.toLocaleString() + '-' + b.toLocaleString() + (kind === 'bc' ? ' Balb Coins' : ' gold') + ' <small>(random)</small>';
+};
+const rollReward = (kind) => {
+  const [a, b] = QUEST_REWARD[kind];
+  return kind === 'bc' ? a + Math.floor(Math.random() * (b - a + 1)) : a + 50 * Math.floor(Math.random() * ((b - a) / 50 + 1));
+};
 
 // ---------- the pop-up ----------
 let teapotAt = null; // the teapot tile last wrenched: the coin flies from there
@@ -218,6 +234,7 @@ async function openTeapot(x, y) {
 }
 function showTeapot() {
   const q = todayQuest(),
+    kind = questKind(q),
     give = q.k === 'give',
     has = give ? have(q.id) : 0,
     prog = give ? (quest.sent ? q.n : Math.min(has, q.n)) : Math.min(quest.n, q.n),
@@ -225,17 +242,17 @@ function showTeapot() {
   const state = quest.done
     ? '<p class="qdone">Done for today! A new quest comes at midnight.</p>'
     : questReady(q)
-      ? '<p class="qok">Quest done: claim your Balb Coin.</p>'
+      ? '<p class="qok">Quest done: claim your reward.</p>'
       : give
         ? `<p class="snote">You have ${has.toLocaleString()} / ${q.n}. Press SEND when you have them all; they are taken from your bag.</p>`
         : `<p class="snote">${prog} / ${q.n} so far.</p>`;
   const body = dialog(
     'GENIE TEAPOT',
     `<div class="sdet qwin"><div class="spic big"></div>
-      <p>Rub, rub... The genie gives you one quest a day. Finish it to get <b>1 Balb Coin</b>.</p>
+      <p>Rub, rub... The genie gives you one quest a day. Finish it for a reward: <b>1 Balb Coin</b> for a rare quest, <b>gold</b> (random) for a common one.</p>
       <div class="qbox"><div class="qlabel">TODAY'S QUEST${q.r ? ' · ' + rarityTier(q.r).toUpperCase() : ''}</div><div class="qtask">${esc(questText(q))}</div>
         <div class="qbar"><i style="width:${pct}%"></i></div>
-        <div class="qrew">Reward: <canvas class="bcc" width="64" height="64"></canvas> 1 Balb Coin</div></div>
+        <div class="qrew">Reward: ${kind === 'bc' ? '<canvas class="bcc" width="64" height="64"></canvas>' : '<canvas class="bcc" width="32" height="32"></canvas>'} ${rewardText(kind)}</div></div>
       ${state}</div>`,
     quest.done
       ? [{ label: 'Close', run: () => {} }]
@@ -252,7 +269,9 @@ function showTeapot() {
           : [{ label: 'Close', run: () => {} }],
   );
   body.querySelector('.spic').appendChild(decoCanvas('genie_teapot'));
-  body.querySelector('.qrew canvas').getContext('2d').drawImage(balbCoin(), 0, 0);
+  const rc = body.querySelector('.qrew canvas').getContext('2d');
+  if (kind === 'bc') rc.drawImage(balbCoin(), 0, 0);
+  else drawCoin(rc);
 }
 function sendQuest(q) {
   if (quest.sent || have(q.id) < q.n) return showTeapot();
@@ -268,12 +287,28 @@ async function claimQuest() {
   const q = todayQuest();
   if (claiming || quest.done || !questReady(q)) return;
   claiming = true;
-  const shown = P.bc | 0; // the counter keeps this until the coin lands
+  let kind = questKind(q),
+    shown = kind === 'bc' ? P.bc | 0 : P.gold; // the counter keeps this until the coin lands
+  let got = 0;
   try {
     if (Wallet.on()) {
-      const w = await Wallet.rpc('claim_daily_quest', { p_day: quest.day });
+      let w;
+      try {
+        w = await Wallet.rpc('claim_daily_quest', { p_day: quest.day, p_kind: kind });
+      } catch (e) {
+        // a server without the new function (schema.sql not run again yet): the old 1 Balb Coin
+        if (!/could not find|does not exist|schema cache/i.test(e.message || '')) throw e;
+        w = await Wallet.rpc('claim_daily_quest', { p_day: quest.day });
+        kind = 'bc';
+        shown = P.bc | 0;
+      }
+      got = w && w.got > 0 ? w.got : 1;
       Wallet.show(w);
-    } else P.bc = (P.bc | 0) + 1;
+    } else {
+      got = rollReward(kind);
+      if (kind === 'bc') P.bc = (P.bc | 0) + got;
+      else P.gold += got;
+    }
   } catch (e) {
     claiming = false;
     const m = e.message || String(e);
@@ -287,7 +322,38 @@ async function claimQuest() {
   quest.done = true;
   savePlayer();
   closeDialog(); // so the coin can be seen flying
-  bcReward(1, shown);
+  if (kind === 'bc') bcReward(got, shown);
+  else goldReward(got, shown);
+}
+// the same flight for a gold reward: the big gold coin, "+N gold" in gold, then the gold counter pops
+function goldReward(n, shown) {
+  $('goldN').textContent = shown.toLocaleString();
+  const t = teapotAt,
+    pic = document.createElement('canvas');
+  pic.width = pic.height = 32;
+  drawCoin(pic.getContext('2d'));
+  const from = t ? () => ({ x: t.x * TS + 16, y: t.y * TS + 6 }) : () => ({ x: P.x + P.w / 2, y: P.y - 40 }),
+    land = () => {
+      updateGold(true);
+      Sfx.play('pickup');
+      Native.haptic('medium');
+      toast('+' + n.toLocaleString() + ' gold!');
+    };
+  if (P.dead) return land();
+  flyers.push({
+    id: 'gold',
+    qty: n,
+    pic,
+    label: '+' + n.toLocaleString() + ' gold',
+    col: '#ffd23f',
+    spark: ['#fff6c8', '#ffd23f', '#b8860b'],
+    size: 16,
+    from,
+    to: posOf('me'),
+    t0: now + 120,
+    dur: 1000,
+    land,
+  });
 }
 // the reward animation (like items in a trade): the Balb Coin flies in an arc from the teapot to the player with
 // "+1 Balb Coin", bursts into green sparkles, and only then the counter goes up and its coin pops

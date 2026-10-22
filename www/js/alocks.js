@@ -13,8 +13,8 @@
 // tile that is still in such an area (its block was broken later) is free for everyone.
 // Only the owner (or a GM) breaks the lock; it floats out as a drop (like a Piano) and the area is free again.
 // A Gold Lock can't be placed while someone else's Red / Blue Lock is in the world (the owner's own are fine).
-// "Shrink block" (owner, Oct 22 2026): the lock covers only ONE kind of block (`b`, the block number), picked from the
-// bag after a confirm, and only where those blocks touch the lock and each other (spreading block to block from the
+// "Shrink block" (owner, Oct 22 2026): the lock covers only ONE kind of block (`b`, the block number), picked from a
+// pop-up listing the blocks inside the area (Oct 23 2026; was the bag), and only where those blocks touch the lock and each other (spreading block to block from the
 // lock); nothing else round it is locked. Fully protected like Air only (air false, so the server needs nothing new).
 // Saved with the world as `al`: [[lock tile, { k, o, t: [tiles], acc: [names], open, air, ao, b }], ...], sent to the
 // others with the tiles message (net.js diffTiles / applyTiles). The area is worked out ONCE, by the player who
@@ -397,29 +397,43 @@ function openALockWin(i, draft) {
     again();
   };
   body.querySelector("#alOpen").onchange = again;
-  // Shrink block: confirm, then pick the block from the bag; the area becomes those blocks at once
+  // Shrink block (owner, Oct 23 2026: no bag any more): a pop-up lists the blocks inside this lock's area, each with
+  // how many would stay locked; tapping one shrinks the lock to that block at once
   body.querySelector("#alShrink").onclick = () => {
     keep(body);
-    dialog(
-      name.toUpperCase(),
-      `<p class="dtext">Shrink this lock to one kind of block?</p>
-       <p class="mnote">Pick the block from your inventory. Only that block is locked, where it touches the lock and each other (up to ${ALOCK_SIZE[a.k] - 1} blocks).</p>`,
-      [
-        { label: "Cancel", cls: "ghost", run: () => (openALockWin(i, d), false) },
-        {
-          label: "Confirm",
-          run: () => {
-            alockWin = null;
-            pickFromBag(
-              "Tap the block to lock with the " + name,
-              (id) => alockShrinkable(ITEMS[id] && ITEMS[id].block),
-              (id) => alockShrink(i, d, ITEMS[id].block),
-              (id) => (ITEMS[id] && ITEMS[id].kind === "block" ? "This block can't be locked by itself" : "Pick a block (not a seed, background, clothes or tool)"),
-            );
-          },
-        },
-      ],
+    const kinds = alockShrinkKinds(i);
+    const back = { label: "Back", cls: "ghost", run: () => (openALockWin(i, d), false) };
+    if (!kinds.length) {
+      dialog(
+        "SHRINK BLOCK",
+        `<p class="dtext">There is no block inside this ${esc(name)}'s area that it can lock by itself.</p>
+         <p class="mnote">Put blocks next to the lock (touching it and each other), then try again.</p>`,
+        [back],
+      );
+      return;
+    }
+    const pop = dialog(
+      "SHRINK BLOCK",
+      `<p class="dtext">Tap the block to lock with this ${esc(name)}:</p>
+       <div class="pick shrinkpick"></div>
+       <p class="mnote">Only that block stays locked, where it touches the lock and each other. The number is how many.</p>`,
+      [back],
     );
+    const grid = pop.querySelector(".shrinkpick");
+    for (const k of kinds) {
+      const c = document.createElement("button");
+      c.type = "button";
+      c.className = "pcell";
+      c.title = BLOCK[k.t].name;
+      c.setAttribute("aria-label", BLOCK[k.t].name + ", " + k.n);
+      c.innerHTML = `<img src="${iconCanvas(BLOCK[k.t].id).toDataURL()}" alt=""><small>${k.n}</small>`;
+      c.onclick = () => {
+        closeDialog();
+        alockWin = null;
+        alockShrink(i, d, k.t);
+      };
+      grid.appendChild(c);
+    }
   };
   const un = body.querySelector("#alUnshrink");
   if (un) un.onclick = () => ((d.b = 0), again());
@@ -453,6 +467,22 @@ function openALockWin(i, draft) {
 // door is never taken anyway, alockClaim)
 const alockShrinkable = (t) =>
   Number.isInteger(t) && t > 0 && !!BLOCK[t] && !BLOCK[t].alock && !BLOCK[t].lock && BLOCK[t].hits !== Infinity;
+// the blocks the lock on tile i can shrink to: every kind of block inside its area (as it is now, or as it would be
+// with "Lock everything"), with how many of it would stay locked (touching the lock and each other), most first
+function alockShrinkKinds(i) {
+  const a = alocks.get(i);
+  if (!a) return [];
+  const size = ALOCK_SIZE[a.k],
+    seen = new Set();
+  for (const j of [...a.t, ...alockClaim(i, size, "", i)]) if (j !== i && alockShrinkable(fg[j])) seen.add(fg[j]);
+  const out = [];
+  for (const t of seen) {
+    if (!ITEMS[BLOCK[t].id]) continue;
+    const n = alockClaim(i, size, t, i).length - 1;
+    if (n > 0) out.push({ t, n });
+  }
+  return out.sort((x, y) => y.n - x.n || BLOCK[x.t].name.localeCompare(BLOCK[y.t].name));
+}
 // Shrink block picked: the area becomes the blocks of kind t that touch the lock and each other. Like Save, it also
 // keeps what was changed in the window (list, Everyone can build). Nothing touching: nothing changes.
 function alockShrink(i, d, t) {

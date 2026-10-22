@@ -97,7 +97,9 @@ let stillT = 0,
 // called every step (physics.js): sit or lie down when standing still on a seat or bed
 function updateRest(dt) {
   const dir = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
-  const still = P.ground && !dir && !P.dead && !P.punch && !P.place && Math.abs(P.vx) < 4 && P.kbT <= 0;
+  // punching or placing from a chair / couch keeps you sitting (owner, Oct 23 2026); in a bed it still wakes you
+  const seated = P.rest && P.rest.k === 'sit';
+  const still = P.ground && !dir && !P.dead && (seated || (!P.punch && !P.place)) && Math.abs(P.vx) < 4 && P.kbT <= 0;
   if (!still) return (stillT = 0), (P.rest = null);
   const tx = Math.floor((P.x + P.w / 2) / TS),
     ty = Math.floor((P.y + P.h - 1) / TS);
@@ -142,6 +144,14 @@ function restFromNet(rs) {
   return null;
 }
 
+// the way a sitter faces: a chair / couch turned left seats you facing right and the other way round; other seats
+// (Toilet) keep the player's own way
+function seatFace(r, own) {
+  const i = at(r.tx, r.ty);
+  return typeof faceLeftAt === 'function' && FACING.has(fg[i]) ? (faceLeftAt(i) ? 1 : -1) : own;
+}
+const sittingNow = () => !!(P.rest && P.rest.k === 'sit');
+
 // ---------- drawing ----------
 function drawResting(c, ox, oy) {
   const r = c.rest,
@@ -158,17 +168,28 @@ function drawResting(c, ox, oy) {
   if (r.k === 'sit') {
     // the owner's sitting pose (legs out in front), its head exactly where the standing head is, so hair and
     // hats fit; skin tone and clothes repainted like the standing body; bottom on the seat
-    const fr = frameAt(now + (c.blink || 0)), // blinking like when standing
+    const angry = c.angry > 0,
+      fr = angry ? 'open' : frameAt(now + (c.blink || 0)), // blinking like when standing (not while angry)
       body = outfitBody(sitWithHead(c.skin, fr), 'sit_' + c.skin + '_' + fr, eq, SIT_BANDS),
       seatY = tileY + SEATS[r.id] * 2 * Z,
       cx = tileX + (TS / 2) * Z,
-      top = Math.round(seatY - SIT_SEAT_ROW * k + breathe * 0.3 * Z);
+      top = Math.round(seatY - SIT_SEAT_ROW * k + breathe * 0.3 * Z),
+      // flipped (owner): a chair or couch turned to the left (furniture.js) seats you facing right, and the other way
+      face = seatFace(r, c.face);
+    // punching / placing while sitting (owner, Oct 23 2026): you stay seated, the arm reaches out from the
+    // shoulder like when standing (a tool swings at the end of it), behind the body
+    if (c.punch || c.place) {
+      const pc = Object.assign({}, c, { face });
+      drawPunch(pc, Math.round(cx), top, sc, ox, oy);
+      if (laserFace(eq) && c.punch) drawLaser(pc, Math.round(cx), top, sc, ox, oy);
+    }
     g.translate(Math.round(cx), 0);
-    // flipped (owner): a chair or couch turned to the left (furniture.js) seats you facing right, and the other way
-    g.scale(typeof faceLeftAt === 'function' && FACING.has(fg[at(r.tx, r.ty)]) ? (faceLeftAt(at(r.tx, r.ty)) ? 1 : -1) : c.face, 1);
+    g.scale(face, 1);
     drawBehind(c, top, sc, 0);
     if (body) g.drawImage(body, (-FR.w / 2 - SIT_PAD) * k, top, body.width * k, body.height * k);
-    drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
+    // the head on the sitting picture is the standing head, so the angry face fits it the same way
+    if (angry) g.drawImage(angryFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    else drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
     drawWorn(c, top, sc, 0);
     drawAuraFront(c, top, sc, 0);
     tagX = cx;

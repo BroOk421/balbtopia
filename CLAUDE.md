@@ -945,3 +945,40 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   - Empty Display Box wrenched (players with access): Confirm / Cancel -> bag -> `askDisplay` pop-up (picture, name,
     Cancel / Put in) -> `putDisplay` (shared with `useDisplay`; holding an item and clicking still works).
   - GAME_BUILD '2026-10-22 v'.
+
+- Oct 23 2026 (owner):
+  - Full screen on phones. App: `MainActivity.java` hides the status AND navigation bars (immersive, a swipe shows them
+    for a moment), draws under the camera notch, re-hides on resume / focus; needs `npm run sync` + a new APK. Phone
+    browsers: `webFullscreen` (native.js) asks for full screen on a `touchend` (not inside inputs) whenever the page
+    isn't full screen, then locks landscape. `www/manifest.json` (display fullscreen, landscape, icons in
+    `assets/icon/`) so Add to Home Screen opens without browser bars (the only way on iPhone Safari).
+  - Wrench: another player under the pointer wins over a wrench block (`act`, actions.js: `Net.playerAt` is checked
+    before the Vending Machine / door / Display Box / lock... checks and the "Move closer" check).
+  - Chat commands (`chatCommand`, social.js; never sent as chat, no spam count): `/pull NAME`, `/kick NAME` (out of the
+    world, no confirm), `/ban NAME` (opens the same BAN? pop-up as the wrench menu: `askBan(o)`), `/help`. Owner of a
+    locked world, online; NAME = a player in this world, case-insensitive, a unique start of the name is enough
+    (`chatPlayer`). `sendChat` returns 'keep' when a command opened its own pop-up (the chat doesn't close it).
+  - Sitting: punching / placing on a chair or couch keeps you seated (`updateRest`: `seated`); a bed still wakes you.
+    `drawResting` draws the angry face (`angryFace`, no blinking) and the punch arm (`drawPunch` with the seat's way,
+    `seatFace`; Laser Eyes too) while sitting. `startPunch` / `startPlace` don't turn you while seated (`sittingNow`).
+  - Daily quest reward (`QUEST_REWARD`, quests.js): a quest of tier Rare or higher (`questKind` 'bc') gives
+    1 Balb Coin (was 1-3 in build a; owner: only 1), every other one (Common, Uncommon, the 3 general ones) 250-1,000 gold in steps of 50. Server:
+    `claim_daily_quest(p_day, p_kind)` rolls the amount and returns `got` (the one-argument version stays for old
+    builds; the game falls back to it when the new one is missing). Gold flies in with `goldReward`. Re-run schema.sql.
+  - GAME_BUILD '2026-10-23 a'.
+
+- Oct 23 2026 (owner, later):
+  - Rare daily quest = exactly 1 Balb Coin (`QUEST_REWARD.bc` [1, 1]; schema.sql `claim_daily_quest(date, text)` n := 1).
+    Common / Uncommon / general stay random gold 250-1,000.
+  - Red / Blue Lock Shrink block: no bag any more. The button opens a pop-up (`SHRINK BLOCK`, `.shrinkpick` of
+    `.pcell`s) listing every block inside the lock's area (current tiles + the "Lock everything" area) that it can
+    shrink to, each with how many tiles would stay locked (`alockShrinkKinds(i)`, most first); tapping one calls
+    `alockShrink` at once. Back returns to the lock window. `pickFromBag` is still used by Vending Machine / Display Box.
+  - Bag on phones (landscape, height <= 520 px): smaller (min(48vw, 330px)), anchored TOP LEFT so the hotbar below
+    and the gold / Balb Coin counters stay visible; the window is a flex column with `overflow: hidden` (no outer
+    scroll), only the grid scrolls; smaller cells, Wearing boxes 24 px, "Wearing:" label hidden.
+  - Press and hold an item in the bag (`holdToHotbar`, `HOLD_PICK_MS` 380, a gold bar fills): it lifts out
+    (`.bagghost` follows the finger), slots 3-0 glow (`sel`, `.hb.target`), let go on a slot = `toHotbar` (slots carry
+    `data-k`); let go elsewhere = stays picked, tap a glowing slot. `touchmove` is cancelled while dragging so the grid
+    doesn't scroll. A short tap still opens the item pop-up (and the slots glow, now visible on phones).
+  - GAME_BUILD '2026-10-23 b'.

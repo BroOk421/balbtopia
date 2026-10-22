@@ -30,7 +30,7 @@ function inReach(tx, ty) {
 // the fist shoots out to the clicked point and grows (bare hands, no pickaxe yet)
 function startPunch(wx, wy) {
   const cx = P.x + P.w / 2;
-  if (Math.abs(wx - cx) > 2) P.face = wx > cx ? 1 : -1;
+  if (Math.abs(wx - cx) > 2 && !sittingNow()) P.face = wx > cx ? 1 : -1; // seated: keep facing the seat's way
   P.punch = { t: 0, x: wx, y: wy };
   P.angry = ANGRY_TIME; // punching and breaking make an angry face
   Net.sendPunch(wx, wy);
@@ -40,7 +40,7 @@ function startPunch(wx, wy) {
 // and the pose stays for PLACE_POSE seconds (or until you walk)
 function startPlace(wx, wy) {
   const cx = P.x + P.w / 2;
-  if (Math.abs(wx - cx) > 2) P.face = wx > cx ? 1 : -1;
+  if (Math.abs(wx - cx) > 2 && !sittingNow()) P.face = wx > cx ? 1 : -1; // seated: keep facing the seat's way
   P.punch = null;
   P.place = { t: 0, x: wx, y: wy, sx: P.x, sy: P.y };
   Net.sendPunch(wx, wy, 'place');
@@ -82,6 +82,10 @@ function act() {
   // wrench: click another player (or the wrench next to their name) to open their player menu
   if (hand === 'wrench') {
     const t = tileUnder();
+    // another player comes first (owner, Oct 23 2026): someone standing on or next to a Vending Machine, door,
+    // Display Box... could not be wrenched, the block's pop-up opened instead
+    const who = Net.playerAt(ptr.x, ptr.y);
+    if (who) return openPlayerMenu(who);
     // too far from the block: nothing opens (owner, Oct 21 2026)
     if (wrenchBlock(t.x, t.y) && !inWrenchReach(t.x, t.y)) {
       if (now - farWrenchT > 1500) {
@@ -99,8 +103,6 @@ function act() {
     if (inW(t.x, t.y) && isMannT(fg[at(t.x, t.y)])) return openMannequin(t.x, t.y);
     if (inW(t.x, t.y) && isGateT(fg[at(t.x, t.y)])) return openGate(t.x, t.y);
     if (inW(t.x, t.y) && isTeapotT(fg[at(t.x, t.y)])) return openTeapot(t.x, t.y); // daily quest (quests.js)
-    const other = Net.playerAt(ptr.x, ptr.y);
-    if (other) return openPlayerMenu(other);
     const onSelf = ptr.x > P.x - 4 && ptr.x < P.x + P.w + 4 && ptr.y > P.y - 14 && ptr.y < P.y + P.h + 4;
     if (onSelf)
       toast(Net.online ? 'Use the wrench on another player' : 'The wrench works on other players (online)');

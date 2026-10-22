@@ -1290,3 +1290,26 @@ begin
   return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc);
 end $$;
 grant execute on function public.quest_today(), public.claim_daily_quest(date) to authenticated;
+-- Reward (owner, Oct 23 2026): a RARE quest pays 1 Balb Coin, a common one a random 250-1,000 gold (steps of 50).
+-- The game says which kind (it knows the day's quest); the server rolls the amount and still pays once a day.
+-- Keep the ranges the same as QUEST_REWARD in www/js/quests.js. The one-argument version above stays for old builds.
+create or replace function public.claim_daily_quest(p_day date, p_kind text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare d date := (now() at time zone 'Asia/Manila')::date; w public.wallets; n bigint;
+begin
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  if p_kind is null or p_kind not in ('bc', 'gold') then raise exception 'Unknown reward' using errcode = 'P0001'; end if;
+  if p_day is distinct from d then raise exception 'A new day started: open the teapot again' using errcode = 'P0001'; end if;
+  perform public.my_wallet();
+  select * into w from public.wallets where id = auth.uid() for update;
+  if w.quest_day is not distinct from d then raise exception 'You already did today''s quest' using errcode = 'P0001'; end if;
+  if p_kind = 'bc' then
+    n := 1;
+    update public.wallets set bc = bc + n, quest_day = d where id = auth.uid() returning * into w;
+  else
+    n := 250 + 50 * floor(random() * 16)::bigint;
+    update public.wallets set gold = gold + n, quest_day = d where id = auth.uid() returning * into w;
+  end if;
+  return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'got', n, 'kind', p_kind);
+end $$;
+grant execute on function public.claim_daily_quest(date, text) to authenticated;

@@ -333,6 +333,10 @@ $('pmBan').onclick = () => {
   const o = other();
   closePlayerMenu();
   if (!o || !isOwner()) return;
+  askBan(o);
+};
+// the BAN? pop-up for player o ({ id, name }); also used by /ban in the chat
+function askBan(o) {
   dialog(
     'BAN?',
     `<p class="dmsg">Ban <b>${esc(o.name)}</b> from <b>${esc(worldName)}</b>? They are sent out at once and can't come back in until the ban ends.</p>
@@ -356,7 +360,7 @@ $('pmBan').onclick = () => {
       },
     ],
   );
-};
+}
 // show the owner-only buttons with the right label whenever the menu opens
 const _openPM = openPlayerMenu;
 openPlayerMenu = function (o) {
@@ -766,10 +770,11 @@ function openChat() {
   const body = dialog(
     'CHAT · ' + worldName,
     `<ul class="chatlog" id="chatLog">${rows}</ul>
-     <div class="chatrow"><input id="chatText" maxlength="${CHAT_MAX}" placeholder="Say something…" autocomplete="off" enterkeyhint="send" /><span class="chatcount" id="chatCount">0/${CHAT_MAX}</span></div>`,
+     <div class="chatrow"><input id="chatText" maxlength="${CHAT_MAX}" placeholder="Say something… (/help for commands)" autocomplete="off" enterkeyhint="send" /><span class="chatcount" id="chatCount">0/${CHAT_MAX}</span></div>`,
     [
       { label: 'Close', cls: 'ghost', run: () => {} },
-      { label: 'Send', run: (b) => sendChat(b.querySelector('#chatText').value) },
+      // a /command that opened its own pop-up ('keep') must not close it
+      { label: 'Send', run: async (b) => ((await sendChat(b.querySelector('#chatText').value)) === 'keep' ? false : undefined) },
     ],
   );
   const input = body.querySelector('#chatText'),
@@ -782,7 +787,7 @@ function openChat() {
   input.onkeydown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      sendChat(input.value).then((ok) => ok !== false && closeDialog());
+      sendChat(input.value).then((ok) => ok !== false && ok !== 'keep' && closeDialog());
     }
   };
 }
@@ -797,6 +802,7 @@ let chatBusy = false;
 async function sendChat(raw) {
   const text = String(raw || '').trim().slice(0, CHAT_MAX);
   if (!text || chatBusy) return false;
+  if (text[0] === '/') return chatCommand(text); // /pull, /kick, /ban: never sent as chat
   if (chatWait()) return toast('Too fast! Wait ' + chatWait() + 's before chatting again'), false;
   const t = Date.now();
   chatTimes = chatTimes.filter((s) => t - s < CHAT_WINDOW * 1000);
@@ -820,6 +826,49 @@ async function sendChat(raw) {
   P.say = { text, t: 4 };
   chatLog.push({ name: playerName, text, mine: true });
   if (chatLog.length > 60) chatLog.shift();
+}
+// ---------- chat commands (owner, Oct 23 2026) ----------
+// Typed in the chat, start with "/", never shown as chat: /pull NAME, /kick NAME, /ban NAME (the owner of a locked
+// world, same rules as the wrench player menu: Pull, Kick out, Ban from this world). NAME is a player in this world;
+// the start of a name is enough when only one player matches. /help lists them.
+// Returns false (chat stays open with the text), 'keep' (another pop-up opened) or true (done, chat closes).
+const CHAT_CMDS = {
+  pull: 'pull a player to you',
+  kick: 'kick a player out of this world',
+  ban: 'ban a player from this world',
+};
+function chatPlayer(q) {
+  q = lc(String(q || '').replace(/^@/, '').trim());
+  if (!q) return null;
+  const all = [...Net.remotes.values()].filter((r) => r && r.name);
+  return all.find((r) => lc(r.name) === q) || (all.filter((r) => lc(r.name).startsWith(q)).length === 1 ? all.find((r) => lc(r.name).startsWith(q)) : null);
+}
+function chatCommand(text) {
+  const [cmd0, ...rest] = text.slice(1).trim().split(/\s+/),
+    cmd = lc(cmd0 || ''),
+    arg = rest.join(' ');
+  if (!CHAT_CMDS[cmd]) {
+    toast((cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') + 'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', '));
+    return false;
+  }
+  if (!arg) return toast('Type /' + cmd + ' and the player\'s name (' + CHAT_CMDS[cmd] + ')'), false;
+  if (!Net.online) return toast('/' + cmd + ' works when playing online'), false;
+  if (!worldOwner || !isOwner()) return toast('Only the owner of this locked world can use /' + cmd), false;
+  const o = chatPlayer(arg);
+  if (!o) return toast('No player called "' + arg + '" in this world'), false;
+  if (cmd === 'pull') {
+    if (!Net.secure) return toast('Pull needs the new server setup (supabase/schema.sql)'), false;
+    Net.sendKick(o.id, 'pull', Math.round(P.x), Math.round(P.y)).then((err) => toast(err || 'Pulled ' + o.name + ' here'));
+    return true;
+  }
+  if (cmd === 'kick') {
+    Net.sendKick(o.id, 'out').then((err) => toast(err || 'Kicked ' + o.name));
+    return true;
+  }
+  // ban: the same pop-up as the wrench menu, to pick how long
+  if (!Net.secure || worldName === LOBBY_WORLD) return toast(worldName === LOBBY_WORLD ? "Nobody can be banned from the LOBBY" : 'Bans need the new server setup (supabase/schema.sql)'), false;
+  askBan(o);
+  return 'keep';
 }
 // other players get the same limit here too, so a changed game can't flood everyone's screen
 const chatHeard = new Map(); // player id -> times of their recent messages

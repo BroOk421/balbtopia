@@ -214,6 +214,7 @@ function renderBars() {
       b.setAttribute('aria-label', ITEMS[id].name);
     }
     b.insertAdjacentHTML('afterbegin', `<span class="k">${(k + 1) % 10}</span>`);
+    b.dataset.k = k; // dragging an item from the bag onto a slot finds it by this
     if (id && k >= HB_FIRST) holdToDrop(b, id, inv.indexOf(hbStack(k)));
     // bag open with an item picked: slots 3-0 light up and take it
     const picking = !$('inv').hidden && sel >= 0 && inv[sel] && k >= HB_FIRST;
@@ -355,8 +356,10 @@ function renderInvNow() {
       if (s.qty > 1 && !gm) b.insertAdjacentHTML('beforeend', `<span class="n">${s.qty}</span>`); // a GM's bag shows no amounts
       if (hand === s.id) b.insertAdjacentHTML('beforeend', '<span class="hand">HAND</span>');
       b.setAttribute('aria-label', it.name + ' x' + s.qty);
+      holdToHotbar(b, i); // press and hold: drag it onto the hotbar
       b.onclick = (e) => {
         e.stopPropagation();
+        if (bagDrag || Date.now() - bagDragEnd < 450) return; // that press was a hold: the item is being placed
         if (bagPick) return bagPicked(s.id);
         if (trashMode) return askTrash(i);
         // double-click a lock: 100 become the next kind, or one breaks into 100 of the kind below
@@ -398,6 +401,86 @@ function renderInvNow() {
     box.appendChild(b);
   }
 }
+// ---------- press and hold an item in the bag: put it on the hotbar (owner, Oct 23 2026) ----------
+// Mostly for phones. Hold an item for HOLD_PICK_MS: it lifts out of the bag (a picture follows the finger) and the
+// hotbar slots 3-0 glow (`.hb.target`, the same as tapping an item); let go on a slot and it goes there. Let go
+// anywhere else and the item stays picked with the slots still glowing: tap the one you want (toHotbar), like before.
+const HOLD_PICK_MS = 380;
+let bagDrag = null, // { i, ghost, over } while an item is being dragged
+  bagDragEnd = 0;
+function holdToHotbar(b, i) {
+  let t = null,
+    sx = 0,
+    sy = 0;
+  const stop = () => {
+    clearTimeout(t);
+    t = null;
+    b.classList.remove('pressing');
+  };
+  b.addEventListener('pointerdown', (e) => {
+    if (e.button > 0 || bagPick || trashMode || bagDrag) return;
+    const s = inv[i];
+    if (!s || s.id === 'wrench') return;
+    sx = e.clientX;
+    sy = e.clientY;
+    stop();
+    b.classList.add('pressing');
+    t = setTimeout(() => {
+      t = null;
+      b.classList.remove('pressing');
+      startBagDrag(i, sx, sy);
+    }, HOLD_PICK_MS);
+  });
+  // moving the finger before it lifts = scrolling the bag, not picking
+  b.addEventListener('pointermove', (e) => t && Math.hypot(e.clientX - sx, e.clientY - sy) > 10 && stop());
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => t && stop());
+  b.oncontextmenu = (e) => e.preventDefault();
+}
+function startBagDrag(i, x, y) {
+  const s = inv[i];
+  if (!s || $('inv').hidden) return;
+  $('pop').hidden = true;
+  sel = i;
+  renderBars(); // slots 3-0 light up (and the bag shows the item picked)
+  Native.haptic('light');
+  const ghost = iconCanvas(s.id).cloneNode();
+  ghost.getContext('2d').drawImage(iconCanvas(s.id), 0, 0);
+  ghost.className = 'bagghost';
+  document.body.appendChild(ghost);
+  bagDrag = { i, ghost, over: null };
+  moveBagDrag({ clientX: x, clientY: y });
+  addEventListener('pointermove', moveBagDrag);
+  addEventListener('pointerup', endBagDrag);
+  addEventListener('pointercancel', endBagDrag);
+}
+function moveBagDrag(e) {
+  const d = bagDrag;
+  if (!d) return;
+  d.ghost.style.left = e.clientX + 'px';
+  d.ghost.style.top = e.clientY + 'px';
+  const el = document.elementFromPoint(e.clientX, e.clientY),
+    hb = el && el.closest ? el.closest('.hb.target') : null;
+  if (d.over && d.over !== hb) d.over.classList.remove('drop');
+  if (hb) hb.classList.add('drop');
+  d.over = hb;
+}
+function endBagDrag(e) {
+  const d = bagDrag;
+  if (!d) return;
+  if (e && e.type === 'pointerup') moveBagDrag(e);
+  removeEventListener('pointermove', moveBagDrag);
+  removeEventListener('pointerup', endBagDrag);
+  removeEventListener('pointercancel', endBagDrag);
+  d.ghost.remove();
+  bagDrag = null;
+  bagDragEnd = Date.now();
+  if (d.over && inv[d.i]) return toHotbar(d.i, +d.over.dataset.k); // dropped on a slot
+  // let go elsewhere: still picked, the slots keep glowing until one is tapped (or the bag closes)
+  if (inv[d.i]) toast('Tap a glowing slot to put ' + ITEMS[inv[d.i].id].name + ' there');
+}
+// while dragging, the finger moves the item, not the bag's scroll
+addEventListener('touchmove', (e) => bagDrag && e.cancelable && e.preventDefault(), { passive: false });
+
 // ---------- trash: click TRASH, then an item, then confirm ----------
 let trashMode = false;
 $('trashBtn').onclick = (e) => {

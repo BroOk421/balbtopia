@@ -2837,3 +2837,138 @@ button:focus-visible {
   gap: 6px;
   margin-top: 6px;
 }
+
+/* ---------- phones held sideways (owner, Oct 23 2026) ----------
+   The bag is smaller and sits at the TOP of the screen, so the hotbar below it stays in view: tap or hold an item
+   and the glowing slots can be tapped (or the item dropped on them). Only the slot grid scrolls; the bag window
+   itself never does (it is a column: header, grid that takes the room left, Wearing row). */
+@media (orientation: landscape) and (max-height: 520px) {
+  #inv.win {
+    top: calc(6px + env(safe-area-inset-top, 0px));
+    /* top left (nothing else is there): the gold / Balb Coin counters top right stay in view */
+    left: max(14px, env(safe-area-inset-left, 0px));
+    transform: none;
+    width: min(48vw, 330px);
+    max-height: calc(100vh - 104px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 6px 8px 7px;
+  }
+  #inv header {
+    margin-bottom: 4px;
+    flex: none;
+  }
+  #inv header .x {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    font-size: 9px;
+  }
+  #inv .count {
+    font-size: 9px;
+  }
+  #inv .grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    gap: 3px;
+    padding: 1px 4px 10px 1px;
+  }
+  #inv .cell {
+    border-width: 1px;
+  }
+  #inv .cell .n {
+    font-size: 6px;
+    right: 2px;
+    bottom: 1px;
+  }
+  #inv .cell .hand {
+    font-size: 5px;
+    padding: 1px 2px;
+    left: 1px;
+    top: 1px;
+  }
+  #inv .cell.locked .lv {
+    font-size: 5px;
+  }
+  #inv .cell.locked .lk {
+    transform: scale(0.8);
+  }
+  #inv .wearing {
+    flex: none;
+    margin-top: 4px;
+    gap: 4px;
+    font-size: 8px;
+    flex-wrap: nowrap;
+  }
+  #inv .wearing > span {
+    display: none;
+  }
+  #inv .eslots {
+    gap: 3px;
+    min-width: 0;
+  }
+  #inv .wearing .eslot {
+    width: 24px;
+    height: 24px;
+    border-width: 1px;
+    font-size: 5px;
+  }
+  #inv .wearing .eslot canvas {
+    width: 20px;
+    height: 20px;
+  }
+  #inv .wearing .eslot small {
+    font-size: 4px;
+  }
+  #inv .trashbtn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    margin-left: auto;
+    flex: none;
+  }
+  #inv .trashbtn svg {
+    width: 16px;
+    height: 16px;
+  }
+  #inv .gmtabs {
+    margin-bottom: 4px;
+  }
+  #inv .bagpick {
+    flex: none;
+  }
+}
+/* press and hold an item in the bag: a bar fills, then it lifts out and follows the finger */
+.cell {
+  -webkit-touch-callout: none;
+}
+.cell.pressing::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  height: 3px;
+  width: 0;
+  border-radius: 2px;
+  background: var(--sun);
+  animation: hbHold 0.38s linear forwards;
+}
+.bagghost {
+  position: fixed;
+  z-index: 200;
+  width: 44px;
+  height: 44px;
+  margin: -34px 0 0 -22px; /* above the finger, so it can be seen */
+  pointer-events: none;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.45)) drop-shadow(0 0 6px var(--sun));
+}
+.hb.target.drop {
+  transform: scale(1.18);
+  background: #4a2f12;
+}
+.hb {
+  transition: transform 0.08s;
+}

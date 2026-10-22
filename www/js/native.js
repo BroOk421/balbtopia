@@ -50,6 +50,27 @@ const Native = (() => {
     ptr.down = false;
   }
 
+  // Phone browsers (not the app): go full screen on the first tap, and again on a later tap if the player left it
+  // (back gesture, switching apps), then keep landscape (owner, Oct 23 2026). A tap is the only time a browser
+  // allows it (touchend counts as a user gesture, pointerdown from a finger does not). iPhones' Safari has no
+  // full screen for pages: there "Add to Home Screen" opens the game without the browser bars (manifest.json).
+  function webFullscreen(e) {
+    const d = document,
+      el = d.documentElement,
+      t = e && e.target;
+    if (isApp || d.fullscreenElement || d.webkitFullscreenElement) return;
+    if (t && t.closest && t.closest('input, textarea, select')) return; // the keyboard is coming up: leave it
+    const go = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!go) return;
+    try {
+      const p = go.call(el, { navigationUI: 'hide' });
+      const lock = () => screen.orientation && screen.orientation.lock && safe(screen.orientation.lock('landscape'));
+      if (p && p.then) p.then(lock, () => {});
+      else lock();
+    } catch (err) {}
+  }
+  if (!isApp) document.addEventListener('touchend', webFullscreen, { capture: true, passive: true });
+
   function init() {
     if (!isApp) return;
     document.body.classList.add('touch', 'app');
