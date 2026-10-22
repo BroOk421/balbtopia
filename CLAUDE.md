@@ -49,7 +49,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -437,7 +437,6 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Paid top-ups (TOP UP tab is ready, SOON): a Philippine provider (PayMongo / Xendit; Stripe doesn't take PH
   businesses): an Edge Function that creates the checkout and a webhook that adds the gold to `wallets`.
 - Clothing items from `growtopiaNotInGameYet` (need sprites and more equip slots: shirt, pants, face, hat, back).
-- Ban from a world for a while (kick only sends players away; they can come back).
 - Moving GM checks and purchases to the server so they can't be faked.
 
 - Oct 19 2026 (owner's requests):
@@ -830,3 +829,119 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `sitWithHead(skin, fr)` = the sitting body with rows above `SIT_HEAD_CUT` (104) replaced by the standing frame's head
   (`skin_<skin>_<fr>`, blinking via `frameAt`), so talking (`drawTalk`, `MOUTH_Y`) works like when standing.
   `SIT_MOUTH_Y` is no longer used. GAME_BUILD '2026-10-22 i'.
+
+- Oct 22 2026 (owner, later 7): before going live.
+  - Position messages 5 a second (`POS_EVERY` 0.2 in net.js, was 0.1); tiles are still diffed every 0.1 s (`tileT`).
+    Remote players glide between updates: `onPos` keeps `vx`/`vy` from the last two updates (vx only while walking,
+    vy only in the air) and `N.tick` moves `tx`/`ty` on by them for up to 1.5 x POS_EVERY.
+  - Chat with the server's names: `send_chat(world, text)` (schema.sql) cleans the text, limits 5 per 5 s, refuses
+    players banned there, and `realtime.send`s { id, n, text } on `chat:NAME` (private; receive policy allows
+    `chat:%`, the send policy doesn't, so only the server sends there). `joinChat` (net.js) joins it next to
+    build:; once joined (`cJoined`) chat on world: is ignored. `Net.sendChat` is async and returns null or why it
+    wasn't sent; `sendChat` (social.js) only shows a message as said once it went out (pop-up stays open with the
+    text otherwise). No send_chat / chat: refused -> `serverChat` false -> the old world: broadcast.
+  - Wrench player menu: the picture is gone (just name + world); new Kick (= askKick 'out') and Ban from this world
+    (owner of a locked world, Net.secure, not the LOBBY): pick 10 min / 1 h / 1 day / 1 week / until lifted ->
+    `ban_from_world` (table `world_bans`; not the owner, not a GM) which also makes a world_kicks 'out' row, sent as
+    { kid } like a Kick. Banned: `enterWorldNow` asks `my_world_ban` first and stays put; `save_world` and
+    `send_chat` refuse; realtime policies refuse world:/build:/chat: of that world (`world_banned`). Gold Lock window
+    lists "Banned players" with Unban (`world_ban_list`, `unban_from_world`; `loadBans` in lock.js).
+  - Red Lock (164, 10 tiles, 50 gold) and Blue Lock (165, 48 tiles, 200 gold): area locks, `alocks.js` (loaded
+    after the hd/ files, before main.js). Only in worlds without a Gold Lock (not LOBBY / RECIPES). The placer's
+    game works out the area once (`alockClaim`: breadth-first from the lock, up/left/right/down, skipping the main
+    door, unbreakable blocks, locks and other areas) and stores it: world save `al` = [[lock tile, { k, o, t, acc,
+    open, air }]], synced in the tiles message (`msg.al`, `snapAL` in net.js). `canEdit(quiet, i)` /
+    `hasAccess(name, i)` (lock.js) take the tile now: `worldAccess` && `alockAllows(i, name)`; every tile action
+    passes it (act, plant/splice/tree, water, signs/doors, Display Box, Mannequin, gates, Piano, teapot, badges).
+    Only the owner (or GM / world owner) breaks it (`alockMine`); it goes back into the bag (`alockBroken`). No Gold
+    Lock while another player's area lock is here (`alockOthers`; the server also refuses that owner change).
+    Wrench window `openALockWin` (dialog): access list, Everyone can build, Ignore empty air. The area is drawn
+    (tint + border, `drawALockAreas`, wrapped into `drawSetupBadges`) while holding the wrench or an area lock,
+    and flashes after placing / wrenching / being refused (`alockFlash`). Art: `alockSprite` (padlock without the
+    Gold Lock's box; Blue bigger with a riveted band) into `HD_LOCKS` and `SHOP_ICON`. Server: `alock_guard` in
+    save_world for unowned worlds (non-GM): others' entries kept as saved, new entries forced to the saver, fg/bg/vari
+    of others' areas restored unless open / listed (air: only tiles that weren't empty). 45 PGlite tests.
+  - GAME_BUILD '2026-10-22 j'.
+- Oct 22 2026 (owner, later 8):
+  - Wrench player menu: Kick replaced by Spawn (`#pmSpawn` = askKick 'spawn').
+  - Red / Blue Locks in LOCKED worlds too: only the world's owner places them (`alockCanPlace`). Inside an area the
+    area's rules replace the world's: `hasAccess(name, i)` = alockAt(i) ? alockAllows : worldAccess, so a player
+    listed on the lock builds there without world access, and a world-access player not on the list can't. Server:
+    `alock_grants(data, me)` (listed / open / air); `can_send_build` also lets such players send on build:; their
+    saves go through save_world's visitor path, which takes ONLY their area (`alock_area_only`: fg/bg/vari of those
+    tiles, `alock_merge_tiles` for trees/signs/disp/mann/songs on them, drops; never the lock tiles) and still the
+    visitor's paid vend sales. World-access builders: `alock_guard` + al kept as saved (only the owner changes al).
+    lockv goes up when al changes in an owned world (build: rights move with it). 60 PGlite tests.
+  - GAME_BUILD '2026-10-22 k'.
+- Oct 22 2026 (owner, later 9): "Ignore empty air" now changes the AREA (like the real thing): `alockClaim(i0, size,
+  air, self)` with air only spreads through tiles that have a block, background or tree (no sky), so the lock covers
+  more blocks. Saving the lock window always works the area out again (`self` lets it re-take its own tiles). An empty
+  tile still in an air area (block broken later) stays free for everyone (`alockAllows`, server alock_guard /
+  alock_area_only unchanged). GAME_BUILD '2026-10-22 l'.
+- Oct 22 2026 (owner, later 10): area border always shown (no tint, 85%) to players the lock lets build (its owner,
+  its list, the world's owner), so they see where they have access; tint + border for everyone with the wrench / a
+  lock in hand or while flashing. Border is thicker (max(2, T/12)) with a dark line under it, drawn only on the
+  edges of the area's own tiles (an air area outlines exactly its blocks). GAME_BUILD '2026-10-22 m'.
+- Oct 22 2026 (owner, later 11): third area mode "Air only" (`ao` on the lock, saved in `al`; `alockClaim` mode
+  'ao'): only tiles without a block or tree (backgrounds don't stop it), spreading from the lock until blocks close it
+  in or the size runs out (a closed room = its inside). Exclusive with Ignore empty air (`air`; ticking one clears
+  the other, `cleanALock` keeps air false when ao). Air-only tiles are fully protected (no free-empty-tile rule; the
+  server needs nothing new: ao entries have air false). GAME_BUILD '2026-10-22 n'.
+- Oct 22 2026 (owner, later 12): the area border is a thin DARK RED dashed line "_ _ _ _" for both Red and Blue Lock
+  (rgb 139,16,24; 1 game pixel = max(1, T/32); 4 dashes of T/8 per tile edge with T/8 gaps). The tint (with the
+  wrench / a lock in hand) keeps the lock's own colour. GAME_BUILD '2026-10-22 o'.
+- Oct 22 2026 (owner, later 13):
+  - Red / Blue Lock broken: floats as a drop like the Piano (`alockBroken` -> spawnDrop), not straight into the bag.
+  - ATM Machine (`atm.js`, after alocks.js; block 166, walk-through, HD_DECO art: steel kiosk, gold band, green screen
+    with a coin, keypad, card slot, cash slot with a bill). Shop WORLD 30,000 gold (shop_prices tracked, re-run
+    schema.sql). Stand in it and click (`useATM`, from act after useDisplay; like usePiano, a click from another tile
+    punches it): once a day PER MACHINE (Manila day, `manilaDay`), players who `canEdit(true, i)` there: `ATM_LOOT`
+    Bronze 70% (1-4 x 5), Silver 20% (2-4 x 25), Gold 10% (2-4 x 625) as a gold pile (`spawnDrop('gold', ..., by
+    you)`), float text, burst, haptic. Already used: toast with the time to Manila midnight (`atmLeft`). Saved per
+    world `atm` = [[tile, day]], synced in the tiles message (`msg.atm`, `snapATM` in net.js), merged per tile for
+    area-only builders (`alock_area_only` keys). A bobbing gold coin over every ATM you can use today (wrapped
+    `drawSetupBadges`). Clear World keeps ATMs. Breaking drops it (no rarity). The day is the game's count (the coins
+    still go through earn_gold's hourly limit). GAME_BUILD '2026-10-22 p'.
+- Oct 22 2026 (owner, later 14): ATM art redone as an ARCADE cabinet (owner: the kiosk looked like a calculator):
+  yellow marquee with a coin and blinking bulbs, neon pink side stripes, screen in a black bezel, joystick + two
+  buttons, two glowing coin slots, pay-out tray. Frames (`HD_DECO.atm_machine(x, h, f)`): 0-1 = can pay out today
+  (green screen with a glowing "$" from `DOLLAR`, bulbs alternate, coins in the tray; `NEW_ANIM` 450 ms x 2), `ATM_OFF`
+  (2) = paid out today (dark screen, dim marquee, lights out). `drawNewBlock` is wrapped in atm.js to pick the frame
+  per tile from `atmReady`; everyone sees it. The bobbing coin badge is gone (the screen shows it). GAME_BUILD
+  '2026-10-22 q'.
+- Oct 22 2026 (owner, later 15): ATM repainted at 64 x 64 (`atmPic(f)`, own canvas painter in atm.js, cached in
+  `ATM_PICS`; `SHOP_ICON` gives the 64 px picture, `HD_DECO.atm_machine` just scales it to 32 for any other use).
+  No joystick / buttons any more (owner). The "$" (`DOLLAR`, 10 x 13, 2 px strokes, dark drop edge + lighter core)
+  BLINKS: frames 0-3 every `ATM_MS` (260 ms): bright with a glow halo, bright, dim, gone; marquee bulbs chase; coins in
+  the tray. `ATM_OFF` (4) = paid out today: dead screen with a faint reflection, dim sign, slots and tray dark.
+  `drawNewBlock` wrapper picks the frame from `atmReady` + time. GAME_BUILD '2026-10-22 r'.
+- Oct 22 2026 (owner, later 15): ATM: joystick and buttons removed (a plain ledge under the screen); the "$" BLINKS
+  (frame 0 shown, frame 1 gone; 450 ms each). GAME_BUILD '2026-10-22 r'.
+- Oct 22 2026 (owner, later 16): ATM is ONE CLICK within reach (no need to stand in it; the owner placed one, clicked
+  from beside it and got a punch). `useATM`: can pay out today -> the coins (players who canEdit the tile); already
+  paid out -> returns false so the click is a normal punch (how you break it), with a toast "empty today, fills up
+  again in ..." at most every 2.5 s. Still once a day per machine. GAME_BUILD '2026-10-22 s'.
+- Oct 22 2026 (owner, later 17): ATM waits 24 h (`ATM_WAIT`) instead of resetting at Manila midnight: a NEW ATM starts
+  EMPTY (`atmPlaced(i)` from act right after the block goes down) and fills 24 h later; each pay-out starts the next
+  24 h. `atm` save = [[tile, ms]] (placed / last paid out); old 'YYYY-MM-DD' entries become that day's Manila midnight;
+  an ATM with no entry (placed before this) counts as full. Breaking and placing again restarts the wait. Toast:
+  "This ATM is empty. It fills up in 5h 12m" (`atmLeft(i)`). GAME_BUILD '2026-10-22 t'.
+- Oct 22 2026 (owner, later 18): no text when clicking an ATM (owner): the "+75" float text, the coin toast and the
+  "empty, fills up in ..." toast are gone (the screen shows full / empty; only "Only players who can build here..."
+  stays). Breaking an ATM deletes its entry in `atms` (act, actions.js), so placing it again always starts the 24 h
+  from the beginning (`atmPlaced`). GAME_BUILD '2026-10-22 u'.
+- Oct 22 2026 (owner, later 19): pick an item straight from the BAG (`pickFromBag(note, ok, cb, bad)` in ui.js, state
+  `bagPick`): closes the dialog, opens the inventory with a note + Cancel on top (`#bagPick`), shows every stack (hotbar
+  ones too; the Hand-slot tool from the Wearing row), dims what `ok` refuses (`.nopick`; tapping it toasts `bad`).
+  Tapping an item closes the bag and calls `cb(id)`; closing the bag / Cancel / Trash cancels.
+  - Red / Blue Lock "Shrink block": button in the owner's lock window -> confirm -> bag -> tap a block -> the area is
+    only that block (`b` = block number on the lock, saved in `al` only when set), spreading from the lock through
+    touching tiles of that block (`alockClaim` mode = a number). Nothing touching = toast, no change (`alockShrink`,
+    which also keeps the window's list / Everyone can build like Save). Fully protected (air/ao false). Save keeps it;
+    "Lock everything" or ticking Ignore empty air / Air only turns it off. Server unchanged (extra key passes through).
+  - Empty Vending Machine (no items, no WL to collect) wrenched by the owner: Confirm / Cancel (`askVendFill`) ->
+    bag (`vendPick`, sellable items) -> the machine's pop-up with that item (`vendOwner(i, id)`: Qty, Add, price).
+    The owner window of a machine with only WL inside has "Choose an item from your bag" (`#vPick`).
+  - Empty Display Box wrenched (players with access): Confirm / Cancel -> bag -> `askDisplay` pop-up (picture, name,
+    Cancel / Put in) -> `putDisplay` (shared with `useDisplay`; holding an item and clicking still works).
+  - GAME_BUILD '2026-10-22 v'.

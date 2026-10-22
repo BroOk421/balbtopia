@@ -492,7 +492,7 @@ function askClearWorld() {
 function clearWorldTiles() {
   for (let i = 0; i < fg.length; i++) {
     const t = fg[i];
-    if (t && !isLockT(t) && !(isVendT(t) && vendBusy(i)) && !showBusy(i) && BLOCK[t].hits !== Infinity) fg[i] = 0;
+    if (t && !isLockT(t) && !isALockT(t) && !isATMT(t) && !(isVendT(t) && vendBusy(i)) && !showBusy(i) && BLOCK[t].hits !== Infinity) fg[i] = 0;
     bg[i] = 0;
     dmg[i] = bgDmg[i] = 0;
   }

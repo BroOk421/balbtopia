@@ -15,7 +15,7 @@ ITEMS.display_box = {
   name: 'Display Box',
   kind: 'block',
   block: DISPLAY_BOX,
-  desc: 'A glass box that shows off one item. Hold an item and click the box to put it in; wrench it to take it out.',
+  desc: 'A glass box that shows off one item. Wrench the empty box to pick an item from your bag (or hold an item and click the box); wrench it again to take it out.',
   rarity: 'Uncommon',
 };
 ITEMS.mannequin = {
@@ -95,7 +95,7 @@ function drawFitted(x, y, s, id, ctx = g) {
 function openDisplay(x, y) {
   const i = at(x, y),
     id = displays.get(i);
-  if (!hasAccess(playerName)) return toast(id ? 'Display Box: ' + ITEMS[id].name : 'This Display Box is empty');
+  if (!hasAccess(playerName, i)) return toast(id ? 'Display Box: ' + ITEMS[id].name : 'This Display Box is empty');
   if (id) {
     const body = dialog(
       'DISPLAY BOX',
@@ -117,27 +117,42 @@ function openDisplay(x, y) {
     vendIcon(body, id);
     return;
   }
-  // empty: like the Vending Machine, what goes in is the item you HOLD when you click the box (useDisplay)
-  dialog('DISPLAY BOX', '<div class="vend"><p class="mnote">This Display Box is empty. Hold the item you want to show (a block, a seed, clothes...) and click the box to put it in.</p></div>', [
-    { label: 'Close', cls: 'ghost', run: () => {} },
+  // empty (owner, Oct 22 2026): Confirm / Cancel first; Confirm opens the bag, tapping an item closes it and opens
+  // the Display Box pop-up with that item (Put in). Holding an item and clicking the box still works (useDisplay).
+  dialog('DISPLAY BOX', '<p class="dtext">This Display Box is empty. Put an item in it?</p>', [
+    { label: 'Cancel', cls: 'ghost', run: () => {} },
+    {
+      label: 'Confirm',
+      run: () =>
+        pickFromBag(
+          'Tap the item to put in the Display Box',
+          (id) => displayable(id) && (countItem(id) > 0 || equipped.hand === id),
+          (id) => askDisplay(i, id),
+          () => "This can't go in a Display Box",
+        ),
+    },
   ]);
 }
-// clicking a Display Box while holding something (owner, Oct 22 2026, like the Vending Machine): an empty box
-// takes one of it at once. A box that already shows something takes nothing else: wrench it and Take out first.
-// Players with access only, within WRENCH_REACH of your tile. Called from act (actions.js); true = click used.
-function useDisplay(x, y) {
-  const i = at(x, y);
-  if (!isDispT(fg[i]) || !hand || hand === 'fist' || hand === 'wrench' || !displayable(hand) || !hasAccess(playerName)) return false;
-  if (!inWrenchReach(x, y)) return toast('Move closer to the Display Box'), true;
-  const cur = displays.get(i),
-    id = hand;
-  if (cur) {
-    toast(cur === id ? ITEMS[id].name + ' is already on display' : 'This box shows ' + ITEMS[cur].name + ': wrench it and take it out first');
-    return true;
-  }
-  // from a bag / hotbar stack, or the tool held in the Hand slot
+// the Display Box pop-up for an item picked from the bag: its picture and name, Cancel / Put in
+function askDisplay(i, id) {
+  if (!isDispT(fg[i]) || displays.has(i)) return toast('This Display Box is not empty any more');
+  const body = dialog(
+    'DISPLAY BOX',
+    `<div class="vend"><div class="vrow"><div class="vpic"></div><div><b>${esc(ITEMS[id].name)}</b><br>You have ${(countItem(id) + (equipped.hand === id ? 1 : 0)).toLocaleString()}<br><small>One goes in the box</small></div></div></div>`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => {} },
+      { label: 'Put in', run: () => putDisplay(i, id) },
+    ],
+  );
+  vendIcon(body, id);
+}
+// one of item id into the empty Display Box on tile i (from a bag / hotbar stack, or the tool held in the Hand slot)
+function putDisplay(i, id) {
+  if (!isDispT(fg[i]) || !hasAccess(playerName, i)) return toast("You can't use this Display Box"), true;
+  const cur = displays.get(i);
+  if (cur) return toast(cur === id ? ITEMS[id].name + ' is already on display' : 'This box shows ' + ITEMS[cur].name + ': wrench it and take it out first'), true;
   if (!takeItem(id, 1)) {
-    if (equipped.hand !== id) return true;
+    if (equipped.hand !== id) return toast("You don't have " + ITEMS[id].name + ' any more'), true;
     equipped.hand = null;
     hand = bareHand();
   }
@@ -148,11 +163,20 @@ function useDisplay(x, y) {
   toast(ITEMS[id].name + ' is on display');
   return true;
 }
+// clicking a Display Box while holding something (owner, Oct 22 2026, like the Vending Machine): an empty box
+// takes one of it at once. A box that already shows something takes nothing else: wrench it and Take out first.
+// Players with access only, within WRENCH_REACH of your tile. Called from act (actions.js); true = click used.
+function useDisplay(x, y) {
+  const i = at(x, y);
+  if (!isDispT(fg[i]) || !hand || hand === 'fist' || hand === 'wrench' || !displayable(hand) || !hasAccess(playerName, i)) return false;
+  if (!inWrenchReach(x, y)) return toast('Move closer to the Display Box'), true;
+  return putDisplay(i, hand);
+}
 const SLOT_NAMES = SLOT_NAME;
 function openMannequin(x, y) {
   const i = at(x, y),
     m = manns.get(i) || {};
-  if (!hasAccess(playerName)) {
+  if (!hasAccess(playerName, i)) {
     const on = EQ_SLOTS.filter((s) => m[s]).map((s) => ITEMS[m[s]].name);
     return toast(on.length ? 'Mannequin: ' + on.join(', ') : 'This Mannequin wears nothing');
   }
@@ -332,7 +356,7 @@ function drawMannequinAt(cx, top, eq, tx = 0, ty = 0) {
 // off into the bag. Returns true when the click was used. Only players with access (like the wrench menu).
 function useMannequin(x, y) {
   const i = at(x, y);
-  if (!isMannT(fg[i]) || !hasAccess(playerName)) return false;
+  if (!isMannT(fg[i]) || !hasAccess(playerName, i)) return false;
   const m = manns.get(i) || {},
     sl = hand !== 'fist' ? slotOf(hand) : null;
   if (sl) {

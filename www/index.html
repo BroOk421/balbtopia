@@ -48,6 +48,8 @@
         </header>
         <!-- GM only: item categories (the GM's bag holds every item in the game) -->
         <div class="stabs gmtabs" id="gmTabs" hidden role="tablist" aria-label="Item categories"></div>
+        <!-- picking an item for a Red / Blue Lock, Vending Machine or Display Box (ui.js pickFromBag) -->
+        <div class="bagpick" id="bagPick" hidden><span id="bagPickT"></span><button class="btn ghost" id="bagPickX" type="button">Cancel</button></div>
         <input class="isearch bagsearch" id="bagQ" type="search" placeholder="Search your bag" aria-label="Search your bag" autocomplete="off" />
         <div class="grid" id="grid"></div>
         <div class="wearing">
@@ -112,7 +114,6 @@
 
       <section class="win pmenu" id="pmenu" hidden role="dialog" aria-label="Player menu">
         <header>
-          <img id="pmAvatar" alt="" />
           <div>
             <h2 id="pmName"></h2>
             <small id="pmWorld"></small>
@@ -124,6 +125,8 @@
           <button id="pmMessage">Message</button>
           <button id="pmAccess" hidden>Allow building here</button>
           <button id="pmPull" hidden>Pull here</button>
+          <button id="pmSpawn" hidden>Spawn</button>
+          <button id="pmBan" class="pmdanger" hidden>Ban from this world</button>
           <button id="pmClose" class="close">Close</button>
         </div>
       </section>
@@ -288,6 +291,8 @@
     <script src="js/furniture.js"></script>
     <script src="js/art64.js"></script>
     <script src="js/steel.js"></script>
+    <script src="js/alocks.js"></script>
+    <script src="js/atm.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

@@ -25,7 +25,7 @@ function setSign(i, text) {
 // wrench on a sign: write on it
 function editSign(x, y) {
   const i = at(x, y);
-  if (!canEdit(true)) {
+  if (!canEdit(true, i)) {
     toast(worldOwner ? 'Only players who can build in ' + worldName + ' can write on this sign' : "You can't write on this sign");
     return;
   }
@@ -118,7 +118,7 @@ function fixedPrefix(inp, clean, onEnter) {
 }
 function editDoor(x, y) {
   const i = at(x, y);
-  if (!canEdit(true)) {
+  if (!canEdit(true, i)) {
     toast(worldOwner ? 'Only players who can build in ' + worldName + ' can set this door' : "You can't set this door");
     return;
   }
@@ -350,13 +350,12 @@ function drawSetupBadges(ox, oy, T) {
   // only while the wrench is in hand
   if (!inWorld || hand !== 'wrench' || P.dead) return;
   const w = wrenchSprite(),
-    me = playerTile(),
-    edit = canEdit(true);
+    me = playerTile();
   for (let y = Math.max(0, me.y - WRENCH_REACH); y <= Math.min(WH - 1, me.y + WRENCH_REACH); y++)
     for (let x = Math.max(0, me.x - WRENCH_REACH); x <= Math.min(WW - 1, me.x + WRENCH_REACH); x++) {
       if (!wrenchBlock(x, y)) continue;
       const t = fg[at(x, y)];
-      if (!edit && !isLockT(t) && !isVendT(t)) continue;
+      if (!canEdit(true, at(x, y)) && !isLockT(t) && !isALockT(t) && !isVendT(t)) continue;
       // the wrench sits in the MIDDLE of the tile (owner, Oct 21 2026: a corner badge made players tap the badge
       // instead of the block), only the wrench (no dark box behind it), gently pulsing and bobbing.
       // Drawn before the players (render.js), so it is behind the character.

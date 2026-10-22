@@ -23,8 +23,7 @@ function openPlayerMenu(other) {
     name = other ? other.name : playerName;
   $('pmName').textContent = name;
   $('pmWorld').textContent = 'in ' + worldName + (worldOwner === name ? ' · owner' : '');
-  // the player as they look right now: their skin and everything they wear
-  $('pmAvatar').src = charPortrait(other ? { skin: other.skin, equipped: other.equipped } : { skin, equipped });
+  // (no picture of the player any more, owner Oct 22 2026: just the name)
   m.hidden = false;
   $('pmTrade').focus();
 }
@@ -49,6 +48,7 @@ function toast(msg) {
 // leaves the bag (its bag slot closes up) and lives on the hotbar (`hb` = hotbar index 2-9 on the stack in `inv`,
 // saved with the bag). Nothing is put there by itself. With the bag open and nothing picked, clicking a filled
 // slot 3-0 puts it back in the bag.
+let bagPick = null; // picking an item from the bag: { note, ok(id), bad(id), cb(id) } (pickFromBag below)
 const HOTBAR_SIZE = 10,
   HB_FIRST = 2; // first free slot (index; key "3")
 const hbStack = (k) => inv.find((s) => s.hb === k);
@@ -218,7 +218,11 @@ function renderBars() {
     // bag open with an item picked: slots 3-0 light up and take it
     const picking = !$('inv').hidden && sel >= 0 && inv[sel] && k >= HB_FIRST;
     if (picking) b.classList.add('target');
-    if (picking || (k >= HB_FIRST && !$('inv').hidden && id))
+    // picking for a lock / machine / box: the hotbar's own items can be tapped too
+    if (bagPick && !$('inv').hidden && id && id !== 'wrench' && (k >= HB_FIRST || id !== 'fist')) {
+      if (!bagPick.ok(id)) b.classList.add('nopick');
+      b.onclick = () => bagPicked(id);
+    } else if (picking || (k >= HB_FIRST && !$('inv').hidden && id))
       b.onclick = () => {
         if (Date.now() - hbHeld < 700) return;
         if (sel >= 0 && inv[sel]) toHotbar(sel, k);
@@ -320,18 +324,21 @@ function renderInvNow() {
   // the bag shows only stacks that aren't on the hotbar, packed from the first cell (no gaps)
   const shown = [],
     q = ($('bagQ').value || '').trim().toLowerCase(); // the search box: only items whose name has it
-  inv.forEach((s, i) => inBag(s) && (!q || ITEMS[s.id].name.toLowerCase().includes(q)) && shown.push(i));
+  inv.forEach((s, i) => (bagPick ? s.id !== 'wrench' : inBag(s)) && (!q || ITEMS[s.id].name.toLowerCase().includes(q)) && shown.push(i));
+  // picking for a lock / Vending Machine / Display Box: a note with Cancel on top of the bag
+  $('bagPick').hidden = !bagPick;
+  if (bagPick) $('bagPickT').textContent = bagPick.note;
   if (q && !shown.length) gr.innerHTML = '<p class="mnote">No item in your bag matches "' + esc(q) + '"</p>';
-  for (let p = 0; p < (gm || q ? shown.length : BAG_MAX); p++) {
+  for (let p = 0; p < (gm || q || bagPick ? shown.length : BAG_MAX); p++) {
     const i = p < shown.length ? shown[p] : -1 - p,
       s = inv[i];
     // GM: only this tab's items
     // (while searching, every item counts, whatever tab is open)
     if (gm && !q && gmTab !== 'all' && (!s || itemCat(s.id) !== gmTab)) continue;
     const b = document.createElement('button');
-    b.className = 'cell' + (s ? ' has' : '') + (s && i === sel ? ' sel' : '') + (p >= open ? ' locked' : '');
+    b.className = 'cell' + (s ? ' has' : '') + (s && i === sel ? ' sel' : '') + (p >= open && !bagPick ? ' locked' : '') + (s && bagPick && !bagPick.ok(s.id) ? ' nopick' : '');
     b.id = s ? 'slot' + i : 'cellE' + p;
-    if (p >= open) {
+    if (p >= open && !bagPick) {
       // locked: opens at a higher level
       b.innerHTML = `<span class="lk"></span><span class="lv">Lv ${slotLevel(p)}</span>`;
       b.setAttribute('aria-label', 'Locked slot, opens at level ' + slotLevel(p));
@@ -350,6 +357,7 @@ function renderInvNow() {
       b.setAttribute('aria-label', it.name + ' x' + s.qty);
       b.onclick = (e) => {
         e.stopPropagation();
+        if (bagPick) return bagPicked(s.id);
         if (trashMode) return askTrash(i);
         // double-click a lock: 100 become the next kind, or one breaks into 100 of the kind below
         if (doubleTap('slot' + i) && LOCK_TIERS.includes(s.id)) {
@@ -382,6 +390,8 @@ function renderInvNow() {
       b.onclick = (e) => {
         e.stopPropagation();
         closePop();
+        // picking: the tool you hold can be picked (a Display Box takes it); worn clothes must come off first
+        if (bagPick) return sl === 'hand' ? bagPicked(id) : toast('Take it off first to pick it');
         askUnequip(sl);
       };
     } else b.innerHTML = `<small>${SLOT_NAME[sl]}</small>`;
@@ -393,6 +403,7 @@ let trashMode = false;
 $('trashBtn').onclick = (e) => {
   e.stopPropagation();
   trashMode = !trashMode;
+  bagPick = null;
   closePop();
   renderInv();
   if (trashMode) toast('Click the item you want to throw away');
@@ -436,6 +447,30 @@ $('bagQ').oninput = () => {
   closePop();
   renderInv();
 };
+// ---------- pick an item straight from the bag (owner, Oct 22 2026) ----------
+// Used by the Red / Blue Lock's Shrink Block and an empty Vending Machine / Display Box: after a confirm pop-up the
+// bag opens with a note on top; tapping an item closes the bag and calls back with its id. Items that can't be
+// picked are dimmed (ok(id) false; bad(id) says why when tapped). Closing the bag or Cancel picks nothing.
+function pickFromBag(note, ok, cb, bad) {
+  closeDialog();
+  closePop();
+  trashMode = false;
+  bagPick = { note, ok, cb, bad };
+  if ($('inv').hidden) toggleInv();
+  else renderBars();
+}
+function bagPicked(id) {
+  const p = bagPick;
+  if (!p) return;
+  if (!p.ok(id)) return toast(p.bad ? p.bad(id) : "You can't pick that here");
+  bagPick = null;
+  if (!$('inv').hidden) toggleInv();
+  p.cb(id);
+}
+$('bagPickX').onclick = (e) => {
+  e.stopPropagation();
+  if (!$('inv').hidden) toggleInv();
+};
 function toggleInv() {
   const w = $('inv');
   if (w.hidden) {
@@ -447,6 +482,7 @@ function toggleInv() {
   } else {
     w.hidden = true;
     trashMode = false;
+    bagPick = null; // closing the bag cancels picking
     $('bagQ').value = ''; // the search starts empty next time
     closePop();
     $('info').hidden = true;

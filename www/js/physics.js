@@ -1,4 +1,12 @@
 // Movement, jumping, collisions, lava, drops.
+// gravity this frame: lighter on the way up while the jump is held (a soft rise with a short hang at the top),
+// normal on the way down (config.js RISE_GRAVITY / APEX_*)
+// Only a real jump rises softly (P.rise, set when you jump); a lava bounce or a knock-up uses normal gravity.
+function fallGravity() {
+  if (P.vy >= 0) P.rise = false;
+  if (!P.rise || !(keys.Space || keys.KeyW || keys.ArrowUp)) return GRAVITY;
+  return P.vy > -APEX_VY ? RISE_GRAVITY * APEX_K : RISE_GRAVITY;
+}
 // ===== physics =====
 // prevBottom: where the feet were before this move (platforms only catch you from above)
 function collide(axis, prevBottom) {
@@ -68,6 +76,7 @@ function step(dt) {
     P.airJ--;
     P.buf = 0;
     P.vy = -WING_JUMP_V;
+    P.rise = true;
     Sfx.play('jump');
     // a puff of feathers
     for (let k = 0; k < 10; k++)
@@ -76,13 +85,14 @@ function step(dt) {
   }
   if (P.buf > 0 && (P.coyote > 0 || swim)) {
     P.vy = swim && P.coyote <= 0 ? -300 : -JUMP_V; // a swim stroke, or a normal jump off the ground
+    P.rise = !swim;
     Sfx.play('jump', swim && P.coyote <= 0 ? 0.6 : 1);
     P.buf = 0;
     P.coyote = 0;
     P.ground = false;
     if (swim) splash(Math.floor((P.x + P.w / 2) / TS), Math.floor((P.y + P.h / 2) / TS), 3);
   }
-  P.vy = swim ? Math.min(140, P.vy + 520 * dt) : Math.min(MAX_FALL, P.vy + GRAVITY * dt);
+  P.vy = swim ? Math.min(140, P.vy + 520 * dt) : Math.min(MAX_FALL, P.vy + fallGravity() * dt);
   let hot = false;
   P.x += P.vx * dt;
   hot = collide('x') || hot;

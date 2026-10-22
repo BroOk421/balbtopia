@@ -13,7 +13,7 @@ function wrenchBlock(x, y) {
   const t = fg[at(x, y)];
   if (!t) return false;
   if (isDoorT(t)) return !isDoorTile(x, y);
-  return isLockT(t) || isSignT(t) || isVendT(t) || isDispT(t) || isMannT(t) || isGateT(t) || isTeapotT(t);
+  return isLockT(t) || isALockT(t) || isSignT(t) || isVendT(t) || isDispT(t) || isMannT(t) || isGateT(t) || isTeapotT(t);
 }
 // close enough to use the wrench on a block: WRENCH_REACH tiles round the tile you stand in
 function inWrenchReach(tx, ty) {
@@ -91,6 +91,7 @@ function act() {
       return;
     }
     if (inW(t.x, t.y) && isLockT(fg[at(t.x, t.y)])) return openLockWin();
+    if (inW(t.x, t.y) && isALockT(fg[at(t.x, t.y)])) return openALockWin(at(t.x, t.y)); // Red / Blue Lock (alocks.js)
     if (inW(t.x, t.y) && isSignT(fg[at(t.x, t.y)])) return editSign(t.x, t.y);
     if (inW(t.x, t.y) && isDoorT(fg[at(t.x, t.y)]) && !isDoorTile(t.x, t.y)) return editDoor(t.x, t.y);
     if (inW(t.x, t.y) && isVendT(fg[at(t.x, t.y)])) return openVend(t.x, t.y);
@@ -120,6 +121,8 @@ function act() {
   if (useVend(x, y)) return;
   // a Display Box clicked while holding something: an empty box takes one of it (display.js)
   if (useDisplay(x, y)) return;
+  // an ATM Machine you stand in: today's coins (atm.js)
+  if (typeof useATM === 'function' && useATM(x, y)) return;
   const held = ITEMS[hand];
   // fists (or anything that isn't placed) on another player: punch them
   if (hand === 'fist' || !held || held.kind === 'clothing' || held.kind === 'tool') {
@@ -141,16 +144,16 @@ function act() {
   // a background in hand still goes on the tile, behind the tree
   if (trees.has(i) && !(it && it.kind === 'background')) {
     if (it && it.kind === 'seed') {
-      if (canEdit()) splice(x, y, hand);
+      if (canEdit(false, i)) splice(x, y, hand);
     } else {
       startPunch(ptr.x, ptr.y);
-      if (canEdit()) punchTree(x, y);
+      if (canEdit(false, i)) punchTree(x, y);
     }
     return;
   }
   // seeds are planted on top of a block
   if (it && it.kind === 'seed' && canPlant(x, y)) {
-    if (canEdit()) plant(x, y, hand);
+    if (canEdit(false, i)) plant(x, y, hand);
     return;
   }
   if (hand === 'fist' || !it || it.kind === 'clothing' || it.kind === 'seed' || it.kind === 'tool') {
@@ -161,7 +164,15 @@ function act() {
       shake = Math.max(shake, 2.5);
       return;
     }
-    if ((fg[i] || bg[i]) && !canEdit()) return;
+    // a Red / Blue Lock: only the player who placed it (alocks.js)
+    if (isALockT(fg[i]) && !alockMine(i)) {
+      const a = alocks.get(i);
+      toast('Only ' + (a ? a.o : 'its owner') + ' can break this ' + BLOCK[fg[i]].name);
+      alockFlash(i);
+      shake = Math.max(shake, 2.5);
+      return;
+    }
+    if ((fg[i] || bg[i]) && !canEdit(false, i)) return;
     // a Vending Machine with items or Gold Locks inside can't be broken
     if (isVendT(fg[i]) && vendBusy(i)) {
       toast('Empty the Vending Machine first (wrench it)');
@@ -205,11 +216,14 @@ function act() {
         manns.delete(i);
         if (signs.delete(i)) Net.sendSign(i, ''); // sign text / door destination goes with the block
         pianoSongs.delete(i); // and a Piano's song
+        if (typeof atms !== 'undefined') atms.delete(i); // and an ATM's wait (placed again = starts over, atm.js)
         fg[i] = 0;
         dmg[i] = 0;
         if (y > 0) uproot(x, y - 1);
         addXP(1);
         questTick('break', id); // daily quest (quests.js)
+        // a Red / Blue Lock goes back into its owner's bag and its area is free again (alocks.js)
+        if (b.alock) return alockBroken(i, id);
         const gotBlock = Math.random() < blockDropChance(id);
         if (gotBlock) spawnDrop(id, x * TS + 16, y * TS + 16);
         if (b.lock) {
@@ -250,16 +264,25 @@ function act() {
     }
     return;
   }
-  if ((it.kind === 'block' && !isLockT(it.block)) || it.kind === 'background') if (!canEdit()) return;
+  if ((it.kind === 'block' && !isLockT(it.block)) || it.kind === 'background') if (!canEdit(false, i)) return;
   if (it.kind === 'block') {
     if (fg[i] || trees.has(i) || (BLOCK[it.block].solid !== false && overlapsPlayer(x, y))) return;
     if (isDoorTile(x, y)) {
       toast("Can't build on the main door");
       return;
     }
+    // a Red / Blue Lock only goes where it may (no Gold Lock here, not in another lock's area): alocks.js
+    if (isALockT(it.block) && !alockCanPlace(i, it.block)) return;
     if (isLockT(it.block)) {
       if (worldOwner) {
         toast('This world already has a Gold Lock');
+        return;
+      }
+      // someone else's Red / Blue Lock is here: they have to take it away first (alocks.js)
+      const other = alockOthers();
+      if (other) {
+        toast("Can't lock this world: " + other.o + ' has a ' + ITEMS[other.k].name + ' here');
+        alockFlash(other.at);
         return;
       }
       worldOwner = playerName;
@@ -274,6 +297,8 @@ function act() {
     vari[i] = Math.floor(Math.random() * 3) | (vari[i] & WATER);
     // chairs and couches face the way you face (furniture.js)
     if (typeof FACING !== 'undefined' && FACING.has(it.block) && P.face < 0) vari[i] |= FACE_LEFT;
+    if (isALockT(it.block)) alockPlace(i, it.block); // Red / Blue Lock: claims its area now (alocks.js)
+    if (typeof isATMT === 'function' && isATMT(it.block)) atmPlaced(i); // a new ATM starts empty (atm.js)
     if (isWeatherT(it.block)) weatherSolo(i); // the new machine's weather takes over
     if (isDoorT(it.block)) {
       signs.delete(i);

@@ -10,7 +10,7 @@
 // Servers that haven't run the new schema yet: everything falls back to the old way (N.secure false, public channels).
 //
 // Realtime (world:NAME and build:NAME):
-//   p        position, facing, walking, skin and clothes, about 10 times a second
+//   p        position, facing, walking, skin and clothes, about 5 times a second (POS_EVERY; others glide between)
 //   punch    someone threw a punch at a point
 //   tiles    blocks, backgrounds, trees or the world owner changed
 //   drop     a floating drop appeared (or got bigger)
@@ -18,7 +18,8 @@
 //   sign     someone wrote on a sign
 //   vend     a Vending Machine was filled, priced, emptied or bought from
 //   show     a Display Box got or lost its item, or a Mannequin was dressed (k: 'd' or 'm')
-//   chat     someone said something to everyone in the world (Chat button)
+//   chat     someone said something to everyone in the world (Chat button). New servers: sent by the server
+//            (send_chat) on chat:NAME, where players can only listen, so the name on it is real
 //   clear    the owner used Clear World
 //   die      someone died (their ghost flies up, then they come back at the door)
 //   sync_req a player just arrived; someone already here answers with...
@@ -304,7 +305,9 @@ const Net = (() => {
     snapTrees = new Map(),
     snapOwner = null,
     snapLock = '',
-    snapDoor = '';
+    snapDoor = '',
+    snapAL = '', // Red / Blue Locks (alocks.js)
+    snapATM = ''; // ATM Machines' last pay-out day (atm.js)
   const treeKey = (t) => t.seed + '|' + t.planted + '|' + t.fruit + '|' + (t.spliced ? 1 : 0) + '|' + (t.pa || '');
   function snapshot() {
     snapFg = fg.slice();
@@ -314,6 +317,8 @@ const Net = (() => {
     snapOwner = worldOwner;
     snapLock = JSON.stringify(lockCfg);
     snapDoor = door.x + ',' + door.y;
+    snapAL = typeof alockKey === 'function' ? alockKey() : '';
+    snapATM = typeof atmKey === 'function' ? atmKey() : '';
   }
   const send = (event, payload) => {
     if (ch && joined) ch.send({ type: 'broadcast', event, payload });
@@ -429,6 +434,7 @@ const Net = (() => {
     const own = name === LOBBY_WORLD;
     joinedName = own ? '' : name;
     clearTimeout(syncTimer);
+    joinChat(''); // leave the old world's chat:NAME
     dropChannel(old).then(() => {
       if (seq !== worldSeq) return;
       if (own) {
@@ -443,6 +449,7 @@ const Net = (() => {
     ch = c;
     if (privRT) {
       joinBuild(name);
+      joinChat(name);
       // a Vending Machine sale from a visitor (only a paid-for sale is taken from here)
       c.on('broadcast', { event: 'vend' }, ({ payload }) => N.onVend && N.onVend(payload, false));
       // someone changed the lock outside a save (World Key): check the server
@@ -472,7 +479,8 @@ const Net = (() => {
       })
       .on('broadcast', { event: 'drop' }, ({ payload }) => netDrop(payload))
       .on('broadcast', { event: 'take' }, ({ payload }) => payload && netTake(payload.u, payload.by))
-      .on('broadcast', { event: 'chat' }, ({ payload }) => payload && N.onChat && N.onChat(payload))
+      // (once the server's chat:NAME is joined, chat sent by players themselves is ignored: its name could be fake)
+      .on('broadcast', { event: 'chat' }, ({ payload }) => payload && !cJoined && N.onChat && N.onChat(payload))
       .on('broadcast', { event: 'die' }, ({ payload }) => {
         const r = payload && N.remotes.get(payload.id);
         if (r) r.dead = { t: 0 };
@@ -523,6 +531,14 @@ const Net = (() => {
       r.x = p.x;
       r.y = p.y;
     }
+    // how fast they move (from the last two updates), to glide on between updates (N.tick)
+    const gap = r.posAt ? (now - r.posAt) / 1000 : 0;
+    const fresh = gap > 0.05 && gap < 0.6 && r.px !== undefined;
+    r.vx = fresh && p.w ? Math.max(-600, Math.min(600, (p.x - r.px) / gap)) : 0;
+    r.vy = fresh && !p.g ? Math.max(-900, Math.min(900, (p.y - r.py) / gap)) : 0; // on the ground: no sliding
+    r.px = p.x;
+    r.py = p.y;
+    r.posAt = now;
     Object.assign(r, {
       id: p.id,
       tx: p.x,
@@ -542,8 +558,12 @@ const Net = (() => {
     });
     if (!r.walking) r.walkPh = 0;
   }
+  // how often our position goes out (s). Was 0.1 (10 a second); 5 a second halves the realtime messages, which
+  // count against Supabase's limit (Free: 100 a second for the whole project, sent and received)
+  const POS_EVERY = 0.2;
   let lastPos = '',
     posT = 0,
+    tileT = 0,
     beatT = 0;
   function sendPos(force) {
     if (!N.me) return;
@@ -598,8 +618,84 @@ const Net = (() => {
   N.sendSong = (i, s) => {
     if (N.me) sendB('song', { i, s });
   };
-  N.sendChat = (text) => {
-    if (N.me) send('chat', { id: N.me.id, n: playerName, text });
+  // world chat: null when it went out, or why not (shown to the player; the message then wasn't sent).
+  // New servers: send_chat puts the real name on it and sends it on chat:NAME (players can't send there).
+  N.sendChat = async (text) => {
+    if (!N.me || !sb) return 'Not connected. Your message was not sent.';
+    if (cJoined && serverChat) {
+      const { error } = await sb.rpc('send_chat', { p_world: joinedName, p_text: text });
+      if (!error) return null;
+      if (!(error.code === 'PGRST202' || error.code === '42883' || /realtime\.send/i.test(error.message || '')))
+        return error.code === 'P0001' || error.code === '42501' ? error.message : N.dbError(error);
+      // the server has no send_chat yet (old schema.sql): the old way from now on
+      console.warn('send_chat missing, chat names are not checked', error);
+      serverChat = false;
+      joinChat('');
+    }
+    if (!ch || !joined) return 'Not connected to this world. Your message was not sent.';
+    send('chat', { id: N.me.id, n: playerName, text });
+    return null;
+  };
+  // ---------- chat:NAME (server-sent chat) ----------
+  let cch = null,
+    cJoined = false,
+    chatSeq = 0,
+    serverChat = true; // false once the server showed it has no send_chat / chat: rules (old schema.sql)
+  async function joinChat(name) {
+    const seq = ++chatSeq,
+      old = cch;
+    cch = null;
+    cJoined = false;
+    await dropChannel(old);
+    if (seq !== chatSeq || !name || !privRT || !N.secure || !serverChat || !sb || !N.me || name !== joinedName) return;
+    const c = sb.channel('chat:' + name, chOpts(false));
+    cch = c;
+    c.on('broadcast', { event: 'chat' }, ({ payload }) => {
+      // our own message comes back too: it is already in our chat
+      if (payload && payload.id !== N.me.id && N.onChat) N.onChat(payload);
+    });
+    c.subscribe((status) => {
+      if (c !== cch) return;
+      if (status === 'SUBSCRIBED') cJoined = true;
+      else if (status === 'CHANNEL_ERROR' && !cJoined) {
+        console.warn('chat:' + name + ' refused (run the new supabase/schema.sql): chat names are not checked');
+        serverChat = false;
+      }
+    });
+  }
+  // ---------- bans from one world (wrench a player -> Ban from this world; schema.sql world_bans) ----------
+  const newServer = (error) => error && (error.code === 'PGRST202' || error.code === '42883');
+  const rpcErr = (error) =>
+    newServer(error)
+      ? 'This needs the new server setup (run supabase/schema.sql again)'
+      : error.code === 'P0001' || error.code === '42501'
+        ? error.message
+        : N.dbError(error);
+  // am I banned from this world? null, or { until (ISO or null = no end), by }
+  N.worldBan = async (name) => {
+    if (!sb || !N.me || !N.secure) return null;
+    const { data, error } = await sb.rpc('my_world_ban', { p_world: name });
+    return error ? null : data || null;
+  };
+  // ban a player (id) from this world for `minutes` (null: until lifted) and send them out. null or an error
+  N.banFromWorld = async (to, minutes) => {
+    if (!sb || !N.me) return 'Bans need online play';
+    if (!N.secure) return 'This needs the new server setup (run supabase/schema.sql again)';
+    const { data, error } = await sb.rpc('ban_from_world', { p_world: worldName, p_to: to, p_minutes: minutes });
+    if (error) return rpcErr(error);
+    send('kick', { kid: data });
+    return null;
+  };
+  N.unbanFromWorld = async (name) => {
+    if (!sb || !N.me || !N.secure) return 'This needs the new server setup';
+    const { error } = await sb.rpc('unban_from_world', { p_world: worldName, p_name: name });
+    return error ? rpcErr(error) : null;
+  };
+  // [{ name, until }] of this world, or null when the server can't tell
+  N.worldBanList = async () => {
+    if (!sb || !N.me || !N.secure) return null;
+    const { data, error } = await sb.rpc('world_ban_list', { p_world: worldName });
+    return error ? null : data || [];
   };
   // the world owner sends a player (to: their id, or '*' for everyone) back to the door (k 'spawn')
   // or out of the world (k 'out')
@@ -685,6 +781,18 @@ const Net = (() => {
       msg.lk = lockCfg;
       snapLock = lk;
     }
+    // Red / Blue Locks placed, broken or changed (alocks.js)
+    const ak = typeof alockKey === 'function' ? alockKey() : '';
+    if (ak !== snapAL) {
+      msg.al = alockList();
+      snapAL = ak;
+    }
+    // an ATM Machine paid out (atm.js)
+    const tk = typeof atmKey === 'function' ? atmKey() : '';
+    if (tk !== snapATM) {
+      msg.atm = atmList();
+      snapATM = tk;
+    }
     if (Object.keys(msg).length) sendB('tiles', msg);
   }
   function applyTiles(m) {
@@ -730,6 +838,14 @@ const Net = (() => {
       snapLock = JSON.stringify(lockCfg);
       if (!$('lockwin').hidden) renderLockWin();
     }
+    if (Array.isArray(m.al) && typeof setALocks === 'function') {
+      setALocks(m.al);
+      snapAL = alockKey();
+    }
+    if (Array.isArray(m.atm) && typeof setATMs === 'function') {
+      setATMs(m.atm);
+      snapATM = atmKey();
+    }
   }
   function onSyncReq(p) {
     if (!inWorld || !p || p.from === N.me.id) return;
@@ -764,6 +880,12 @@ const Net = (() => {
         r.spawnT = SPAWN_FADE;
       }
       if (r.spawnT > 0) r.spawnT -= dt;
+      // between updates (POS_EVERY apart) a walking player keeps moving the way they went, for a short while,
+      // so they glide instead of hopping from one update to the next
+      if (!r.dead && r.vx !== undefined && now - r.posAt < POS_EVERY * 1500) {
+        r.tx += r.vx * dt;
+        r.ty += r.vy * dt;
+      }
       const k = r.dead ? 0 : Math.min(1, dt * 12);
       r.x += (r.tx - r.x) * k;
       r.y += (r.ty - r.y) * k;
@@ -780,9 +902,13 @@ const Net = (() => {
       }
     }
     posT += dt;
-    if (posT >= 0.1) {
+    tileT += dt;
+    if (posT >= POS_EVERY) {
       posT = 0;
       sendPos(false);
+    }
+    if (tileT >= 0.1) {
+      tileT = 0;
       diffTiles();
     }
     // safety net: every 15 s check the world's lock version, in case the "it changed" message was missed

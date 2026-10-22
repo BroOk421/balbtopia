@@ -617,7 +617,7 @@ $('songStop').onclick = () => {
 // put a song on Piano tile i and/or switch it on or off; saved with the world and sent to the players here.
 // song null = keep the Piano's own song. Only for players who can build here (the song maker needs that anyway).
 function pianoSwitch(i, song, on) {
-  if (!isPianoT(fg[i]) || !canEdit(true)) return;
+  if (!isPianoT(fg[i]) || !canEdit(true, i)) return;
   const base = song || pianoSongs.get(i);
   if (!base) return;
   const s = cleanSong({ ...base, off: !on });
@@ -694,7 +694,7 @@ $('songSave').onclick = () => {
   mySongs.unshift(s);
   savePlayer();
   // this Piano plays it (only if you can build here)
-  if (isPianoT(fg[W.i]) && canEdit(true)) {
+  if (isPianoT(fg[W.i]) && canEdit(true, W.i)) {
     // the Piano keeps its on / off: a Piano that was STOPped stays quiet until PLAY
     const old = pianoSongs.get(W.i),
       off = !!(old && old.off) && !(preview && preview.song === s);
@@ -715,7 +715,7 @@ function usePiano(x, y) {
     on = [P.y + P.h - 2, P.y + P.h / 2].some((py) => tx === x && Math.floor(py / TS) === y);
   if (!on) return false;
   // in a locked world only players who may build here can use it (everyone still hears its song)
-  if (!canEdit(true)) {
+  if (!canEdit(true, i)) {
     toast('Only players who can build here can use this Piano');
     return true;
   }

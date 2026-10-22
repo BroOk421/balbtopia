@@ -312,12 +312,60 @@ $('pmPull').onclick = () => {
   if (!Net.remotes.has(o.id)) return toast(o.name + ' already left');
   Net.sendKick(o.id, 'pull', Math.round(P.x), Math.round(P.y)).then((err) => toast(err || 'Pulled ' + o.name + ' here'));
 };
+// Spawn: back to the main door, like Spawn in the Gold Lock window (lock.js askKick; owner, Oct 22 2026: was Kick)
+$('pmSpawn').onclick = () => {
+  const o = other();
+  closePlayerMenu();
+  if (!o || !isOwner()) return;
+  if (!Net.remotes.has(o.id)) return toast(o.name + ' already left');
+  askKick(o.id, 'spawn');
+};
+// Ban from this world (owner, Oct 22 2026): kicked out now and kept out for the time picked (server: world_bans).
+// Lifted in the Gold Lock window (Banned players).
+const BAN_TIMES = [
+  [10, '10 minutes'],
+  [60, '1 hour'],
+  [1440, '1 day'],
+  [10080, '1 week'],
+  [0, 'Until I lift it'],
+];
+$('pmBan').onclick = () => {
+  const o = other();
+  closePlayerMenu();
+  if (!o || !isOwner()) return;
+  dialog(
+    'BAN?',
+    `<p class="dmsg">Ban <b>${esc(o.name)}</b> from <b>${esc(worldName)}</b>? They are sent out at once and can't come back in until the ban ends.</p>
+     <label class="lfield" for="banFor">How long
+       <select id="banFor">${BAN_TIMES.map(([m, t]) => `<option value="${m}"${m === 60 ? ' selected' : ''}>${t}</option>`).join('')}</select>
+     </label>
+     <p class="mnote">You can lift it any time: wrench your Gold Lock.</p>`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => {} },
+      {
+        label: 'Ban',
+        cls: 'danger',
+        run: async (b) => {
+          if (!isOwner()) return;
+          const m = +b.querySelector('#banFor').value,
+            err = await Net.banFromWorld(o.id, m || null);
+          if (err) return toast(err), false;
+          toast(o.name + ' is banned from ' + worldName + (m ? ' for ' + BAN_TIMES.find((x) => x[0] === m)[1] : ''));
+          if (!$('lockwin').hidden) renderLockWin();
+        },
+      },
+    ],
+  );
+};
 // show the owner-only buttons with the right label whenever the menu opens
 const _openPM = openPlayerMenu;
 openPlayerMenu = function (o) {
   _openPM(o);
   // Pull: owner of a locked world, the player is in this world, and a server that checks it
   $('pmPull').hidden = !(o && isOwner() && worldOwner && Net.secure && Net.remotes.has(o.id));
+  // Spawn and Ban: owner of a locked world (Ban needs the server's world_bans: Net.secure)
+  $('pmSpawn').hidden = !(o && isOwner() && worldOwner && Net.remotes.has(o.id));
+  $('pmBan').hidden = !(o && isOwner() && worldOwner && Net.secure && worldName !== LOBBY_WORLD);
   const b = $('pmAccess');
   b.hidden = !(o && isOwner());
   if (o) b.textContent = lockCfg.access.includes(lc(o.name)) ? 'Remove building access' : 'Allow building here';
@@ -734,7 +782,7 @@ function openChat() {
   input.onkeydown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (sendChat(input.value) !== false) closeDialog();
+      sendChat(input.value).then((ok) => ok !== false && closeDialog());
     }
   };
 }
@@ -744,9 +792,11 @@ let chatTimes = [],
 function chatWait() {
   return Math.max(0, Math.ceil((chatWaitUntil - Date.now()) / 1000));
 }
-function sendChat(raw) {
+// returns (a promise of) false when nothing went out: the pop-up then stays open with the text still in it
+let chatBusy = false;
+async function sendChat(raw) {
   const text = String(raw || '').trim().slice(0, CHAT_MAX);
-  if (!text) return false;
+  if (!text || chatBusy) return false;
   if (chatWait()) return toast('Too fast! Wait ' + chatWait() + 's before chatting again'), false;
   const t = Date.now();
   chatTimes = chatTimes.filter((s) => t - s < CHAT_WINDOW * 1000);
@@ -755,10 +805,21 @@ function sendChat(raw) {
     chatTimes = [];
     chatWaitUntil = t + CHAT_COOLDOWN * 1000;
   }
+  // online: only shown as said once it really went out (not while reconnecting, not when the server says no)
+  if (Net.online) {
+    chatBusy = true;
+    let err;
+    try {
+      err = await Net.sendChat(text);
+    } catch (e) {
+      err = 'Your message was not sent. Try again.';
+    }
+    chatBusy = false;
+    if (err) return toast(err), false;
+  }
   P.say = { text, t: 4 };
   chatLog.push({ name: playerName, text, mine: true });
   if (chatLog.length > 60) chatLog.shift();
-  Net.sendChat(text);
 }
 // other players get the same limit here too, so a changed game can't flood everyone's screen
 const chatHeard = new Map(); // player id -> times of their recent messages

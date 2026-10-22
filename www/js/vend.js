@@ -13,7 +13,7 @@ ITEMS.vending_machine = {
   name: 'Vending Machine',
   kind: 'block',
   block: VEND,
-  desc: 'Sell your items to other players for Gold Locks. Place it in your locked world, then hold the wrench and click it to fill it and set the price.',
+  desc: 'Sell your items to other players for Gold Locks. Place it in your locked world, then wrench it, pick the item from your bag and set how many and the price.',
   rarity: 'Rare',
 };
 const vends = new Map(); // tile index -> { id, n (how many inside), p (price), per (true: p items for 1 WL), e (Gold Locks earned) }
@@ -54,10 +54,26 @@ const sellable = (id) => ITEMS[id] && ITEMS[id].kind !== 'tool' && !ITEMS[id].ke
 function openVend(x, y) {
   const i = at(x, y),
     v = vends.get(i);
-  if (isOwner()) return vendOwner(i);
+  if (isOwner()) return v && (v.n > 0 || v.e > 0) ? vendOwner(i) : askVendFill(i);
   if (!worldOwner) return toast('Lock this world with a Gold Lock to use a Vending Machine');
   if (!v || !v.id || v.n <= 0) return toast('This Vending Machine is empty');
   vendBuyer(i);
+}
+// an empty machine (owner, Oct 22 2026): Confirm / Cancel first; Confirm opens the bag, tapping an item closes it
+// and opens the machine's pop-up with that item, ready for how many and the price
+function askVendFill(i) {
+  dialog('VENDING MACHINE', '<p class="dtext">This Vending Machine is empty. Put an item in it to sell?</p>', [
+    { label: 'Cancel', cls: 'ghost', run: () => {} },
+    { label: 'Confirm', run: () => vendPick(i) },
+  ]);
+}
+function vendPick(i) {
+  pickFromBag(
+    'Tap the item to sell in the Vending Machine',
+    (id) => sellable(id) && countItem(id) > 0,
+    (id) => isVendT(fg[i]) && isOwner() && vendOwner(i, id),
+    (id) => (ITEMS[id] && ITEMS[id].kind === 'tool' ? "Tools can't be sold in a Vending Machine" : "This can't be sold in a Vending Machine"),
+  );
 }
 function vendIcon(body, id) {
   const box = body.querySelector('.vpic');
@@ -73,7 +89,7 @@ function vendOwner(i, held) {
     have = id ? countItem(id) : 0;
   const head = id
     ? `<div class="vrow"><div class="vpic"></div><div><b>${esc(ITEMS[id].name)}</b><br>${(v.id === id ? v.n : 0).toLocaleString()} inside<br><small>You have ${have.toLocaleString()}</small></div></div>`
-    : '<p class="mnote">Hold the item you want to sell and click the machine to put it in.</p>';
+    : '<p class="mnote">This machine is empty.</p><button class="btn" id="vPick" type="button">Choose an item from your bag</button>';
   const body = dialog(
     'VENDING MACHINE',
     `<div class="vend">
@@ -93,6 +109,8 @@ function vendOwner(i, held) {
     [{ label: 'Close', cls: 'ghost', run: () => {} }],
   );
   if (id) vendIcon(body, id);
+  const pick = body.querySelector('#vPick');
+  if (pick) pick.onclick = () => vendPick(i);
   // holding an item: the amount box is ready to type in, and Enter adds
   const qty = body.querySelector('#vQty');
   if (held && have > 0) setTimeout(() => qty.focus(), 0);
@@ -110,7 +128,7 @@ function vendOwner(i, held) {
   body.querySelector('#vAdd').onclick = () => {
     const id = body.querySelector('#vItem').value,
       want = Math.floor(Number(body.querySelector('#vQty').value) || 0);
-    if (!id) return toast('Hold the item you want to sell and click the machine');
+    if (!id) return toast('Choose the item you want to sell first');
     if (v.id && v.n > 0 && v.id !== id) return toast('Take out the ' + ITEMS[v.id].name + ' first: a machine sells one kind of item');
     if (want > VEND_ADD) return toast('You can put in up to ' + VEND_ADD + ' at a time');
     const n = Math.min(want, countItem(id), VEND_MAX - (v.id === id ? v.n : 0));

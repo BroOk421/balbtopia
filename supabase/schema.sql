@@ -258,6 +258,15 @@ drop trigger if exists balbtopia_player_save on public.players;
 create trigger balbtopia_player_save before insert or update on public.players for each row execute function public.on_player_save();
 
 -- ---------- worlds: only through save_world ----------
+-- does a Red / Blue Lock (data.al, www/js/alocks.js) let this player build somewhere in the world?
+create or replace function public.alock_grants(p_data jsonb, p_me text)
+returns boolean language sql immutable as $$
+  select p_me is not null and jsonb_typeof(p_data -> 'al') = 'array' and exists (
+    select 1 from jsonb_array_elements(p_data -> 'al') x
+    where jsonb_typeof(x -> 1) = 'object' and (
+      coalesce(x -> 1 -> 'open' = 'true'::jsonb, false) or coalesce(x -> 1 -> 'air' = 'true'::jsonb, false)
+      or (jsonb_typeof(x -> 1 -> 'acc') = 'array' and x -> 1 -> 'acc' ? lower(p_me))))
+$$;
 -- Who may change a world: nobody owns it, you own it, you are a GM, it is open to everyone, or you are on its
 -- access list (data.lock.open / data.lock.access, lower-case names). Banned players never.
 create or replace function public.world_can_edit(p_owner text, p_data jsonb, p_me text, p_gm boolean)
@@ -291,7 +300,9 @@ begin
   if auth.uid() is null or public.is_banned() or v !~ '^[0-9]{1,9}$' then return false; end if;
   select * into r from public.worlds where name = split_part(p_topic, ':', 2);
   if not found or r.lockv <> v::integer then return false; end if;
-  return public.world_can_edit(r.owner, r.data, public.my_name(), public.is_gm());
+  -- (also players a Red / Blue Lock lets build in part of a locked world: their saves only take that part)
+  return public.world_can_edit(r.owner, r.data, public.my_name(), public.is_gm())
+    or (r.owner is not null and public.alock_grants(r.data, public.my_name()));
 end $$;
 
 -- a visitor's Vending Machine: the item, price and kind stay the same; stock can only go down and the
@@ -314,6 +325,158 @@ begin
   return paid >= sold * p; -- p Gold Locks each
 end $$;
 
+-- ---------- Red / Blue Lock (area locks, www/js/alocks.js) in a world without an owner ----------
+-- data.al = [[lock tile, { k, o (owner), t: [tiles], acc: [lower-case names], open, air }], ...]
+-- Anyone may save a world nobody owns, so here the server keeps what belongs to other players' area locks:
+--   * other players' locks stay exactly as saved (nobody else can remove or change them)
+--   * a lock the saver adds is always the saver's own (o = the saver's name)
+--   * the blocks / backgrounds (fg, bg, vari) of another player's area keep their saved values, unless that lock is
+--     open to everyone or lists the saver; with "ignore empty air" (air) only tiles that weren't empty are kept
+-- Trees, signs and the rest of a tile are only checked by the game. GMs are not limited.
+create or replace function public.alock_owned_by_other(e jsonb, p_me text)
+returns boolean language sql immutable as $$
+  select jsonb_typeof(e) = 'array' and jsonb_typeof(e -> 1) = 'object' and lower(coalesce(e -> 1 ->> 'o', '')) <> lower(p_me)
+$$;
+create or replace function public.alock_guard(p_old jsonb, p_new jsonb, p_me text)
+returns jsonb language plpgsql immutable as $$
+declare
+  others jsonb := '[]'::jsonb;
+  merged jsonb := '[]'::jsonb;
+  e jsonb;
+  o jsonb;
+  ti jsonb;
+  t integer;
+  ofg bytea; nfg bytea; obg bytea; nbg bytea; ova bytea; nva bytea;
+  touched boolean := false;
+  outd jsonb := p_new;
+begin
+  if jsonb_typeof(p_old -> 'al') = 'array' then
+    select coalesce(jsonb_agg(x), '[]'::jsonb) into others
+    from jsonb_array_elements(p_old -> 'al') x where public.alock_owned_by_other(x, p_me);
+  end if;
+  merged := others;
+  if jsonb_typeof(p_new -> 'al') = 'array' then
+    for e in select * from jsonb_array_elements(p_new -> 'al') loop
+      if jsonb_typeof(e) <> 'array' or jsonb_typeof(e -> 0) <> 'number' or jsonb_typeof(e -> 1) <> 'object' then continue; end if;
+      if exists (select 1 from jsonb_array_elements(others) k where k -> 0 = e -> 0) then continue; end if;
+      merged := merged || jsonb_build_array(jsonb_build_array(e -> 0, jsonb_set(e -> 1, '{o}', to_jsonb(p_me))));
+    end loop;
+  end if;
+  outd := jsonb_set(outd, '{al}', merged);
+  if jsonb_array_length(others) = 0 then return outd; end if;
+  begin
+    ofg := decode(p_old ->> 'fg', 'base64'); nfg := decode(p_new ->> 'fg', 'base64');
+    obg := decode(p_old ->> 'bg', 'base64'); nbg := decode(p_new ->> 'bg', 'base64');
+    ova := decode(p_old ->> 'vari', 'base64'); nva := decode(p_new ->> 'vari', 'base64');
+  exception when others then
+    return outd; -- not readable: leave the tiles (the world's own checks still apply)
+  end;
+  if ofg is null or nfg is null or obg is null or nbg is null or octet_length(ofg) <> octet_length(nfg)
+     or octet_length(obg) <> octet_length(nbg) then
+    return outd;
+  end if;
+  for e in select * from jsonb_array_elements(others) loop
+    o := e -> 1;
+    if coalesce(o -> 'open' = 'true'::jsonb, false)
+       or (jsonb_typeof(o -> 'acc') = 'array' and o -> 'acc' ? lower(p_me)) then continue; end if;
+    if jsonb_typeof(o -> 't') <> 'array' then continue; end if;
+    for ti in select * from jsonb_array_elements(o -> 't') loop
+      if jsonb_typeof(ti) <> 'number' then continue; end if;
+      t := (ti #>> '{}')::integer;
+      if t < 0 or t >= octet_length(ofg) then continue; end if;
+      if coalesce(o -> 'air' = 'true'::jsonb, false) and t <> (e ->> 0)::integer
+         and get_byte(ofg, t) = 0 and get_byte(obg, t) = 0 then continue; end if;
+      if get_byte(nfg, t) <> get_byte(ofg, t) then nfg := set_byte(nfg, t, get_byte(ofg, t)); touched := true; end if;
+      if get_byte(nbg, t) <> get_byte(obg, t) then nbg := set_byte(nbg, t, get_byte(obg, t)); touched := true; end if;
+      if ova is not null and nva is not null and t < octet_length(ova) and t < octet_length(nva)
+         and get_byte(nva, t) <> get_byte(ova, t) then
+        nva := set_byte(nva, t, get_byte(ova, t)); touched := true;
+      end if;
+    end loop;
+  end loop;
+  if touched then
+    outd := jsonb_set(outd, '{fg}', to_jsonb(translate(encode(nfg, 'base64'), E'\n', '')));
+    outd := jsonb_set(outd, '{bg}', to_jsonb(translate(encode(nbg, 'base64'), E'\n', '')));
+    if nva is not null then outd := jsonb_set(outd, '{vari}', to_jsonb(translate(encode(nva, 'base64'), E'\n', ''))); end if;
+  end if;
+  return outd;
+end $$;
+revoke execute on function public.alock_guard(jsonb, jsonb, text) from public, anon, authenticated;
+
+-- In a LOCKED world only its owner places Red / Blue Locks. A player without access to the world but listed on one
+-- of them (or the lock is open, or "ignore empty air" and the tile was empty) may change ONLY those tiles: the save
+-- keeps everything as saved except those tiles' fg / bg / vari, the trees / signs / Display Boxes / Mannequins /
+-- Pianos on them, and the floating drops (like any visitor). The lock tiles themselves never change.
+create or replace function public.alock_merge_tiles(p_old jsonb, p_new jsonb, p_tiles integer[])
+returns jsonb language sql immutable as $$
+  select coalesce(jsonb_agg(x), '[]'::jsonb) from (
+    select x from jsonb_array_elements(case when jsonb_typeof(p_old) = 'array' then p_old else '[]'::jsonb end) x
+    where not (jsonb_typeof(x -> 0) = 'number' and (x ->> 0)::numeric = any (p_tiles::numeric[]))
+    union all
+    select x from jsonb_array_elements(case when jsonb_typeof(p_new) = 'array' then p_new else '[]'::jsonb end) x
+    where jsonb_typeof(x -> 0) = 'number' and (x ->> 0)::numeric = any (p_tiles::numeric[])
+  ) s
+$$;
+create or replace function public.alock_area_only(p_old jsonb, p_new jsonb, p_me text)
+returns jsonb language plpgsql immutable as $$
+declare
+  outd jsonb := p_old;
+  tiles integer[] := '{}';
+  locks integer[] := '{}';
+  e jsonb; o jsonb; ti jsonb; t integer; k text;
+  ofg bytea; nfg bytea; obg bytea; nbg bytea; ova bytea; nva bytea;
+  mine boolean;
+begin
+  -- floating drops, as for any visitor
+  if jsonb_typeof(p_new -> 'drops') = 'array' and jsonb_array_length(p_new -> 'drops') <= 400 then -- MAX_DROPS
+    outd := jsonb_set(outd, '{drops}', p_new -> 'drops');
+  end if;
+  if jsonb_typeof(p_old -> 'al') <> 'array' then return outd; end if;
+  begin
+    ofg := decode(p_old ->> 'fg', 'base64'); nfg := decode(p_new ->> 'fg', 'base64');
+    obg := decode(p_old ->> 'bg', 'base64'); nbg := decode(p_new ->> 'bg', 'base64');
+    ova := decode(p_old ->> 'vari', 'base64'); nva := decode(p_new ->> 'vari', 'base64');
+  exception when others then
+    return outd;
+  end;
+  if ofg is null or nfg is null or obg is null or nbg is null or octet_length(ofg) <> octet_length(nfg)
+     or octet_length(obg) <> octet_length(nbg) then
+    return outd;
+  end if;
+  for e in select * from jsonb_array_elements(p_old -> 'al') loop
+    if jsonb_typeof(e -> 0) = 'number' then locks := locks || (e ->> 0)::integer; end if;
+  end loop;
+  for e in select * from jsonb_array_elements(p_old -> 'al') loop
+    o := e -> 1;
+    if jsonb_typeof(o) <> 'object' or jsonb_typeof(o -> 't') <> 'array' then continue; end if;
+    mine := coalesce(o -> 'open' = 'true'::jsonb, false) or (jsonb_typeof(o -> 'acc') = 'array' and o -> 'acc' ? lower(p_me));
+    for ti in select * from jsonb_array_elements(o -> 't') loop
+      if jsonb_typeof(ti) <> 'number' then continue; end if;
+      t := (ti #>> '{}')::integer;
+      if t < 0 or t >= octet_length(ofg) or t = any (locks) then continue; end if;
+      if mine or (coalesce(o -> 'air' = 'true'::jsonb, false) and get_byte(ofg, t) = 0 and get_byte(obg, t) = 0) then
+        tiles := tiles || t;
+      end if;
+    end loop;
+  end loop;
+  if cardinality(tiles) = 0 then return outd; end if;
+  foreach t in array tiles loop
+    ofg := set_byte(ofg, t, get_byte(nfg, t));
+    obg := set_byte(obg, t, get_byte(nbg, t));
+    if ova is not null and nva is not null and t < octet_length(ova) and t < octet_length(nva) then
+      ova := set_byte(ova, t, get_byte(nva, t));
+    end if;
+  end loop;
+  outd := jsonb_set(outd, '{fg}', to_jsonb(translate(encode(ofg, 'base64'), E'\n', '')));
+  outd := jsonb_set(outd, '{bg}', to_jsonb(translate(encode(obg, 'base64'), E'\n', '')));
+  if ova is not null then outd := jsonb_set(outd, '{vari}', to_jsonb(translate(encode(ova, 'base64'), E'\n', ''))); end if;
+  foreach k in array array['trees', 'signs', 'disp', 'mann', 'songs', 'atm'] loop
+    outd := jsonb_set(outd, array[k], public.alock_merge_tiles(p_old -> k, p_new -> k, tiles));
+  end loop;
+  return outd;
+end $$;
+revoke execute on function public.alock_area_only(jsonb, jsonb, text) from public, anon, authenticated;
+
 -- returns { r: 'saved' | 'visitor', v: lockv } (the game rejoins build:NAME:v when v changes)
 drop function if exists public.save_world(text, jsonb);
 create or replace function public.save_world(p_name text, p_data jsonb)
@@ -335,6 +498,7 @@ begin
   if me is null then raise exception 'Not signed in' using errcode = '42501'; end if;
   if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
   if p_name !~ '^[A-Z0-9]{1,16}$' then raise exception 'Bad world name'; end if;
+  if public.world_banned(p_name) then raise exception 'You are banned from this world' using errcode = '42501'; end if;
   if jsonb_typeof(p_data) is distinct from 'object' or octet_length(p_data::text) > 3000000 then
     raise exception 'Bad world data';
   end if;
@@ -344,6 +508,7 @@ begin
   if not found then
     -- a new world: you can only lock it for yourself
     own := case when req is not null and (lower(req) = lower(me) or gm) then req end;
+    if not gm then p_data := public.alock_guard('{}'::jsonb, p_data, me); end if; -- area locks: only your own
     outd := jsonb_set(p_data, '{owner}', coalesce(to_jsonb(own), 'null'::jsonb));
     insert into public.worlds (name, data, owner, updated_at, lockv) values (p_name, outd, own, now(), 0);
     perform public.vend_track(p_name, '[]'::jsonb, outd -> 'vends');
@@ -355,6 +520,19 @@ begin
     -- the owner: unowned -> you may lock it for yourself; yours -> you may keep it or unlock it; else unchanged
     if r.owner is null then
       own := case when req is not null and (lower(req) = lower(me) or gm) then req end;
+      if not gm then
+        -- area locks: other players' locks and tiles stay (alock_guard); no Gold Lock while someone else has one
+        if own is not null and jsonb_typeof(r.data -> 'al') = 'array' and exists (
+          select 1 from jsonb_array_elements(r.data -> 'al') x where public.alock_owned_by_other(x, me)) then
+          own := null;
+        end if;
+        p_data := public.alock_guard(r.data, p_data, me);
+      end if;
+    elsif not boss then
+      -- a builder with access to a locked world: the owner's Red / Blue Lock areas stay as saved unless they list
+      -- them, and only the world's owner places, changes or removes area locks there
+      own := r.owner;
+      p_data := jsonb_set(public.alock_guard(r.data, p_data, me), '{al}', coalesce(r.data -> 'al', '[]'::jsonb));
     elsif gm or lower(r.owner) = lower(me) then
       own := case when req is null or lower(req) = lower(r.owner) or gm then req else r.owner end;
     else
@@ -369,14 +547,17 @@ begin
     perform public.vend_track(p_name, r.data -> 'vends', p_data -> 'vends');
     update public.worlds
     set data = outd, owner = own, updated_at = now(),
-        lockv = lockv + case when own is distinct from r.owner or outd -> 'lock' is distinct from r.data -> 'lock' then 1 else 0 end
+        lockv = lockv + case when own is distinct from r.owner or outd -> 'lock' is distinct from r.data -> 'lock'
+          -- (an area lock's list changed in a locked world: who may send on build: changes too)
+          or (own is not null and outd -> 'al' is distinct from r.data -> 'al') then 1 else 0 end
     where name = p_name
     returning lockv into lv;
     return jsonb_build_object('r', 'saved', 'v', lv);
   end if;
 
-  -- a visitor: everything stays as saved except the floating drops and paid-for Vending Machine sales
-  outd := r.data;
+  -- a visitor: everything stays as saved except the floating drops and paid-for Vending Machine sales, and the
+  -- tiles of Red / Blue Lock areas that let this player build (alock_area_only)
+  outd := case when public.alock_grants(r.data, me) then public.alock_area_only(r.data, p_data, me) else r.data end;
   if jsonb_typeof(p_data -> 'drops') = 'array' and jsonb_array_length(p_data -> 'drops') <= 400 then -- MAX_DROPS
     outd := jsonb_set(outd, '{drops}', p_data -> 'drops');
   end if;
@@ -546,8 +727,91 @@ grant update (read) on public.mail to authenticated;
 drop trigger if exists balbtopia_mail_send on public.mail;
 create trigger balbtopia_mail_send before insert on public.mail for each row execute function public.on_mail_send();
 
+-- ---------- world bans (Oct 22 2026): wrench a player -> Ban from this world ----------
+-- The world's owner (or a GM) keeps a player out of one world for a while or until lifted. The banned player is
+-- kicked out at once (a world_kicks row, like Kick), can't go back in (the game asks my_world_ban first), can't
+-- join that world's realtime channels (policies below), can't save it and can't chat there.
+create table if not exists public.world_bans (
+  world text not null,
+  player_id uuid not null references auth.users (id) on delete cascade,
+  name text not null,
+  until timestamptz, -- null: until the owner lifts it
+  by_name text not null,
+  created_at timestamptz not null default now(),
+  primary key (world, player_id)
+);
+alter table public.world_bans enable row level security;
+revoke all on public.world_bans from anon, authenticated;
+
+create or replace function public.world_banned(p_world text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.world_bans b where b.world = p_world and b.player_id = auth.uid()
+                 and (b.until is null or b.until > now()))
+$$;
+-- the game asks before going into a world: null, or { until (null = no end), by }
+create or replace function public.my_world_ban(p_world text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('until', b.until, 'by', b.by_name) from public.world_bans b
+  where b.world = p_world and b.player_id = auth.uid() and (b.until is null or b.until > now()) limit 1
+$$;
+-- ban (p_minutes null = until lifted) and kick out; returns the kick's id (the game sends { kid } like a Kick)
+create or replace function public.ban_from_world(p_world text, p_to uuid, p_minutes integer)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare r public.worlds; me text := public.my_name(); tn text; k bigint;
+begin
+  select * into r from public.worlds where name = p_world;
+  if me is null or public.is_banned() or not found or r.owner is null
+     or not (public.is_gm() or lower(r.owner) = lower(me)) then
+    raise exception 'Only the owner of this world can do that' using errcode = '42501';
+  end if;
+  select name into tn from public.usernames where id = p_to;
+  if tn is null then raise exception 'No such player' using errcode = 'P0001'; end if;
+  if p_to = auth.uid() or lower(tn) = lower(r.owner) then
+    raise exception 'You can''t ban the owner of this world' using errcode = 'P0001';
+  end if;
+  if exists (select 1 from public.gms g where lower(g.name) = lower(tn)) then
+    raise exception 'You can''t ban a GM' using errcode = 'P0001';
+  end if;
+  if p_minutes is not null and (p_minutes < 1 or p_minutes > 525600) then raise exception 'Bad ban time'; end if;
+  delete from public.world_bans where until is not null and until < now();
+  insert into public.world_bans (world, player_id, name, until, by_name)
+  values (p_world, p_to, tn, case when p_minutes is null then null else now() + make_interval(mins => p_minutes) end, me)
+  on conflict (world, player_id) do update
+    set name = excluded.name, until = excluded.until, by_name = excluded.by_name, created_at = now();
+  delete from public.world_kicks where created_at < now() - interval '1 hour';
+  insert into public.world_kicks (world, from_name, to_id, kind) values (p_world, me, p_to::text, 'out')
+  returning id into k;
+  return k;
+end $$;
+create or replace function public.unban_from_world(p_world text, p_name text)
+returns text language plpgsql security definer set search_path = public as $$
+declare r public.worlds; me text := public.my_name();
+begin
+  select * into r from public.worlds where name = p_world;
+  if me is null or public.is_banned() or not found or r.owner is null
+     or not (public.is_gm() or lower(r.owner) = lower(me)) then
+    raise exception 'Only the owner of this world can do that' using errcode = '42501';
+  end if;
+  delete from public.world_bans where world = p_world and lower(name) = lower(p_name);
+  if not found then return 'not banned'; end if;
+  return 'ok';
+end $$;
+-- the owner's list of players banned from the world (bans that ran out are left out)
+create or replace function public.world_ban_list(p_world text)
+returns table (name text, until timestamptz) language plpgsql stable security definer set search_path = public as $$
+declare r public.worlds; me text := public.my_name();
+begin
+  select * into r from public.worlds w where w.name = p_world;
+  if me is null or not found or r.owner is null or not (public.is_gm() or lower(r.owner) = lower(me)) then
+    raise exception 'Only the owner of this world can do that' using errcode = '42501';
+  end if;
+  return query select b.name, b.until from public.world_bans b
+    where b.world = p_world and (b.until is null or b.until > now()) order by b.created_at desc;
+end $$;
+
 -- ---------- realtime: private channels ----------
--- world:NAME  positions, chat, punches, drops, Vending Machine sales (everyone signed in)
+-- world:NAME  positions, punches, drops, Vending Machine sales (everyone signed in and not banned from the world)
+-- chat:NAME   world chat, sent only by the server (send_chat) so the names can't be faked
 -- build:NAME:LOCKV  blocks, signs, songs, displays, Clear World, world sync, machine changes (only players who may
 --              build there; LOCKV is the world's lock version, see can_send_build)
 -- lobby       messages, trades, gifts between players (everyone signed in)
@@ -563,11 +827,14 @@ begin
   begin
     execute 'drop policy if exists "balbtopia: receive" on realtime.messages';
     execute 'drop policy if exists "balbtopia: send" on realtime.messages';
+    -- chat:NAME: world chat with the server's names (send_chat); players can only listen there, never send
     execute $p$create policy "balbtopia: receive" on realtime.messages for select to authenticated using (
-      not public.is_banned() and (realtime.topic() like 'world:%' or realtime.topic() like 'build:%' or realtime.topic() = 'lobby')
+      not public.is_banned()
+      and (realtime.topic() like 'world:%' or realtime.topic() like 'build:%' or realtime.topic() like 'chat:%' or realtime.topic() = 'lobby')
+      and not public.world_banned(split_part(realtime.topic(), ':', 2))
     )$p$;
     execute $p$create policy "balbtopia: send" on realtime.messages for insert to authenticated with check (
-      not public.is_banned() and (
+      not public.is_banned() and not public.world_banned(split_part(realtime.topic(), ':', 2)) and (
         realtime.topic() like 'world:%' or realtime.topic() = 'lobby'
         or (realtime.topic() like 'build:%' and public.can_send_build(realtime.topic()))
       )
@@ -578,6 +845,36 @@ begin
   end;
 end $$;
 
+-- ---------- world chat with real names (Oct 22 2026) ----------
+-- The game calls send_chat; the server puts the sender's real name on it and broadcasts it on chat:NAME, where
+-- players can only listen (no send policy for it). Same limit as the game (3 quickly, then a wait), a bit looser.
+create table if not exists public.chat_sent (
+  id bigint generated always as identity primary key,
+  from_id uuid not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists chat_sent_from on public.chat_sent (from_id, created_at);
+alter table public.chat_sent enable row level security;
+revoke all on public.chat_sent from anon, authenticated;
+create or replace function public.send_chat(p_world text, p_text text)
+returns text language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); t text; n integer;
+begin
+  if me is null or public.is_banned() then raise exception 'You can''t chat' using errcode = '42501'; end if;
+  if p_world !~ '^[A-Z0-9]{1,16}$' then raise exception 'Bad world name'; end if;
+  if public.world_banned(p_world) then raise exception 'You are banned from this world' using errcode = '42501'; end if;
+  t := left(btrim(regexp_replace(coalesce(p_text, ''), '[[:cntrl:]]', ' ', 'g')), 80); -- CHAT_MAX
+  if t = '' then return 'empty'; end if;
+  select count(*) into n from public.chat_sent where from_id = auth.uid() and created_at > now() - interval '5 seconds';
+  if n >= 5 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
+  delete from public.chat_sent where created_at < now() - interval '1 minute';
+  insert into public.chat_sent (from_id) values (auth.uid());
+  perform realtime.send(jsonb_build_object('id', auth.uid(), 'n', me, 'text', t), 'chat', 'chat:' || p_world, true);
+  return 'ok';
+end $$;
+
+grant execute on function public.world_banned(text), public.my_world_ban(text), public.ban_from_world(text, uuid, integer),
+  public.unban_from_world(text, text), public.world_ban_list(text), public.send_chat(text, text) to authenticated;
 grant execute on function public.whoami(), public.my_name(), public.am_i_gm(), public.am_i_banned(), public.gm_ban(text, boolean, text),
   public.kick_player(text, text, text, integer, integer), public.claim_kick(bigint), public.get_world_key(text),
   public.give_world_key(text, uuid), public.use_world_key(text), public.my_world_keys(), public.can_edit_world(text), public.can_send_build(text), public.is_gm(),
@@ -624,6 +921,9 @@ drop policy if exists "shop prices: read" on public.shop_prices;
 create policy "shop prices: read" on public.shop_prices for select to authenticated using (true);
 insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('world_lock', 1, 2000, false, 0),
+  ('red_lock', 1, 50, true, 0), -- area locks (alocks.js)
+  ('blue_lock', 1, 200, true, 0),
+  ('atm_machine', 1, 30000, true, 0), -- atm.js
   ('door_mover', 1, 1000, true, 0),
   ('signal_jammer', 1, 2000, true, 0),
   ('punch_jammer', 1, 2000, true, 0),
@@ -703,7 +1003,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_raptor', 1, 80000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('world_lock', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('display_box', 1), ('mannequin', 1), ('shovel', 1), ('golden_pickaxe', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('piano', 5), ('genie_teapot', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
+delete from public.shop_prices where (item, qty) not in (values ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('display_box', 1), ('mannequin', 1), ('shovel', 1), ('golden_pickaxe', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('piano', 5), ('genie_teapot', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,

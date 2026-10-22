@@ -15,12 +15,17 @@ function setLockCfg(c) {
   };
 }
 const isOwner = () => !!worldOwner && lc(worldOwner) === lc(playerName);
-const hasAccess = (name) => !worldOwner || lc(worldOwner) === lc(name) || lockCfg.open || lockCfg.access.includes(lc(name));
-// may this player change blocks here? (shows why not when they can't)
-function canEdit(quiet) {
-  if (hasAccess(playerName)) return true;
+const worldAccess = (name) => !worldOwner || lc(worldOwner) === lc(name) || lockCfg.open || lockCfg.access.includes(lc(name));
+// i (optional): the tile. A tile inside a Red / Blue Lock's area (alocks.js) follows THAT lock's rules instead of
+// the world's: its owner, the players it lists (even without access to the world), open, empty air, the world's owner.
+const hasAccess = (name, i) => (alockAt(i) ? alockAllows(i, name) : worldAccess(name));
+// may this player change things here? (shows why not when they can't) i: the tile, when there is one
+function canEdit(quiet, i) {
+  if (hasAccess(playerName, i)) return true;
   if (!quiet) {
-    toast('This world is locked by ' + worldOwner);
+    const a = alockAt(i);
+    if (a) alockFlash(a.at);
+    toast(a ? 'This area is locked by ' + a.o + ' (' + ITEMS[a.k].name + ')' : 'This world is locked by ' + worldOwner);
     shake = Math.max(shake, 2);
   }
   return false;
@@ -65,7 +70,9 @@ function renderLockWin() {
       ${here.length ? `<div class="lhere"><small>In this world:</small>${here.map((n) => `<button data-add="${esc(n)}">+ ${esc(n)}</button>`).join('')}</div>` : ''}
     </div>
     ${kickHtml()}
+    <div id="lBans"></div>
     <p class="mnote">Only you can break this lock.</p>`;
+  loadBans();
   const keep = () => {
     lockCfg.desc = $('lDesc').value.slice(0, 120);
     lockCfg.open = $('lOpen').checked;
@@ -123,6 +130,31 @@ function kickHtml() {
           <div class="lkall"><button type="button" data-kick="*" data-k="spawn">Spawn all</button><button type="button" class="out" data-kick="*" data-k="out">Kick all</button></div>`
         : `<p class="mnote">${Net.online ? 'Nobody else is here right now.' : 'Kicking players needs online play.'}</p>`
     }`;
+}
+// players banned from this world (wrench a player -> Ban from this world), each with Unban; filled in from the server
+async function loadBans() {
+  const list = await Net.worldBanList();
+  const box = $('lBans');
+  if (!box || !list || !isOwner()) return;
+  const left = (u) => {
+    if (!u) return 'until you lift it';
+    const m = Math.max(1, Math.round((Date.parse(u) - Date.now()) / 60000));
+    return m < 60 ? m + ' min left' : m < 1440 ? Math.round(m / 60) + ' h left' : Math.round(m / 1440) + ' days left';
+  };
+  box.innerHTML = `<p class="mlabel">Banned players <span>${list.length}</span></p>${
+    list.length
+      ? `<ul class="lkick">${list.map((b) => `<li><span>${esc(b.name)} <small>${left(b.until)}</small></span><button type="button" data-unban="${esc(b.name)}">Unban</button></li>`).join('')}</ul>`
+      : '<p class="mnote">Nobody is banned. Wrench a player to ban them.</p>'
+  }`;
+  box.querySelectorAll('[data-unban]').forEach(
+    (b) =>
+      (b.onclick = async () => {
+        const n = b.dataset.unban,
+          err = await Net.unbanFromWorld(n);
+        toast(err || n + ' can come back to ' + worldName);
+        loadBans();
+      }),
+  );
 }
 function askKick(to, k) {
   if (!isOwner()) return;

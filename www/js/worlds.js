@@ -251,6 +251,15 @@ async function enterWorld(name) {
 async function enterWorldNow(name) {
   let w = null;
   if (Net.online) {
+    // banned from this world by its owner (wrench -> Ban from this world): stay put
+    if (name !== LOBBY_WORLD) {
+      const ban = await Net.worldBan(name);
+      if (ban) {
+        const m = ban.until ? Math.max(1, Math.round((Date.parse(ban.until) - Date.now()) / 60000)) : 0;
+        toast('You are banned from ' + name + (m ? ' for ' + (m < 60 ? m + ' more min' : Math.round(m / 60) + ' more h') : ''));
+        return false;
+      }
+    }
     Net.loading = true;
     try {
       w = await Net.loadWorld(name);

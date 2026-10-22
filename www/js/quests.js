@@ -200,7 +200,7 @@ const questReady = (q) => (q.k === 'give' ? quest.sent : quest.n >= q.n);
 // ---------- the pop-up ----------
 let teapotAt = null; // the teapot tile last wrenched: the coin flies from there
 async function openTeapot(x, y) {
-  if (!canEdit()) return;
+  if (!canEdit(false, at(x, y))) return;
   teapotAt = { x, y };
   // online: the server's day, and whether today's coin was already claimed (e.g. on another device)
   if (Wallet.on()) {

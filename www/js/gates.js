@@ -27,7 +27,7 @@ if (ITEMS.water_bucket)
 const isGateT = (t) => !!(BLOCK[t] && BLOCK[t].gate);
 const hasWater = (i) => !!(vari[i] & WATER);
 // may this player walk through the gate on tile i?
-const gatePass = (i, name) => !!(vari[i] & GATE_OPEN) || hasAccess(name);
+const gatePass = (i, name) => !!(vari[i] & GATE_OPEN) || hasAccess(name, i);
 
 // ---------- gate animation ----------
 const gateOpen = new Map(); // tile -> 0 (down) .. 1 (up)
@@ -79,7 +79,7 @@ function stepGates() {
 function openGate(x, y) {
   const i = at(x, y),
     name = BLOCK[fg[i]].name;
-  if (!canEdit(true)) {
+  if (!canEdit(true, i)) {
     toast(vari[i] & GATE_OPEN ? name + ': open to all' : name + ': only for players with access');
     return;
   }
@@ -110,7 +110,7 @@ function openGate(x, y) {
 // is built there later. A bucket on a dry Sponge soaks it (Wet Sponge) instead.
 function useWaterBucket(x, y) {
   const i = at(x, y);
-  if (!canEdit()) return;
+  if (!canEdit(false, i)) return;
   if (isDoorTile(x, y)) return toast("Can't put water on the main door");
   if (hasWater(i)) return toast('There is water here already (a Sponge takes it away)');
   if (typeof soakSponge === 'function' && soakSponge(i, x, y, true)) return;
