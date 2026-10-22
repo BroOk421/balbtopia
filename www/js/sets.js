@@ -28,7 +28,13 @@ for (const st of OUTFIT_SETS) {
   SHOP_ICON[st.id] = () => setIcon(st.id);
   SHOP.push({ id: st.id, gold: SET_GOLD, cat: 'sets' });
   // the pieces are Shop-only now: no recipes, seeds retired
-  for (const p of Object.values(st.eq)) if (ITEMS[p + '_seed']) ITEMS[p + '_seed'].retired = true;
+  for (const p of Object.values(st.eq)) {
+    if (ITEMS[p + '_seed']) ITEMS[p + '_seed'].retired = true;
+    // no "X = A + B" recipe text on a set piece any more (owner, Oct 22 2026: set wear is out of the recipes)
+    ITEMS[p].desc = ITEMS[p].desc.replace(/\s*[^.]*=[^.]*\+[^.]*\.\s*$/, ' Wear it from your bag.').trim();
+  }
+  // a set piece is never the result of a splice, even if an old recipe list still has one
+  for (const k in SPLICE) if (Object.values(st.eq).includes(SPLICE[k])) delete SPLICE[k];
 }
 // the Shop picture: the character wearing the set. charPortrait (ui.js) gives a data: URL, so the picture is
 // loaded first; until then the card shows the pieces 2 x 2, and the Shop is drawn again once it is ready.

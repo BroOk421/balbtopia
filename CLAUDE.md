@@ -36,10 +36,12 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `lock.js` | World Lock access rules (`isOwner`, `hasAccess`, `canEdit`) and the lock window |
 | `social.js` | `dialog()` pop-up helper, trade/friends/messages/email/gifts, world chat (CHAT button) |
 | `weather.js` | Snow Weather Machine block and the snowy weather: winter backdrop, falling snow, white flash |
-| `rest.js` | Sitting on chairs and sleeping in beds (pose, Zzz, 5 s wait, one player per bed) |
+| `rest.js` | Sitting on chairs and sleeping in beds (pose, Zzz, 3 s wait, one player per bed / seat tile) |
 | `lobby.js` | The LOBBY world (empty, door in the middle; the owner builds it); everyone lands there after PLAY |
 | `gates.js` | Gates (Portcullis, Iron Bars), water from the Water Bucket (swimming), Death Spikes / Stalactite kill on touch |
 | `worlds.js` | Saving/loading worlds (`worldData` / `applyWorld`), entering worlds, world list |
+| `art64.js` | 64 x 64 art (painter `pix64Canvas`, steel colours `ST64`): Steel Block; the punching fist (`FIST_REF`) |
+| `steel.js` | Steel Beam / Steel Bridge platforms (blocks 162-163, 64 px art via `pix64Canvas`) |
 | `ui.js`, `menu.js` | Hotbar, bag (50 slots), item info, gold counter; menu tabs, XP and levels |
 
 ## Rules that are easy to break
@@ -47,7 +49,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -271,7 +273,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   FEET_SPEED_PER)) = +10% plus 1% per rarity point, at most +60% (`feetSpeed` in wear.js, used in physics.js).
 - GM bag shows no amounts (bag, hotbar, pop-up, info). A GM's drop always asks how many (1 to 200, starts at 1) and
   takes nothing out of the bag (`askDrop` -> `spawnItemDrop`).
-- Sitting and sleeping (`rest.js`): stand still on the chair/bed tile itself for `REST_DELAY` (5 s, counted only
+- Sitting and sleeping (`rest.js`): stand still on the chair/bed tile itself for `REST_DELAY` (3 s since Oct 22 2026, was 5 s; counted only
   on that tile: `stillAt`) on a Wooden Chair or Toilet (`SEATS`: seat
   cell) and you sit, using the owner's sitting pose (bottom-left figure of `art-source/character/sit_sleep_sheet.png`,
   cut by `sit_cut.py` into `assets/character/sit.png`: 198x215 = our 118 frame + `SIT_PAD` 40 each side, head fitted
@@ -286,7 +288,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   letter, at most 3 s), the mouth cycles through the owner's mouth shapes (`assets/character/mouths.png`: closed, o,
   open, wide, grin, teeth, 32x24 cells already at our scale, from `art-source/character/talk_sheet.png` row 2 + row 3
   col 5), every `TALK_MS`; our own mouth line (x 70-81, y 93-95; `MOUTH_X/Y`) is covered with the skin colour first.
-  Nothing else of the face changes. Not while angry; sitting uses `SIT_MOUTH_Y` (96).
+  Nothing else of the face changes. Not while angry; sitting uses `MOUTH_Y` too (the standing head is drawn when sitting).
 - Backdrop mountains: small notches in the top outline of far/big/mid/front were filled (`art-source/
   background_notch_fix.py`; originals in `art-source/background_original/`).
 - Checkpoint (deco): walking past it sets `P.cp`; when you die you respawn there (if it still exists), else at the door.
@@ -773,3 +775,58 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     like a different colour. `sitBody` now scales its skin pixels so their most common colour equals the standing
     face's most common colour (`commonColor` / `faceColor`, rest.js), for every skin incl. porcelain.
 
+- Oct 22 2026 (owner, later):
+  - Couch / chair sitting: you face the way the seat faces (right-facing couch = the one with the cushion shine on the
+    left = sitters look right; left-facing = mirrored = sitters look left). Already true in drawing; now `updateRest`
+    also sets `P.face` to the seat's way when you sit down, so you keep facing that way when you get up.
+  - Steel platforms (`steel.js`, loaded after furniture.js): Steel Beam (block 162, riveted I-beam) and Steel Bridge
+    (block 163, truss bridge: deck on top, one V of braces per tile so a row makes a W, bottom chord, end posts only on
+    open ends). `plat: true` like the Wooden Platform (stand on top, jump up through, plant seeds on top); pieces of the
+    same kind side by side join. Recipes (Balbtopia): Steel Beam = Wooden Platform + Steel Block (tree 300 s),
+    Steel Bridge = Steel Beam + Iron Bars (420 s); farming.json (splices + trees) and SPLICE. Now 202 splices.
+  - Set (outfit pack) wear is out of the recipes for good: `loadFarming` skips a splice whose result's seed is
+    `retired`, sets.js deletes set pieces from SPLICE and strips "X = A + B" from their descriptions (Red Hair still
+    had it). RECIPES world tag bumped to `L8:` so old RECIPES worlds rebuild.
+  - Shop tabs are a 4-column grid (`#shopTabs`), so the 8 tabs sit in 2 rows.
+  - Bag search (`#bagQ`) is hidden on phones (`.touch` or `pointer: coarse`); the search in trades / gifts / Vending
+    Machine stays.
+  - Walk style setting removed (Menu -> Settings and the V key): everyone walks with strides (`walkStyle` is always
+    'stride', saved `walkStyle` is ignored, other players are drawn with strides even if an old build sends 'step').
+  - GAME_BUILD '2026-10-22 d'.
+
+- Oct 22 2026 (owner, later 2): finer art, "more professional, bigger pixels" = 64 x 64 pictures per tile.
+  - `art64.js` (loaded after furniture.js, before steel.js): painter `pix64Canvas(N, paint)` (px, rect, poly, ell, disc,
+    tline thick line with u across it, fill, outline with joins) and `ramp` (clean colour bands, no dither: the noisy
+    dithered version looked grainy). NOTE wear.js already has a global `artCanvas`: don't reuse that name.
+  - Couch redrawn at 64 px and clearly TURNED: the right-facing couch shows its left end from the side (side of the
+    back + a big outer arm panel + rolled arm front), the seat/back go back to the left, the right end shows only the
+    rolled front of the arm. Left-facing = mirrored. Sitters face the way the couch is turned (owner checked this).
+    `couchPic` is replaced in art64.js; `SEATS.couch` stays 10.
+  - Steel Block (114): square plate, bevelled frame (lit top/left), a groove, brushed panel with a shine, 4 cross-head
+    screws inset near the corners (`screw64`). `NEWART.steel_block` is set to it, its `edge` removed, SHOP_ICON added.
+  - Steel Beam / Steel Bridge repainted at 64 px (`bolt64`, `tread64`, bevelled bars, gusset plates, splice plates on
+    joins); icons are centred vertically (`steelIcon`).
+  - Punch: `fistSprite` now returns a 52 x 44 painted fist (`paintFist`: back of the hand, 4 curled fingers with
+    knuckle shine, thumb folded over them), flagged `hd`; drawPunch draws it smooth at 13/52*0.9 of the old scale per
+    px (a bit smaller than the old fist); the hotbar fist icon is a 64 px canvas.
+  - `iconCanvas` (render.js): when `newIcon` gives a picture wider than 32 px the icon canvas takes its size (CSS scales
+    every icon), so 64 px art keeps its pixels in the bag / shop / hotbar.
+  - GAME_BUILD '2026-10-22 e'.
+
+- Oct 22 2026 (owner, later 3):
+  - Couch: back to the FIRST couch art (furniture.js `paintCouch`, 32 px); the 64 px turned couch was removed from
+    art64.js. Sitting stays as it is (owner: correct): you face the way the couch faces.
+  - Fist: the owner's reference picture (a chunky pixel fist, thumb curled over the fingers, gold in his picture)
+    copied pixel for pixel into `FIST_REF` (18 x 17, art64.js) and coloured per skin from `ARM_COLOR` (H light+white,
+    S light, s skin/shade, d shade/dark, K dark/deep outline). `fistSprite` returns it with `c.k = 13 / width`, so
+    drawPunch keeps the old fist size; drawn pixel-sharp. Hotbar icon: 3 px per fist pixel on a 64 px canvas.
+    The smooth painted HD fist (later 2) is gone.
+  - GAME_BUILD '2026-10-22 f'.
+- Oct 22 2026 (owner, later 4): `REST_DELAY` 5 s -> 2 s (sit / lie down after 2 s standing still on a chair, couch or
+  bed). A seat / bed tile someone is already on stays taken (`restTaken`, unchanged). GAME_BUILD '2026-10-22 g'.
+- Oct 22 2026 (owner, later 5): `REST_DELAY` 3 s (owner changed his mind from 2 s). GAME_BUILD '2026-10-22 h'.
+- Oct 22 2026 (owner, later 6): sitting FLIPPED: a couch / chair turned left (`FACE_LEFT`) seats you facing RIGHT and
+  the other way round (rest.js `drawResting` scale and `updateRest` P.face). Sitting keeps the normal standing face:
+  `sitWithHead(skin, fr)` = the sitting body with rows above `SIT_HEAD_CUT` (104) replaced by the standing frame's head
+  (`skin_<skin>_<fr>`, blinking via `frameAt`), so talking (`drawTalk`, `MOUTH_Y`) works like when standing.
+  `SIT_MOUTH_Y` is no longer used. GAME_BUILD '2026-10-22 i'.

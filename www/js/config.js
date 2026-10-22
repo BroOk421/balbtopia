@@ -381,6 +381,8 @@ const SPLICE = {
   'bush+dirt': 'bush_block',
   'dirt+romantic_bushes': 'romantic_bush_block',
   'red_block+wooden_chair': 'couch',
+  'steel_block+wooden_platform': 'steel_beam',
+  'iron_bars+steel_beam': 'steel_bridge',
   'grass+viney_block': 'foliage',
   'wooden_background+yellow_block': 'painting_dink_duck',
   'white_block+wooden_background': 'painting_yerfdog',
@@ -418,7 +420,8 @@ function loadFarming() {
         const next = {};
         for (const r of j.splices) {
           const ss = Array.isArray(r && r.seeds) ? r.seeds.map(String) : [];
-          if (ss.length !== 2 || !ss.every(hasTree) || !hasTree(r.result)) {
+          // (a retired seed's item is not spliced any more, e.g. the pieces of the Shop's outfit sets, sets.js)
+          if (ss.length !== 2 || !ss.every(hasTree) || !hasTree(r.result) || ITEMS[r.result + '_seed'].retired) {
             console.warn('farming.json: skipped splice', r);
             continue;
           }

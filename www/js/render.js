@@ -10,7 +10,7 @@ const WALK_BOB = {
   stride: [3, 4, 1, -3, -4, -1, 3, 4, 1, -3, -4, -1],
   step: [0, -1, -2, -2, -2, -1, 0, -1, -2, -2, -2, -1],
 };
-let walkStyle = 'step';
+let walkStyle = 'stride'; // always long strides (owner, Oct 22 2026: Walk style setting removed)
 const TL = DATA.timeline,
   TLT = TL.reduce((s, f) => s + f.ms, 0),
   FR = DATA.frame,
@@ -362,7 +362,7 @@ function drawDead(c, ox, oy) {
 function drawCharacter(c, ox, oy) {
   if (c.dead) return drawDead(c, ox, oy);
   if (c.rest) return drawResting(c, ox, oy); // sitting or sleeping (rest.js)
-  const style = c.style === 'stride' ? 'stride' : 'step';
+  const style = 'stride'; // everyone walks with strides, also players on an older build that still send 'step'
   const angry = c.angry > 0;
   // no blinking while angry: the eyes stay open under the angry lids
   const fr = c.ground && !c.walking && !angry ? frameAt(now + (c.blink || 0)) : 'open';
@@ -486,14 +486,16 @@ function drawPunch(c, cx, top, sc, ox, oy) {
     return;
   }
   // closed fist at the end, growing as it reaches out, knuckles leading
+  // (the fist from art64.js has more, smaller pixels: f.k scales it to the old fist's size)
   const f = fistSprite(c.skin),
-    size = (2.1 + 1.2 * e) * CHAR_S * Z;
+    size = (2.1 + 1.2 * e) * CHAR_S * Z * (f.k || 1);
   g.save();
   g.translate(fx, fy);
   g.rotate(Math.atan2(dy, dx));
   g.scale(1, (Math.abs(dx) > 0.05 ? dx < 0 : c.face < 0) ? -1 : 1); // keep the thumb on top
   g.imageSmoothingEnabled = false;
-  g.drawImage(f, -f.width * size * 0.55, (-f.height * size) / 2, f.width * size, f.height * size);
+  g.drawImage(f, -f.width * size * (f.k ? 0.45 : 0.55), (-f.height * size) / 2, f.width * size, f.height * size);
+  g.imageSmoothingEnabled = false;
   g.restore();
 }
 const SMOKE = [
@@ -815,7 +817,12 @@ function iconCanvas(id) {
   x.imageSmoothingEnabled = false;
   const it = ITEMS[id];
   const nw = it && it.kind !== 'seed' && newIcon(id);
-  if (nw) x.drawImage(nw, 0, 0, 32, 32);
+  // a 64 px picture (art64.js) keeps its fine pixels: the icon canvas is 64 px then (shown scaled by CSS)
+  if (nw && nw.width > 32) {
+    c.width = c.height = nw.width;
+    x.imageSmoothingEnabled = false;
+    x.drawImage(nw, 0, 0);
+  } else if (nw) x.drawImage(nw, 0, 0, 32, 32);
   else if (id === 'gold') drawCoin(x);
   else if (id === 'wrench') x.drawImage(wrenchSprite(), 0, 0);
   else if (it.kind === 'seed') {

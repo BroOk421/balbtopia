@@ -10,6 +10,12 @@
     "Edit this file, then reload the game. Bad lines are skipped and shown in the browser console."
   ],
   "trees": {
+    "steel_beam": {
+      "growSeconds": 300
+    },
+    "steel_bridge": {
+      "growSeconds": 420
+    },
     "dirt": {
       "growSeconds": 30
     },
@@ -2411,6 +2417,18 @@
       "result": "foliage",
       "source": "balbtopia",
       "note": "Foliage = Grass + Vine Block (walk-through leaves drawn in front of players; Oct 22 2026)"
+    },
+    {
+      "seeds": ["wooden_platform", "steel_block"],
+      "result": "steel_beam",
+      "source": "balbtopia",
+      "note": "Steel Beam = Wooden Platform + Steel Block (a steel platform, joins with beams beside it; Oct 22 2026)"
+    },
+    {
+      "seeds": ["steel_beam", "iron_bars"],
+      "result": "steel_bridge",
+      "source": "balbtopia",
+      "note": "Steel Bridge = Steel Beam + Iron Bars (a steel truss bridge platform, joins with pieces beside it; Oct 22 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

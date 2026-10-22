@@ -140,13 +140,8 @@ function worldsTab(el) {
 }
 // Friends and Email tabs are in social.js (friendsTab, mailTab)
 function settingsTab(el) {
+  // (no Walk style any more: everyone walks with strides, owner Oct 22 2026)
   el.innerHTML = `
-    <div class="set">
-      <span>Walk style</span>
-      <div class="seg" role="radiogroup" aria-label="Walk style">
-        <button data-v="step" role="radio">Steps</button><button data-v="stride" role="radio">Strides</button>
-      </div>
-    </div>
     <div class="set">
       <span>Camera</span>
       <span class="zoom"><small>Far</small><input type="range" id="sZoom" min="0" max="${ZOOM_MAX}" step="1" aria-label="Camera distance" /><small>Near</small></span>
@@ -158,14 +153,6 @@ function settingsTab(el) {
     </div>
     <div class="set"><span>Version</span><small>Build ${GAME_BUILD}</small>
     </div>`;
-  el.querySelectorAll('.seg button').forEach((b) => {
-    b.setAttribute('aria-checked', String(b.dataset.v === walkStyle));
-    b.onclick = () => {
-      walkStyle = b.dataset.v;
-      savePlayer();
-      renderMenu();
-    };
-  });
   const vib = el.querySelector('#sVib'),
     zm = el.querySelector('#sZoom');
   zm.value = settings.zoom || 0;

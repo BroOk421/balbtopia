@@ -8,9 +8,28 @@ const BEDS = {
   bed: { top: 9, blanket: ['#3a6ad0', '#8aa8ff', '#24469a'] },
   hospital_bed: { top: 8, blanket: ['#9fc0e8', '#c8dcf5', '#6a8ab8'] },
 };
-const REST_DELAY = 5; // seconds of standing still on the chair / bed before you sit or lie down
+const REST_DELAY = 3; // seconds of standing still on the chair / bed before you sit or lie down (owner: was 5, too slow)
 // the sitting picture: 40 px of room on each side of our 118 px frame; the row it sits on; clothes rows on it
-const SIT_MOUTH_Y = 96; // the mouth line on the sitting picture (body px)
+const SIT_MOUTH_Y = 96; // the mouth line on the old sitting face (not used: the standing head is used now)
+// Sitting keeps the normal standing face (owner, Oct 22 2026): the sitting picture's head (rows above SIT_HEAD_CUT,
+// fitted onto the standing head) is replaced by the standing frame's head, with its blinking; so talking uses MOUTH_Y.
+const SIT_HEAD_CUT = 104;
+const SIT_HEADS = {};
+function sitWithHead(skinName, fr) {
+  const k = skinName + ':' + fr;
+  if (SIT_HEADS[k]) return SIT_HEADS[k];
+  const base = sitBody(skinName),
+    head = IMG['skin_' + skinName + '_' + fr] || IMG['skin_' + skinName + '_open'];
+  if (!base || !head || !head.width) return base;
+  const c = document.createElement('canvas');
+  c.width = base.width;
+  c.height = base.height;
+  const x = c.getContext('2d');
+  x.drawImage(base, 0, 0);
+  x.clearRect(0, 0, c.width, SIT_HEAD_CUT);
+  x.drawImage(head, 0, 0, FR.w, SIT_HEAD_CUT, SIT_PAD, 0, FR.w, SIT_HEAD_CUT);
+  return (SIT_HEADS[k] = c);
+}
 const SIT_PAD = 40,
   SIT_SEAT_ROW = 183,
   SIT_BANDS = { shirt: [100, 139], pants: [140, 200], feet: 145 };
@@ -85,7 +104,7 @@ function updateRest(dt) {
   const b = inW(tx, ty) && BLOCK[fg[at(tx, ty)]],
     kind = b && (SEATS[b.id] !== undefined ? 'sit' : BEDS[b.id] ? 'sleep' : null);
   if (!kind) return (stillT = 0), (P.rest = null);
-  // the 5 s count only runs while you stand still on this very chair / bed
+  // the REST_DELAY count only runs while you stand still on this very chair / bed
   if (stillAt !== at(tx, ty)) (stillAt = at(tx, ty)), (stillT = 0);
   stillT += dt;
   if (stillT >= REST_DELAY && !(P.rest && P.rest.tx === tx && P.rest.ty === ty)) {
@@ -99,6 +118,10 @@ function updateRest(dt) {
     }
     takenToastAt = -1;
     P.rest = { k: kind, tx, ty, id: b.id };
+    // on a chair / couch you turn the way it faces (right-facing couch: right, left-facing: left), and you keep
+    // facing that way when you get up
+    // (flipped, owner Oct 22 2026: a couch / chair turned left seats you facing right, and the other way round)
+    if (typeof faceLeftAt === 'function' && FACING.has(fg[at(tx, ty)])) P.face = faceLeftAt(at(tx, ty)) ? 1 : -1;
   }
 }
 let takenToastAt = -1;
@@ -135,16 +158,17 @@ function drawResting(c, ox, oy) {
   if (r.k === 'sit') {
     // the owner's sitting pose (legs out in front), its head exactly where the standing head is, so hair and
     // hats fit; skin tone and clothes repainted like the standing body; bottom on the seat
-    const body = outfitBody(sitBody(c.skin), 'sit_' + c.skin, eq, SIT_BANDS),
+    const fr = frameAt(now + (c.blink || 0)), // blinking like when standing
+      body = outfitBody(sitWithHead(c.skin, fr), 'sit_' + c.skin + '_' + fr, eq, SIT_BANDS),
       seatY = tileY + SEATS[r.id] * 2 * Z,
       cx = tileX + (TS / 2) * Z,
       top = Math.round(seatY - SIT_SEAT_ROW * k + breathe * 0.3 * Z);
     g.translate(Math.round(cx), 0);
-    // a chair or couch turned to the left (furniture.js) turns you left too
-    g.scale(typeof faceLeftAt === 'function' && FACING.has(fg[at(r.tx, r.ty)]) ? (faceLeftAt(at(r.tx, r.ty)) ? -1 : 1) : c.face, 1);
+    // flipped (owner): a chair or couch turned to the left (furniture.js) seats you facing right, and the other way
+    g.scale(typeof faceLeftAt === 'function' && FACING.has(fg[at(r.tx, r.ty)]) ? (faceLeftAt(at(r.tx, r.ty)) ? 1 : -1) : c.face, 1);
     drawBehind(c, top, sc, 0);
     if (body) g.drawImage(body, (-FR.w / 2 - SIT_PAD) * k, top, body.width * k, body.height * k);
-    drawTalk(c, top, sc, 0, SIT_MOUTH_Y);
+    drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
     drawWorn(c, top, sc, 0);
     drawAuraFront(c, top, sc, 0);
     tagX = cx;

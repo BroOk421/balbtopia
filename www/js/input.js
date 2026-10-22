@@ -50,10 +50,6 @@ addEventListener('keydown', (e) => {
     e.preventDefault();
     toggleInv();
   }
-  if (e.code === 'KeyV') {
-    walkStyle = walkStyle === 'step' ? 'stride' : 'step';
-    toast(walkStyle === 'step' ? 'Walk B: feet up and down' : 'Walk A: long strides');
-  }
   if (e.code === 'Escape') {
     if (!$('menu').hidden) closeMenu();
     else if (!$('pmenu').hidden) closePlayerMenu();

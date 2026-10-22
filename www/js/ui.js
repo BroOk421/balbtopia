@@ -192,11 +192,18 @@ function renderBars() {
     } else if (id === 'fist') {
       const c = document.createElement('canvas');
       const f = fistSprite(skin);
-      c.width = 32;
-      c.height = 32;
       const x = c.getContext('2d');
-      x.imageSmoothingEnabled = false;
-      x.drawImage(f, 16 - f.width, 16 - f.height, f.width * 2, f.height * 2);
+      if (f.k) {
+        // the fist from art64.js: 3 icon px per fist px on a 64 px icon, pixel-sharp
+        c.width = c.height = 64;
+        x.imageSmoothingEnabled = false;
+        x.drawImage(f, Math.floor((64 - f.width * 3) / 2), Math.floor((64 - f.height * 3) / 2), f.width * 3, f.height * 3);
+      } else {
+        c.width = 32;
+        c.height = 32;
+        x.imageSmoothingEnabled = false;
+        x.drawImage(f, 16 - f.width, 16 - f.height, f.width * 2, f.height * 2);
+      }
       b.appendChild(c);
       b.setAttribute('aria-label', 'Fist, punch blocks');
     } else {

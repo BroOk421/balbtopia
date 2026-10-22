@@ -175,7 +175,7 @@ function applyPlayer(p) {
       ? p.hand
       : bareHand();
   worldName = p.world || START_WORLD;
-  if (p.walkStyle) walkStyle = p.walkStyle;
+  // (saved walkStyle is ignored: everyone walks with strides now)
   myFriends.length = 0;
   for (const f of p.friends || []) if (f && f.id && f.name) myFriends.push({ id: f.id, name: String(f.name).slice(0, 16) });
 }

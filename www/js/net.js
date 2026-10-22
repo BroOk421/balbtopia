@@ -767,7 +767,7 @@ const Net = (() => {
       const k = r.dead ? 0 : Math.min(1, dt * 12);
       r.x += (r.tx - r.x) * k;
       r.y += (r.ty - r.y) * k;
-      if (r.walking) r.walkPh += dt * (r.style === 'stride' ? 10 : 13);
+      if (r.walking) r.walkPh += dt * 10; // strides for everyone
       if (r.punch && (r.punch.t += dt) >= PUNCH_TIME) r.punch = null;
       if (r.angry > 0) r.angry -= dt;
       if (r.place && ((r.place.t += dt) >= PLACE_POSE || r.walking || Math.abs(r.tx - r.place.sx) > 1.5 || Math.abs(r.ty - r.place.sy) > 1.5)) r.place = null;
