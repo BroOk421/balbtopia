@@ -574,6 +574,48 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   which is a global class). For speed `renderSong` builds the grid only on open / load / new; picking a note
   (`pickNote`) and tapping a square (`tapCell` -> `paintCell`, one delegated click handler on `#songGrid`) only
   change what they touch.
+- Oct 23 2026 (song maker, owner): notes 47-58 piano C2-B2, 59-70 piano C#6-C7, 71-112 VIOLIN G3-C7 (`VLN0`,
+  `NOTE_COUNT` 113; `noteSemi`, `pianoN(semi)`, `violinN(semi)`, `isViolin`, `noteTitle`). `NOTE_GROUPS` = PIANO (C2-C7),
+  VIOLIN, DRUMS. Note pictures: violin = rose paper; C2-B2 drawn an octave up with an "8" bottom left, C#6-C7 an
+  octave down with an "8" top right (8vb / 8va). Sounds: `playViolin` (2 detuned saws, lowpass, body peak, bowed
+  attack, late vibrato); low piano notes add a filtered sawtooth so phones can hear them; `playPiano` resumes a
+  suspended AudioContext and plays the note instead of dropping it. Header: shorter name box + SORT button
+  (`#songSort`, class `x`, same size as X): `songSorted` (localStorage `balb_songSort`) shows each instrument's notes
+  by letter (`byLetter`: C2..C7, C#2.., with a `.nletter` box in the letter's `NOTE_TINT` colour); drums never sort.
+  LIST SONGS rows use icon buttons (`songRow`, `SONG_ICON`: play/stop (listen only, never switches the Piano), load,
+  delete) and a top `.cur` row with a SAVE icon (`saveSong(true)`, same as SAVE SONG). Players who can't build here
+  now get `openSongMaker(i, true)` = `.songwin.view`: name (read-only), PLAY (turns into STOP while playing), LOAD (the
+  list pop-up, titled LOAD SONG), SAVE (into their own songs); no notes, grid, tempo, NEW or SORT; never touches the
+  Piano (`pianoSwitch` / saving to the Piano skip `songWin.view`).
+- Oct 23 2026 (owner, later): the world's song list. Players who can't build here see, in the Piano's view
+  (`#songOwn` under PLAY / LOAD / SAVE, and at the top of the LOAD pop-up), the songs the world's OWNER saved:
+  `ownerSongs` = { o, s } saved in the world as `osongs` (worlds.js worldData / applyWorld; capped at
+  `OWNER_SONG_NOTES` 6000 notes), sent live as the `song` event with i -1 and `ol` (`Net.sendSongList`; older games
+  ignore i -1). Locked world: the owner's game shares it from `stepMusic` whenever `mySongsV` changed (save, delete,
+  player load) or on entering; no Gold Lock: whoever last saved / PLAYed a song on a Piano there (`shareMySongs(true)`).
+  Each owner song row: play (listen), load (into the view), save (copy into your songs, `keepSong`). No server change
+  (editors save every key; visitors can't change osongs).
+- Oct 23 2026 (owner, later): Red / Blue Locks COMBINE. A lock of yours placed inside your own area (no longer
+  refused) or touching it (4 sides, any mode: full / air / air only / shrink) joins that area: `m` = the group's first
+  lock tile, settings copied from it, its tiles claimed OUTWARD through the group (`alockClaim(i0, size, mode, self,
+  pass)`: `pass` = tiles spread through but not taken; `self` may be a Set). `alockGroup`, `alockGid`,
+  `alockGroupSize`, `alockGroupTiles(group, mode)` (first lock as usual, then each joined one beyond the tiles taken so
+  far). Window count, Save, Shrink block and `alockShrinkKinds` work on the whole group; one border round the group
+  (`drawALockAreas`). Breaking the first lock makes the next one first; others keep their tiles. The area tint is GONE
+  (owner: no blue / red colour inside the "_ _ _" any more), only the dashed border shows. `m` passes the server as an
+  extra key. GAME_BUILD '2026-10-23 n'.
+- Oct 23 2026 (owner, later 2): locks combine ONLY when the area has reached its limit: `alockFull(i)` = the group
+  can't take one more tile (`alockGroupTiles` with its own mode gives no more than it has: every lock at its size, or
+  closed in: Air only room, Shrink block's blocks, Ignore empty air's blocks). Not full: placing inside your own area
+  is refused ("it can still grow"), a lock beside it starts its own area as before. GAME_BUILD '2026-10-23 o'.
+- Oct 23 2026 (owner, later 3): REVERTED the "only when full" rule: a lock of yours inside / touching your area ALWAYS
+  combines (`alockFull` removed). Shared room: the join keeps the old area as it is and the new lock claims its size
+  PLUS the room the group's locks have left (`alockSpare`: each lock up to its own size); tiles past its own size are
+  counted on the locks that had room (`alockGive`), so no lock's `t` ever exceeds `ALOCK_SIZE` (cleanALock still cuts
+  there). `alockGroupTiles` (Save / Shrink) does the same after its normal pass. GAME_BUILD '2026-10-23 p'.
+- Bag on phones held sideways (Oct 23 2026, owner: move it right, toward the middle): `--bagw` and `left` =
+  max(14px, min(centred, 100vw - bagw - 340px)), so it sits as near the middle as it can without covering the gold /
+  SHOP / CHAT / menu bar top right.
 - Song grid shows only 5 rows at once (owner: smaller on phones); `.songgrid` max-height = 14 + 5 x 32 + 9 (scrollbar),
   no top padding, the sticky numbers' box-shadow covers the 2 px gaps so squares don't show through when scrolled.
 - Fireplace sound: `assets/sfx/fireplace.mp3` = owner's bonfire (art-source/sfx/bonfire-original.mp3, 35.8 s) made

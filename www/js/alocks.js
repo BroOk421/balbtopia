@@ -16,7 +16,13 @@
 // "Shrink block" (owner, Oct 22 2026): the lock covers only ONE kind of block (`b`, the block number), picked from a
 // pop-up listing the blocks inside the area (Oct 23 2026; was the bag), and only where those blocks touch the lock and each other (spreading block to block from the
 // lock); nothing else round it is locked. Fully protected like Air only (air false, so the server needs nothing new).
-// Saved with the world as `al`: [[lock tile, { k, o, t: [tiles], acc: [names], open, air, ao, b }], ...], sent to the
+// Combining (owner, Oct 23 2026): a new lock of yours placed inside your area or right next to it (touching its
+// "_ _ _" border, whatever the area is: full or not, air, air only, shrink) joins that area instead of being refused:
+// room a lock couldn't use (closed in) is shared, so the area grows by that much more (`alockSpare` / `alockGive`): it
+// takes the old lock's settings (list, everyone, air / air only / shrink block) and claims its tiles OUTWARD from the
+// joined area, so the old area just grows. `m` on the new lock = the first lock's tile (the group); the window,
+// Save, Shrink and the border work on the whole group; breaking one lock frees only its own tiles.
+// Saved with the world as `al`: [[lock tile, { k, o, t: [tiles], acc: [names], open, air, ao, b, m }], ...], sent to the
 // others with the tiles message (net.js diffTiles / applyTiles). The area is worked out ONCE, by the player who
 // places the lock, and stored, so every device has exactly the same tiles. The server keeps others' locks and the
 // blocks / backgrounds of their tiles, and lets players listed on a lock save only its area (schema.sql save_world).
@@ -131,6 +137,8 @@ function cleanALock(i, a) {
     air: !!a.air && !a.ao && !b,
     ao: !!a.ao && !b, // "Air only": the area is the empty space round the lock, up to the blocks that close it in
     b, // Shrink block: only this block, where it touches the lock (0: off)
+    // combined with the lock on tile m (its group's first lock), or null
+    m: Number.isInteger(a.m) && a.m >= 0 && a.m < fg.length && a.m !== i ? a.m : null,
   };
 }
 function setALocks(list) {
@@ -155,6 +163,7 @@ const alockList = () =>
         air: a.air,
         ao: a.ao,
         ...(a.b ? { b: a.b } : {}),
+        ...(a.m !== null && a.m !== undefined ? { m: a.m } : {}),
       },
     ]);
 const alockKey = () => JSON.stringify(alockList());
@@ -166,6 +175,53 @@ function alockAt(i) {
     a = k === undefined ? null : alocks.get(k);
   return a && isALockT(fg[a.at]) ? a : null;
 }
+// ---------- combined locks (a group: the first lock and the ones that joined it) ----------
+// the group's first lock tile (a lock whose first lock is gone, or isn't the same owner's, is its own group)
+function alockGid(a) {
+  const f = a.m !== null && a.m !== undefined ? alocks.get(a.m) : null;
+  return f && isALockT(fg[f.at]) && (f.m === null || f.m === undefined) && lc(f.o) === lc(a.o) ? f.at : a.at;
+}
+// every lock of i's group, its first lock first
+function alockGroup(i) {
+  const a = alocks.get(i);
+  if (!a) return [];
+  const gid = alockGid(a);
+  return [...alocks.values()].filter((b) => isALockT(fg[b.at]) && alockGid(b) === gid).sort((x, y) => (x.at === gid ? -1 : y.at === gid ? 1 : 0));
+}
+const alockGroupSize = (i) => alockGroup(i).reduce((n, a) => n + a.t.length, 0);
+// the tiles each lock of a group takes, worked out again: the first lock spreads from itself as usual, every other
+// one spreads from itself THROUGH the tiles the group already has, taking new ones beyond them. mode(a): the mode
+function alockGroupTiles(group, mode) {
+  const own = new Set(group.map((a) => a.at)),
+    pass = new Set(own),
+    res = new Map();
+  for (const a of group) {
+    const t = alockClaim(a.at, ALOCK_SIZE[a.k], mode(a), own, pass);
+    res.set(a.at, t);
+    for (const j of t) pass.add(j);
+  }
+  // shared room (owner, Oct 23 2026): a lock that couldn't fill its size (closed in) lends what is left to the
+  // group: more tiles are taken from the other locks' sides and counted on the lock that had room
+  for (const a of group) {
+    const spare = alockSpare(group, res);
+    if (!spare) break;
+    const more = alockClaim(a.at, spare + 1, mode(a), own, pass).slice(1);
+    alockGive(group, res, more);
+    for (const j of more) pass.add(j);
+  }
+  return res;
+}
+// how many more tiles the group's locks have room for (each up to its own size)
+const alockSpare = (group, res) => group.reduce((n, a) => n + Math.max(0, ALOCK_SIZE[a.k] - (res.get(a.at) || []).length), 0);
+// hand tiles to the locks that still have room, first lock first
+function alockGive(group, res, tiles) {
+  let k = 0;
+  for (const a of group) {
+    const t = res.get(a.at);
+    while (k < tiles.length && t.length < ALOCK_SIZE[a.k]) t.push(tiles[k++]);
+  }
+}
+const alockMode = (a) => a.b || (a.ao ? "ao" : a.air ? "air" : "");
 // may this player change tile i, as far as the area locks go?
 function alockAllows(i, name) {
   const a = alockAt(i);
@@ -211,7 +267,8 @@ function alockCanPlace(i, t) {
       false
     );
   const a = alockAt(i);
-  if (a) {
+  // inside your own area: allowed, the new lock joins it (alockPlace)
+  if (a && lc(a.o) !== lc(playerName)) {
     alockFlash(a.at);
     return (
       toast(
@@ -228,13 +285,16 @@ function alockCanPlace(i, t) {
 // mode 'air' (Ignore empty air): only tiles with a block, background or tree. 'ao' (Air only, owner Oct 22 2026):
 // only tiles WITHOUT a block or tree, so the area fills the open space from the lock until blocks close it in (or it
 // reaches its size). A block number (Shrink block): only tiles with that block, touching the lock and each other.
-// self: this lock's own tiles may be taken again.
-function alockClaim(i0, size, mode = "", self = null) {
+// self: this lock's own tiles may be taken again (a lock tile, or a Set of them: a whole group).
+// pass: tiles to spread THROUGH without taking them (a combined lock going out past its group's area).
+function alockClaim(i0, size, mode = "", self = null, pass = null) {
   const out = [i0],
-    seen = new Set(out);
-  for (let q = 0; q < out.length && out.length < size; q++) {
-    const x = out[q] % WW,
-      y = (out[q] / WW) | 0;
+    q = [i0],
+    seen = new Set(out),
+    free = (k) => (self instanceof Set ? self.has(k) : k === self);
+  for (let n = 0; n < q.length && out.length < size; n++) {
+    const x = q[n] % WW,
+      y = (q[n] / WW) | 0;
     for (const [dx, dy] of [
       [0, -1],
       [-1, 0],
@@ -247,9 +307,13 @@ function alockClaim(i0, size, mode = "", self = null) {
       const j = at(nx, ny);
       if (seen.has(j)) continue;
       seen.add(j);
+      if (pass && pass.has(j)) {
+        q.push(j);
+        continue;
+      }
       const b = fg[j] && BLOCK[fg[j]];
       if (
-        (alockOf.has(j) && alockOf.get(j) !== self) ||
+        (alockOf.has(j) && !free(alockOf.get(j))) ||
         isDoorTile(nx, ny) ||
         (b && (b.hits === Infinity || b.lock || b.alock))
       )
@@ -258,6 +322,7 @@ function alockClaim(i0, size, mode = "", self = null) {
       if (mode === "ao" && (fg[j] || trees.has(j))) continue;
       if (typeof mode === "number" && fg[j] !== mode) continue;
       out.push(j);
+      q.push(j);
       if (out.length >= size) break;
     }
   }
@@ -265,7 +330,53 @@ function alockClaim(i0, size, mode = "", self = null) {
 }
 // called by act (actions.js) right after the lock block went on tile i
 function alockPlace(i, t) {
-  const k = BLOCK[t].id;
+  const k = BLOCK[t].id,
+    me = lc(playerName);
+  // one of my areas this lock is in or touches: it joins that area (combined) instead of starting its own
+  const x = i % WW,
+    y = (i / WW) | 0;
+  let join = null;
+  for (const [dx, dy] of [[0, 0], [0, -1], [-1, 0], [1, 0], [0, 1]]) {
+    if (!inW(x + dx, y + dy)) continue;
+    const a = alockAt(at(x + dx, y + dy));
+    if (a && a.at !== i && lc(a.o) === me) {
+      join = a;
+      break;
+    }
+  }
+  if (join) {
+    const group = alockGroup(join.at),
+      first = group[0];
+    // the new lock's own tile leaves the area it was in
+    for (const a of group) a.t = a.t.filter((j) => j !== i);
+    const n = {
+      at: i,
+      k,
+      o: playerName,
+      t: [],
+      acc: first.acc.slice(),
+      open: first.open,
+      air: first.air,
+      ao: first.ao,
+      b: first.b,
+      m: first.at,
+    };
+    alocks.set(i, n);
+    reindexALocks();
+    // the old area stays as it is; the new lock takes its own size beyond it, plus any room the old locks had left
+    // (a lock that wasn't full lends its leftover: those tiles are counted on it)
+    const before = alockGroupSize(first.at),
+      pass = new Set(group.flatMap((a) => a.t).concat(group.map((a) => a.at))),
+      res = new Map(group.map((a) => [a.at, a.t]));
+    const got = alockClaim(i, ALOCK_SIZE[k] + alockSpare(group, res), alockMode(first), i, pass);
+    n.t = got.slice(0, ALOCK_SIZE[k]);
+    alockGive(group, res, got.slice(ALOCK_SIZE[k]));
+    reindexALocks();
+    alockFlash(first.at, 2600);
+    toast(BLOCK[t].name + " combined with your area: +" + (alockGroupSize(i) - before) + " tiles (" + alockGroupSize(i) + " in all)");
+    saveWorld();
+    return;
+  }
   alocks.set(i, {
     at: i,
     k,
@@ -276,6 +387,7 @@ function alockPlace(i, t) {
     air: false,
     ao: false,
     b: 0,
+    m: null,
   });
   reindexALocks();
   alockFlash(i, 2600);
@@ -290,6 +402,12 @@ function alockPlace(i, t) {
 // the lock on tile i was broken (by its owner): it floats out as a drop, like a broken Piano (owner, Oct 22 2026),
 // and the area is free
 function alockBroken(i, id) {
+  // the first lock of a group: the next one becomes the first (the others keep their tiles)
+  const rest = [...alocks.values()].filter((a) => a.m === i);
+  if (rest.length) {
+    rest[0].m = null;
+    for (const a of rest.slice(1)) a.m = rest[0].at;
+  }
   alocks.delete(i);
   reindexALocks();
   spawnDrop(id, (i % WW) * TS + 16, ((i / WW) | 0) * TS + 16);
@@ -314,7 +432,7 @@ function openALockWin(i, draft) {
       !(a.air && !a.open && !a.acc.includes(lc(playerName)));
     dialog(
       name.toUpperCase(),
-      `<p class="dmsg">Locked by <b>${esc(a.o)}</b> · ${a.t.length} tiles</p>
+      `<p class="dmsg">Locked by <b>${esc(a.o)}</b> · ${alockGroupSize(i)} tiles</p>
        <p class="lstate ${me ? "ok" : ""}">${a.open ? "Everyone can build here" : me ? "You can build here" : "You can't build here"}${a.air ? "<br><small>Blocks only: empty tiles are free for everyone</small>" : a.ao ? "<br><small>Air only: the empty space here</small>" : a.b && BLOCK[a.b] ? `<br><small>Only the ${esc(BLOCK[a.b].name)} blocks here</small>` : ""}</p>
        ${!a.open && a.acc.length ? `<p class="mlabel">Can build <span>${a.acc.length}</span></p><ul class="lacc">${a.acc.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}`,
       [{ label: "Close", cls: "ghost", run: () => (alockWin = null) }],
@@ -327,7 +445,7 @@ function openALockWin(i, draft) {
     .filter((n) => n && !d.acc.includes(lc(n)) && lc(n) !== lc(a.o));
   const body = dialog(
     name.toUpperCase(),
-    `<p class="dmsg">Your area: <b>${a.t.length} tiles</b> around this lock.</p>
+    `<p class="dmsg">Your area: <b>${alockGroupSize(i)} tiles</b> around this lock${alockGroup(i).length > 1 ? ` (${alockGroup(i).length} locks combined)` : ""}.</p>
      <label class="lcheck"><input type="checkbox" id="alOpen" ${d.open ? "checked" : ""}/> Everyone can build here</label>
      <label class="lcheck"><input type="checkbox" id="alAir" ${d.air ? "checked" : ""}/> Ignore empty air (lock only blocks, not empty space)</label>
      <label class="lcheck"><input type="checkbox" id="alAo" ${d.ao ? "checked" : ""}/> Air only (lock only the empty space, up to where blocks stop it)</label>
@@ -352,19 +470,19 @@ function openALockWin(i, draft) {
           const cur = alocks.get(i);
           if (!cur || !alockMine(i)) return;
           keep(b);
-          cur.acc = d.acc.slice(0, 30);
-          cur.open = d.open;
-          // ticking Ignore empty air / Air only turns Shrink block off
-          cur.b = d.air || d.ao ? 0 : d.b || 0;
-          cur.air = d.air && !d.ao && !cur.b;
-          cur.ao = d.ao && !cur.b;
+          // the whole group (combined locks) shares the settings
+          const group = alockGroup(i);
+          for (const g2 of group) {
+            g2.acc = d.acc.slice(0, 30);
+            g2.open = d.open;
+            // ticking Ignore empty air / Air only turns Shrink block off
+            g2.b = d.air || d.ao ? 0 : d.b || 0;
+            g2.air = d.air && !d.ao && !g2.b;
+            g2.ao = d.ao && !g2.b;
+          }
           // work the area out again (Ignore empty air: only blocks; Air only: only empty space; Shrink: one block)
-          cur.t = alockClaim(
-            i,
-            ALOCK_SIZE[cur.k],
-            cur.b || (cur.ao ? "ao" : cur.air ? "air" : ""),
-            i,
-          );
+          const res = alockGroupTiles(group, alockMode);
+          for (const g2 of group) g2.t = res.get(g2.at);
           reindexALocks();
           alockFlash(i, 2600);
           alockWin = null;
@@ -372,7 +490,7 @@ function openALockWin(i, draft) {
           toast(
             name +
               " saved: " +
-              cur.t.length +
+              alockGroupSize(i) +
               " tiles" +
               (cur.air ? " (blocks only)" : cur.ao ? " (air only)" : cur.b ? " (only " + BLOCK[cur.b].name + ")" : ""),
           );
@@ -470,15 +588,17 @@ const alockShrinkable = (t) =>
 // the blocks the lock on tile i can shrink to: every kind of block inside its area (as it is now, or as it would be
 // with "Lock everything"), with how many of it would stay locked (touching the lock and each other), most first
 function alockShrinkKinds(i) {
-  const a = alocks.get(i);
-  if (!a) return [];
-  const size = ALOCK_SIZE[a.k],
-    seen = new Set();
-  for (const j of [...a.t, ...alockClaim(i, size, "", i)]) if (j !== i && alockShrinkable(fg[j])) seen.add(fg[j]);
+  const group = alockGroup(i);
+  if (!group.length) return [];
+  const locks = new Set(group.map((a) => a.at)),
+    seen = new Set(),
+    count = (mode) => [...alockGroupTiles(group, () => mode).values()].reduce((n, t) => n + t.length - 1, 0);
+  const all = [...group.flatMap((a) => a.t), ...[...alockGroupTiles(group, () => "").values()].flat()];
+  for (const j of all) if (!locks.has(j) && alockShrinkable(fg[j])) seen.add(fg[j]);
   const out = [];
   for (const t of seen) {
     if (!ITEMS[BLOCK[t].id]) continue;
-    const n = alockClaim(i, size, t, i).length - 1;
+    const n = count(t);
     if (n > 0) out.push({ t, n });
   }
   return out.sort((x, y) => y.n - x.n || BLOCK[x.t].name.localeCompare(BLOCK[y.t].name));
@@ -489,26 +609,30 @@ function alockShrink(i, d, t) {
   const cur = alocks.get(i);
   if (!cur || !isALockT(fg[i]) || !alockMine(i)) return;
   const name = BLOCK[fg[i]].name,
-    tiles = alockClaim(i, ALOCK_SIZE[cur.k], t, i);
-  if (tiles.length < 2) {
+    group = alockGroup(i),
+    res = alockGroupTiles(group, () => t),
+    total = [...res.values()].reduce((n, x) => n + x.length - 1, 0);
+  if (total < 1) {
     alockFlash(i);
     return toast("No " + BLOCK[t].name + " touches this " + name + ": the blocks must be next to the lock and each other");
   }
-  cur.acc = d.acc.slice(0, 30);
-  cur.open = d.open;
-  cur.air = false;
-  cur.ao = false;
-  cur.b = t;
-  cur.t = tiles;
+  for (const g2 of group) {
+    g2.acc = d.acc.slice(0, 30);
+    g2.open = d.open;
+    g2.air = false;
+    g2.ao = false;
+    g2.b = t;
+    g2.t = res.get(g2.at);
+  }
   reindexALocks();
   alockFlash(i, 2600);
   saveWorld();
   Native.haptic("light");
-  toast(name + " shrunk: " + (tiles.length - 1) + " " + BLOCK[t].name + " locked");
+  toast(name + " shrunk: " + total + " " + BLOCK[t].name + " locked");
 }
 
 // ---------- drawing ----------
-// the area shows (tinted, with its border) while you hold the wrench or a Red / Blue Lock, and for a moment after
+// the area's border shows while you hold the wrench or a Red / Blue Lock, and for a moment after
 // placing one, wrenching it or bumping into it; players who may build there always see its border
 const alockFlashes = new Map(); // lock tile -> until (now, ms)
 function alockFlash(i, ms = 1500) {
@@ -517,30 +641,30 @@ function alockFlash(i, ms = 1500) {
 function drawALockAreas(ox, oy, T) {
   if (!inWorld || !alocks.size) return;
   const all = hand === "wrench" || (ITEMS[hand] && isALockT(ITEMS[hand].block)),
-    me = lc(playerName);
-  for (const [i, a] of alocks) {
-    if (!isALockT(fg[i])) continue;
-    const fl = alockFlashes.get(i) || 0,
+    me = lc(playerName),
+    done = new Set();
+  for (const [i, a0] of alocks) {
+    if (!isALockT(fg[i]) || done.has(i)) continue;
+    // a combined area is drawn once, as one: the border goes round all its locks' tiles together
+    const group = alockGroup(i);
+    for (const a of group) done.add(a.at);
+    const a = group[0] || a0;
+    const fl = Math.max(0, ...group.map((b) => alockFlashes.get(b.at) || 0)),
       // players this lock lets build (its owner, the players on its list, the world's owner) always see its border,
-      // so they know where they may build (owner, Oct 22 2026); everyone sees it all with the wrench / a lock in hand
+      // so they know where they may build (owner, Oct 22 2026); everyone sees it with the wrench / a lock in hand
       mine =
         lc(a.o) === me ||
         a.acc.includes(me) ||
         (!!worldOwner && lc(worldOwner) === me);
     if (!all && !mine && fl < now) continue;
-    const full = all || fl >= now,
-      fade = all
+    const fade = all
         ? 1
         : fl >= now
           ? Math.max(0.85, Math.min(1, (fl - now) / 500))
           : 0.85,
-      col = ALOCK_COL[a.k].area,
-      set = new Set(a.t);
-    if (full) {
-      g.fillStyle = `rgba(${col},${0.18 * fade})`;
-      for (const j of a.t)
-        g.fillRect(ox + (j % WW) * T, oy + ((j / WW) | 0) * T, T, T);
-    }
+      tiles = group.flatMap((b) => b.t),
+      set = new Set(tiles);
+    // no colour inside the area any more (owner, Oct 23 2026): only the border shows it
     // the border (owner, Oct 22 2026): a thin dark red dashed line "_ _ _ _" for both locks, 1 game pixel wide, only
     // on the edges of the area's own tiles (an air / air-only area outlines exactly what it took). Dashes are 1/8 of
     // a tile with gaps as long, so they run on evenly from tile to tile.
@@ -555,7 +679,7 @@ function drawALockAreas(ox, oy, T) {
       for (let k = 0; k < 4; k++)
         g.fillRect(x0, Math.round(y0 + k * 2 * dash), w, Math.round(dash));
     };
-    for (const j of a.t) {
+    for (const j of tiles) {
       const x = j % WW,
         y = (j / WW) | 0,
         px = ox + x * T,

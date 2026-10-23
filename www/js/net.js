@@ -618,6 +618,10 @@ const Net = (() => {
   N.sendSong = (i, s) => {
     if (N.me) sendB('song', { i, s });
   };
+  // the world's song list (the owner's saved songs, music.js): i -1 so older games ignore it
+  N.sendSongList = (ol) => {
+    if (N.me) sendB('song', { i: -1, ol });
+  };
   // world chat: null when it went out, or why not (shown to the player; the message then wasn't sent).
   // New servers: send_chat puts the real name on it and sends it on chat:NAME (players can't send there).
   N.sendChat = async (text) => {

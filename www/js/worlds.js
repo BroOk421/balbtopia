@@ -62,6 +62,7 @@ function worldData() {
     mann: [...manns].filter(([i]) => isMannT(fg[i])), // [tile, { slot: item }] worn by every Mannequin
     vends: [...vends].filter(([i]) => isVendT(fg[i])), // [tile, machine] of every Vending Machine
     songs: [...pianoSongs].filter(([i]) => isPianoT(fg[i])), // [tile, song] of every Piano with a song (music.js)
+    osongs: ownerSongs, // the world's song list: its owner's saved songs, shown to others at its Pianos (music.js)
     // floating drops stay in the world: [uid, item, qty, x, y, dropped at (ms), dropped by]
     drops: drops.slice(-MAX_DROPS).map((d) => [d.uid, d.id, d.qty, Math.round(d.x), Math.round(d.y), d.born, d.by || 0]),
     visited: Date.now(),
@@ -92,6 +93,7 @@ function applyWorld(w, skew = 0) {
   for (const [i, v] of Array.isArray(w.vends) ? w.vends : []) if (Number.isInteger(i)) setVend(i, v);
   pianoSongs.clear();
   for (const [i, s] of Array.isArray(w.songs) ? w.songs : []) if (Number.isInteger(i)) setPianoSong(i, s);
+  setOwnerSongs(w.osongs);
   drops.length = 0;
   for (const [uid, id, qty, x, y, born, by] of w.drops || [])
     if (typeof uid === 'string' && (id === 'gold' || ITEMS[id]) && qty > 0)
@@ -168,6 +170,7 @@ function applyPlayer(p) {
   playDays = p.playDays || [];
   Object.assign(settings, p.settings || {});
   mySongs = (Array.isArray(p.songs) ? p.songs : []).map(cleanSong).filter(Boolean).slice(0, MY_SONGS_MAX);
+  mySongsV++; // (music.js: the world's song list is sent again if this player owns the world)
   setWorn(p.equipped, p.wornV >= 2);
   // the held item comes back if it is still in the bag (wearables are worn, not held)
   hand =
@@ -282,6 +285,7 @@ async function enterWorldNow(name) {
     signs.clear();
     vends.clear();
     pianoSongs.clear();
+    setOwnerSongs(null);
     displays.clear();
     manns.clear();
     worldRV = null;

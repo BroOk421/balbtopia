@@ -2442,7 +2442,8 @@ button:focus-visible {
   white-space: nowrap;
 }
 .songwin #songName {
-  flex: 1;
+  /* shorter name box (owner, Oct 23 2026): the SORT button sits after it, next to X */
+  flex: 0 1 240px;
   min-width: 0;
   font-family: var(--pixel);
   font-size: 9px;
@@ -2619,10 +2620,42 @@ button:focus-visible {
 .songlist .srow b {
   font-family: var(--pixel);
   font-size: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .songlist .srow small {
   color: var(--muted);
-  margin-right: auto;
+}
+/* name over its info, taking the room left of the icon buttons */
+.songlist .sname {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.songlist .srow.cur {
+  box-shadow: inset 0 0 0 2px var(--sun);
+}
+/* the list's icon buttons (play / stop, load, delete, save): square, no words */
+.songlist .sicon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.songlist .sicon svg {
+  width: 16px;
+  height: 16px;
+}
+.songlist .sicon.on {
+  box-shadow: 0 0 0 2px var(--sun), 0 0 8px var(--sun);
+}
+.songlist .sicon.del {
+  color: #e8443a;
 }
 .songbar .songbtns {
   display: flex;
@@ -2641,9 +2674,95 @@ button:focus-visible {
 #songPlay.on {
   box-shadow: 0 0 0 2px var(--sun), 0 0 8px var(--sun);
 }
-#songStop:disabled {
+#songStop:disabled,
+.songbar .btn:disabled {
   opacity: 0.45;
   cursor: default;
+}
+/* SORT button: as big as the X next to it */
+.songwin .songsort {
+  margin-left: auto;
+  flex: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.songwin .songsort svg {
+  width: 14px;
+  height: 14px;
+}
+.songwin .songsort.on {
+  border-color: var(--sun);
+  color: var(--sun);
+  box-shadow: 0 0 6px var(--sun);
+}
+/* sorted note list: a box with the letter starts each run of notes (C2 C3 ... C7, then C# ...) */
+.nletter {
+  display: grid;
+  place-items: center;
+  font-family: var(--pixel);
+  font-size: 11px;
+  color: var(--tint);
+  border-radius: 4px;
+  border: 2px solid var(--tint);
+  background: rgba(0, 0, 0, 0.25);
+  min-height: 40px;
+}
+.nletter.sharp {
+  font-size: 8px;
+  border-style: dashed;
+}
+.nchip.vln {
+  border-color: #6a3a48;
+}
+.nchip.vln.on {
+  border-color: var(--sun);
+}
+.songbar .songinfo {
+  display: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+/* the world owner's songs: only in the visitor's view, under its buttons */
+.songwin .songown {
+  display: none;
+}
+.songwin.view .songown {
+  display: flex;
+  max-height: 42vh;
+}
+.songlist .mlabel {
+  margin: 4px 0 0;
+}
+/* the visitor's view (players who can't build here): only PLAY, LOAD, SAVE; no notes and no grid */
+.songwin.view {
+  width: min(96vw, 480px);
+}
+.songwin.view #noteList,
+.songwin.view #songGrid,
+.songwin.view #songStop,
+.songwin.view .tempo,
+.songwin.view #songNew,
+.songwin.view #songSort {
+  display: none;
+}
+.songwin.view #songName {
+  flex: 1 1 auto;
+}
+.songwin.view #songX {
+  margin-left: auto;
+}
+.songwin.view .songinfo {
+  display: block;
+}
+.songwin.view .songbar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.songwin.view .songbar .btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* search box over item pictures (bag, trades, gifts, Vending Machine) */
@@ -2845,10 +2964,12 @@ button:focus-visible {
 @media (orientation: landscape) and (max-height: 520px) {
   #inv.win {
     top: calc(6px + env(safe-area-inset-top, 0px));
-    /* top left (nothing else is there): the gold / Balb Coin counters top right stay in view */
-    left: max(14px, env(safe-area-inset-left, 0px));
+    /* toward the middle (owner, Oct 23 2026: it was on the far left), but never under the gold / Balb Coin /
+       SHOP / CHAT / menu bar top right (about 300 px wide; the bag is about 25 px wider than --bagw with its padding) */
+    --bagw: min(48vw, 330px);
+    left: max(14px, env(safe-area-inset-left, 0px), min(calc(50vw - var(--bagw) / 2), calc(100vw - var(--bagw) - 340px)));
     transform: none;
-    width: min(48vw, 330px);
+    width: var(--bagw);
     max-height: calc(100vh - 104px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     display: flex;
