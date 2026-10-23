@@ -17,6 +17,9 @@ const OUTFIT_SETS = [
   { id: 'set_pastel_pop', name: 'Pastel Pop Set', skin: 'deep', eq: { hair: 'unicorn_hair', shirt: 'plain_white_tee', pants: 'clown_pants', feet: 'brown_shoes' } },
   { id: 'set_lady_green', name: 'Lady Green Set', skin: 'porcelain', eq: { hair: 'purple_mohawk', shirt: 'green_blouse', pants: 'green_skirt', feet: 'patent_leather_shoes' } },
   { id: 'set_pink_rock', name: 'Pink Rock Set', skin: 'porcelain', eq: { hair: 'hot_pink_highlights', face: 'shades', shirt: 'tie_dyed_shirt', pants: 'black_pants', feet: 'boots' } },
+  // the owner's own picture clothes (photo_wear.js): just the pieces, worn over our character (no pants / shoes)
+  { id: 'set_skull_beanie', name: 'Skull Beanie Set', skin: 'peach', eq: { hat: 'black_beanie', shirt: 'skull_tee' } },
+  { id: 'set_cat_hoodie', name: 'Cat Hoodie Set', skin: 'peach', eq: { shirt: 'cat_ear_hoodie' } },
 ];
 const SET_BY_ID = {};
 const setPieces = (id) => Object.values(SET_BY_ID[id].eq);

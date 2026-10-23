@@ -982,3 +982,30 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     `data-k`); let go elsewhere = stays picked, tap a glowing slot. `touchmove` is cancelled while dragging so the grid
     doesn't scroll. A short tap still opens the item pop-up (and the slots glow, now visible on phones).
   - GAME_BUILD '2026-10-23 b'.
+
+- Oct 23 2026 (owner, later 2, redone): the owner's own picture clothes, `photo_wear.js` (loaded right after wear.js).
+  His cut pieces (`art-source/items/outfit_pieces.png`) are laid OVER our character exactly as his picture of them
+  worn shows (`outfit_pieces_worn.png`: our idle body at 1:1, every piece found there pixel for pixel; cut by
+  `outfit_pieces_cut.py`). Nothing of the body is repainted and the arm code is the original (no sleeves to keep):
+  - Black Beanie (hat strip, body x -8 y -13), Skull Tee (shirt, `over` picture at 29, 101), Cat Ear Hoodie (shirt,
+    `over` at -7, -23: hood + black bangs + sleeveless hoodie in one piece). `over` pictures are drawn in `drawWorn`
+    (wrapped) after the face item, before the hat, moving with the walking bob `dy`; sitting moves them `PW_SIT_DY`
+    (-5). `outfitBody` ignores an `over` shirt. Beanie and hoodie `hideHair` (they bring their own black hair; the back
+    of long hair is hidden too). Bag icon = the piece fitted (`wearIcon` wrapped). Name tag higher with the hood
+    (`hood: true`, render.js).
+  - Shop SETS (sets.js, 20,000 each, peach): Skull Beanie Set = Black Beanie + Skull Tee; Cat Hoodie Set = Cat Ear
+    Hoodie. No pants / shoes (an earlier version had them and repainted the body; all of that was removed).
+    schema.sql has the `set_skull_beanie` / `set_cat_hoodie` rows (re-run it).
+  - GAME_BUILD '2026-10-23 i'.
+- Oct 23 2026 (owner, later 3): swinging a tool left a thin ghost outline of the back arm floating beside the body.
+  `armParts` (wear.js) now also clears faint / dark rim pixels within 2 px of the cut-out arm and stray specks (<= 2
+  neighbours) from the arm-less body. GAME_BUILD '2026-10-23 j'.
+- Oct 23 2026 (owner, later 4): the hole the swinging arm leaves is patched in `armParts`: shirt rows (from y 128) are
+  carried left to the shirt's own side (`tS`) and jeans rows to a hip line (`tS`+1, straight to y 163, then out to the
+  leg's edge `tJ` at y 176), each cloned from the pixels beside it, so the shirt corner and the jeans hip / pocket are
+  there (recoloured pants and shirts match, being repainted after). GAME_BUILD '2026-10-23 k'.
+- Oct 23 2026 (owner, later 5): no traces left by the swinging arm with ANY clothes (checked every shirt / pants / feet
+  on peach and deep): in `armParts` the shirt patch also covers grey strap rows (`'g'`) from y 112 to the jeans' top,
+  the jeans flare to the leg edge measured at y 182-187 (no ledge), anything within 5 px of the cut arm that lies
+  more than 3 px left of the body's first inner pixel is cleared, and loose bits under 12 pixels on that side are
+  removed. GAME_BUILD '2026-10-23 l'.

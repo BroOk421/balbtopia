@@ -418,7 +418,7 @@ function drawCharacter(c, ox, oy) {
   // name tag above the head, above the hair or the hat
   const hw = WEAR_BY_ID[eq.hair],
     hairTop = hw && hw.top !== undefined ? hw.top : eq.hair && ITEMS[eq.hair] && ITEMS[eq.hair].off ? ITEMS[eq.hair].off.y + 16 : eq.hair === 'afro' ? -40 : 4;
-  const headTop = top + Math.min(4, hairTop, eq.hat ? (eq.hat === 'top_hat' ? -52 : -26) : 4) * sc * Z;
+  const headTop = top + Math.min(4, hairTop, eq.hat ? (eq.hat === 'top_hat' ? -52 : -26) : WEAR_BY_ID[eq.shirt] && WEAR_BY_ID[eq.shirt].hood ? -26 : 4) * sc * Z;
   const tagW = drawNameTag(c.name, cx, headTop - 4 * Z);
   if (c.say) drawBubble(c.say.text, cx, headTop - 11 * Z, Math.min(1, c.say.t * 2));
   return { cx, headTop, tagW, bald: top + 4 * sc * Z }; // bald: the top of the bare head (no hair / hat)

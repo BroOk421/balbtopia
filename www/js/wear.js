@@ -1040,6 +1040,27 @@ function armParts(img, key) {
           if (y > hy) hy = y;
         }
       }
+    // leftovers where the arm was (owner, Oct 23 2026: a thin ghost outline floated beside the body while
+    // swinging): faint or dark rim pixels next to the arm, then stray specks with hardly any neighbours
+    for (let y = 100; y < 190; y++)
+      for (let xx = 0; xx < 50; xx++) {
+        const k = y * W + xx;
+        if (arm[k] || line[k] || p[k * 4 + 3] === 0) continue;
+        if (p[k * 4 + 3] > 200 && p[k * 4] + p[k * 4 + 1] + p[k * 4 + 2] > 390) continue; // a real body pixel
+        for (let r = 1; r <= 2; r++)
+          if (arm[k + r] || arm[k - r] || line[k + r] || line[k - r] || line[k + r * W] || line[k - r * W]) {
+            p[k * 4 + 3] = 0;
+            break;
+          }
+      }
+    for (let y = 100; y < 190; y++)
+      for (let xx = 1; xx < 50; xx++) {
+        const k = y * W + xx;
+        if (!p[k * 4 + 3]) continue;
+        let n = 0;
+        for (const o of [-W - 1, -W, -W + 1, -1, 1, W - 1, W, W + 1]) if (p[(k + o) * 4 + 3] > 60) n++;
+        if (n <= 2) p[k * 4 + 3] = 0;
+      }
     ax.putImageData(ad, 0, 0);
     // the hand: middle of the arm's lowest 10 rows
     for (let k = 0; k < W * H; k++) {
@@ -1048,6 +1069,104 @@ function armParts(img, key) {
         hx += k % W;
         hn++;
       }
+    }
+    // patch the hole the arm leaves (owner, Oct 23 2026: the shirt's lower corner and the jeans' hip / pocket were
+    // missing): rows of the shirt and the jeans are carried on to the left, cloned from the pixels beside them
+    // (so recoloured shirts / pants match), out to the shirt's own side and down the jeans to where they show below
+    // the arm; the dark edge below then closes them
+    {
+      const px = (k) => [p[k * 4], p[k * 4 + 1], p[k * 4 + 2], p[k * 4 + 3]],
+        isShirt = (k) => p[k * 4 + 3] > 100 && Math.max(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]) - Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]) < 28 && p[k * 4] > 110,
+        isJeans = (k) => p[k * 4 + 3] > 100 && p[k * 4 + 2] > p[k * 4] + 18 && p[k * 4 + 2] > p[k * 4 + 1],
+        inner = (y) => {
+          // first shirt / jeans pixel from the left (skipping outline) and its kind
+          for (let xx = 0; xx < 62; xx++) {
+            const k = y * W + xx;
+            if (isShirt(k)) return [xx, 's'];
+            if (isJeans(k)) return [xx, 'j'];
+            if (p[k * 4 + 3] > 100 && !dark(k)) return [xx, p[k * 4] - p[k * 4 + 2] > 40 ? '' : 'g'];
+          }
+          return [-1, ''];
+        };
+      let tS = 99,
+        jTop = -1,
+        tJ = 99;
+      for (let y = 112; y < 150; y++) {
+        const [xi, kd] = inner(y);
+        if (kd === 's') tS = Math.min(tS, xi);
+      }
+      for (let y = 140; y < 176; y++)
+        if (jTop < 0 && inner(y)[1] === 'j') jTop = y;
+      for (let y = 182; y < 188; y++) {
+        const [xi, kd] = inner(y);
+        if (kd === 'j') tJ = Math.min(tJ, xi);
+      }
+      const clone = (y, xi, t) => {
+        const sft = xi - t + 1;
+        for (let xx = xi - 1; xx >= t; xx--) {
+          const src = Math.min(xx + sft, xi + 6),
+            v = px(y * W + src),
+            k = (y * W + xx) * 4;
+          p[k] = v[0];
+          p[k + 1] = v[1];
+          p[k + 2] = v[2];
+          p[k + 3] = 255;
+        }
+      };
+      for (let y = 112; y < 178; y++) {
+        const [xi, kd] = inner(y);
+        if (xi < 0) continue;
+        if ((kd === 's' || kd === 'g') && y >= 112 && y < (jTop < 0 ? 152 : jTop) && tS < xi) clone(y, xi, tS);
+        else if (kd === 'j' && jTop >= 0 && tJ < 99) {
+          const f = Math.max(0, Math.min(1, (y - 163) / 17)), // straight down the hip, then out with the leg
+            t = Math.round(tS + 1 + (tJ - tS - 1) * f);
+          if (t < xi) clone(y, xi, t);
+        }
+      }
+    }
+    // anything still left of the body's side where the arm (and its outline) was: gone, keeping the body's own
+    // outline (3 px) left of its first inner pixel
+    {
+      const near = new Uint8Array(W * H);
+      for (let k = 0; k < W * H; k++)
+        if (arm[k] || line[k])
+          for (let dy = -5; dy <= 5; dy++)
+            for (let dx = -5; dx <= 5; dx++) {
+              const q = k + dy * W + dx;
+              if (q >= 0 && q < W * H) near[q] = 1;
+            }
+      for (let y = 100; y < Math.min(H, 205); y++) {
+        let xi = -1;
+        for (let xx = 0; xx < 62 && xi < 0; xx++) {
+          const k = y * W + xx;
+          if (p[k * 4 + 3] > 100 && !dark(k)) xi = xx;
+        }
+        if (xi < 0) continue;
+        for (let xx = 0; xx < xi - 3; xx++) if (near[y * W + xx]) p[(y * W + xx) * 4 + 3] = 0;
+      }
+    }
+    // small loose bits (a few pixels not joined to the body) left over on that side: gone
+    {
+      const seen = new Uint8Array(W * H);
+      for (let y = 92; y < Math.min(H, 205); y++)
+        for (let xx = 0; xx < 50; xx++) {
+          const k0 = y * W + xx;
+          if (seen[k0] || p[k0 * 4 + 3] < 40) continue;
+          const st = [k0],
+            got = [];
+          seen[k0] = 1;
+          while (st.length && got.length < 40) {
+            const k = st.pop();
+            got.push(k);
+            for (const o of [-W - 1, -W, -W + 1, -1, 1, W - 1, W, W + 1]) {
+              const q = k + o;
+              if (q < 0 || q >= W * H || seen[q] || p[q * 4 + 3] < 40) continue;
+              seen[q] = 1;
+              st.push(q);
+            }
+          }
+          if (got.length < 12) for (const k of got) p[k * 4 + 3] = 0;
+        }
     }
     // close the side of the body again with a dark edge where the arm was
     for (let y = 108; y < 178; y++) {
