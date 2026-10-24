@@ -219,7 +219,7 @@ function act() {
         if (signs.delete(i)) Net.sendSign(i, ''); // sign text / door destination goes with the block
         pianoSongs.delete(i); // and a Piano's song
         if (typeof atms !== 'undefined') atms.delete(i); // and an ATM's wait (placed again = starts over, atm.js)
-        fg[i] = 0;
+        fg[i] = isFloorRow(y) ? BEDROCK : 0; // (something in the bedrock floor: the floor closes again)
         dmg[i] = 0;
         if (y > 0) uproot(x, y - 1);
         addXP(1);
@@ -273,6 +273,8 @@ function act() {
       toast("Can't build on the main door");
       return;
     }
+    // nothing goes into the bedrock floor (a hole there is filled again: worldfix.js)
+    if (isFloorRow(y)) return toast("Nothing can be placed in the bedrock");
     // a Red / Blue Lock only goes where it may (no Gold Lock here, not in another lock's area): alocks.js
     if (isALockT(it.block) && !alockCanPlace(i, it.block)) return;
     if (isLockT(it.block)) {
@@ -411,7 +413,7 @@ function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
   const tx = Math.floor(x / TS),
     ty = Math.floor(y / TS),
     sameSpot = (d) => (Math.floor(d.x / TS) === tx && Math.floor(d.y / TS) === ty) || Math.hypot(d.x - x, d.y - y) < 10,
-    here = drops.filter((d) => d.id === id && (d.by || null) === by && sameSpot(d));
+    here = drops.filter((d) => d.id === id && !d.ck && (d.by || null) === by && sameSpot(d)); // (ATM coins `ck` stay single)
   // gold has no cap: one pile per tile, shown as coins (5 of a kind join into the next kind, see coinParts)
   const cap = id === 'gold' ? Infinity : DROP_STACK;
   for (const d of here) {
@@ -455,8 +457,10 @@ function netDrop(p) {
     born = Date.now() - Math.max(0, +p.a || 0),
     d = drops.find((d) => d.uid === p.u);
   if (d) Object.assign(d, { qty, born });
-  else
-    drops.push({ uid: p.u, id: p.id, qty, x: +p.x || 0, y: +p.y || 0, age: 0, minAge: 0.25, ph: Math.random() * 6.28, born, by: p.b || null });
+  else {
+    const ck = p.id === 'gold' && COIN_LOOK[p.k] ? p.k : undefined; // one fixed coin (ATM)
+    drops.push({ uid: p.u, id: p.id, qty, x: +p.x || 0, y: +p.y || 0, age: 0, minAge: 0.25, ph: Math.random() * 6.28, born, by: p.b || null, ck });
+  }
 }
 // another player picked a drop up: it flies to them
 function netTake(u, by) {
@@ -464,7 +468,7 @@ function netTake(u, by) {
   if (k < 0) return;
   const d = drops.splice(k, 1)[0],
     r = Net.remotes.get(by);
-  if (r) vacs.push({ id: d.id, qty: d.qty, x: d.x, y: d.y, t: 0, to: r });
+  if (r) vacs.push({ id: d.id, qty: d.qty, ck: d.ck, x: d.x, y: d.y, t: 0, to: r });
 }
 // drops being sucked up: they fly into whoever took them, shrinking (drawn by render.js)
 const vacs = [];

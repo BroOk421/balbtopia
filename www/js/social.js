@@ -136,7 +136,8 @@ function drawFlyers(ox, oy) {
 const have = (id) => (id === 'gold' ? P.gold : inv.filter((s) => s.id === id).reduce((n, s) => n + s.qty, 0));
 const itemName = (id) => (id === 'gold' ? 'Gold' : ITEMS[id] ? ITEMS[id].name : id);
 // World Keys (keys.js) only with the new server, which moves them
-const tradable = (id) => id === 'gold' || (isKeyId(id) ? Net.secure && ensureKey(id) : ITEMS[id] && id !== 'wrench');
+// (`bound` items, like the level 100 Golden Pickaxe, never change hands: levels.js)
+const tradable = (id) => id === 'gold' || (isKeyId(id) ? Net.secure && ensureKey(id) : ITEMS[id] && id !== 'wrench' && !ITEMS[id].bound);
 function takeN(id, n) {
   if (id === 'gold') {
     P.gold -= n;

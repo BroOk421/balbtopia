@@ -173,7 +173,8 @@ function drawResting(c, ox, oy) {
       body = outfitBody(sitWithHead(c.skin, fr), 'sit_' + c.skin + '_' + fr, eq, SIT_BANDS),
       seatY = tileY + SEATS[r.id] * 2 * Z,
       cx = tileX + (TS / 2) * Z,
-      top = Math.round(seatY - SIT_SEAT_ROW * k + breathe * 0.3 * Z),
+      // no breathing bob while sitting (owner, Oct 24 2026: rounded to whole pixels it made the sitter shake)
+      top = Math.round(seatY - SIT_SEAT_ROW * k),
       // flipped (owner): a chair or couch turned to the left (furniture.js) seats you facing right, and the other way
       face = seatFace(r, c.face);
     // punching / placing while sitting (owner, Oct 23 2026): you stay seated, the arm reaches out from the
@@ -193,7 +194,7 @@ function drawResting(c, ox, oy) {
     drawWorn(c, top, sc, 0);
     drawAuraFront(c, top, sc, 0);
     tagX = cx;
-    tagY = top;
+    tagY = top + NAME_TOP * sc * Z; // same height as standing, whatever is worn (render.js)
   } else {
     // lying on the mattress: head on the pillow (left), feet to the right, face up, eyes shut
     const bd = BEDS[r.id],
@@ -235,7 +236,7 @@ function drawResting(c, ox, oy) {
   }
   g.restore();
   g.imageSmoothingEnabled = false;
-  const tagW = drawNameTag(c.name, tagX, tagY - 4 * Z);
+  const tagW = drawNameTag(c.name, tagX, tagY - 4 * Z, c.flag);
   if (c.say) drawBubble(c.say.text, tagX, tagY - 11 * Z, Math.min(1, c.say.t * 2));
   return { cx: tagX, headTop: tagY, tagW };
 }

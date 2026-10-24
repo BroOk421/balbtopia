@@ -92,14 +92,32 @@ function step(dt) {
     P.ground = false;
     if (swim) splash(Math.floor((P.x + P.w / 2) / TS), Math.floor((P.y + P.h / 2) / TS), 3);
   }
-  P.vy = swim ? Math.min(140, P.vy + 520 * dt) : Math.min(MAX_FALL, P.vy + fallGravity() * dt);
+  // Jump control (owner, Oct 24 2026): the jump goes as high as it can while the button is held and falls once it
+  // is let go. Letting go on the way up cuts the rise; hitting a block (or the top of the world) with the button held
+  // keeps you pressed against it for the rest of the jump (P.ceilT) instead of dropping at once.
+  const jumpHeld = !!(keys.Space || keys.KeyW || keys.ArrowUp);
+  if (P.rise && !jumpHeld && P.vy < 0) {
+    P.vy *= 0.4;
+    P.rise = false;
+  }
+  if (P.ceilT > 0 && (!jumpHeld || swim)) P.ceilT = 0;
+  if (P.ceilT > 0) {
+    P.ceilT -= dt;
+    P.vy = 0;
+  } else P.vy = swim ? Math.min(140, P.vy + 520 * dt) : Math.min(MAX_FALL, P.vy + fallGravity() * dt);
   let hot = false;
   P.x += P.vx * dt;
   hot = collide('x') || hot;
   P.ground = false;
-  const prevBottom = P.y + P.h;
+  const prevBottom = P.y + P.h,
+    vyBefore = P.ceilT > 0 ? -1 : P.vy;
   P.y += P.vy * dt;
   hot = collide('y', prevBottom) || hot;
+  // head hit something while still rising with the jump held: stay up there as long as the jump would have risen
+  if (vyBefore < 0 && P.vy === 0 && !P.ground && P.rise && jumpHeld && !(P.ceilT > 0)) {
+    P.ceilT = Math.min(0.45, -vyBefore / RISE_GRAVITY + APEX_VY / (RISE_GRAVITY * APEX_K));
+    P.rise = false;
+  }
   // feet resting on a tile (tiny penetrations are below the collision epsilon): count as grounded
   if (P.vy >= 0 && !P.ground) {
     const fy = Math.floor((P.y + P.h + 0.5) / TS),
@@ -222,7 +240,7 @@ function stepFx(dt) {
       if (ok) {
         drops.splice(k, 1);
         Net.takeDrop(d.uid);
-        vacs.push({ id: d.id, qty: d.qty, x: d.x, y: d.y + Math.sin(now / 380 + d.ph) * 2.5, t: 0, to: null });
+        vacs.push({ id: d.id, qty: d.qty, ck: d.ck, x: d.x, y: d.y + Math.sin(now / 380 + d.ph) * 2.5, t: 0, to: null });
         Sfx.play('pickup');
       }
     }
@@ -232,7 +250,7 @@ function stepFx(dt) {
     if ((v.t += dt) < VAC_TIME) continue;
     vacs.splice(k, 1);
     // your coins then fly up to the gold counter (liven.js); the counter goes up when they get there
-    if (!v.to && v.id === 'gold') typeof coinsToCounter === 'function' ? coinsToCounter(v.qty) : updateGold(true);
+    if (!v.to && v.id === 'gold') typeof coinsToCounter === 'function' ? coinsToCounter(v.qty, v.ck) : updateGold(true);
   }
   if (P.punch) {
     P.punch.t += dt;

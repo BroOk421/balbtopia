@@ -112,6 +112,10 @@ returns trigger language plpgsql security definer set search_path = public as $$
 begin
   -- only game accounts (username@players.balbtopia.app); anything else gets no name and so can't play
   if new.email is null or new.email !~* '^[a-z0-9_]{3,16}@players\.balbtopia\.app$' then return new; end if;
+  -- a name someone already uses (Change Name keeps the first name's e-mail, so the e-mail alone can't tell)
+  if exists (select 1 from public.usernames where lower(name) = lower(public.name_from_user(new))) then
+    raise exception 'That username is taken' using errcode = '23505';
+  end if;
   insert into public.usernames (id, name) values (new.id, public.name_from_user(new)) on conflict do nothing;
   return new;
 end $$;
@@ -479,6 +483,14 @@ revoke execute on function public.alock_area_only(jsonb, jsonb, text) from publi
 
 -- returns { r: 'saved' | 'visitor', v: lockv } (the game rejoins build:NAME:v when v changes)
 drop function if exists public.save_world(text, jsonb);
+-- worlds moved to a new name by World Transfer (transfer_world, at the end): old name -> new name
+create table if not exists public.world_moves (
+  old_name text primary key,
+  new_name text not null,
+  at timestamptz not null default now()
+);
+alter table public.world_moves enable row level security;
+revoke all on public.world_moves from anon, authenticated;
 create or replace function public.save_world(p_name text, p_data jsonb)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
@@ -506,6 +518,10 @@ begin
   select * into r from public.worlds where name = p_name for update;
 
   if not found then
+    -- a world that was just moved (World Transfer): old games still in it would make it again at the old name
+    if exists (select 1 from public.world_moves m where m.old_name = p_name and m.at > now() - interval '10 minutes') then
+      raise exception 'This world moved to a new name' using errcode = 'P0001';
+    end if;
     -- a new world: you can only lock it for yourself
     own := case when req is not null and (lower(req) = lower(me) or gm) then req end;
     if not gm then p_data := public.alock_guard('{}'::jsonb, p_data, me); end if; -- area locks: only your own
@@ -935,7 +951,9 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('display_box', 1, 1000, true, 0),
   ('mannequin', 1, 2500, true, 0),
   ('shovel', 1, 1500, true, 0),
-  ('golden_pickaxe', 1, 0, true, 100),
+  -- (golden_pickaxe: no longer sold, it is the level 100 reward: claim_level_reward)
+  ('name_changer', 1, 50000, true, 0), -- rename.js
+  ('world_transfer', 1, 20000, true, 0), -- rename.js
   ('diamond_pickaxe', 1, 0, true, 150),
   ('black_diamond_pickaxe', 1, 0, true, 250),
   ('angel_wings', 1, 0, true, 30),
@@ -1005,7 +1023,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_raptor', 1, 80000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('display_box', 1), ('mannequin', 1), ('shovel', 1), ('golden_pickaxe', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('piano', 5), ('genie_teapot', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('display_box', 1), ('mannequin', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('piano', 5), ('genie_teapot', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
@@ -1315,3 +1333,173 @@ begin
   return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'got', n, 'kind', p_kind);
 end $$;
 grant execute on function public.claim_daily_quest(date, text) to authenticated;
+
+-- LEVEL REWARDS (owner, Oct 24 2026): levels come from breaking blocks (counted by the game, saved as data.level).
+-- Each reward is paid once per account: level 50 Cat Ear Hoodie, 70 10,000 gold, 80 20,000 gold, 90 50 Balb Coins,
+-- 100 Golden Pickaxe (can't be traded; no longer sold). The server checks the level in the player's saved data and
+-- pays gold / coins straight into the wallet (not through earn_gold's hourly limit); items are put in the bag by the
+-- game. Keep the list the same as LEVEL_REWARDS in www/js/levels.js.
+create table if not exists public.level_rewards (
+  player_id uuid not null references auth.users (id) on delete cascade,
+  lv integer not null,
+  at timestamptz not null default now(),
+  primary key (player_id, lv)
+);
+alter table public.level_rewards enable row level security;
+revoke all on public.level_rewards from anon, authenticated;
+create or replace function public.claim_level_reward(p_lv integer)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.wallets; have integer; it text;
+begin
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  if p_lv is null or p_lv not in (50, 70, 80, 90, 100) then raise exception 'No reward for that level' using errcode = 'P0001'; end if;
+  select coalesce(public.jnum(data -> 'level'), 0)::integer into have from public.players where id = auth.uid();
+  if coalesce(have, 0) < p_lv then raise exception 'Reach level % first', p_lv using errcode = 'P0001'; end if;
+  perform public.my_wallet();
+  select * into w from public.wallets where id = auth.uid() for update;
+  begin
+    insert into public.level_rewards (player_id, lv) values (auth.uid(), p_lv);
+  exception when unique_violation then
+    raise exception 'You already claimed the level % reward', p_lv using errcode = 'P0001';
+  end;
+  if p_lv = 70 then update public.wallets set gold = gold + 10000 where id = auth.uid() returning * into w;
+  elsif p_lv = 80 then update public.wallets set gold = gold + 20000 where id = auth.uid() returning * into w;
+  elsif p_lv = 90 then update public.wallets set bc = bc + 50 where id = auth.uid() returning * into w;
+  else
+    it := case p_lv when 50 then 'cat_ear_hoodie' else 'golden_pickaxe' end;
+    perform public.add_owned(auth.uid(), it, 1);
+  end if;
+  return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'lv', p_lv);
+end $$;
+grant execute on function public.claim_level_reward(integer) to authenticated;
+
+-- ---------- CHANGE NAME and WORLD TRANSFER (owner, Oct 24 2026; www/js/rename.js) ----------
+-- Both are Shop items (name_changer, world_transfer: tracked, so the server knows how many each player bought);
+-- using one takes one away here. GMs use them for free.
+-- Change Name: a new name of 3-16 letters / numbers that nobody uses (nor any account's login e-mail name). The
+-- account keeps logging in with the e-mail made from its FIRST name; login_email tells the game which one belongs to
+-- a name. Everything that is stored by name follows: the world owner (column + data), Gold Lock access lists, Red /
+-- Blue Lock owners and lists, World Keys, world bans, mail names. GM accounts can't change their name (the LOBBY and
+-- RECIPES are locked to the GM's name).
+create or replace function public.login_email(p_name text)
+returns text language sql stable security definer set search_path = public, auth as $$
+  select u.email from public.usernames n join auth.users u on u.id = n.id where lower(n.name) = lower(p_name) limit 1
+$$;
+grant execute on function public.login_email(text) to anon, authenticated;
+
+create or replace function public.use_owned(p_item text)
+returns void language plpgsql security definer set search_path = public as $$
+declare q bigint;
+begin
+  if public.is_gm() then return; end if;
+  select qty into q from public.owned_items where player_id = auth.uid() and item = p_item for update;
+  if coalesce(q, 0) < 1 then raise exception 'You don''t have one: buy it in the Shop' using errcode = 'P0001'; end if;
+  update public.owned_items set qty = qty - 1 where player_id = auth.uid() and item = p_item;
+end $$;
+revoke execute on function public.use_owned(text) from public, anon, authenticated;
+
+-- a name in a json array of names (lowercase lists) -> the new name
+create or replace function public.rename_in_list(l jsonb, p_old text, p_new text)
+returns jsonb language sql immutable as $$
+  select case when jsonb_typeof(l) = 'array' then
+    coalesce((select jsonb_agg(case when lower(x #>> '{}') = lower(p_old) then to_jsonb(lower(p_new)) else x end)
+              from jsonb_array_elements(l) x), '[]'::jsonb)
+  else l end
+$$;
+
+create or replace function public.change_name(p_new text)
+returns jsonb language plpgsql security definer set search_path = public, auth as $$
+declare me uuid := auth.uid(); old text := public.my_name(); w record; d jsonb; al jsonb; e jsonb; changed boolean;
+begin
+  if old is null then raise exception 'Not signed in' using errcode = '42501'; end if;
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  if public.is_gm() then raise exception 'A GM account can''t change its name' using errcode = 'P0001'; end if;
+  p_new := trim(coalesce(p_new, ''));
+  if p_new !~ '^[A-Za-z0-9]{3,16}$' then raise exception 'Name: 3 to 16 letters or numbers (no symbols)' using errcode = 'P0001'; end if;
+  if p_new = old then raise exception 'That is already your name' using errcode = 'P0001'; end if;
+  if exists (select 1 from public.usernames where lower(name) = lower(p_new) and id <> me)
+     or exists (select 1 from auth.users where lower(split_part(email, '@', 1)) = lower(p_new) and id <> me)
+     or exists (select 1 from public.gms where lower(name) = lower(p_new)) then
+    raise exception 'That name is taken' using errcode = 'P0001';
+  end if;
+  perform public.use_owned('name_changer');
+  update public.usernames set name = p_new where id = me;
+  update public.players set username = p_new where id = me;
+  -- worlds: owner, Gold Lock access, Red / Blue Lock owner and list (lockv up: build rights are checked by name)
+  for w in select name, data, owner from public.worlds
+           where lower(owner) = lower(old) or position(lower(old) in lower(data::text)) > 0 for update loop
+    d := w.data; changed := false;
+    if lower(w.owner) = lower(old) then d := jsonb_set(d, '{owner}', to_jsonb(p_new)); changed := true; end if;
+    if jsonb_typeof(d -> 'lock' -> 'access') = 'array' and (d -> 'lock' -> 'access') ? lower(old) then
+      d := jsonb_set(d, '{lock,access}', public.rename_in_list(d -> 'lock' -> 'access', old, p_new)); changed := true;
+    end if;
+    if jsonb_typeof(d -> 'al') = 'array' then
+      al := '[]'::jsonb;
+      for e in select * from jsonb_array_elements(d -> 'al') loop
+        if jsonb_typeof(e -> 1) = 'object' then
+          if lower(e -> 1 ->> 'o') = lower(old) then e := jsonb_set(e, '{1,o}', to_jsonb(p_new)); changed := true; end if;
+          if jsonb_typeof(e -> 1 -> 'acc') = 'array' and (e -> 1 -> 'acc') ? lower(old) then
+            e := jsonb_set(e, '{1,acc}', public.rename_in_list(e -> 1 -> 'acc', old, p_new)); changed := true;
+          end if;
+        end if;
+        al := al || jsonb_build_array(e);
+      end loop;
+      d := jsonb_set(d, '{al}', al);
+    end if;
+    if changed then
+      update public.worlds set data = d, owner = case when lower(owner) = lower(old) then p_new else owner end,
+        lockv = lockv + 1, updated_at = now() where name = w.name;
+    end if;
+  end loop;
+  update public.world_keys set owner_name = p_new where lower(owner_name) = lower(old);
+  update public.world_bans set name = p_new where player_id = me;
+  update public.world_bans set by_name = p_new where lower(by_name) = lower(old);
+  update public.mail set to_name = p_new where to_id = me;
+  update public.mail set from_name = p_new where from_id = me;
+  return jsonb_build_object('name', p_new, 'old', old);
+end $$;
+grant execute on function public.change_name(text) to authenticated;
+
+-- World Transfer: the owner (or a GM) moves their locked world to a new, unused name; everything in it goes along
+-- (World Key, bans, Vending Machine backing). p_data: the world as the owner's game has it right now (saved under
+-- the new name through save_world, so the newest blocks aren't lost). The old name stays free for anyone after
+-- 10 minutes (world_moves keeps old games from making it again at once); players still inside are told by the
+-- owner's game to follow (world_moved).
+create or replace function public.transfer_world(p_old text, p_new text, p_data jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); r public.worlds; res jsonb;
+begin
+  if me is null then raise exception 'Not signed in' using errcode = '42501'; end if;
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  p_new := upper(trim(coalesce(p_new, '')));
+  if p_new !~ '^[A-Z0-9]{1,16}$' then raise exception 'World name: up to 16 letters or numbers' using errcode = 'P0001'; end if;
+  if p_new in ('LOBBY', 'RECIPES', 'START') or p_old in ('LOBBY', 'RECIPES', 'START') then
+    raise exception 'That world can''t be moved there' using errcode = 'P0001';
+  end if;
+  if p_new = p_old then raise exception 'That is already its name' using errcode = 'P0001'; end if;
+  select * into r from public.worlds where name = p_old for update;
+  if not found or r.owner is null or not (public.is_gm() or lower(r.owner) = lower(me)) then
+    raise exception 'Only the owner of a locked world can move it' using errcode = '42501';
+  end if;
+  if exists (select 1 from public.worlds where name = p_new) then
+    raise exception 'A world called % already exists' , p_new using errcode = 'P0001';
+  end if;
+  perform public.use_owned('world_transfer');
+  insert into public.worlds (name, data, owner, updated_at, lockv) values (p_new, r.data, r.owner, now(), r.lockv + 1);
+  update public.world_keys set world = p_new where world = p_old;
+  update public.world_bans set world = p_new where world = p_old;
+  update public.vend_backed set world = p_new where world = p_old;
+  delete from public.worlds where name = p_old;
+  delete from public.world_moves where old_name = p_new or at < now() - interval '1 day';
+  insert into public.world_moves (old_name, new_name) values (p_old, p_new)
+  on conflict (old_name) do update set new_name = excluded.new_name, at = now();
+  if jsonb_typeof(p_data) = 'object' then res := public.save_world(p_new, p_data); end if;
+  return jsonb_build_object('name', p_new, 'old', p_old);
+end $$;
+grant execute on function public.transfer_world(text, text, jsonb) to authenticated;
+-- where did a world move to (in the last 10 minutes)? null if it didn't
+create or replace function public.world_moved(p_old text)
+returns text language sql stable security definer set search_path = public as $$
+  select new_name from public.world_moves where old_name = p_old and at > now() - interval '10 minutes'
+$$;
+grant execute on function public.world_moved(text) to authenticated;

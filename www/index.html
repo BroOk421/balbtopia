@@ -49,18 +49,7 @@
       <section class="win" id="inv" hidden aria-label="Inventory">
         <header>
           <h2>INVENTORY</h2>
-          <span class="count" id="count"></span
-          ><button class="x" id="invx" aria-label="Close inventory">X</button>
-        </header>
-        <!-- GM only: item categories (the GM's bag holds every item in the game) -->
-        <div class="stabs gmtabs" id="gmTabs" hidden role="tablist" aria-label="Item categories"></div>
-        <!-- picking an item for a Red / Blue Lock, Vending Machine or Display Box (ui.js pickFromBag) -->
-        <div class="bagpick" id="bagPick" hidden><span id="bagPickT"></span><button class="btn ghost" id="bagPickX" type="button">Cancel</button></div>
-        <input class="isearch bagsearch" id="bagQ" type="search" placeholder="Search your bag" aria-label="Search your bag" autocomplete="off" />
-        <div class="grid" id="grid"></div>
-        <div class="wearing">
-          <span>Wearing:</span>
-          <div class="eslots" id="eqSlots"></div>
+          <span class="count" id="count"></span>
           <button class="trashbtn" id="trashBtn" type="button" title="Trash: click it, then click an item to throw it away" aria-label="Trash">
             <!-- pixel-art bin: lid with a handle, body with three ribs -->
             <svg viewBox="0 0 16 16" width="22" height="22" shape-rendering="crispEdges" aria-hidden="true">
@@ -72,6 +61,18 @@
               <rect x="4" y="6" width="1" height="7" fill="rgba(255,255,255,.35)" />
             </svg>
           </button>
+          <button class="x" id="invx" aria-label="Close inventory">X</button>
+        </header>
+        <!-- GM only: item categories (the GM's bag holds every item in the game); floats OUTSIDE the bag, on its right -->
+        <div class="stabs gmtabs" id="gmTabs" hidden role="tablist" aria-label="Item categories"></div>
+        <!-- picking an item for a Red / Blue Lock, Vending Machine or Display Box (ui.js pickFromBag) -->
+        <div class="bagpick" id="bagPick" hidden><span id="bagPickT"></span><button class="btn ghost" id="bagPickX" type="button">Cancel</button></div>
+        <input class="isearch bagsearch" id="bagQ" type="search" placeholder="Search your bag" aria-label="Search your bag" autocomplete="off" />
+        <div class="grid" id="grid"></div>
+        <!-- worn items: floats OUTSIDE the bag, on its left (owner, Oct 24 2026) -->
+        <div class="wearing">
+          <span>Wearing:</span>
+          <div class="eslots" id="eqSlots"></div>
         </div>
       </section>
       <div class="pop" id="pop" hidden role="menu">
@@ -139,6 +140,8 @@
 
       <section class="win menu" id="menu" hidden role="dialog" aria-label="Menu">
         <header>
+          <h2 id="menuTitle">PROFILE</h2>
+          <!-- the tabs float OUTSIDE the window, a column on its right (owner, Oct 24 2026) -->
           <div class="tabs" role="tablist">
             <button data-tab="profile" role="tab">Profile</button
             ><button data-tab="worlds" role="tab">Worlds</button
@@ -172,6 +175,11 @@
                 >Confirm password
                 <input id="aPass2" type="password" maxlength="64" autocomplete="new-password" />
               </label>
+              <!-- Register only: pick a flag, shown at the left of your name (flags.js, levels.js) -->
+              <div class="pname flagpick" id="aFlagL" hidden>
+                <span>Flag <small id="aFlagN">(optional)</small></span>
+                <div class="flagsel"><button class="btn ghost" id="aFlagBtn" type="button">SELECT</button><span class="flagshow" id="aFlagShow"></span></div>
+              </div>
               <label class="remember"><input type="checkbox" id="aRemember" checked /> Stay logged in</label>
               <p class="werr" id="aErr" role="alert"></p>
               <button class="btn" id="aGo" type="submit">LOG IN</button>
@@ -300,6 +308,12 @@
     <script src="js/steel.js"></script>
     <script src="js/alocks.js"></script>
     <script src="js/atm.js"></script>
+    <script src="js/flags.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/afk.js"></script>
+    <script src="js/uisize.js"></script>
+    <script src="js/worldfix.js"></script>
+    <script src="js/rename.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

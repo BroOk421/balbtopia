@@ -414,12 +414,10 @@ function drawCharacter(c, ox, oy) {
   // Laser Eyes: every punch is a laser
   if (laserFace(eq) && c.punch) drawLaser(c, cx, top, sc, ox, oy);
   g.imageSmoothingEnabled = false;
-  // name tag just above the head (or above the hair when wearing some)
-  // name tag above the head, above the hair or the hat
-  const hw = WEAR_BY_ID[eq.hair],
-    hairTop = hw && hw.top !== undefined ? hw.top : eq.hair && ITEMS[eq.hair] && ITEMS[eq.hair].off ? ITEMS[eq.hair].off.y + 16 : eq.hair === 'afro' ? -40 : 4;
-  const headTop = top + Math.min(4, hairTop, eq.hat ? (eq.hat === 'top_hat' ? -52 : -26) : WEAR_BY_ID[eq.shirt] && WEAR_BY_ID[eq.shirt].hood ? -26 : 4) * sc * Z;
-  const tagW = drawNameTag(c.name, cx, headTop - 4 * Z);
+  // name tag: always at the same height above the body, whatever is worn (owner, Oct 24 2026: the height it had
+  // with the Cat Ear Hoodie; hair / hats no longer push it up). The flag (flags.js) sits at its left.
+  const headTop = top + NAME_TOP * sc * Z;
+  const tagW = drawNameTag(c.name, cx, headTop - 4 * Z, c.flag);
   if (c.say) drawBubble(c.say.text, cx, headTop - 11 * Z, Math.min(1, c.say.t * 2));
   return { cx, headTop, tagW, bald: top + 4 * sc * Z }; // bald: the top of the bare head (no hair / hat)
 }
@@ -699,7 +697,7 @@ function render() {
       x = ox + (v.x + (tx - v.x) * e) * Z,
       y = oy + (v.y + (ty - v.y) * e - Math.sin(u * Math.PI) * 6) * Z;
     if (v.id === 'gold') {
-      const im = coinCanvas(coinParts(v.qty)[0].k),
+      const im = coinCanvas(v.ck || coinParts(v.qty)[0].k),
         w = (s * im.width) / 32;
       g.drawImage(im, x - (w / 2) * Z, y - (s / 2) * Z, w * Z, s * Z);
     }
@@ -738,6 +736,7 @@ function render() {
       hurt: Math.max(P.hurt, P.hitT > 0 ? 0.3 : 0),
       equipped,
       name: playerName,
+      flag: myFlag,
       place: P.place,
       say: P.say,
       rest: P.rest,
@@ -1237,19 +1236,38 @@ function drawBubble(text, x, y, a) {
   g.textBaseline = 'alphabetic';
   g.globalAlpha = 1;
 }
-function drawNameTag(name, x, y) {
-  g.font = `${3 * Z}px "Press Start 2P", monospace`;
-  const w = g.measureText(name).width;
+// body px above the top of the body picture where every name tag sits (render.js, rest.js)
+const NAME_TOP = -26;
+// the name, with the player's flag (if any) at its left; the two are centred together on x. Returns the width.
+function drawNameTag(name, x, y, flag) {
+  const ns = 1; // (the Name size setting was removed)
+  g.font = `${3 * Z * ns}px "Press Start 2P", monospace`;
+  const w = g.measureText(name).width,
+    fc = flag && typeof flagCanvas === 'function' ? flagCanvas(flag) : null,
+    fh = Math.round(3.4 * Z * ns),
+    fw = fc ? Math.round((fh * FLAG_W) / FLAG_H) : 0,
+    gap = fc ? Math.round(1.6 * Z * ns) : 0,
+    total = w + fw + gap,
+    tx = x + (fw + gap) / 2; // the text's centre
+  if (fc) {
+    const fx = Math.round(x - total / 2),
+      fy = Math.round(y - 0.3 * Z - fh),
+      o = Math.max(1, Math.round(0.45 * Z));
+    g.fillStyle = 'rgba(20,10,30,.85)';
+    g.fillRect(fx - o, fy - o, fw + 2 * o, fh + 2 * o);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(fc, fx, fy, fw, fh);
+  }
   g.textAlign = 'center';
   g.textBaseline = 'bottom';
   g.lineJoin = 'round';
-  g.lineWidth = 1.4 * Z;
+  g.lineWidth = 1.4 * Z * ns;
   g.strokeStyle = 'rgba(20,10,30,.85)';
-  g.strokeText(name, x, y);
+  g.strokeText(name, tx, y);
   g.fillStyle = '#ffffff';
-  g.fillText(name, x, y);
+  g.fillText(name, tx, y);
   g.textBaseline = 'alphabetic';
-  return w;
+  return total;
 }
 // pixel-art wrench (grey steel, open jaw at the top right)
 const WRENCH_ART = [
@@ -1343,6 +1361,20 @@ const COIN_FX = { sparkle: ['#fff4b8', '#ffd23f', '#ffffff'] };
 const PILE_W = 36; // a pile is never wider than this (world px)
 const COIN_SCALE = 0.85; // a big coin's width in drops
 function drawGoldPile(d, x, y, s) {
+  // one fixed coin (ATM coins: `ck` = its kind, whatever its value): a single spinning coin
+  if (d.ck) {
+    const im = coinCanvas(d.ck),
+      [bw, , below] = coinBox(d.ck),
+      k = (s * COIN_SCALE) / 26,
+      S = 32 * k * Z,
+      sx = Math.max(0.15, Math.abs(Math.cos(now / 220 + d.ph)));
+    g.save();
+    g.translate(x, y + s * 0.5 * Z - below * k * Z);
+    g.scale(sx, 1);
+    g.drawImage(im, -S / 2, -S / 2, S, S);
+    g.restore();
+    return;
+  }
   // 5 of a kind just joined: sparkles and a little pop
   if (d.shownQ !== undefined && d.qty > d.shownQ) {
     const a = coinParts(d.shownQ),

@@ -39,7 +39,9 @@ function loop(ts) {
   cam.x = Math.max(tx - lx, Math.min(tx + lx, cam.x));
   cam.y = Math.max(ty - ly, Math.min(ty + ly, cam.y));
   cam.x = Math.max(0, Math.min(WW * TS - vw, cam.x));
-  cam.y = Math.max(-vh * 0.3, Math.min(WH * TS - vh, cam.y));
+  // the top of the screen never goes above the top row of the map (owner, Oct 24 2026: the empty band above it looked
+  // like 2 more rows that couldn't be built on); the top row is a ceiling (solidAt in world.js)
+  cam.y = Math.max(0, Math.min(WH * TS - vh, cam.y));
   shake = Math.max(0, shake - dt * 20);
   Net.tick(dt);
   const dz = doorZoomBegin(); // walking through a door: the camera zooms into it (signs.js)

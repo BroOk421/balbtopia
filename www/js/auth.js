@@ -7,7 +7,8 @@
 // ===== auth =====
 const ACCT_KEY = 'balbtopia.accounts',
   SESSION_KEY = 'balbtopia.session';
-const USER_RE = /^[A-Za-z0-9_]{3,16}$/;
+// letters and numbers only, no symbols (owner, Oct 24 2026; older names with _ still log in)
+const USER_RE = /^[A-Za-z0-9]{3,16}$/;
 const MAX_ACCOUNTS_HERE = 3; // offline accounts per device (online: 3 per IP address, checked by the server)
 let account = null; // who is logged in: lower-case username (offline) or Supabase user id (online)
 const PASS_MIN = Net.online ? 6 : 4; // Supabase wants at least 6
@@ -68,7 +69,7 @@ async function hashPass(pass, salt, algo) {
 }
 
 async function register(user, pass, pass2) {
-  if (!USER_RE.test(user)) return 'Username: 3 to 16 letters, numbers or _';
+  if (!USER_RE.test(user)) return 'Username: 3 to 16 letters or numbers (no symbols)';
   if (pass.length < PASS_MIN) return 'Password needs at least ' + PASS_MIN + ' characters';
   if (pass !== pass2) return 'Passwords do not match';
   if (Net.online) return Net.signUp(user, pass);

@@ -173,6 +173,8 @@ function askDrop(id, slot) {
   if (!inWorld || P.dead || !s) return;
   if (id === 'wrench') return toast("You can't drop your " + ITEMS[id].name);
   if (ITEMS[id].key) return toast('A World Key can only be traded or given');
+  if (ITEMS[id].bound) return toast(ITEMS[id].name + ' is yours only: it can\'t be dropped or traded');
+  if (ITEMS[id].noDrop) return toast(ITEMS[id].name + " can't be dropped (it can be traded)");
   if (worldName === LOBBY_WORLD && !canEdit(true)) return toast("You can't drop items in the lobby");
   // a GM's items never run out: always ask how many (up to a full stack), and nothing leaves the bag
   if (isGM()) return askQty('DROP', id, MAXSTACK, 'Drop', (q) => spawnItemDrop(id, q), 'Up to', 1);

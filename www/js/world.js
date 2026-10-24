@@ -67,9 +67,13 @@ function genWorld(name = START_WORLD) {
   fg[at(door.x, SURF)] = BEDROCK;
 }
 const isDoorTile = (x, y) => x === door.x && y === door.y; // the main door is one tile
+// the bedrock floor: the bottom 6 rows of every world (genWorld; LOBBY / RECIPES stand on the same rows). Nothing is
+// placed in it and it never gets a hole (owner, Oct 24 2026: a moved main door left an empty tile there).
+const FLOOR_ROW = WH - 6;
+const isFloorRow = (y) => y >= FLOOR_ROW;
 const solidAt = (x, y) => {
   if (x < 0 || x >= WW) return true;
-  if (y < 0) return false;
+  if (y < 0) return true; // the top of the world is a ceiling (owner, Oct 24 2026): nobody goes above the top row
   if (y >= WH) return true;
   const t = fg[at(x, y)];
   if (t !== EMPTY && BLOCK[t].gate) return !gatePass(at(x, y), playerName); // gates.js: shut unless you may pass

@@ -64,7 +64,7 @@ function worldData() {
     songs: [...pianoSongs].filter(([i]) => isPianoT(fg[i])), // [tile, song] of every Piano with a song (music.js)
     osongs: ownerSongs, // the world's song list: its owner's saved songs, shown to others at its Pianos (music.js)
     // floating drops stay in the world: [uid, item, qty, x, y, dropped at (ms), dropped by]
-    drops: drops.slice(-MAX_DROPS).map((d) => [d.uid, d.id, d.qty, Math.round(d.x), Math.round(d.y), d.born, d.by || 0]),
+    drops: drops.slice(-MAX_DROPS).map((d) => [d.uid, d.id, d.qty, Math.round(d.x), Math.round(d.y), d.born, d.by || 0, ...(d.ck ? [d.ck] : [])]),
     visited: Date.now(),
   };
 }
@@ -95,9 +95,9 @@ function applyWorld(w, skew = 0) {
   for (const [i, s] of Array.isArray(w.songs) ? w.songs : []) if (Number.isInteger(i)) setPianoSong(i, s);
   setOwnerSongs(w.osongs);
   drops.length = 0;
-  for (const [uid, id, qty, x, y, born, by] of w.drops || [])
+  for (const [uid, id, qty, x, y, born, by, ck] of w.drops || [])
     if (typeof uid === 'string' && (id === 'gold' || ITEMS[id]) && qty > 0)
-      drops.push({ uid, id, qty, x, y, age: 1, minAge: 0, ph: Math.random() * 6.28, born: (+born || 0) + skew, by: by || null });
+      drops.push({ uid, id, qty, x, y, age: 1, minAge: 0, ph: Math.random() * 6.28, born: (+born || 0) + skew, by: by || null, ck: id === 'gold' && COIN_LOOK[ck] ? ck : undefined });
 }
 function saveWorld(force) {
   if (!inWorld) return;

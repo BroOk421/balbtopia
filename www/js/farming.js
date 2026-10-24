@@ -60,7 +60,7 @@ function plant(x, y, seedItem) {
   Sfx.play('pickup'); // planting sound
   startPlace(x * TS + 16, y * TS + 24);
   smoke(x, y, 4, 0.6);
-  addXP(1);
+  // (no XP: only breaking blocks levels you up, owner Oct 24 2026)
 }
 const randFruit = () => TREE_FRUIT[0] + Math.floor(Math.random() * (TREE_FRUIT[1] - TREE_FRUIT[0] + 1));
 
@@ -78,7 +78,6 @@ function splice(x, y, seedItem) {
   takeItem(seedItem);
   Sfx.play('pickup');
   smoke(x, y, 10, 1.1);
-  addXP(2);
   toast(ITEMS[was].name + ' + ' + ITEMS[from].name + ' = ' + treeName(result) + '!');
 }
 
@@ -125,7 +124,6 @@ function punchTree(x, y) {
   trees.delete(i);
   Sfx.play('break');
   smoke(x, y, 8, 1.2);
-  addXP(2 + t.fruit);
   questTick('harvest', t.seed); // daily quest (quests.js)
   burst(x, y, -2, 10);
   for (let k = 0; k < t.fruit; k++)

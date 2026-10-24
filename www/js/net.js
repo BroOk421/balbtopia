@@ -63,7 +63,7 @@ const Net = (() => {
   // ---------- accounts ----------
   function authError(e) {
     const m = (e && e.message) || String(e);
-    if (/already registered|already exists/i.test(m)) return 'That username is taken';
+    if (/already registered|already exists|database error saving new user|username is taken/i.test(m)) return 'That username is taken';
     if (/invalid login/i.test(m)) return 'Wrong username or password';
     if (/not confirmed/i.test(m)) return 'Turn off "Confirm email" in Supabase (see README)';
     if (/rate limit/i.test(m)) return 'Supabase is still sending emails: turn off "Confirm email" (see README), then try again';
@@ -110,9 +110,18 @@ const Net = (() => {
       return authError(e);
     }
   };
+  // a player who changed their name (Change Name, rename.js) still logs in with the e-mail made from the FIRST name:
+  // the server says which e-mail belongs to a name (login_email); older servers: the name's own e-mail
+  async function loginEmail(user) {
+    try {
+      const { data, error } = await sb.rpc('login_email', { p_name: user });
+      if (!error && typeof data === 'string' && data) return data;
+    } catch (e) {}
+    return emailOf(user);
+  }
   N.signIn = async (user, pass) => {
     try {
-      const { data, error } = await sb.auth.signInWithPassword({ email: emailOf(user), password: pass });
+      const { data, error } = await sb.auth.signInWithPassword({ email: await loginEmail(user), password: pass });
       if (error) return authError(error);
       N.me = userOf(data.user);
       return null;
@@ -487,6 +496,8 @@ const Net = (() => {
       })
       .on('broadcast', { event: 'fly' }, ({ payload }) => N.onFly && N.onFly(payload))
       .on('broadcast', { event: 'kick' }, ({ payload }) => payload && onKickMsg(payload))
+      // the owner moved this world to a new name (World Transfer): ask the server where to, then follow (rename.js)
+      .on('broadcast', { event: 'moved' }, () => N.onMoved && N.onMoved(name))
       .on('broadcast', { event: 'sync_req' }, ({ payload }) => onSyncReq(payload))
       .on('presence', { event: 'leave' }, ({ key }) => {
         gone.set(key, now);
@@ -551,6 +562,7 @@ const Net = (() => {
       name: String(p.n || 'Player').slice(0, 16),
       equipped: p.eq && typeof p.eq === 'object' ? { ...p.eq } : { hair: p.h || null, feet: p.ft || null },
       hand: typeof p.hd === 'string' ? p.hd : 'fist',
+      flag: typeof isFlag === 'function' && isFlag(p.fl) ? p.fl : null, // flags.js
       hurt: p.hu ? 0.3 : 0,
       rest: restFromNet(p.rs),
       typing: !!p.ty,
@@ -581,6 +593,7 @@ const Net = (() => {
       ft: equipped.feet,
       eq: equipped, // everything worn
       hd: hand, // what's in the hand (tools show)
+      fl: myFlag || undefined, // the player's flag (flags.js)
       hu: P.hurt > 0 || P.hitT > 0 ? 1 : 0,
       rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
       ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)
@@ -597,7 +610,10 @@ const Net = (() => {
   // floating drops: everyone in the world sees the same ones
   N.sendDrop = (d) => {
     if (N.me)
-      send('drop', { u: d.uid, id: d.id, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined });
+      send('drop', { u: d.uid, id: d.id, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined, k: d.ck || undefined });
+  };
+  N.sendMoved = () => {
+    if (N.me) send('moved', {});
   };
   N.sendDie = () => {
     if (N.me) send('die', { id: N.me.id });

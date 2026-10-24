@@ -726,7 +726,7 @@ updateGold = ((prev) =>
     if (goldFlying > 0) $('goldN').textContent = Math.max(0, P.gold - goldFlying).toLocaleString();
   })(updateGold);
 const COIN_FLY_MS = 700;
-function coinsToCounter(qty) {
+function coinsToCounter(qty, ck) {
   const icon = $('goldIcon'),
     r = cv.getBoundingClientRect(),
     ir = icon.getBoundingClientRect(),
@@ -747,7 +747,7 @@ function coinsToCounter(qty) {
     ty = ir.top + ir.height / 2;
   // up to 4 coins, the biggest kinds of this pile first
   const kinds = [];
-  for (const p of coinParts(qty)) for (let n = 0; n < p.n && kinds.length < 4; n++) kinds.push(p.k);
+  for (const p of ck ? [{ k: ck, n: 1 }] : coinParts(qty)) for (let n = 0; n < p.n && kinds.length < 4; n++) kinds.push(p.k);
   let left = kinds.length;
   kinds.forEach((kind, n) => {
     const src = coinCanvas(kind),
@@ -805,6 +805,8 @@ function goldArrived(qty) {
       ],
       { duration: 420 + Math.min(300, qty * 4), easing: 'ease-out' },
     );
+  // (no "+N" number under the counter any more, owner Oct 24 2026: only the coin pops)
+  return;
   const box = $('gold'),
     br = box.getBoundingClientRect();
   if (!br.width) return;

@@ -26,8 +26,9 @@ function buildLobbyWorld() {
   const mark = at(cx, FLOOR - 2);
   fg[mark] = ITEMS.sign.block;
   signs.set(mark, 'CENTER of the world (x ' + cx + '). The main door is right below this sign.');
-  // locked by the GM so only the GM can build here
-  fg[at(cx + 1, FLOOR)] = LOCK;
+  // locked by the GM so only the GM can build here; the lock sits in the top-left corner, never in the bedrock
+  // (owner, Oct 24 2026)
+  fg[cornerLockTile()] = LOCK;
   worldOwner = GM_USERS[0];
   setLockCfg({ desc: 'The lobby.' });
   worldRV = LOBBY_V;

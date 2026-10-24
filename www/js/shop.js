@@ -165,7 +165,7 @@ const SHOP = [
   { id: 'display_box', gold: 1000, cat: 'world' },
   { id: 'mannequin', gold: 2500, cat: 'world' },
   { id: 'shovel', gold: 1500, cat: 'tools' },
-  { id: 'golden_pickaxe', bc: 100, cat: 'tools' },
+  // (Golden Pickaxe: no longer sold; it is the level 100 reward, levels.js)
   { id: 'diamond_pickaxe', bc: 150, cat: 'tools' },
   { id: 'black_diamond_pickaxe', bc: 250, cat: 'tools' },
   { id: 'angel_wings', bc: 30, cat: 'wear' },
@@ -441,13 +441,14 @@ function ownWorldOnly(what) {
 function moveDoor(x, y) {
   if (!ownWorldOnly('Door Mover')) return;
   if (isDoorTile(x, y)) return toast('The door is already here');
-  if (y < 1 || y + 1 >= WH - 1) return toast("The door can't go there");
+  if (y < 1 || y + 1 >= WH - 1 || isFloorRow(y)) return toast("The door can't go there");
   const i = at(x, y),
     below = at(x, y + 1);
   if (fg[i] || trees.has(i)) return toast('Pick an empty tile for the door');
   if (isLockT(fg[below])) return toast("The door can't stand on the Gold Lock");
   if (overlapsAnyPlayer(x, y + 1)) return toast('Someone is standing there');
-  fg[at(door.x, door.y + 1)] = 0;
+  // the old door's bedrock goes, unless it is part of the bedrock floor (a door standing on the floor itself)
+  if (!isFloorRow(door.y + 1)) fg[at(door.x, door.y + 1)] = 0;
   smoke(door.x, door.y, 10, 1.2);
   if (trees.has(below)) trees.delete(below);
   door.x = x;

@@ -373,7 +373,7 @@ let worldRV = null; // which recipe list the RECIPES world was built from (saved
 // L7: items were renamed (Oct 2026); the names are part of the tag so a rename rebuilds the signs too
 // L8 (Oct 22 2026): rebuilt once more so no outfit-set wear is left in an old RECIPES world
 const recipesVersion = () =>
-  'L8:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length;
+  'L9:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length;
 // one entry per item the splices make (an item with two recipes, like Grass, gets one sign with both),
 // sorted A to Z by name
 function recipeList() {
@@ -432,8 +432,8 @@ function buildRecipesWorld() {
       }
     }
   }
-  // locked by the GM so nobody can break the signs
-  fg[at(door.x + 1, FLOOR)] = LOCK;
+  // locked by the GM so nobody can break the signs; the lock sits in the top-left corner, never in the bedrock
+  fg[cornerLockTile()] = LOCK;
   worldOwner = GM_USERS[0];
   setLockCfg({ desc: 'Every splice recipe in Balbtopia. Stand on a sign to read it.' });
   worldRV = recipesVersion();

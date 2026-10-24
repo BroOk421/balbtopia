@@ -34,7 +34,8 @@ Deno.serve(async (req) => {
     return reply(400, { error: 'Bad request' });
   }
   // same rules as the game's register form
-  if (!/^[A-Za-z0-9_]{3,16}$/.test(user)) return reply(400, { error: 'Username: 3-16 letters, numbers or _' });
+  // letters and numbers only, no symbols (owner, Oct 24 2026)
+  if (!/^[A-Za-z0-9]{3,16}$/.test(user)) return reply(400, { error: 'Username: 3 to 16 letters or numbers (no symbols)' });
   if (pass.length < 6) return reply(400, { error: 'Password needs at least 6 characters' });
 
   // the caller's IP: the first address in x-forwarded-for (set by Supabase's gateway)
@@ -49,6 +50,9 @@ Deno.serve(async (req) => {
   if ((count || 0) >= MAX_PER_IP)
     return reply(429, { error: `Only ${MAX_PER_IP} accounts can be made from one connection` });
 
+  // a name someone already uses (also one taken with Change Name, whose login e-mail is still the first name's)
+  const { data: taken } = await db.from('usernames').select('id').ilike('name', user).limit(1);
+  if (taken && taken.length) return reply(409, { error: 'That name is taken' });
   const { data, error } = await db.auth.admin.createUser({
     email: user.toLowerCase() + '@players.balbtopia.app',
     password: pass,

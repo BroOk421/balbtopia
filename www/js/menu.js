@@ -6,15 +6,18 @@ let xp = 0, // XP inside the current level
   playDays = []; // dates played, like '2026-10-15'
 const settings = { vibrate: true, coords: true, zoom: 0, sound: true }; // zoom: camera steps closer than the farthest view
 
-const xpNeed = (lv) => 40 + lv * 20; // XP needed to go from level lv to lv+1
-// XP for playing: breaking blocks, planting, splicing and harvesting
+// XP needed to go from level lv to lv+1 (owner, Oct 24 2026: slower, and it keeps growing): 1 XP = 1 block broken.
+// Level 2 needs 30 blocks, level 10 about 140, level 50 about 1,020, level 100 about 2,970; level 100 in all ~117,000.
+const xpNeed = (lv) => 20 + 10 * lv + Math.floor((lv * lv) / 5);
+// XP only for breaking blocks (actions.js); planting, splicing and harvesting give none any more
 function addXP(n) {
   xp += n;
   while (xp >= xpNeed(level)) {
     xp -= xpNeed(level);
     level++;
     const opened = level >= BAG_LEVEL && level < BAG_LEVEL + (BAG_MAX - BAG_FREE) / BAG_STEP;
-    toast('Level up! You are now level ' + level + (opened ? ' · +' + BAG_STEP + ' bag slots' : ''));
+    const rw = typeof LEVEL_REWARDS !== 'undefined' && LEVEL_REWARDS.find((r) => r.lv === level);
+    toast('Level up! You are now level ' + level + (opened ? ' · +' + BAG_STEP + ' bag slots' : '') + (rw ? ' · Reward ready in your Profile!' : ''));
     if (!$('inv').hidden) renderInv();
     Native.haptic('medium');
   }

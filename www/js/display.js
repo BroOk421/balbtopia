@@ -57,7 +57,7 @@ Net.onShow = (p) => {
   else if (p.k === 'm') setMann(p.i, p.v);
 };
 // what can go in a Display Box: anything but the wrench and the fist
-const displayable = (id) => ITEMS[id] && id !== 'wrench' && id !== 'fist' && !ITEMS[id].key;
+const displayable = (id) => ITEMS[id] && id !== 'wrench' && id !== 'fist' && !ITEMS[id].key && !ITEMS[id].bound;
 // the item picture cropped to what is drawn in it, so small things (a mustache, a visor) still fill the space
 const ICON_FIT = {};
 function iconFit(id) {
@@ -180,7 +180,7 @@ function openMannequin(x, y) {
     const on = EQ_SLOTS.filter((s) => m[s]).map((s) => ITEMS[m[s]].name);
     return toast(on.length ? 'Mannequin: ' + on.join(', ') : 'This Mannequin wears nothing');
   }
-  const choices = inv.filter((s) => slotOf(s.id)); // clothes and tools (into the hand)
+  const choices = inv.filter((s) => slotOf(s.id) && !ITEMS[s.id].bound); // clothes and tools (into the hand); never bound items
   const body = dialog(
     'MANNEQUIN',
     `<div class="vend">
@@ -359,6 +359,7 @@ function useMannequin(x, y) {
   if (!isMannT(fg[i]) || !hasAccess(playerName, i)) return false;
   const m = manns.get(i) || {},
     sl = hand !== 'fist' ? slotOf(hand) : null;
+  if (sl && ITEMS[hand] && ITEMS[hand].bound) return toast(ITEMS[hand].name + ' is yours only: it can\'t go on a Mannequin'), true;
   if (sl) {
     const id = hand,
       old = m[sl];

@@ -1051,3 +1051,84 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   the jeans flare to the leg edge measured at y 182-187 (no ledge), anything within 5 px of the cut arm that lies
   more than 3 px left of the body's first inner pixel is cleared, and loose bits under 12 pixels on that side are
   removed. GAME_BUILD '2026-10-23 l'.
+
+- Oct 24 2026 (owner):
+  - Bag: the Wearing boxes are a column OUTSIDE the bag on its left, the GM category tabs a column outside on its right,
+    both centred on the bag's height (absolute, `right/left: calc(100% + 12px)`; `#inv.win` is `overflow: visible`, only
+    the grid scrolls). The Trash button moved into the bag header beside X. CSS block at the end of style.css.
+  - ATM coins: only SMALL coins, each its own drop with a fixed coin kind `ck` (drawn as that one coin whatever its
+    value; never merged by `spawnDrop`; saved as the 8th drop field, sent as `k`): Bronze 79% 1-5 small bronze (1 gold
+    each), Silver 20% 1-2 small silver (5 each), Gold 1% 1 small gold (10). Scattered over the ATM's own tile
+    (`atmScatter`). Other gold piles still use the normal `COIN_KINDS` chain.
+  - ATM screen while empty / waiting: a steady glowing green "ATM" (`ATM_WORD`) in the same style as the "$" (shared
+    `glyph` painter in `atmPic`); the rest of the cabinet stays dim.
+  - GAME_BUILD '2026-10-24 a'.
+- Oct 24 2026 (owner, later): sitting on a chair / couch no longer bobs (the `breathe` offset, rounded to whole
+  pixels, made the sitter jump 1 px up and down = "shaking"). The sitter is perfectly still unless you press something;
+  lying in bed still breathes. GAME_BUILD '2026-10-24 b'.
+- Oct 24 2026 (owner, later 2):
+  - AFK (`afk.js`): `AFK_MS` 30 min without a key / click / tap / mouse move (counted by the clock, checked every 15 s and
+    when the app comes back) -> `logout()` (save, sign out, forget the session, reload) and the log in screen says why
+    (sessionStorage `balbtopia.afk`, read in a wrapped `initAuth`).
+  - Name tags at ONE height whatever is worn: `NAME_TOP` (-26 body px, the old hood height) in render.js and rest.js;
+    the per-hair `top` / hat / hood offsets are no longer used for the tag.
+  - Flags (`flags.js`): `FLAGS` [code, name, painter] (49 countries, 18 x 12 pixel art, `flagCanvas`, `flagGrid`).
+    Picked in the Register form (`#aFlagL` / `#aFlags`, optional; `regFlag` -> set after the new account signs in) or
+    Menu -> Profile -> flag button (`openFlagPicker`). `myFlag`, saved as player `flag`, sent as `fl` in the position
+    message, drawn at the LEFT of the name tag (`drawNameTag(name, x, y, flag)`, name + flag centred together).
+  - Levels (`menu.js` + `levels.js`): XP only from breaking blocks (1 per block; planting / splicing / harvesting give
+    none); `xpNeed(lv)` = 20 + 10 lv + lv^2/5 (30 for level 2, ~1,020 at 50, ~2,970 at 99; ~117,000 blocks to 100).
+    `LEVEL_REWARDS`: 50 Cat Ear Hoodie, 70 10,000 gold, 80 20,000 gold, 90 50 Balb Coins, 100 Golden Pickaxe. Profile
+    trophy button (`#lvRewards`, red count of rewards waiting) -> `openRewards` -> CLAIM (`claimReward`): online flushes
+    the player save then `claim_level_reward(p_lv)` (schema.sql: checks data.level, one row per level in
+    `level_rewards`, gold / bc straight into the wallet, items via add_owned; the game adds the item to the bag);
+    offline local. Claimed levels saved as player `lvc`. Re-run schema.sql.
+  - Golden Pickaxe: out of the Shop (shop.js + shop_prices) and `bound: true` (levels.js): not tradable / giftable
+    (`tradable`), not droppable (`askDrop`), not displayable, not on a Mannequin. Existing ones are bound too.
+  - Shop tabs: a column OUTSIDE the Shop window on its right, centred (same look as the bag's GM tabs; CSS at the end).
+  - GAME_BUILD '2026-10-24 c'.
+- Oct 24 2026 (owner, later 3):
+  - Register flag: a SELECT button (`#aFlagBtn`) opens the flag pop-up (`pickFlag(cur, done)`, levels.js: tapping a
+    flag picks it and closes); the picked flag shows beside the button (`#aFlagShow`) and its name in the label. The
+    Profile flag button uses the same pop-up.
+  - Menu -> Settings: Button size (`settings.btnSize`, CSS `zoom: var(--btnz)` on .topr / .hotbar / .pad / .bag) and
+    Name size (`settings.nameSize`, `nameScale()` in drawNameTag, flag too); steps in `UI_SIZES` (uisize.js), saved
+    as the step index.
+  - Menu: header shows the open tab's name (`#menuTitle`), the tabs are a column OUTSIDE the window on its right,
+    centred (like the Shop and bag).
+  - GAME_BUILD '2026-10-24 d'.
+- Oct 24 2026 (owner, later 4):
+  - Name size setting removed (only Button size stays).
+  - Bedrock floor (`FLOOR_ROW` = WH - 6, `isFloorRow`, world.js): nothing can be placed in it (act), something broken in
+    it turns back into bedrock, and `worldfix.js` fills any hole on world load. The Door Mover only removes the old
+    door's bedrock when it is NOT part of the floor (a door standing on the floor's top row just stands on it; one
+    higher gets one bedrock under it, removed again when the door moves), and the door can't go into the floor.
+  - LOBBY / RECIPES: the GM's Gold Lock is in the top-left corner (`cornerLockTile`), no longer in the bedrock beside
+    the door; existing ones are moved on load (`fixFloor`). RECIPES tag `L9:`. LOBBY_V unchanged (no rebuild).
+  - The top of the world is a ceiling (`solidAt` y < 0 = solid): nobody goes above row 0; the top rows can be built on
+    like any row (within reach).
+  - Jump control (physics.js): letting go of jump while rising cuts the rise (vy x 0.4); hitting a block or the top with
+    jump held keeps you pressed there (`P.ceilT`, up to 0.45 s, as long as the jump would have kept rising), then you
+    fall. Full jump ~94 px, a tap ~28 px.
+  - GAME_BUILD '2026-10-24 e'.
+- Oct 24 2026 (owner, later 5): the camera never shows above row 0 (`cam.y` clamped at 0 in main.js; was -0.3 of the
+  screen). The empty band above the map looked like 2 more rows; the owner chose this over really adding 2 rows (that
+  would shift every world's tile numbers, needs a server change and everyone updating at once). GAME_BUILD '2026-10-24 f'.
+- Oct 24 2026 (owner, later 6):
+  - Gold counter: no "+N" number under it when coins arrive (`goldArrived`, liven.js); only the coin pops.
+  - Usernames: letters and numbers only (`USER_RE` in auth.js, signup Edge Function); old names with _ still log in.
+  - Change Name (`rename.js`, Shop WORLD, 50,000 gold, item `name_changer`, pencil + name card icon, `noDrop`): Use ->
+    pop-up (`namePopup`, `#rnIn` / `#rnErr`; only letters / numbers can be typed). Online: `change_name(p_new)`
+    (schema.sql: 3-16 alnum, not used by any username / login e-mail / GM, takes one from owned_items via `use_owned`
+    (GMs free), renames usernames, players, world owner (column + data), Gold Lock `lock.access`, Red / Blue Lock `o` /
+    `acc`, world_keys.owner_name, world_bans, mail names; lockv+1 on changed worlds). GM accounts can't rename (LOBBY /
+    RECIPES are locked to the GM's name). Login keeps the FIRST name's e-mail: `login_email(p_name)` (anon) gives the
+    e-mail for a name, `Net.signIn` asks it first. `on_new_user` refuses a name in use; the signup function checks
+    usernames too. Offline: `renameLocalAccount` (accounts, save, local worlds). `renamedHere` updates this game's copy.
+  - World Transfer (`rename.js`, Shop WORLD, 20,000 gold, item `world_transfer`, rolled deed icon, `noDrop`): owner of a
+    locked world (not LOBBY / RECIPES / START) -> pop-up with a world name (capitals). Online: `transfer_world(old, new,
+    data)`: name must not exist, takes one item, moves the row + world_keys / world_bans / vend_backed, saves the given
+    data through save_world, records `world_moves` (save_world refuses to re-create the old name for 10 min). The owner's
+    game sends `moved`; others ask `world_moved(old)` and enter the new name. Offline: moves the local save.
+  - Re-run schema.sql and redeploy the signup function.
+  - GAME_BUILD '2026-10-24 g'.

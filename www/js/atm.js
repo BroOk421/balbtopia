@@ -19,13 +19,29 @@ ITEMS.atm_machine = {
 const isATMT = (t) => t === ATM;
 SHOP.push({ id: 'atm_machine', gold: 30000, cat: 'world' });
 
-// what comes out (gold value; coinParts in render.js draws it, so each amount looks like its kind of coin):
-// bronze 70% (1-4 big bronze), silver 20% (2-4 small silver), gold 10% (2-4 big gold coins)
+// what comes out (owner, Oct 24 2026): only SMALL coins, each its own drop with a fixed kind (`ck`, drawn as that
+// coin whatever its value): small bronze = 1 gold, small silver = 5, small gold = 10. Never big bronze / big gold /
+// bars. Bronze 79% (1-5 coins), silver 20% (1-2 coins), gold 1% (1 coin).
 const ATM_LOOT = [
-  { k: 'Bronze', p: 0.7, coin: 5, n: [1, 4], col: '#e09a5a' },
-  { k: 'Silver', p: 0.2, coin: 25, n: [2, 4], col: '#dfe6ee' },
-  { k: 'Gold', p: 0.1, coin: 625, n: [2, 4], col: '#ffd23f' },
+  { k: 'Bronze', p: 0.79, ck: 'bronze_s', coin: 1, n: [1, 5], col: '#e09a5a' },
+  { k: 'Silver', p: 0.2, ck: 'silver_s', coin: 5, n: [1, 2], col: '#dfe6ee' },
+  { k: 'Gold', p: 0.01, ck: 'gold_s', coin: 10, n: [1, 1], col: '#ffd23f' },
 ];
+// the coins land scattered over the ATM's own tile (never outside it): x / y inside the tile, kept apart
+function atmScatter(tx, ty, n) {
+  const out = [];
+  for (let c = 0; c < n; c++) {
+    let best = null;
+    for (let t = 0; t < 12; t++) {
+      const p = [tx * TS + 5 + Math.random() * (TS - 10), ty * TS + 8 + Math.random() * (TS - 16)],
+        d = Math.min(99, ...out.map((q) => Math.hypot(q[0] - p[0], q[1] - p[1])));
+      if (!best || d > best.d) best = { p, d };
+      if (d >= 9) break;
+    }
+    out.push(best.p);
+  }
+  return out;
+}
 
 const ATM_WAIT = 24 * 3600e3;
 const atms = new Map(); // tile -> when it was placed / last paid out (ms since 1970)
@@ -73,11 +89,15 @@ function useATM(x, y) {
     }
     r -= l.p;
   }
-  const n = L.n[0] + Math.floor(Math.random() * (L.n[1] - L.n[0] + 1)),
-    gold = n * L.coin;
+  const n = L.n[0] + Math.floor(Math.random() * (L.n[1] - L.n[0] + 1));
   atms.set(i, Date.now());
   startPunch(x * TS + 16, y * TS + 16);
-  spawnDrop('gold', x * TS + 16, y * TS + 14, gold, 0.25, playerName); // (by you: yours to take at once)
+  // one drop per coin, spread over this tile (by you: yours to take at once); `ck` keeps each a single coin
+  for (const [cx, cy] of atmScatter(x, y, n)) {
+    const d = { uid: newDropId(), id: 'gold', qty: L.coin, ck: L.ck, x: cx, y: cy, age: 0, minAge: 0.25, ph: Math.random() * 6.28, born: Date.now(), by: playerName };
+    drops.push(d);
+    Net.sendDrop(d);
+  }
   smoke(x, y, 8, 1.2);
   burst(x, y, [L.col, '#ffffff', L.col], 14);
   Sfx.play('pickup');
@@ -112,6 +132,14 @@ const DOLLAR = [
   '..######..',
   '....##....',
 ];
+// "ATM" on the screen while it is empty / waiting (owner, Oct 24 2026), the same glowing green style as the "$":
+// 29 x 11, 2 px strokes
+const ATM_WORD = (() => {
+  const A = ['..####..', '.######.', '##....##', '##....##', '##....##', '########', '########', '##....##', '##....##', '##....##', '##....##'],
+    T = ['########', '########', '...##...', '...##...', '...##...', '...##...', '...##...', '...##...', '...##...', '...##...', '...##...'],
+    M = ['##.....##', '###...###', '####.####', '##.###.##', '##..#..##', '##.....##', '##.....##', '##.....##', '##.....##', '##.....##', '##.....##'];
+  return A.map((r, j) => r + '..' + T[j] + '..' + M[j]);
+})();
 const ATM_PICS = {};
 function atmPic(f) {
   if (ATM_PICS[f]) return ATM_PICS[f];
@@ -173,12 +201,24 @@ function atmPic(f) {
   R(13, 18, 38, 24, K); // bezel
   R(14, 19, 36, 22, '#221636');
   R(14, 19, 36, 1, '#3a2a56');
-  if (off) {
-    R(16, 21, 32, 18, '#16161e');
-    // a dead screen: a faint diagonal reflection
-    for (let k = 0; k < 6; k++) P(18 + k, 23 + k, '#2a2a34');
-    for (let k = 0; k < 4; k++) P(21 + k, 23 + k, '#22222b');
-  } else {
+  // a glowing green glyph ("$" or "ATM"): s 0 = bright with a glow halo, 1 = bright, 2 = dim
+  const glyph = (G, ox, oy, s) => {
+    const col = s === 2 ? '#3fae5c' : '#9dffb0',
+      core = s === 2 ? '#5fd07a' : '#e8fff0',
+      each = (fn) => G.forEach((row, j) => [...row].forEach((ch, i) => ch === '#' && fn(i, j, row)));
+    if (s === 0)
+      each((i, j) => {
+        x.fillStyle = 'rgba(125,255,150,.22)';
+        x.fillRect(ox + i - 1, oy + j - 1, 3, 3);
+      });
+    // dark edge under it, then the glyph, then a lighter core
+    each((i, j) => P(ox + i + 1, oy + j + 1, '#06261a'));
+    each((i, j) => P(ox + i, oy + j, col));
+    each((i, j, row) => {
+      if (row[i - 1] === '#' && (G[j - 1] || '')[i] === '#') P(ox + i, oy + j, core);
+    });
+  };
+  {
     R(16, 21, 32, 18, '#0b3a24');
     // soft glow towards the middle, scanlines
     E(32, 30, 14, 8, '#0f4a2e');
@@ -187,42 +227,13 @@ function atmPic(f) {
       x.fillStyle = 'rgba(0,0,0,.18)';
       x.fillRect(16, j, 32, 1);
     }
-    // the "$": 0 bright + glow, 1 bright, 2 dim, 3 gone (blink)
-    if (f !== 3) {
-      const col = f === 2 ? '#3fae5c' : '#9dffb0',
-        core = f === 2 ? '#5fd07a' : '#e8fff0',
-        ox = 27,
-        oy = 24;
-      // glow halo
-      if (f === 0)
-        DOLLAR.forEach((row, j) =>
-          [...row].forEach((ch, i) => {
-            if (ch !== '#') return;
-            x.fillStyle = 'rgba(125,255,150,.22)';
-            x.fillRect(ox + i - 1, oy + j - 1, 3, 3);
-          }),
-        );
-      // dark edge under it, then the glyph, then a lighter core
-      DOLLAR.forEach((row, j) =>
-        [...row].forEach((ch, i) => {
-          if (ch === '#') P(ox + i + 1, oy + j + 1, '#06261a');
-        }),
-      );
-      DOLLAR.forEach((row, j) =>
-        [...row].forEach((ch, i) => {
-          if (ch === '#') P(ox + i, oy + j, col);
-        }),
-      );
-      DOLLAR.forEach((row, j) =>
-        [...row].forEach((ch, i) => {
-          if (ch === '#' && row[i - 1] === '#' && (DOLLAR[j - 1] || '')[i] === '#') P(ox + i, oy + j, core);
-        }),
-      );
-    }
-    // glass shine
-    P(17, 22, 'rgba(255,255,255,.35)');
-    R(17, 22, 4, 1, 'rgba(255,255,255,.25)');
-    R(17, 23, 1, 3, 'rgba(255,255,255,.18)');
+    // empty / waiting: a steady "ATM"; full: the "$" blinks (0 bright + glow, 1 bright, 2 dim, 3 gone)
+    if (off) glyph(ATM_WORD, 17, 24, 0);
+    else if (f !== 3) glyph(DOLLAR, 27, 24, f);
+    // glass shine (not over the "ATM" word)
+    if (!off) P(17, 22, 'rgba(255,255,255,.35)');
+    if (!off) R(17, 22, 4, 1, 'rgba(255,255,255,.25)');
+    if (!off) R(17, 23, 1, 3, 'rgba(255,255,255,.18)');
   }
   // ---- panel under the screen (no controller) ----
   R(11, 43, 42, 5, BL);

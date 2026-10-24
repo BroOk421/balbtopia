@@ -3093,3 +3093,400 @@ button:focus-visible {
 .hb {
   transition: transform 0.08s;
 }
+
+/* ---------- bag: worn-item slots and GM tabs float OUTSIDE the window (owner, Oct 24 2026) ----------
+   More room for the slot grid: the Wearing boxes are a column on the bag's LEFT, the GM category tabs a column on
+   its RIGHT, both centred on the bag's height and looking like small panels of the same window. The Trash button
+   sits in the header beside X. The bag itself no longer clips (only its grid scrolls), so the columns can hang out. */
+#inv.win {
+  overflow: visible;
+  width: min(calc(100vw - 190px), 470px);
+}
+#inv header .trashbtn {
+  margin-left: 0;
+  width: 30px;
+  height: 30px;
+}
+#inv .wearing,
+#inv .gmtabs {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 6px;
+  background: var(--panel);
+  border: 3px solid var(--night);
+  box-shadow:
+    0 0 0 2px var(--glow),
+    0 8px 0 rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+}
+#inv .wearing {
+  right: calc(100% + 12px);
+  display: block;
+}
+#inv .wearing > span {
+  display: none;
+}
+#inv .eslots {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 5px;
+}
+#inv .gmtabs:not([hidden]) {
+  left: calc(100% + 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: visible;
+}
+#inv .gmtabs button {
+  flex: none;
+  font-size: 8px;
+  padding: 8px 9px;
+  text-align: center;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #inv.win {
+    overflow: visible;
+    /* room on the left for the Wearing column (about 44 px) */
+    left: max(58px, calc(env(safe-area-inset-left, 0px) + 46px), min(calc(50vw - var(--bagw) / 2), calc(100vw - var(--bagw) - 340px)));
+  }
+  #inv header .trashbtn {
+    width: 24px;
+    height: 24px;
+    margin-left: 0;
+  }
+  #inv .wearing,
+  #inv .gmtabs {
+    padding: 4px;
+    border-width: 2px;
+    margin: 0;
+  }
+  #inv .wearing {
+    right: calc(100% + 9px);
+  }
+  #inv .gmtabs:not([hidden]) {
+    left: calc(100% + 9px);
+    gap: 3px;
+  }
+  #inv .eslots {
+    gap: 3px;
+  }
+  #inv .gmtabs button {
+    font-size: 6px;
+    padding: 5px 6px;
+    border-width: 1px;
+  }
+}
+
+/* ---------- flags (flags.js): register strip, profile, picker (owner, Oct 24 2026) ---------- */
+.flagpick > span {
+  display: block;
+}
+.flagpick small {
+  color: var(--sun);
+  font-size: 10px;
+}
+.flagrow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, auto);
+  gap: 4px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  margin-top: 4px;
+  overscroll-behavior: contain;
+}
+.flaggrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 5px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 2px 4px 2px 2px;
+}
+.flagbtn {
+  width: 40px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--muted);
+  font: 10px var(--pixel);
+  cursor: pointer;
+}
+.flagbtn canvas {
+  width: 27px;
+  height: 18px;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 1px rgba(20, 10, 30, 0.9);
+}
+.flagbtn.on {
+  border-color: var(--sun);
+  box-shadow: 0 0 0 2px var(--sun);
+}
+/* the name row: flag, then the name */
+.pinfo h3:has(.pflag) {
+  display: flex;
+  align-items: center;
+}
+.pinfo .pflag {
+  display: inline-block;
+  flex: none;
+  width: 21px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 1px rgba(20, 10, 30, 0.9);
+}
+/* Profile: square buttons (level rewards, flag) under the name */
+.prow {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 6px;
+}
+.sqbtn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--ink);
+  font: 7px var(--pixel);
+  cursor: pointer;
+}
+.sqbtn:hover {
+  border-color: var(--glow);
+}
+.sqbtn canvas {
+  width: 24px;
+  height: 16px;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 1px rgba(20, 10, 30, 0.9);
+}
+.sqbtn .dot {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #e8392c;
+  color: #fff;
+  font: 8px/16px var(--pixel);
+  font-style: normal;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--night);
+}
+/* level rewards list */
+.lvlist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.lvrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+}
+.lvrow.ready {
+  border-color: var(--sun);
+}
+.lvrow.locked {
+  opacity: 0.6;
+}
+.lvpic canvas {
+  width: 34px;
+  height: 34px;
+  image-rendering: pixelated;
+  object-fit: contain;
+  display: block;
+}
+.lvtxt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+.lvtxt b {
+  font: 9px var(--pixel);
+  color: var(--sun);
+}
+.lvst {
+  font: 8px var(--pixel);
+  color: var(--muted);
+}
+.lvrow.done .lvst {
+  color: #7ccf5a;
+}
+.lvrow .btn {
+  padding: 8px 10px;
+  font-size: 9px;
+}
+
+/* ---------- Shop: category tabs float OUTSIDE the window, a column on its right (owner, Oct 24 2026) ---------- */
+#shop.win {
+  overflow: visible;
+  width: min(calc(100vw - 150px), 560px);
+  left: calc(50% - 50px);
+}
+#shop #shopTabs {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 6px;
+  background: var(--panel);
+  border: 3px solid var(--night);
+  box-shadow:
+    0 0 0 2px var(--glow),
+    0 8px 0 rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+}
+#shop #shopTabs button {
+  flex: none;
+  font-size: 8px;
+  padding: 8px 9px;
+  text-align: center;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #shop.win {
+    overflow: visible;
+  }
+  #shop #shopTabs {
+    left: calc(100% + 9px);
+    padding: 4px;
+    border-width: 2px;
+    gap: 3px;
+  }
+  #shop #shopTabs button {
+    font-size: 6px;
+    padding: 5px 6px;
+    border-width: 1px;
+  }
+}
+
+/* short phone screens: one row of flags (scrolls sideways) so the Register form stays short */
+@media (max-height: 520px) {
+  .flagrow {
+    grid-template-rows: auto;
+    padding-bottom: 6px;
+  }
+  .flagbtn {
+    width: 34px;
+    height: 26px;
+  }
+}
+
+/* ---------- Register: flag SELECT button + the picked flag beside it (owner, Oct 24 2026) ---------- */
+.flagsel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.flagsel .btn {
+  padding: 8px 14px;
+  font-size: 9px;
+}
+.flagshow canvas {
+  display: block;
+  width: 36px;
+  height: 24px;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 2px rgba(20, 10, 30, 0.9);
+}
+/* ---------- Settings -> Button size: on-screen buttons and bars scale (uisize.js) ---------- */
+.topr,
+.hotbar,
+.pad,
+.bag {
+  zoom: var(--btnz, 1);
+}
+/* ---------- Menu: title in the header, tabs a column OUTSIDE the window on its right (owner, Oct 24 2026) ---------- */
+#menu.win {
+  overflow: visible;
+  width: min(calc(100vw - 150px), 470px);
+  left: calc(50% - 50px);
+}
+#menu header h2 {
+  flex: 1;
+}
+#menu .tabs {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: column;
+  flex: none;
+  gap: 5px;
+  overflow: visible;
+  padding: 6px;
+  background: var(--panel);
+  border: 3px solid var(--night);
+  box-shadow:
+    0 0 0 2px var(--glow),
+    0 8px 0 rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+}
+#menu .tabs button {
+  text-align: center;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #menu .tabs {
+    left: calc(100% + 9px);
+    padding: 4px;
+    border-width: 2px;
+    gap: 3px;
+  }
+  #menu .tabs button {
+    font-size: 6px;
+    padding: 5px 6px;
+    border-width: 1px;
+  }
+}
+
+/* Change Name / World Transfer pop-up box (rename.js) */
+#rnIn {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 10px 12px;
+  font: 14px var(--pixel, monospace);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  outline: none;
+}
+#rnIn:focus {
+  border-color: var(--glow);
+}
+#rnErr {
+  min-height: 1em;
+  margin: 6px 0 0;
+}
