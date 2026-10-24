@@ -27,21 +27,9 @@ const ATM_LOOT = [
   { k: 'Silver', p: 0.2, ck: 'silver_s', coin: 5, n: [1, 2], col: '#dfe6ee' },
   { k: 'Gold', p: 0.01, ck: 'gold_s', coin: 10, n: [1, 1], col: '#ffd23f' },
 ];
-// the coins land scattered over the ATM's own tile (never outside it): x / y inside the tile, kept apart
-function atmScatter(tx, ty, n) {
-  const out = [];
-  for (let c = 0; c < n; c++) {
-    let best = null;
-    for (let t = 0; t < 12; t++) {
-      const p = [tx * TS + 5 + Math.random() * (TS - 10), ty * TS + 8 + Math.random() * (TS - 16)],
-        d = Math.min(99, ...out.map((q) => Math.hypot(q[0] - p[0], q[1] - p[1])));
-      if (!best || d > best.d) best = { p, d };
-      if (d >= 9) break;
-    }
-    out.push(best.p);
-  }
-  return out;
-}
+// the coins land scattered over the ATM's own tile, away from its edges (coinScatter, actions.js; owner, Oct 24
+// 2026: not down at the bottom, where the head of a player in the row below picked them up)
+const atmScatter = (tx, ty, n) => coinScatter(tx, ty, n);
 
 const ATM_WAIT = 24 * 3600e3;
 const atms = new Map(); // tile -> when it was placed / last paid out (ms since 1970)
@@ -98,11 +86,9 @@ function useATM(x, y) {
     drops.push(d);
     Net.sendDrop(d);
   }
-  smoke(x, y, 8, 1.2);
-  burst(x, y, [L.col, '#ffffff', L.col], 14);
+  // no smoke / coloured squares / shake on a pay-out (owner, Oct 24 2026: those are for BREAKING the ATM)
   Sfx.play('pickup');
   Native.haptic(L.k === 'Gold' ? 'heavy' : 'medium');
-  shake = Math.max(shake, L.k === 'Gold' ? 4 : 2);
   saveWorld();
   return true;
 }

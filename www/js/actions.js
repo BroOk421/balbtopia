@@ -241,7 +241,7 @@ function act() {
         // a Wet Sponge always gives something back: its Sponge or, failing that, a Sponge seed (sponge.js)
         if (b.dropAs && !gotBlock && !gotSeed) spawnDrop(id + '_seed', x * TS + 16, y * TS + 20);
         const gold = goldDropAmount(id);
-        if (gold) spawnDrop('gold', x * TS + 16 + (Math.random() < 0.5 ? -7 : 7), y * TS + 12, gold);
+        if (gold) spawnCoins(x, y, gold);
       }
     } else if (bg[i]) {
       bgDmg[i]++;
@@ -261,7 +261,7 @@ function act() {
         if (Math.random() < blockDropChance(bk.id)) spawnDrop(bk.id, x * TS + 16, y * TS + 16);
         dropSeed(bk.id, x, y);
         const gold = goldDropAmount(bk.id);
-        if (gold) spawnDrop('gold', x * TS + 16 + (Math.random() < 0.5 ? -7 : 7), y * TS + 12, gold);
+        if (gold) spawnCoins(x, y, gold);
       }
     }
     return;
@@ -434,6 +434,48 @@ function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
     qty -= k;
   }
 }
+// coins (owner, Oct 24 2026): spots for n coins inside tile (tx, ty), kept apart and AWAY from the tile's edges (the
+// bottom most of all, so a player standing in the row below never touches them with the head)
+function coinScatter(tx, ty, n) {
+  const out = [];
+  for (let c = 0; c < n; c++) {
+    let best = null;
+    for (let t = 0; t < 12; t++) {
+      const p = [tx * TS + 9 + Math.random() * (TS - 18), ty * TS + 10 + Math.random() * 9],
+        d = Math.min(99, ...out.map((q) => Math.hypot(q[0] - p[0], q[1] - p[1])));
+      if (!best || d > best.d) best = { p, d };
+      if (d >= 8) break;
+    }
+    out.push(best.p);
+  }
+  return out;
+}
+// gold that falls out of a block / tree comes out like the ATM's coins (owner, Oct 24 2026): every coin of the amount
+// (coinParts: big / small bronze, silver, small / big gold) is its own single spinning drop (`ck`), scattered over
+// the tile. A gold bar (3,125+) still falls as a normal pile.
+function spawnCoins(tx, ty, value, by = null) {
+  const V = {},
+    list = [];
+  for (const c of COIN_KINDS) V[c.k] = c.v;
+  let bars = 0;
+  for (const p of coinParts(value)) {
+    if (p.k === 'bar') bars = p.n;
+    else for (let j = 0; j < p.n; j++) list.push(p.k);
+  }
+  if (bars) spawnDrop('gold', tx * TS + 16, ty * TS + 14, bars * V.bar, 0.25, by);
+  coinScatter(tx, ty, list.length).forEach(([cx, cy], j) => {
+    const d = { uid: newDropId(), id: 'gold', qty: V[list[j]], ck: list[j], x: cx, y: cy, age: 0, minAge: 0.25, ph: Math.random() * 6.28, born: Date.now(), by };
+    drops.push(d);
+    Net.sendDrop(d);
+  });
+}
+// a coin is only picked up once the player's body is IN its tile (owner, Oct 24 2026: the head reached coins in the
+// tile above from the row below, and the side reach took them from the next tile)
+const inDropTile = (d, p) => {
+  const tx = Math.floor(d.x / TS),
+    ty = Math.floor(d.y / TS);
+  return p.x < (tx + 1) * TS && p.x + p.w > tx * TS && p.y < (ty + 1) * TS && p.y + p.h > ty * TS;
+};
 // may this player pick the drop up? In a locked world only the owner takes it at once;
 // everyone else (builders with access and "everyone can build" worlds too) waits DROP_LOCK_MS
 // after it fell out of a block (or was dropped), unless they dropped it themselves

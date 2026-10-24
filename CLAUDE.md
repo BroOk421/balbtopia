@@ -1132,3 +1132,15 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     game sends `moved`; others ask `world_moved(old)` and enter the new name. Offline: moves the local save.
   - Re-run schema.sql and redeploy the signup function.
   - GAME_BUILD '2026-10-24 g'.
+- Oct 24 2026 (owner, later 7):
+  - Gold from blocks / backgrounds / ripe trees now falls like the ATM's coins (`spawnCoins(tx, ty, value)`, actions.js):
+    every coin of the amount (`coinParts`) is its own single spinning `ck` drop worth that coin's chain value (small
+    bronze 1, big bronze 5, silver 25, small gold 125, big gold 625), scattered in the tile; a gold bar part still
+    falls as a normal pile.
+  - Coin spots (`coinScatter`, shared with the ATM's `atmScatter`): x 9-23, y 10-19 inside the tile, away from the
+    edges (the old ATM spots went down to y 24, where the head of a player in the row below touched them).
+  - A gold drop is only picked up when the player's body overlaps the drop's own tile (`inDropTile`, checked in
+    stepFx with the old reach): no more taking coins from the row below with the head or from the next tile.
+  - ATM pay-out click: no smoke, no coloured squares (burst), no shake; only the punch pose, pickup sound and haptic.
+    Breaking the ATM still has the normal break effects.
+  - GAME_BUILD '2026-10-24 h'.

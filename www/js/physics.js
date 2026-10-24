@@ -227,7 +227,7 @@ function stepFx(dt) {
   for (let k = drops.length - 1; k >= 0; k--) {
     const d = drops[k];
     d.age += dt;
-    const touching = d.x + r > P.x && d.x - r < P.x + P.w && d.y + r > P.y && d.y - r < P.y + P.h;
+    const touching = d.x + r > P.x && d.x - r < P.x + P.w && d.y + r > P.y && d.y - r < P.y + P.h && (d.id !== 'gold' || inDropTile(d, P)); // coins: only from inside their tile
     if (d.age > d.minAge && touching && !P.dead) {
       // visitors in a locked world have to wait (see canTakeDrop)
       if (!canTakeDrop(d)) {

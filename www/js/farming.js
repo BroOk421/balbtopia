@@ -130,7 +130,7 @@ function punchTree(x, y) {
     spawnDrop(t.seed, x * TS + 8 + Math.random() * 16, y * TS + 10 + Math.random() * 10);
   dropSeed(t.seed, x, y);
   const gold = treeGold(t.seed);
-  if (gold) spawnDrop('gold', x * TS + 16, y * TS + 12, gold);
+  if (gold) spawnCoins(x, y, gold);
 }
 // a tree whose ground is gone pops and gives its seed back
 function uproot(x, y) {
