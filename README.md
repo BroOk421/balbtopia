@@ -316,3 +316,7 @@ Kapag walang Supabase key, sariling world sa sariling device ang makukuha ng baw
 - **Login at anti-cheat**: ang server dapat ang magpasya kung pwedeng sirain o ilagay ang block, hindi ang browser.
 
 Magandang simula ang ayos ng code na ito para doon. Ang `actions.js` (sira/lagay ng block) at `physics.js` (galaw) ang mga bahaging ipapadaan sa server.
+
+## Copyright
+
+Copyright (c) 2026 Jonathan Gamboa. All rights reserved. Nakikita ang code dito, pero walang pahintulot na kopyahin, baguhin, i-host o gamitin ang code, art, tunog o anumang bahagi nito nang walang nakasulat na pahintulot. Tingnan ang [LICENSE](LICENSE).

@@ -3,8 +3,9 @@
 // seeds (a count, kept while you play), or send blocks / seeds (SEND takes them out of the bag). When it's done, CLAIM
 // gives a reward (owner, Oct 23 2026: 1 Balb Coin for a rare quest, random gold for a common one). One quest a day, new every day at midnight Philippine time, the same for a player all day
 // (picked from the day and the player's name).
-// Online the server decides: quest_today says the day and whether today's coin was claimed; claim_daily_quest adds
-// the coin, once a day (supabase/schema.sql). Offline the coin is only local.
+// Online the server decides: quest_today says the day, whether today's reward was claimed and (build w) whether
+// today's quest is a Balb Coin or a gold one; claim_daily_quest pays that kind once a day (supabase/schema.sql).
+// Offline the reward is only local.
 // Like every block with a function, only players with access to the world can use a Genie Teapot there.
 // ===== quests =====
 const TEAPOT = 155;
@@ -178,15 +179,50 @@ function questPool() {
 // today in the Philippines, 'YYYY-MM-DD' (online the server's day is used once known)
 const manilaDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
 let questDay = null; // the server's day (online)
-// the player's quest progress (saved with the player): { day, n: count so far, sent: items sent, done: coin claimed }
-let quest = { day: '', n: 0, sent: false, done: false };
+// (build w) online, the SERVER decides whether today's quest pays a Balb Coin or gold (schema.sql quest_kind_for,
+// sent by quest_today); the quest is then picked from the quests of that kind. { day, kind }
+let questSrv = null,
+  questSyncing = null;
+// ask the server for today's day / kind / claimed (after loading the player, on opening a teapot, when the day changes)
+function questSync() {
+  if (typeof Wallet === 'undefined' || !Wallet.on()) return Promise.resolve();
+  if (questSyncing) return questSyncing;
+  questSyncing = Wallet.rpc('quest_today')
+    .then((t) => {
+      if (!t || !t.day) return;
+      questDay = String(t.day).slice(0, 10);
+      if (t.kind === 'bc' || t.kind === 'gold') questSrv = { day: questDay, kind: t.kind };
+      todayQuest();
+      if (t.done) quest.done = true;
+      if (typeof t.bc === 'number') (P.bc = t.bc), updateGold();
+    })
+    .catch((e) => console.warn('quest', e))
+    .finally(() => (questSyncing = null));
+  return questSyncing;
+}
+// the player's quest progress (saved with the player): { day, key: which quest, n: count so far, sent: items sent,
+// done: reward claimed }
+let quest = { day: '', key: '', n: 0, sent: false, done: false };
 function todayQuest() {
   const day = questDay || manilaDay();
-  if (quest.day !== day) quest = { day, n: 0, sent: false, done: false };
+  if (quest.day !== day) {
+    quest = { day, key: '', n: 0, sent: false, done: false };
+    if (questSrv && questSrv.day !== day) questSync(); // a new day: ask the server for its kind
+  }
   let h = 2166136261;
   for (const ch of day + '|' + (playerName || '').toLowerCase()) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  const pool = questPool();
-  return pool[(h >>> 0) % pool.length];
+  let pool = questPool();
+  const kind = questSrv && questSrv.day === day ? questSrv.kind : null;
+  if (kind) {
+    const same = pool.filter((q) => questKind(q) === kind);
+    if (same.length) pool = same;
+  }
+  const q = pool[(h >>> 0) % pool.length],
+    key = q.k + ':' + (q.id || '') + ':' + q.n;
+  // the quest changed (the server's kind came in after counting started): its count starts again
+  if (quest.key !== key && !quest.done) Object.assign(quest, { key, n: quest.key ? 0 : quest.n, sent: quest.key ? false : quest.sent });
+  quest.key = key;
+  return q;
 }
 const thingName = (id, n) => {
   const nm = ITEMS[id] ? ITEMS[id].name : id;
@@ -231,17 +267,7 @@ async function openTeapot(x, y) {
   if (!canEdit(false, at(x, y))) return;
   teapotAt = { x, y };
   // online: the server's day, and whether today's coin was already claimed (e.g. on another device)
-  if (Wallet.on()) {
-    try {
-      const t = await Wallet.rpc('quest_today');
-      if (t && t.day) questDay = String(t.day).slice(0, 10);
-      todayQuest();
-      if (t && t.done) quest.done = true;
-      if (t && typeof t.bc === 'number') (P.bc = t.bc), updateGold();
-    } catch (e) {
-      console.warn('quest', e);
-    }
-  }
+  await questSync();
   showTeapot();
 }
 function showTeapot() {
@@ -315,6 +341,11 @@ async function claimQuest() {
         shown = P.bc | 0;
       }
       got = w && w.got > 0 ? w.got : 1;
+      // the server pays its own kind (build w): show that one
+      if (w && (w.kind === 'bc' || w.kind === 'gold') && w.kind !== kind) {
+        kind = w.kind;
+        shown = kind === 'bc' ? P.bc | 0 : P.gold;
+      }
       Wallet.show(w);
     } else {
       got = rollReward(kind);
@@ -417,6 +448,8 @@ applyPlayer = function (p) {
   const s = p && p.quest;
   quest =
     s && typeof s.day === 'string'
-      ? { day: s.day.slice(0, 10), n: Math.max(0, s.n | 0), sent: !!s.sent, done: !!s.done }
-      : { day: '', n: 0, sent: false, done: false };
+      ? { day: s.day.slice(0, 10), key: typeof s.key === 'string' ? s.key : '', n: Math.max(0, s.n | 0), sent: !!s.sent, done: !!s.done }
+      : { day: '', key: '', n: 0, sent: false, done: false };
+  questSrv = null;
+  questSync(); // today's kind from the server (online)
 };

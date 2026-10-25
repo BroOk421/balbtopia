@@ -433,6 +433,8 @@ const Net = (() => {
   let worldSeq = 0;
   N.joinWorld = (name) => {
     N.remotes.clear();
+    realNames.clear();
+    pendingPos.clear();
     snapshot();
     if (!sb || !N.me) return;
     const seq = ++worldSeq,
@@ -444,6 +446,7 @@ const Net = (() => {
     joinedName = own ? '' : name;
     clearTimeout(syncTimer);
     joinChat(''); // leave the old world's chat:NAME
+    if (own) worldHello(''); // in our own lobby: the server forgets which world we were in (nobody can use our name there)
     dropChannel(old).then(() => {
       if (seq !== worldSeq) return;
       if (own) {
@@ -524,8 +527,12 @@ const Net = (() => {
         if (status === 'SUBSCRIBED') {
           joined = true;
           c.track({ name: playerName, skin });
-          send('sync_req', { from: N.me.id });
-          sendPos(true);
+          // tell the server we are here first, so the others can check our name (world_names) when we show up
+          worldHello(name).then(() => {
+            if (c !== ch || seq !== worldSeq) return;
+            send('sync_req', { from: N.me.id });
+            sendPos(true);
+          });
         }
       });
   }
@@ -546,15 +553,95 @@ const Net = (() => {
       }
     return false;
   }
+  // ---- names over other players' heads come from the SERVER (schema.sql PLAYER NAMES OVER HEADS) ----
+  // A position message's id and name are written by the sender's game, so a changed game could use any name.
+  // We ask the server (`world_names`) for the name of every id we see; it only answers for players who really are in
+  // this world (`world_hello`). Until the answer comes the player isn't shown; "not here" = their messages are
+  // ignored (asked again after NAME_RETRY). Old server without these functions: the name in the message, as before.
+  const realNames = new Map(), // id -> { n: name | null (not in this world), at }
+    pendingPos = new Map(), // id -> newest position message while their name is being asked
+    nameAsk = new Set();
+  const NAME_RETRY = 3000, // "not here": ask again after this (they may have just come in)
+    NAME_RECHECK = 60000, // a known name is checked again this often (they may have left, their id kept being used)
+    HELLO_EVERY = 20000; // ms between our own hellos, wherever we are (the server forgets us after 75 s)
+  let namesOn = true,
+    nameTimer = null;
+  const isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  const checkNames = () => namesOn && N.secure;
+  async function worldHello(name) {
+    if (!checkNames()) return;
+    try {
+      const { error } = await sb.rpc('world_hello', { p_world: name });
+      if (error && (error.code === 'PGRST202' || error.code === '42883')) namesOn = false;
+    } catch (e) {}
+  }
+  function askName(id) {
+    nameAsk.add(id);
+    if (!nameTimer) nameTimer = setTimeout(fetchNames, 250);
+  }
+  async function fetchNames() {
+    nameTimer = null;
+    const ids = [...nameAsk].slice(0, 60),
+      world = joinedName,
+      seq = worldSeq;
+    ids.forEach((id) => nameAsk.delete(id));
+    if (nameAsk.size) nameTimer = setTimeout(fetchNames, 250);
+    if (!ids.length || !world) return;
+    let res;
+    try {
+      res = await sb.rpc('world_names', { p_world: world, p_ids: ids });
+    } catch (e) {
+      return;
+    }
+    if (seq !== worldSeq) return;
+    if (res.error) {
+      if (res.error.code === 'PGRST202' || res.error.code === '42883') {
+        namesOn = false; // old server: names from the messages again
+        for (const p of pendingPos.values()) onPos(p);
+        pendingPos.clear();
+      }
+      return;
+    }
+    const got = new Map((res.data || []).map((row) => [row.id, row.name]));
+    for (const id of ids) {
+      const n = got.get(id) || null;
+      realNames.set(id, { n, at: now });
+      const r = N.remotes.get(id);
+      if (r && n) r.name = n;
+      else if (r && !n) N.remotes.delete(id); // the server says they aren't here: someone was using their id
+      const p = pendingPos.get(id);
+      pendingPos.delete(id);
+      if (p && n) onPos(p);
+    }
+  }
+  // the name to show for a position message: a string, null = ignore the message, undefined = still asking
+  function shownName(p) {
+    if (!checkNames()) return String(p.n || 'Player').slice(0, 16);
+    if (!isUuid(p.id)) return null;
+    const k = realNames.get(p.id);
+    if (!k || (!k.n && now - k.at > NAME_RETRY)) {
+      if (k) realNames.delete(p.id);
+      askName(p.id);
+      return undefined;
+    }
+    if (k.n && now - k.at > NAME_RECHECK && !nameAsk.has(p.id)) {
+      k.at = now; // (no second ask while this one is out)
+      askName(p.id);
+    }
+    return k.n;
+  }
   function onPos(p) {
     if (!p || p.id === (N.me && N.me.id)) return;
     if (gone.has(p.id) && now - gone.get(p.id) < 3000) return;
+    const realName = shownName(p);
+    if (realName === undefined) return void pendingPos.set(p.id, p);
+    if (realName === null) return;
     gone.delete(p.id);
     let r = N.remotes.get(p.id);
     if (!r) {
       r = { x: p.x, y: p.y, w: P.w, h: P.h, walkPh: 0, punch: null, hurt: 0, blink: Math.random() * 6000 };
       N.remotes.set(p.id, r);
-      toast(p.n + ' joined');
+      toast(realName + ' joined');
     }
     if (Math.hypot(p.x - r.x, p.y - r.y) > TS * 4) {
       r.x = p.x;
@@ -577,7 +664,7 @@ const Net = (() => {
       ground: !!p.g,
       skin: SKINS.includes(p.s) ? p.s : 'tan',
       style: p.st,
-      name: String(p.n || 'Player').slice(0, 16),
+      name: realName,
       equipped: p.eq && typeof p.eq === 'object' ? { ...p.eq } : { hair: p.h || null, feet: p.ft || null },
       hand: typeof p.hd === 'string' ? p.hd : 'fist',
       flag: typeof isFlag === 'function' && isFlag(p.fl) ? p.fl : null, // flags.js
@@ -1034,29 +1121,128 @@ const Net = (() => {
   const lobbyH = {};
   let lobby = null,
     lobbyJoined = false;
-  N.people = new Map(); // id -> { name, world } of everyone online
+  // id -> { name, world } of everyone online (not us). From the SERVER (`online_people`: who said hello in the last
+  // 75 s, real names, '' = own lobby / PLAY screen); the lobby channel's presence (names and worlds any game can make
+  // up) is only used when the server is too old, and to know when to ask again.
+  N.people = new Map();
+  const presPeople = new Map();
+  let peopleOn = true,
+    peopleBusy = false,
+    peopleAgain = false,
+    peopleTimer = null,
+    helloTimer = null;
+  function usePresence() {
+    N.people.clear();
+    for (const [id, m] of presPeople) N.people.set(id, m);
+    if (lobbyH.people) lobbyH.people();
+  }
+  async function refreshPeople() {
+    if (!peopleOn || !N.secure || !N.me) return usePresence();
+    if (peopleBusy) return void (peopleAgain = true);
+    peopleBusy = true;
+    let res;
+    try {
+      res = await sb.rpc('online_people');
+    } catch (e) {}
+    peopleBusy = false;
+    if (res && res.error && (res.error.code === 'PGRST202' || res.error.code === '42883')) {
+      peopleOn = false;
+      return usePresence();
+    }
+    if (res && !res.error) {
+      N.people.clear();
+      for (const row of res.data || [])
+        if (row.id !== N.me.id) N.people.set(row.id, { name: String(row.name || ''), world: String(row.world || '') });
+      if (lobbyH.people) lobbyH.people();
+    }
+    if (peopleAgain) {
+      peopleAgain = false;
+      setTimeout(refreshPeople, 1500);
+    }
+  }
+  // someone came / went / moved (presence): ask the server soon (at most once every 2 s)
+  function peopleSoon() {
+    if (!peopleTimer) peopleTimer = setTimeout(() => ((peopleTimer = null), refreshPeople()), 2000);
+  }
+  // say hello every 20 s wherever we are (a world, or '' in our own lobby / on the PLAY screen), then refresh the list
+  function startHello() {
+    if (helloTimer) return;
+    const beat = () => worldHello(inWorld && joinedName ? joinedName : '').then(refreshPeople); // (not in a world: '')
+    beat();
+    helloTimer = setInterval(() => N.me && beat(), HELLO_EVERY);
+  }
   N.onLobby = (ev, fn) => (lobbyH[ev] = fn);
-  N.lsend = (ev, to, data) => {
+  // ---- messages, friend requests, trades, gifts go THROUGH THE SERVER (schema.sql lobby_send, build v) ----
+  // The server puts our real id and name on them and delivers them on the receiver's own 'inbox:<id>' channel (only
+  // they can listen, only the server can send there). Once our inbox is joined, messages broadcast on the shared
+  // lobby channel (old builds: anyone could fake their sender, and everyone could read them) are ignored.
+  // Old server (no lobby_send / private channels): the old lobby broadcast.
+  let srvInbox = true,
+    inbox = null,
+    iJoined = false,
+    lq = Promise.resolve(); // sends go out one after another, so a trade's messages arrive in order
+  const useInbox = () => srvInbox && privRT && N.secure;
+  function lobbyBroadcast(ev, to, data) {
     if (!lobby || !lobbyJoined || !N.me) return false;
     lobby.send({ type: 'broadcast', event: ev, payload: { ...data, to, from: N.me.id, fn: playerName } });
     return true;
+  }
+  N.lsend = (ev, to, data) => {
+    if (!N.me) return false;
+    if (!useInbox()) return lobbyBroadcast(ev, to, data);
+    lq = lq.then(async () => {
+      let error;
+      try {
+        ({ error } = await sb.rpc('lobby_send', { p_event: ev, p_to: to, p_data: data || {} }));
+      } catch (e) {
+        error = { message: String(e) };
+      }
+      if (!error) return;
+      if (error.code === 'PGRST202' || error.code === '42883' || /realtime\.send/i.test(error.message || '')) {
+        srvInbox = false; // the server can't do it yet: the old way, this message too
+        lobbyBroadcast(ev, to, data);
+      } else if (error.code === 'P0001' || error.code === '42501') toast(error.message);
+      else console.warn('lobby_send', error);
+    });
+    return true;
   };
+  function joinInbox() {
+    if (inbox || !useInbox() || !N.me) return;
+    const c = sb.channel('inbox:' + N.me.id, chOpts(false));
+    inbox = c;
+    for (const ev of LOBBY_EVENTS)
+      c.on('broadcast', { event: ev }, ({ payload }) => {
+        if (payload && payload.to === N.me.id && lobbyH[ev]) lobbyH[ev](payload);
+      });
+    c.subscribe((status) => {
+      if (inbox !== c) return;
+      if (status === 'SUBSCRIBED') iJoined = true;
+      else if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !iJoined) {
+        // no realtime rule for inbox: yet (old schema): keep the lobby broadcasts
+        srvInbox = false;
+        inbox = null;
+        dropChannel(c);
+      }
+    });
+  }
   N.joinLobby = () => {
     if (!sb || !N.me || lobby) return;
     const c = sb.channel('lobby', chOpts(true));
     lobby = c;
     for (const ev of LOBBY_EVENTS)
       c.on('broadcast', { event: ev }, ({ payload }) => {
-        if (payload && payload.to === N.me.id && lobbyH[ev]) lobbyH[ev](payload);
+        // (once our inbox works, a message here is from an old build or a faked sender)
+        if (payload && payload.to === N.me.id && lobbyH[ev] && !iJoined) lobbyH[ev](payload);
       });
     c.on('presence', { event: 'sync' }, () => {
       const st = c.presenceState();
-      N.people.clear();
+      presPeople.clear();
       for (const id in st) {
         const m = st[id] && st[id][st[id].length - 1];
-        if (m && id !== N.me.id) N.people.set(id, { name: m.name, world: m.world });
+        if (m && id !== N.me.id) presPeople.set(id, { name: String(m.name || '').slice(0, 16), world: String(m.world || '') });
       }
-      if (lobbyH.people) lobbyH.people();
+      if (peopleOn && N.secure) peopleSoon();
+      else usePresence();
     }).subscribe((status) => {
       if (status === 'CHANNEL_ERROR' && privRT && !lobbyJoined && lobby === c) {
         privRT = false; // see openWorld: the server isn't set up for private channels yet
@@ -1067,6 +1253,8 @@ const Net = (() => {
       if (status === 'SUBSCRIBED') {
         lobbyJoined = true;
         c.track({ name: playerName, world: inWorld ? worldName : '' });
+        startHello();
+        joinInbox();
       }
     });
   };

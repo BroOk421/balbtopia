@@ -830,7 +830,9 @@ end $$;
 -- chat:NAME   world chat, sent only by the server (send_chat) so the names can't be faked
 -- build:NAME:LOCKV  blocks, signs, songs, displays, Clear World, world sync, machine changes (only players who may
 --              build there; LOCKV is the world's lock version, see can_send_build)
--- lobby       messages, trades, gifts between players (everyone signed in)
+-- lobby       who is online (presence); old builds also sent messages / trades / gifts here
+-- inbox:UID   messages, friend requests, trades, gifts TO that player, sent only by the server (lobby_send), so the
+--             sender's name can't be faked and nobody else reads them; only that player can listen
 -- Turn OFF "Allow public access" in Supabase -> Realtime -> Settings so these rules are enforced.
 do $$
 begin
@@ -846,7 +848,8 @@ begin
     -- chat:NAME: world chat with the server's names (send_chat); players can only listen there, never send
     execute $p$create policy "balbtopia: receive" on realtime.messages for select to authenticated using (
       not public.is_banned()
-      and (realtime.topic() like 'world:%' or realtime.topic() like 'build:%' or realtime.topic() like 'chat:%' or realtime.topic() = 'lobby' or realtime.topic() = 'global')
+      and (realtime.topic() like 'world:%' or realtime.topic() like 'build:%' or realtime.topic() like 'chat:%' or realtime.topic() = 'lobby' or realtime.topic() = 'global'
+           or realtime.topic() = 'inbox:' || auth.uid()::text)
       and not public.world_banned(split_part(realtime.topic(), ':', 2))
     )$p$;
     execute $p$create policy "balbtopia: send" on realtime.messages for insert to authenticated with check (
@@ -1110,6 +1113,8 @@ begin
   -- a rolling hour: what was earned drains away at 10,000 an hour (hour_start = last time it was worked out)
   used := greatest(0, w.earned_hour - floor(lim * extract(epoch from (now() - w.hour_start)) / 3600)::bigint);
   ok := least(p_amount, greatest(lim - used, 0));
+  -- (build v) coins only count while the game is really online (a hello in the last 75 s); otherwise they are held
+  if not public.is_gm() and not public.online_now(auth.uid()) then ok := 0; end if;
   if public.is_gm() then ok := p_amount; end if;
   over := p_amount - ok;
   update public.wallets
@@ -1119,7 +1124,7 @@ begin
   if over > 0 and not exists (select 1 from public.cheat_log where player_id = auth.uid() and what like 'gold held%'
                               and created_at > now() - interval '1 hour') then
     insert into public.cheat_log (player_id, name, what, before_value, after_value)
-    values (auth.uid(), public.my_name(), 'gold held (over 10,000 an hour)', w.gold, w.held);
+    values (auth.uid(), public.my_name(), 'gold held (over 10,000 an hour, or not online)', w.gold, w.held);
   end if;
   return jsonb_build_object('gold', w.gold, 'held', w.held, 'over', over, 'bc', w.bc);
 end $$;
@@ -1288,14 +1293,43 @@ revoke execute on function public.add_owned(uuid, text, bigint), public.vend_tra
 -- quest (the game picks it from the day and the player's name); finishing it is checked by the game, so the server
 -- only makes sure it pays out once a day (Philippine time). A GM can give coins in the SQL Editor:
 --   update wallets set bc = bc + 10 where id = (select id from usernames where lower(name) = lower('NAME'));
+-- QUEST KIND ON THE SERVER (Oct 25 2026, build w): the server, not the game, decides whether a player's quest of
+-- the day pays a Balb Coin ('bc') or gold: a fixed pick from the player id + the Manila day, 'bc' for QUEST_BC_PER_MILLE
+-- (287) in 1,000, the share of Balb Coin quests in the game's quest list (120 of 418 in Oct 2026). The game then picks
+-- its quest from the quests of that kind (quests.js todayQuest), and claim_daily_quest pays the server's kind
+-- whatever the game asks for.
+create or replace function public.quest_kind_for(p_id uuid, p_day date)
+returns text language sql immutable as $$
+  select case when (('x' || substr(md5(p_day::text || ':' || p_id::text), 1, 8))::bit(32)::bigint % 1000) < 287
+              then 'bc' else 'gold' end
+$$;
+revoke all on function public.quest_kind_for(uuid, date) from public, anon, authenticated;
 create or replace function public.quest_today()
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare d date := (now() at time zone 'Asia/Manila')::date; w public.wallets;
 begin
   perform public.my_wallet();
   select * into w from public.wallets where id = auth.uid();
-  return jsonb_build_object('day', d, 'done', w.quest_day is not distinct from d, 'bc', w.bc);
+  return jsonb_build_object('day', d, 'done', w.quest_day is not distinct from d, 'bc', w.bc,
+                            'kind', public.quest_kind_for(auth.uid(), d));
 end $$;
+-- QUEST PLAY TIME (Oct 25 2026, build v): the game counts a quest's blocks / seeds / trees itself, so a changed game
+-- could claim without playing. A claim now needs real time online today, counted by the server from the game's hellos
+-- (world_here.play_secs, see PLAYER NAMES OVER HEADS): QUEST_GOLD_MIN (5 min) for a gold quest, QUEST_BC_MIN (15 min)
+-- for a Balb Coin one. GMs are not checked.
+create or replace function public.quest_play_check(p_kind text)
+returns void language plpgsql security definer set search_path = public as $$
+declare need integer := case when p_kind = 'bc' then 15 * 60 else 5 * 60 end; have integer;
+begin
+  if public.is_gm() then return; end if;
+  execute 'select public.played_today($1)' into have using auth.uid();
+  if coalesce(have, 0) < need then
+    raise exception 'Play a little longer today first (% more min)', greatest(1, ceil((need - coalesce(have, 0)) / 60.0)::integer)
+      using errcode = 'P0001';
+  end if;
+end $$;
+revoke all on function public.quest_play_check(text) from public, anon, authenticated;
+
 create or replace function public.claim_daily_quest(p_day date)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare d date := (now() at time zone 'Asia/Manila')::date; w public.wallets;
@@ -1305,8 +1339,8 @@ begin
   perform public.my_wallet();
   select * into w from public.wallets where id = auth.uid() for update;
   if w.quest_day is not distinct from d then raise exception 'You already did today''s quest' using errcode = 'P0001'; end if;
-  update public.wallets set bc = bc + 1, quest_day = d where id = auth.uid() returning * into w;
-  return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc);
+  -- (build w) old builds call this one: it pays the server's kind too
+  return public.claim_daily_quest(p_day, public.quest_kind_for(auth.uid(), d));
 end $$;
 grant execute on function public.quest_today(), public.claim_daily_quest(date) to authenticated;
 -- Reward (owner, Oct 23 2026): a RARE quest pays 1 Balb Coin, a common one a random 250-1,000 gold (steps of 50).
@@ -1318,10 +1352,12 @@ declare d date := (now() at time zone 'Asia/Manila')::date; w public.wallets; n 
 begin
   if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
   if p_kind is null or p_kind not in ('bc', 'gold') then raise exception 'Unknown reward' using errcode = 'P0001'; end if;
+  p_kind := public.quest_kind_for(auth.uid(), d); -- (build w) the server's kind, not the game's
   if p_day is distinct from d then raise exception 'A new day started: open the teapot again' using errcode = 'P0001'; end if;
   perform public.my_wallet();
   select * into w from public.wallets where id = auth.uid() for update;
   if w.quest_day is not distinct from d then raise exception 'You already did today''s quest' using errcode = 'P0001'; end if;
+  perform public.quest_play_check(p_kind);
   if p_kind = 'bc' then
     n := 1;
     update public.wallets set bc = bc + n, quest_day = d where id = auth.uid() returning * into w;
@@ -1335,7 +1371,7 @@ grant execute on function public.claim_daily_quest(date, text) to authenticated;
 
 -- LEVEL REWARDS (owner, Oct 24 2026): levels come from breaking blocks (counted by the game, saved as data.level).
 -- Each reward is paid once per account: level 50 Cat Ear Hoodie, 70 10,000 gold, 80 20,000 gold, 90 50 Balb Coins,
--- 100 Golden Pickaxe (can't be traded; no longer sold). The server checks the level in the player's saved data and
+-- 100 Golden Pickaxe (can't be traded; no longer sold). The server checks the level by its own XP count (LEVEL CHECK) and
 -- pays gold / coins straight into the wallet (not through earn_gold's hourly limit); items are put in the bag by the
 -- game. Keep the list the same as LEVEL_REWARDS in www/js/levels.js.
 create table if not exists public.level_rewards (
@@ -1346,14 +1382,102 @@ create table if not exists public.level_rewards (
 );
 alter table public.level_rewards enable row level security;
 revoke all on public.level_rewards from anon, authenticated;
+-- LEVEL CHECK (Oct 25 2026): the level in a save comes from the game, so a changed save could claim every reward.
+-- The server keeps its OWN count of XP (`xp_track.total`, all levels added up, `xp_total`) and only takes in what real
+-- play can give: at most XP_RATE (2) a second, saved up to XP_BURST (300) for quick bursts, and XP_PER_DAY (20,000)
+-- per Manila day. A save claiming more is never refused or changed: the server just counts less (and logs a big gap
+-- once a day to cheat_log); an honest player's count catches up while they play on. claim_level_reward reads the
+-- level from this count (`xp_level`), not from the save. GMs are not counted. Formula = xpNeed in www/js/menu.js.
+create table if not exists public.xp_track (
+  player_id uuid primary key references auth.users (id) on delete cascade,
+  total bigint not null default 0,       -- XP the server accepts (every level added up)
+  credit numeric not null default 0,     -- XP that may still come in now (fills at XP_RATE a second, up to XP_BURST)
+  at timestamptz not null default now(), -- when credit was last worked out
+  day date,                              -- the Manila day day_xp counts
+  day_xp bigint not null default 0       -- XP taken in on that day
+);
+alter table public.xp_track enable row level security;
+revoke all on public.xp_track from anon, authenticated;
+
+-- XP to go from level lv to lv + 1 (same as xpNeed in menu.js)
+create or replace function public.xp_need(lv bigint)
+returns bigint language sql immutable as $$ select 20 + 10 * lv + (lv * lv) / 5 $$;
+-- a level + the XP inside it -> XP in all (levels above 1000 count as 1000)
+create or replace function public.xp_total(lv bigint, xp bigint)
+returns bigint language sql immutable as $$
+  select coalesce((select sum(public.xp_need(l)) from generate_series(1::bigint, least(greatest(coalesce(lv, 1), 1), 1000) - 1) l), 0)::bigint
+         + least(greatest(coalesce(xp, 0), 0), 1000000)
+$$;
+-- XP in all -> level
+create or replace function public.xp_level(total bigint)
+returns integer language plpgsql immutable as $$
+declare lv integer := 1; t bigint := greatest(coalesce(total, 0), 0);
+begin
+  while lv < 1000 and t >= public.xp_need(lv) loop t := t - public.xp_need(lv); lv := lv + 1; end loop;
+  return lv;
+end $$;
+revoke all on function public.xp_need(bigint), public.xp_total(bigint, bigint), public.xp_level(bigint) from anon;
+
+create or replace function public.on_player_xp()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  xp_rate constant numeric := 2; xp_burst constant numeric := 300; xp_per_day constant bigint := 20000;
+  t public.xp_track; claim bigint; ok bigint; today date := (now() at time zone 'Asia/Manila')::date;
+begin
+  -- a GM's own save isn't counted
+  if exists (select 1 from public.gms g join public.usernames u on lower(u.name) = lower(g.name) where u.id = new.id) then
+    return new;
+  end if;
+  claim := public.xp_total(public.jnum(new.data -> 'level'), public.jnum(new.data -> 'xp'));
+  select * into t from public.xp_track where player_id = new.id for update;
+  if not found then
+    -- a new account (players who were here when this went in were counted once below)
+    insert into public.xp_track (player_id, day) values (new.id, today) returning * into t;
+  end if;
+  t.credit := least(xp_burst, t.credit + xp_rate * greatest(0, extract(epoch from (now() - t.at))));
+  if t.day is distinct from today then t.day := today; t.day_xp := 0; end if;
+  ok := 0;
+  if claim > t.total then
+    ok := least(claim - t.total, floor(t.credit)::bigint, greatest(xp_per_day - t.day_xp, 0));
+    -- far ahead of what play can give: logged once a day
+    if claim - (t.total + ok) > 2000 and not exists (select 1 from public.cheat_log where player_id = new.id
+        and what = 'level ahead of the server' and created_at > now() - interval '1 day') then
+      insert into public.cheat_log (player_id, name, what, before_value, after_value)
+      values (new.id, new.username, 'level ahead of the server', public.xp_level(t.total + ok), public.xp_level(claim));
+    end if;
+  end if;
+  update public.xp_track
+  set total = t.total + ok, credit = t.credit - ok, at = now(), day = t.day, day_xp = t.day_xp + ok
+  where player_id = new.id;
+  return new;
+end $$;
+drop trigger if exists balbtopia_player_xp on public.players;
+create trigger balbtopia_player_xp before insert or update on public.players for each row execute function public.on_player_xp();
+
+-- once: everyone already playing keeps the level in their save; level 50 and up is logged so a GM can look
+with made as (
+  insert into public.xp_track (player_id, total)
+  select id, public.xp_total(public.jnum(data -> 'level'), public.jnum(data -> 'xp')) from public.players
+  on conflict (player_id) do nothing
+  returning player_id, total
+)
+insert into public.cheat_log (player_id, name, what, before_value, after_value)
+select m.player_id, p.username, 'level when the level check started', 0, public.xp_level(m.total)
+from made m join public.players p on p.id = m.player_id
+where public.xp_level(m.total) >= 50;
+
 create or replace function public.claim_level_reward(p_lv integer)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare w public.wallets; have integer; it text;
 begin
   if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
   if p_lv is null or p_lv not in (50, 70, 80, 90, 100) then raise exception 'No reward for that level' using errcode = 'P0001'; end if;
-  select coalesce(public.jnum(data -> 'level'), 0)::integer into have from public.players where id = auth.uid();
-  if coalesce(have, 0) < p_lv then raise exception 'Reach level % first', p_lv using errcode = 'P0001'; end if;
+  -- the server's own count (LEVEL CHECK above), not the level in the save
+  select public.xp_level(total) into have from public.xp_track where player_id = auth.uid();
+  if coalesce(have, 1) < p_lv then
+    raise exception 'The server has you at level % so far. Keep breaking blocks and try again later', coalesce(have, 1)
+      using errcode = 'P0001';
+  end if;
   perform public.my_wallet();
   select * into w from public.wallets where id = auth.uid() for update;
   begin
@@ -1754,3 +1878,116 @@ begin
   return nid;
 end $$;
 grant execute on function public.send_broadcast(text, text) to authenticated;
+
+-- ---------- PLAYER NAMES OVER HEADS (Oct 25 2026, build t; who is online, build u) ----------
+-- A position message carries the sender's id and name, both written by the sender's game, so a changed game could
+-- show any name over its head. Now receivers ask the server for the name of each id they see (`world_names`), and
+-- the server only answers for players who really said hello in THIS world in the last 75 s (`world_hello`, sent on
+-- joining a world and every 20 s after; the game: net.js `realNames`). A message with someone else's id is ignored
+-- unless that player is really here. The game says hello every 20 s wherever it is (world '' = own lobby / PLAY
+-- screen), so `online_people` is also the list of who is online and where.
+create table if not exists public.world_here (
+  player_id uuid primary key references auth.users (id) on delete cascade,
+  world text not null,
+  at timestamptz not null default now()
+);
+-- time online today (Manila day), added up from the hellos: never more than the real time between them
+alter table public.world_here add column if not exists play_day date;
+alter table public.world_here add column if not exists play_secs integer not null default 0;
+alter table public.world_here enable row level security;
+revoke all on public.world_here from anon, authenticated;
+
+create or replace function public.world_hello(p_world text)
+returns void language plpgsql security definer set search_path = public as $$
+declare w text := case when coalesce(p_world, '') ~ '^[A-Z0-9]{1,16}$' then p_world else '' end;
+begin
+  if auth.uid() is null or public.my_name() is null or public.is_banned() then return; end if;
+  if w <> '' and public.world_banned(w) then w := ''; end if;
+  -- '' = online but in no shared world (own lobby, the PLAY screen)
+  insert into public.world_here (player_id, world, at, play_day, play_secs)
+  values (auth.uid(), w, now(), (now() at time zone 'Asia/Manila')::date, 0)
+  on conflict (player_id) do update set
+    world = excluded.world,
+    at = excluded.at,
+    play_day = excluded.play_day,
+    -- the time since the last hello counts (at most 30 s: hellos come every 20 s; a longer gap = was offline)
+    play_secs = case when world_here.play_day is distinct from excluded.play_day then 0 else world_here.play_secs end
+      + case when world_here.at > now() - interval '60 seconds'
+             then least(30, floor(extract(epoch from (now() - world_here.at))))::integer else 0 end;
+end $$;
+-- seconds online today (0 when not seen today)
+create or replace function public.played_today(p_id uuid)
+returns integer language sql stable security definer set search_path = public as $$
+  select coalesce((select play_secs from public.world_here
+                   where player_id = p_id and play_day = (now() at time zone 'Asia/Manila')::date), 0)
+$$;
+-- said hello in the last 75 s (online now)
+create or replace function public.online_now(p_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.world_here where player_id = p_id and at > now() - interval '75 seconds')
+$$;
+revoke all on function public.played_today(uuid), public.online_now(uuid) from public, anon, authenticated;
+
+create or replace function public.world_names(p_world text, p_ids uuid[])
+returns table (id uuid, name text) language sql stable security definer set search_path = public as $$
+  select u.id, u.name
+  from public.usernames u join public.world_here h on h.player_id = u.id
+  where u.id = any ((coalesce(p_ids, '{}'::uuid[]))[1:60])
+    and h.world = p_world and p_world <> '' and h.at > now() - interval '75 seconds'
+$$;
+-- everyone online (said hello in the last 75 s) and the world they are in ('' = none): the game's Net.people, used for
+-- the player limit of a world, friends online and "is X online" (was the lobby channel's presence, which any game
+-- could fill with made-up names and worlds)
+create or replace function public.online_people()
+returns table (id uuid, name text, world text) language sql stable security definer set search_path = public as $$
+  select u.id, u.name, h.world
+  from public.world_here h join public.usernames u on u.id = h.player_id
+  where h.at > now() - interval '75 seconds' and auth.uid() is not null
+  order by h.at desc
+  limit 2000
+$$;
+revoke all on function public.world_hello(text), public.world_names(text, uuid[]), public.online_people() from public, anon;
+grant execute on function public.world_hello(text), public.world_names(text, uuid[]), public.online_people() to authenticated;
+
+-- ---------- PRIVATE MESSAGES, FRIEND REQUESTS, TRADES, GIFTS THROUGH THE SERVER (Oct 25 2026, build v) ----------
+-- These used to be broadcast by the sender's game on the shared 'lobby' channel: everyone there could read them and
+-- the sender's id / name were whatever that game wrote. Now the game calls lobby_send; the server puts the REAL
+-- sender on it (from = auth.uid(), fn = the real name) and sends it on 'inbox:<receiver id>', which only that player
+-- can listen to (realtime rules above) and only the server can send to. The game ignores the old lobby broadcasts once
+-- its inbox is joined (net.js `iJoined`). Gold / items in trades are still settled by trade_gold / give_item.
+create table if not exists public.lobby_sent (
+  id bigint generated always as identity primary key,
+  from_id uuid not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists lobby_sent_from on public.lobby_sent (from_id, created_at);
+alter table public.lobby_sent enable row level security;
+revoke all on public.lobby_sent from anon, authenticated;
+create or replace function public.lobby_send(p_event text, p_to uuid, p_data jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); d jsonb; n integer;
+begin
+  if me is null or public.is_banned() then raise exception 'You can''t send messages' using errcode = '42501'; end if;
+  if p_event is null or p_event not in ('dm', 'friend_req', 'friend_ok', 'friend_no', 'gift', 'gift_ok', 'gift_no',
+      'trade_req', 'trade_yes', 'trade_no', 'trade_offer', 'trade_accept', 'trade_cancel', 'mail_ping', 'gold_done') then
+    raise exception 'Unknown message' using errcode = 'P0001';
+  end if;
+  if p_to is null or p_to = auth.uid() or not exists (select 1 from public.usernames where id = p_to) then
+    raise exception 'No such player' using errcode = 'P0001';
+  end if;
+  d := case when jsonb_typeof(p_data) = 'object' then p_data else '{}'::jsonb end;
+  if length(d::text) > 4000 then raise exception 'Message too big' using errcode = 'P0001'; end if;
+  if p_event = 'dm' then
+    d := jsonb_set(d, '{text}', to_jsonb(left(btrim(regexp_replace(coalesce(d ->> 'text', ''), '[[:cntrl:]]', ' ', 'g')), 120)));
+    if d ->> 'text' = '' then raise exception 'Write something first' using errcode = 'P0001'; end if;
+  end if;
+  -- at most 40 in 10 s (a trade sends a few at once)
+  select count(*) into n from public.lobby_sent where from_id = auth.uid() and created_at > now() - interval '10 seconds';
+  if n >= 40 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
+  insert into public.lobby_sent (from_id) values (auth.uid());
+  delete from public.lobby_sent where created_at < now() - interval '1 minute';
+  d := (d - 'to' - 'from' - 'fn') || jsonb_build_object('to', p_to, 'from', auth.uid(), 'fn', me);
+  perform realtime.send(d, p_event, 'inbox:' || p_to::text, true);
+end $$;
+revoke all on function public.lobby_send(text, uuid, jsonb) from public, anon;
+grant execute on function public.lobby_send(text, uuid, jsonb) to authenticated;

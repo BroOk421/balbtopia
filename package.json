@@ -2,6 +2,7 @@
   "name": "balbtopia",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "description": "Balbtopia - a Growtopia-style 2D block world. Web game (www/) wrapped for Android with Capacitor.",
   "scripts": {
     "config": "node scripts/make-config.js",

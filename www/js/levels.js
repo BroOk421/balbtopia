@@ -3,7 +3,7 @@
 //   claimed from Menu -> Profile -> the square trophy button: level 50 Cat Ear Hoodie, 70 10,000 gold, 80 20,000 gold,
 //   90 50 Balb Coins, 100 Golden Pickaxe (`bound`: can't be traded, dropped, displayed or put on a Mannequin; it is
 //   no longer sold in the Shop). Online the server pays out once per level (`claim_level_reward`, schema.sql: checks
-//   the level in the saved player data); offline it is local. Claimed levels are kept in the player save (`lvc`).
+//   the server's own XP count, LEVEL CHECK, not the level in the save); offline it is local. Claimed levels are kept in the player save (`lvc`).
 // - Flags: a strip of flags in the Register form (optional) and a FLAG button in the Profile (flags.js).
 // ===== levels =====
 const LEVEL_REWARDS = [

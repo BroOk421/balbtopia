@@ -1309,3 +1309,58 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Oct 25 2026 (build q): private messages (`gotDM`, social.js) count on the menu button (`dmUnseen`, cleared when the menu opens) and on the Email tab (`#emailBadge`, `dmUnread`, cleared when the Email tab shows), both added to the unread email count in `updateBadge`. The Messages list scrolls (`.mlist.mmsgs`, max min(30vh, 190px)). `toot()` (globalchat.js): a two-beep scanner sound (Web Audio square waves through a low-pass, at most every 0.6 s, off with Settings -> Sound) for every incoming Global Chat message from someone else and every private message.
 
 - Oct 25 2026 (build r): other players no longer seem to go through blocks when jumping: the in-between guess in `N.tick` (net.js) now falls with GRAVITY and stops at solid blocks per axis (`remoteHits`; gates count as open) instead of flying on in a straight line for up to 0.3 s. Vending Machine: setting an item / adding stock / changing the price (`vendNews`) makes it flash white (`vendFlash`, `vendWhitePic` silhouette, `VEND_FLASH_MS` 450, fades out; others see it via Net.onVend) and plays the break sound for the owner.
+
+- Oct 25 2026 (build s): LEVEL CHECK (schema.sql, before claim_level_reward): the server keeps its own XP count per player
+  (`xp_track`: total, credit, day_xp; `xp_need` / `xp_total` / `xp_level` = menu.js xpNeed) in a trigger on every player
+  save (`on_player_xp`, `balbtopia_player_xp`): it takes in at most 2 XP a second (saved up to 300) and 20,000 a Manila
+  day; more is just not counted (save never changed or refused; a gap over 2,000 is logged once a day as 'level ahead
+  of the server'). GMs not counted. `claim_level_reward` uses `xp_level(total)`, so editing data.level no longer pays
+  out. Players already there when it went in keep their level (levels 50+ logged as 'level when the level check
+  started'). If XP rules change in menu.js (xpNeed, more ways to get XP), change xp_need / the limits too. 40 PGlite
+  tests. Re-run schema.sql.
+
+- Oct 25 2026 (build t): names over other players' heads come from the SERVER. Position messages ('p') still carry
+  id + name, but `onPos` (net.js) shows a player only once `world_names(world, ids)` (schema.sql PLAYER NAMES OVER
+  HEADS) gives the name for that id, and the server only answers for players who called `world_hello(world)` in that
+  world within 75 s (sent on SUBSCRIBED before the first position, every `HELLO_EVERY` 20 s in N.tick, and with '' on
+  entering your own lobby; world-banned / bad names clear it). `realNames` caches id -> name (null = not here, asked
+  again after `NAME_RETRY` 3 s; a known name re-checked every `NAME_RECHECK` 60 s, so a copied id dies once its owner
+  leaves); `pendingPos` keeps the newest message while asking. So r.name (name tags, wrench menu, gates' access by
+  name, Kick / Ban lists, chat commands) is the real name. Old server (PGRST202 / 42883) or not `Net.secure`: the
+  message's name as before. Lobby presence names (`Net.people`) are still self-reported. 10 PGlite + 9 client tests.
+  Re-run schema.sql.
+
+- Oct 25 2026 (build u): who is online comes from the SERVER too. The game says `world_hello` every 20 s wherever it
+  is (`startHello`, started when the lobby channel joins: the world while `inWorld`, else ''), and `world_hello('')`
+  keeps the player online with no world (own lobby / PLAY screen) instead of forgetting them. `Net.people` = the
+  server's `online_people()` (id, real name, world; hellos in the last 75 s), refreshed after every hello and 2 s after
+  any lobby presence change (`peopleSoon`); the lobby channel's presence is only a trigger (`presPeople`), used as the
+  list itself only on an old server (`usePresence`). So the WORLD_MAX count, Friends online / "in WORLD" / Go, and the
+  "is X online" checks can't be faked. Still self-reported: the sender of lobby messages (DMs, trade offers: `from` /
+  `fn` in `N.lsend`); gold and items in trades are settled on the server anyway. 16 + 3 tests. Re-run schema.sql.
+
+- Oct 25 2026 (build v): more moved to the server (owner: "what still comes from the game, put it on the server").
+  - Messages, friend requests, trades, gifts, mail pings, gold_done: `N.lsend` calls `lobby_send(event, to, data)`
+    (schema.sql, end): real sender (`from` = auth.uid(), `fn` = real name), 40 per 10 s, dm text cleaned to 120, data
+    up to 4,000 chars, sent with realtime.send on `inbox:<receiver id>` (receive policy: only that player; no send
+    policy, so only the server). Calls are queued (`lq`) so a trade's messages stay in order. `joinInbox` (after the
+    lobby joins) listens there; once joined (`iJoined`) lobby broadcasts are ignored. Old server / inbox refused:
+    `srvInbox` false -> old lobby broadcast. Old builds and new builds can't message each other: everyone must update.
+  - Play time: `world_hello` adds the time since the last hello (at most 30 s, only if under 60 s ago) to
+    `world_here.play_secs` per Manila day (`played_today`, `online_now`). `quest_play_check`: a daily quest claim (both
+    claim_daily_quest versions) needs 5 min online today for gold, 15 min for a Balb Coin quest (GMs free). The quest's
+    own counts and its kind (bc / gold) are still the game's.
+  - `earn_gold`: coins only count while `online_now` (hello in the last 75 s); otherwise they go to `held` (logged).
+    Old builds (no hello) get everything held: update the APK before re-running schema.sql on a live server.
+  - Still the game's (needs a server-run game): ordinary items, drops, gifts' items, Mailbox letter items, the block
+    count (rate-limited by LEVEL CHECK), quest counting.
+  - 28 PGlite tests (+ 16 + 40 earlier) and 9 client tests (+ 12 earlier). Re-run schema.sql.
+
+- Oct 25 2026 (build w): the daily quest's KIND comes from the server. `quest_kind_for(player id, Manila day)` (md5
+  pick, 'bc' for 287 in 1,000 = the share of Balb Coin quests in questPool: 120 of 418 in Oct 2026; change the 287 if
+  the pool's share changes a lot) is sent by `quest_today` as `kind`; both `claim_daily_quest` versions pay THAT kind
+  whatever the game asks (the one-argument one now calls the two-argument one). quests.js: `questSync()` (after the
+  player loads, on opening a teapot, on a new day) sets `questSrv` = { day, kind }; `todayQuest()` picks from the
+  pool's quests of that kind (same hash); `quest.key` (k:id:n, saved) restarts the count when the picked quest
+  changes. claimQuest shows the server's `kind` from the reply. Offline: the whole pool, as before. Still the game's:
+  the quest's count. 126 PGlite tests (+ 26 / 16 / 40) and a page test. Re-run schema.sql.
