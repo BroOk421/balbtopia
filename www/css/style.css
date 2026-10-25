@@ -3490,3 +3490,859 @@ button:focus-visible {
   min-height: 1em;
   margin: 6px 0 0;
 }
+
+/* ---------- Notice Board suggestions (board.js, Oct 25 2026) ---------- */
+.dlg .board {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.board .blist {
+  max-height: min(42vh, 260px);
+  min-height: 90px;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 6px;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35);
+  user-select: text;
+}
+.board .bpost {
+  background: var(--plum);
+  border-left: 3px solid var(--sun);
+  border-radius: 3px;
+  padding: 6px 8px;
+  min-width: 0;
+}
+.board .bhead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+.board .bhead b {
+  color: var(--sun);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.board .bhead small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.board .bdel {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: var(--danger);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.board .bpost p {
+  margin: 3px 0 0;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.board .bnone {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+.board .bform {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.board .bform input {
+  flex: 1;
+  min-width: 0;
+  font: 14px var(--body);
+  padding: 8px 9px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--ink);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.board .bform input:focus {
+  outline: 2px solid var(--sun);
+  outline-offset: 1px;
+}
+.board .bcount {
+  justify-self: end;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: -4px;
+}
+
+/* ---------- Mannequin: its slots on the LEFT, the bag on the RIGHT (owner, Oct 25 2026) ----------
+   body.mannmode while the Mannequin pop-up is open; the two windows sit side by side, centred together. */
+body.mannmode {
+  --mw: min(268px, 38vw); /* Mannequin pop-up */
+  --bw: min(400px, calc(58vw - 34px)); /* bag */
+  --mg: 14px; /* gap between them */
+  --mx: calc(50vw - (var(--mw) + var(--mg) + var(--bw)) / 2); /* left edge of the pair */
+}
+body.mannmode #dlg,
+body.mannmode #inv.win {
+  box-sizing: border-box;
+  top: 50%;
+  transform: translateY(-50%);
+  max-height: calc(100vh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+body.mannmode #dlg {
+  width: var(--mw);
+  left: var(--mx);
+  padding: 10px;
+}
+body.mannmode #inv.win {
+  width: var(--bw);
+  left: calc(var(--mx) + var(--mw) + var(--mg));
+}
+/* only the slot grid of the bag matters here */
+body.mannmode #inv .wearing,
+body.mannmode #inv .trashbtn,
+body.mannmode #inv .bagsearch {
+  display: none !important;
+}
+.mannbox .mslots {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.mannbox .mslot {
+  position: relative;
+  border: 2px solid var(--night);
+  padding: 4px 2px 3px;
+  gap: 2px;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+}
+.mannbox .mslot.on {
+  border-color: var(--glow);
+  cursor: pointer;
+}
+.mannbox .mslot:disabled {
+  opacity: 1;
+}
+.mannbox .mslot .vpic,
+.mannbox .mslot .vpic canvas {
+  width: 26px;
+  height: 26px;
+}
+.mannbox .mslot small {
+  font-size: 9px;
+}
+.mannbox .moff {
+  position: absolute;
+  top: 0;
+  right: 3px;
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1;
+}
+.mannbox .mnote2 {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  body.mannmode {
+    --mw: min(230px, 36vw);
+    --bw: min(360px, calc(60vw - 30px));
+    --mg: 10px;
+  }
+  body.mannmode #dlg,
+  body.mannmode #inv.win {
+    max-height: calc(100vh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+  body.mannmode #dlg {
+    padding: 7px;
+  }
+  body.mannmode #dlg h2 {
+    margin-bottom: 5px;
+  }
+  .mannbox .mslots {
+    gap: 3px;
+  }
+  .mannbox .mslot .vpic,
+  .mannbox .mslot .vpic canvas {
+    width: 20px;
+    height: 20px;
+  }
+  .mannbox .mslot small {
+    font-size: 8px;
+  }
+  .mannbox .mnote2 {
+    display: none;
+  }
+}
+/* narrow screens held upright: the two windows stack, Mannequin on top */
+@media (max-width: 560px) and (orientation: portrait) {
+  body.mannmode #dlg,
+  body.mannmode #inv.win {
+    left: 50%;
+    width: min(94vw, 420px);
+    transform: translateX(-50%);
+  }
+  body.mannmode #dlg {
+    top: 8px;
+    max-height: 40vh;
+  }
+  body.mannmode #inv.win {
+    top: calc(40vh + 16px);
+    max-height: calc(60vh - 24px);
+  }
+}
+
+/* ---------- every pop-up opens by growing from nothing (owner, Oct 25 2026) ----------
+   `scale` is separate from `transform`, so the windows' own centring transforms stay as they are. */
+@keyframes popGrow {
+  from {
+    scale: 0;
+  }
+  70% {
+    scale: 1.04;
+  }
+  to {
+    scale: 1;
+  }
+}
+.win:not([hidden]),
+.pop:not([hidden]) {
+  animation: popGrow 0.2s ease-out;
+}
+.start .win {
+  animation: none;
+}
+/* a pop-up that just appeared takes no taps for a moment (popguard.js): on phones the same tap went on to press a
+   button in it (a world in the list) */
+.justopened,
+.justopened * {
+  pointer-events: none !important;
+}
+
+/* Profile SPAWN button: red with white letters (owner, Oct 25 2026) */
+.btn.spawnbtn {
+  background: #d8343a;
+  color: #fff;
+  border-color: #5a0a10;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.btn.spawnbtn:hover {
+  background: #ec4a4f;
+}
+
+/* ---------- Mailbox pop-up (mailbox.js, Oct 25 2026) ---------- */
+.dlg .mailbox {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.mailbox .mbinbox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+.mailbox .mbinbox b {
+  color: var(--sun);
+}
+.mailbox .mbinbox .btn {
+  flex: none;
+  font-size: 9px;
+  padding: 8px 10px;
+}
+.mailbox .mlabel {
+  margin: 4px 0 0;
+}
+.mailbox .mbupd {
+  max-height: min(34vh, 220px);
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 6px;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+}
+.mailbox .mbpost {
+  background: var(--plum);
+  border-left: 3px solid var(--muted);
+  border-radius: 3px;
+  padding: 6px 8px;
+}
+.mailbox .mbpost.new {
+  border-left-color: var(--sun);
+}
+.mailbox .mbpost .bhead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+.mailbox .mbpost .bhead b {
+  color: var(--sun);
+}
+.mailbox .mbpost .bhead small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.mailbox .mbpost .bdel {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: var(--danger);
+  font-size: 16px;
+  cursor: pointer;
+}
+.mailbox .mbpost p {
+  margin: 3px 0 0;
+  font-size: 14px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mailbox .bnone {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+.mailbox .mbin {
+  font: 14px var(--body);
+  padding: 8px 9px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--ink);
+  resize: vertical;
+  min-width: 0;
+}
+
+/* letters (owner, Oct 25 2026): the list, one letter, NEW MAIL (left of the bag, like the Mannequin) */
+.mailbox .mbfor {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.mailbox .mbfor b {
+  color: var(--sun);
+}
+.mailbox .mblist {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: min(42vh, 260px);
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+}
+.mailbox .mbrow {
+  display: grid;
+  gap: 5px;
+  background: var(--plum);
+  border-left: 3px solid var(--muted);
+  border-radius: 3px;
+  padding: 6px 8px;
+  min-width: 0;
+}
+.mailbox .mbrow.new {
+  border-left-color: var(--sun);
+}
+.mailbox .mbtxt {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+}
+.mailbox .mbwho {
+  flex: none;
+  color: var(--sun);
+}
+.mailbox .mbsub {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mailbox .mbk {
+  flex: none;
+  color: var(--glow);
+  font-size: 11px;
+}
+.mailbox .mbacts {
+  display: flex;
+  gap: 5px;
+  justify-content: flex-end;
+}
+.mailbox .mbacts .btn {
+  font-size: 8px;
+  padding: 6px 8px;
+}
+.mletter .mlhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+.mletter .mlhead b {
+  color: var(--sun);
+}
+.mletter .mlhead small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.mletter .mlsub {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+.mletter .mlbody {
+  margin: 0;
+  max-height: min(30vh, 200px);
+  overflow-y: auto;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  padding: 8px 9px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mailbox .mlabel small {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.mailbox .mcslots {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 46px)); /* smaller slots (owner, Oct 25 2026) */
+  gap: 4px;
+}
+.mailbox .mcslot {
+  position: relative;
+  aspect-ratio: 1 / 1.2;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  min-width: 0;
+}
+.mailbox .mcslot.on {
+  border-color: var(--glow);
+}
+.mailbox .mcslot .vpic,
+.mailbox .mcslot .vpic canvas {
+  width: 20px;
+  height: 20px;
+}
+.mailbox .mcslot .mcn {
+  font-size: 10px;
+  min-height: 1em;
+}
+.mailbox .mcslot .mcq {
+  width: calc(100% - 6px);
+  box-sizing: border-box;
+  font: 10px var(--body);
+  text-align: center;
+  padding: 1px 0;
+  border: 1px solid var(--night);
+  border-radius: 3px;
+  background: var(--plum);
+  color: var(--ink);
+  -moz-appearance: textfield;
+}
+.mailbox .mcslot .mcq::-webkit-inner-spin-button,
+.mailbox .mcslot .mcq::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.mailbox .mcslot .moff {
+  position: absolute;
+  top: -1px;
+  right: 1px;
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+body.mannmode.mailmode {
+  --mw: min(330px, 44vw); /* NEW MAIL is a little wider than the Mannequin's pop-up */
+  --bw: min(400px, calc(52vw - 34px));
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  body.mannmode.mailmode {
+    --mw: min(300px, 44vw);
+    --bw: min(360px, calc(54vw - 30px));
+  }
+  .mcompose #mcBody {
+    min-height: 0;
+    height: 52px;
+  }
+  .mailbox .mcslot {
+    aspect-ratio: auto;
+    padding: 3px 0;
+  }
+  .mailbox .mcslot .vpic,
+  .mailbox .mcslot .vpic canvas {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ---------- Question Door (qdoor.js, Oct 25 2026): its list of doors, and the wrench pop-up ---------- */
+.dlg .qdoor {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.qdoor .qdhint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.qdoor .qdlist {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: min(36vh, 230px); /* scrolls (owner: not too long) */
+  overscroll-behavior: contain;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+}
+.qdoor .qdgo,
+.qdoor .qdedit li {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--plum);
+  border: 0;
+  border-left: 3px solid #8a62d8;
+  border-radius: 3px;
+  padding: 8px 10px;
+  color: var(--ink);
+  font: 14px var(--body);
+  text-align: left;
+  box-sizing: border-box;
+  min-width: 0;
+}
+.qdoor .qdgo {
+  cursor: pointer;
+}
+.qdoor .qdgo:hover,
+.qdoor .qdgo:focus-visible {
+  border-left-color: var(--sun);
+  background: color-mix(in srgb, var(--plum) 80%, #fff);
+}
+.qdoor .qdedit li span {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.qdoor b {
+  color: var(--sun);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qdoor small {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+.qdoor .bdel {
+  background: none;
+  border: 0;
+  color: var(--danger);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.qdoor .bnone {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+.qdoor .mlabel {
+  margin: 4px 0 0;
+}
+/* every box in it looks like the game's other boxes (the world / ID row too) */
+.qdoor input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font: 14px var(--body);
+  padding: 8px 9px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--ink);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.qdoor input:focus {
+  outline: 2px solid var(--sun);
+  outline-offset: 1px;
+}
+.qdoor input::placeholder {
+  color: var(--muted);
+}
+.qdoor .doorrow input.doorid {
+  text-align: center;
+}
+.qdoor .qdfind {
+  padding-left: 30px;
+  background: var(--slot) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='6.5' cy='6.5' r='4.5' fill='none' stroke='%23a99cc8' stroke-width='2'/%3E%3Cpath d='M10 10l4 4' stroke='%23a99cc8' stroke-width='2'/%3E%3C/svg%3E") no-repeat 9px 50% / 14px;
+}
+.qdoor .qdfind::-webkit-search-cancel-button {
+  filter: invert(0.7);
+}
+.qdoor #qdAdd {
+  justify-self: start;
+}
+.qdoor .mnote {
+  margin: 0;
+}
+
+/* Mystery Door on phones: a small pop-up, short scrolling list */
+@media (orientation: landscape) and (max-height: 520px), (max-width: 560px) {
+  .dlg:has(.qdoor) {
+    width: min(86vw, 300px);
+    max-height: calc(100vh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    padding: 8px 10px;
+  }
+  .dlg:has(.qdoor) h2 {
+    margin-bottom: 6px;
+  }
+  .dlg .qdoor {
+    gap: 5px;
+  }
+  .qdoor .qdlist {
+    max-height: min(30vh, 150px);
+    padding: 4px;
+    gap: 3px;
+  }
+  .qdoor .qdlist.qdedit {
+    max-height: min(24vh, 96px); /* the wrench pop-up has the create form under it */
+  }
+  .qdoor .qdgo,
+  .qdoor .qdedit li {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .qdoor small {
+    font-size: 10px;
+  }
+  .qdoor input {
+    font-size: 13px;
+    padding: 5px 8px;
+  }
+  .qdoor .qdfind {
+    padding-left: 28px;
+  }
+  .qdoor #qdAdd {
+    padding: 7px 10px;
+    font-size: 9px;
+  }
+  .qdoor .mlabel {
+    margin: 2px 0 0;
+  }
+}
+
+/* ---------- Global Chat (globalchat.js, Oct 25 2026): top left, minimises to a globe button ---------- */
+.gchat {
+  position: absolute;
+  left: calc(10px + env(safe-area-inset-left, 0px));
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  z-index: 5;
+}
+/* a square button like the menu buttons top right (owner, Oct 25 2026) */
+.gchat .gtoggle {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 2px solid var(--line);
+  background: rgba(28, 16, 51, 0.82);
+  cursor: pointer;
+  padding: 0;
+}
+.gchat .gtoggle svg {
+  width: 22px;
+  height: 22px;
+}
+/* how many new messages: white number on a red rounded tag, top right of the button */
+.gchat .gbadge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font: 8px/14px var(--pixel);
+  text-align: center;
+  border: 2px solid var(--night);
+}
+.gchat .gbadge[hidden] {
+  display: none;
+}
+.gchat .gpanel {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  width: min(300px, 42vw);
+  padding: 8px;
+  background: rgba(58, 33, 102, 0.94);
+  border: 3px solid var(--night);
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--glow), 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+.gchat.open .gpanel {
+  display: flex;
+}
+.gchat.open .gtoggle {
+  display: none;
+}
+.gchat header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gchat .gtitle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 9px var(--pixel);
+  color: var(--sun);
+}
+.gchat .gmic {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+.gchat .gmin {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+.gchat .glist {
+  list-style: none;
+  margin: 0;
+  padding: 4px 6px;
+  height: min(150px, 26vh);
+  overflow-y: auto;
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+  user-select: text;
+}
+.gchat .glist li {
+  padding: 1px 0;
+  overflow-wrap: anywhere;
+}
+.gchat .gname {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--glow);
+  cursor: pointer;
+}
+.gchat .gname.me {
+  color: var(--sun);
+  cursor: default;
+}
+.gchat .gnone {
+  color: var(--muted);
+  font-size: 12px;
+}
+.gchat .gform {
+  display: flex;
+  gap: 5px;
+}
+.gchat .gform input {
+  flex: 1;
+  min-width: 0;
+  font: 13px var(--body);
+  padding: 6px 7px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--ink);
+}
+.gchat .gform .btn {
+  font-size: 9px;
+  padding: 6px 9px;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .gchat .gpanel {
+    width: min(260px, 38vw);
+    padding: 6px;
+  }
+  .gchat .glist {
+    height: min(110px, 24vh);
+    font-size: 12px;
+  }
+  .gchat .gtoggle {
+    width: 34px;
+    height: 34px;
+  }
+}

@@ -58,18 +58,22 @@ Net.onSign = (p) => {
 // Wrench a door: two boxes on one row, the world it leads to ("/" first) and the door ID there ("#" first).
 // Stand in the door and click it: you go to that world and come out of that door. Only "/" (or the same world's
 // name) = this world; no ID (or one that doesn't exist) = the main door. Standing in a door, a click never breaks it.
-// Everything is kept in the same `signs` map as sign text, written "#<own id> /<world>#<id>" (saved with the world
-// and sent to everyone with the `sign` event).
+// Everything is kept in the same `signs` map as sign text, written "#<own id> /<world>#<id> |<label>" (saved with the
+// world and sent to everyone with the `sign` event). The label (owner, Oct 25 2026; optional, DOOR_LABEL_MAX letters)
+// shows in a bubble above the door while you stand in it, like a sign's text.
 const DOOR_IDS = new Set(['door', 'dungeon_door', 'house_entrance', 'screen_door', 'barn_door']);
 const isDoorT = (t) => !!(BLOCK[t] && DOOR_IDS.has(BLOCK[t].id));
 const hasTextT = (t) => isSignT(t) || isDoorT(t); // tiles whose `signs` entry is kept
-// { id: this door's number, to: world name ('' = this world), at: door number there (0 = main door) }
+// { id: this door's number, to: world name ('' = this world), at: door number there (0 = main door), label }
+const DOOR_LABEL_MAX = 24;
+const cleanDoorLabel = (v) => String(v || '').replace(/[\r\n|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, DOOR_LABEL_MAX);
 function doorInfo(i) {
-  const m = /^(?:#(\d+))?\s*(?:\/([A-Z0-9]{0,16})(?:#(\d+))?)?$/.exec(signs.get(i) || '');
-  return m ? { id: +m[1] || 0, to: m[2] || '', at: +m[3] || 0 } : { id: 0, to: '', at: 0 };
+  const m = /^(?:#(\d+))?\s*(?:\/([A-Z0-9]{0,16})(?:#(\d+))?)?\s*(?:\|(.*))?$/s.exec(signs.get(i) || '');
+  return m ? { id: +m[1] || 0, to: m[2] || '', at: +m[3] || 0, label: cleanDoorLabel(m[4]) } : { id: 0, to: '', at: 0, label: '' };
 }
 function setDoor(i, d) {
-  setSign(i, (d.id ? '#' + d.id : '') + (d.to || d.at ? ' /' + d.to + (d.at ? '#' + d.at : '') : ''));
+  const label = cleanDoorLabel(d.label);
+  setSign(i, [d.id ? '#' + d.id : '', d.to || d.at ? '/' + d.to + (d.at ? '#' + d.at : '') : '', label ? '|' + label : ''].filter(Boolean).join(' '));
 }
 // the tile of the door with this number in the loaded world, or -1
 function doorById(n) {
@@ -118,6 +122,7 @@ function fixedPrefix(inp, clean, onEnter) {
 }
 function editDoor(x, y) {
   const i = at(x, y);
+  if (typeof isQDoorT === 'function' && isQDoorT(fg[i])) return openQDoorEdit(i); // its own pop-up (qdoor.js)
   if (!canEdit(true, i)) {
     toast(worldOwner ? 'Only players who can build in ' + worldName + ' can set this door' : "You can't set this door");
     return;
@@ -128,7 +133,7 @@ function editDoor(x, y) {
     if (!isDoorT(fg[i])) return;
     const to = doorInput(b.querySelector('#doorDest').value).slice(1),
       n = +doorIdInput(b.querySelector('#doorAt').value).slice(1) || 0,
-      nd = { id: doorInfo(i).id, to, at: n };
+      nd = { id: doorInfo(i).id, to, at: n, label: b.querySelector('#doorLabel').value };
     setDoor(i, nd);
     Net.sendSign(i, signs.get(i) || '');
     saveWorld();
@@ -142,7 +147,9 @@ function editDoor(x, y) {
          <input id="doorAt" class="doorid" maxlength="5" inputmode="numeric" autocomplete="off" value="${esc('#' + (d.at || ''))}" aria-label="Door ID in that world">
        </div></label>
      <p class="mnote">This door is <b>#${d.id}</b>. Write a world after the "/" and a door ID after the "#".
-       Only "/" = this world. No ID = the main door. Stand in the door and click it to go.</p>`,
+       Only "/" = this world. No ID = the main door. Stand in the door and click it to go.</p>
+     <label class="lfield" for="doorLabel">Label <small>(shows above the door while you stand in it)</small>
+       <input id="doorLabel" maxlength="${DOOR_LABEL_MAX}" autocomplete="off" placeholder="e.g. SHOP, PARKOUR, VIP ROOM" value="${esc(d.label)}"></label>`,
     [
       { label: 'Cancel', cls: 'ghost', run: () => {} },
       { label: 'Save', run: save },
@@ -187,6 +194,7 @@ let doorTrip = null, // { t0, x, y, go } while zooming in
 function useDoor(x, y) {
   const i = at(x, y);
   if (!isDoorT(fg[i]) || isDoorTile(x, y) || doorUnderPlayer() !== i) return false;
+  if (typeof isQDoorT === 'function' && isQDoorT(fg[i])) return false; // a Question Door has its own list (qdoor.js)
   if (doorTrip) return true;
   const d = doorInfo(i),
     here = !d.to || d.to === worldName;
@@ -285,9 +293,12 @@ function drawSignBubble(ox, oy) {
   if (P.dead) return;
   let i = signUnderPlayer(),
     text;
-  // standing in a door shows NO bubble any more (owner, Oct 21 2026: only the door itself shows); only signs do
-  if (i < 0) return;
-  text = signs.get(i);
+  // standing in a door: its label, if it has one (owner, Oct 25 2026); no label = no bubble
+  if (i < 0) {
+    i = doorUnderPlayer();
+    if (i < 0) return;
+    text = doorInfo(i).label;
+  } else text = signs.get(i);
   // a blank sign shows no bubble (owner, Oct 2026): builders see a wrench badge on it instead
   if (!text) return;
   const x = i % WW,
@@ -331,6 +342,7 @@ function needsSetup(i) {
   if (!t) return false;
   if (isDoorT(t)) {
     if (door.x === i % WW && door.y === ((i / WW) | 0)) return false; // (the main door is never set up)
+    if (typeof isQDoorT === 'function' && isQDoorT(t)) return !(qdoors.get(i) || []).length; // no destinations yet
     const d = doorInfo(i);
     return !d.to && !d.at;
   }
@@ -355,7 +367,9 @@ function drawSetupBadges(ox, oy, T) {
     for (let x = Math.max(0, me.x - WRENCH_REACH); x <= Math.min(WW - 1, me.x + WRENCH_REACH); x++) {
       if (!wrenchBlock(x, y)) continue;
       const t = fg[at(x, y)];
-      if (!canEdit(true, at(x, y)) && !isLockT(t) && !isALockT(t) && !isVendT(t)) continue;
+      // (the Suggestion Board, Mailbox and Piano are for everyone too: anyone may read and post / write a letter /
+      // look at the song, owner Oct 25 2026)
+      if (!canEdit(true, at(x, y)) && !isLockT(t) && !isALockT(t) && !isVendT(t) && !(typeof isBoardT === 'function' && isBoardT(t)) && !(typeof isMailboxT === 'function' && isMailboxT(t)) && !isPianoT(t)) continue;
       // the wrench sits in the MIDDLE of the tile (owner, Oct 21 2026: a corner badge made players tap the badge
       // instead of the block), only the wrench (no dark box behind it), gently pulsing and bobbing.
       // Drawn before the players (render.js), so it is behind the character.
@@ -373,7 +387,7 @@ let worldRV = null; // which recipe list the RECIPES world was built from (saved
 // L7: items were renamed (Oct 2026); the names are part of the tag so a rename rebuilds the signs too
 // L8 (Oct 22 2026): rebuilt once more so no outfit-set wear is left in an old RECIPES world
 const recipesVersion = () =>
-  'L9:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length;
+  'L10:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length;
 // one entry per item the splices make (an item with two recipes, like Grass, gets one sign with both),
 // sorted A to Z by name
 function recipeList() {
@@ -406,7 +420,9 @@ function buildRecipesWorld() {
   door.y = FLOOR - 1;
   const SIGN = ITEMS.sign.block,
     PLAT = ITEMS.wooden_platform.block;
-  const list = recipeList();
+  const list = recipeList(),
+    DOORT = ITEMS.door.block,
+    doorsFor = []; // [door tile, item name]
   // next to the door: how to read them
   const hello = door.x > 2 ? door.x - 2 : door.x + 2;
   fg[at(hello, FLOOR - 1)] = SIGN;
@@ -421,6 +437,11 @@ function buildRecipesWorld() {
       const r = list[k++];
       fg[at(x, row)] = SIGN;
       signs.set(at(x, row), r.text);
+      // a door right beside the sign (owner, Oct 25 2026): the Mystery Door by the main door leads to each one
+      const dt = at(x + 1, row);
+      fg[dt] = DOORT;
+      signs.set(dt, '|' + ITEMS[r.id].name.slice(0, DOOR_LABEL_MAX));
+      doorsFor.push([dt, ITEMS[r.id].name]);
       const it = ITEMS[r.id],
         above = at(x, row - 1);
       if (it.kind === 'clothing') {
@@ -431,6 +452,15 @@ function buildRecipesWorld() {
         setDisplay(above, r.id);
       }
     }
+  }
+  // every door gets its number, then the Mystery Door right of the main door lists them all (A-Z), named by the item
+  numberDoors(false);
+  if (typeof QDOOR_T !== 'undefined') {
+    const q = at(door.x + 1, FLOOR - 1);
+    fg[q] = QDOOR_T;
+    numberDoors(false);
+    setDoor(q, { ...doorInfo(q), label: 'RECIPES' });
+    setQDoor(q, doorsFor.map(([t, n]) => [RECIPES_WORLD, doorInfo(t).id, n]));
   }
   // locked by the GM so nobody can break the signs; the lock sits in the top-left corner, never in the bedrock
   fg[cornerLockTile()] = LOCK;

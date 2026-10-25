@@ -74,7 +74,8 @@ function paintSteelBeam(a, m) {
   a.outline(S.ol, L, R);
 }
 // a truss bridge span: deck on top, a channel under it, a V of braces per tile (a row makes a W), a middle post,
-// a bottom chord, gusset plates with bolts at every joint, end posts only on the open ends
+// a bottom chord, gusset plates with bolts at every joint, end posts only on the open ends.
+// Full tile height (owner, Oct 25 2026): the bottom chord sits on the tile's bottom edge (it used to stop at 45 of 64).
 function paintSteelBridge(a, m) {
   const S = ST64,
     L = !!(m & 1),
@@ -88,9 +89,9 @@ function paintSteelBridge(a, m) {
       return up > 0.45 ? S.l2 : up > -0.1 ? S.l1 : up > -0.6 ? S.m : S.d1;
     });
   // braces and the middle post first, so the chords and plates go over their ends
-  bar(L ? -2 : 7, 12, 32, 39, 6);
-  bar(R ? 66 : 57, 12, 32, 39, 6);
-  a.rect(29, 13, 6, 26, (i) => (i === 29 ? S.l2 : i === 30 ? S.l1 : i < 33 ? S.m : i === 33 ? S.d1 : S.d2));
+  bar(L ? -2 : 7, 12, 32, 57, 6);
+  bar(R ? 66 : 57, 12, 32, 57, 6);
+  a.rect(29, 13, 6, 44, (i) => (i === 29 ? S.l2 : i === 30 ? S.l1 : i < 33 ? S.m : i === 33 ? S.d1 : S.d2));
   // deck: diamond-plate tread, its edge, then the top chord (a channel with bolts)
   tread64(a, x0, x1, 1);
   a.rect(x0, 4, x1 - x0, 4, (i, j) => ramp([S.m, S.l1, S.l2], 1 - (j - 4) / 3, i, j));
@@ -98,20 +99,20 @@ function paintSteelBridge(a, m) {
   a.rect(x0, 9, x1 - x0, 5, (i, j) => (j === 9 ? S.d3 : j === 13 ? S.d2 : ramp([S.d1, S.m], (j - 10) / 3, i, j)));
   for (let bx = 8; bx < 64; bx += 16) if (bx > x0 + 3 && bx < x1 - 3) bolt64(a, bx, 11.5, 1.3);
   // bottom chord
-  a.rect(x0, 39, x1 - x0, 1, S.l2);
-  a.rect(x0, 40, x1 - x0, 4, (i, j) => ramp([S.d1, S.m, S.l1], 1 - (j - 40) / 3, i, j));
-  a.rect(x0, 44, x1 - x0, 1, S.d2);
+  a.rect(x0, 57, x1 - x0, 1, S.l2);
+  a.rect(x0, 58, x1 - x0, 4, (i, j) => ramp([S.d1, S.m, S.l1], 1 - (j - 58) / 3, i, j));
+  a.rect(x0, 62, x1 - x0, 1, S.d2);
   // gusset plates: one under the middle joint, half plates at the top where two pieces meet
   const plate = (pts) => a.poly(pts, (i, j) => ramp([S.d1, S.m, S.l1, S.l2], 1 - (j - pts[0][1]) / 12));
-  plate([[23, 33], [41, 33], [45, 44], [19, 44]]);
-  for (const [bx, by] of [[27, 37], [37, 37], [32, 41], [24, 41], [40, 41]]) bolt64(a, bx, by, 1.4);
+  plate([[23, 51], [41, 51], [45, 62], [19, 62]]);
+  for (const [bx, by] of [[27, 55], [37, 55], [32, 59], [24, 59], [40, 59]]) bolt64(a, bx, by, 1.4);
   if (R) plate([[54, 9], [64, 9], [64, 22], [58, 22]]), bolt64(a, 59, 13, 1.4), bolt64(a, 61.5, 18, 1.4);
   if (L) plate([[0, 9], [10, 9], [6, 22], [0, 22]]), bolt64(a, 4.5, 13, 1.4), bolt64(a, 2.5, 18, 1.4);
   // open ends: a strong end post from the deck down to the bottom chord
   for (const [open, e] of [[!L, 1], [!R, 56]]) {
     if (!open) continue;
-    a.rect(e, 1, 7, 44, (i, j) => (i === e ? S.l3 : i === e + 1 ? S.l2 : i === e + 6 ? S.d2 : i === e + 5 ? S.d1 : j < 3 ? S.l2 : S.m));
-    for (const by of [6, 18, 30, 40]) bolt64(a, e + 3.5, by, 1.4);
+    a.rect(e, 1, 7, 62, (i, j) => (i === e ? S.l3 : i === e + 1 ? S.l2 : i === e + 6 ? S.d2 : i === e + 5 ? S.d1 : j < 3 ? S.l2 : S.m));
+    for (const by of [6, 19, 32, 45, 58]) bolt64(a, e + 3.5, by, 1.4);
   }
   a.outline(S.ol, L, R);
 }
@@ -128,7 +129,7 @@ const steelIcon = (id, h) => {
   return c;
 };
 SHOP_ICON.steel_beam = () => steelIcon('steel_beam', 23);
-SHOP_ICON.steel_bridge = () => steelIcon('steel_bridge', 46);
+SHOP_ICON.steel_bridge = () => steelIcon('steel_bridge', 64);
 
 drawNewBlock = ((prev) =>
   function (b, x, y, px, py, T) {

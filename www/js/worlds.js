@@ -101,8 +101,12 @@ function applyWorld(w, skew = 0) {
 }
 function saveWorld(force) {
   if (!inWorld) return;
-  // your own copy of the LOBBY is never saved (only its builders save it: the lobby everyone gets)
-  if (worldName === LOBBY_WORLD && !canEdit(true)) return;
+  // every player's own LOBBY is saved with the PLAYER (lobby.js), never as a world; the GM's lobby is a real world
+  if (worldName === LOBBY_WORLD && !isGM()) {
+    myLobby = lobbyData();
+    if (force) savePlayer();
+    return;
+  }
   const w = worldData();
   if (Net.online) return Net.saveWorld(worldName, w, force);
   const s = store();
@@ -253,7 +257,8 @@ async function enterWorld(name) {
 // online, the world is fetched first; returns false (and stays put) when that fails
 async function enterWorldNow(name) {
   let w = null;
-  if (Net.online) {
+  // a player's own LOBBY is built from their save (lobby.js), never fetched; the GM's lobby is fetched like a world
+  if (Net.online && !(name === LOBBY_WORLD && !isGM())) {
     // banned from this world by its owner (wrench -> Ban from this world): stay put
     if (name !== LOBBY_WORLD) {
       const ban = await Net.worldBan(name);
@@ -273,12 +278,23 @@ async function enterWorldNow(name) {
       return false;
     }
     Net.loading = false;
+    // a world takes at most WORLD_MAX players (owner, Oct 25 2026), counted from who is online where (the lobby's
+    // presence, Net.people). Its owner and the GM always get in; your own LOBBY never counts.
+    if (name !== LOBBY_WORLD && name !== worldName && !isGM() && !(w && w.owner && lc(w.owner) === lc(playerName))) {
+      let n = 0;
+      for (const p of Net.people.values()) if (p.world === name) n++;
+      if (n >= WORLD_MAX) {
+        toast(name + ' is full (' + WORLD_MAX + ' players). Try again later.');
+        return false;
+      }
+    }
   }
   if (inWorld) saveWorld();
   worldName = name;
   worldOwner = null;
   drops.length = 0; // the world's own drops come back with it (applyWorld)
-  if (w) applyWorld(w);
+  if (name === LOBBY_WORLD && !isGM()) buildMyLobby(); // this player's own lobby (lobby.js)
+  else if (w) applyWorld(w);
   else if (Net.online || !loadWorld(name)) {
     genWorld(name);
     trees.clear();
@@ -294,8 +310,8 @@ async function enterWorldNow(name) {
   }
   // the RECIPES world is built by the game, and rebuilt when the recipe list changes
   if (name === RECIPES_WORLD && worldRV !== recipesVersion()) buildRecipesWorld();
-  // the LOBBY too (lobby.js)
-  if (name === LOBBY_WORLD && worldRV !== LOBBY_V) buildLobbyWorld();
+  // the GM's own lobby world: built once (lobby.js; never rebuilt while LOBBY_V stays the same)
+  if (name === LOBBY_WORLD && isGM() && worldRV !== LOBBY_V) buildGmLobby();
   dmg.fill(0);
   bgDmg.fill(0);
   puffs.length = parts.length = floats.length = vacs.length = chatLog.length = 0;
@@ -309,6 +325,8 @@ async function enterWorldNow(name) {
   cam.x = Math.max(0, Math.min(WW * TS - vw, P.x - vw / 2));
   cam.y = P.y - vh * 0.55;
   inWorld = true;
+  resize(); // the LOBBY has its own fixed zoom; other worlds get the normal one back (lobby.js)
+  if (inLobby()) lobbyCam();
   Net.joinWorld(name);
   Net.lobbyWorld(name);
   $('lockwin').hidden = true;

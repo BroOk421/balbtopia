@@ -154,39 +154,38 @@ const SHOP = [
   { id: 'world_lock', qty: 5, peso: true, cat: 'locks' },
   { id: 'world_lock', qty: 10, peso: true, cat: 'locks' },
   { id: 'diamond_lock', qty: 1, peso: true, cat: 'locks' },
-  { id: 'door_mover', gold: 1000, cat: 'world' },
-  { id: 'signal_jammer', gold: 2000, cat: 'world' },
-  { id: 'punch_jammer', gold: 2000, cat: 'world' },
-  { id: 'snow_weather_machine', gold: 5000, cat: 'world' },
-  { id: 'sunny_weather_machine', gold: 5000, cat: 'world' },
-  { id: 'rain_weather_machine', gold: 5000, cat: 'world' },
-  { id: 'clear_world', gold: 1500, cat: 'world' },
+  { id: 'door_mover', gold: 10000, cat: 'world' },
+  { id: 'signal_jammer', gold: 15000, cat: 'world' },
+  { id: 'punch_jammer', gold: 15000, cat: 'world' },
+  { id: 'snow_weather_machine', gold: 10000, cat: 'world' },
+  { id: 'sunny_weather_machine', gold: 10000, cat: 'world' },
+  { id: 'rain_weather_machine', gold: 10000, cat: 'world' },
+  { id: 'clear_world', gold: 10000, cat: 'world' },
   { id: 'vending_machine', gold: 5000, cat: 'world' },
-  { id: 'display_box', gold: 1000, cat: 'world' },
-  { id: 'mannequin', gold: 2500, cat: 'world' },
-  { id: 'shovel', gold: 1500, cat: 'tools' },
+  // (Display Box / Mannequin: no longer sold, they grow from recipes now: display.js; owner Oct 25 2026)
+  { id: 'shovel', gold: 50000, cat: 'tools' },
   // (Golden Pickaxe: no longer sold; it is the level 100 reward, levels.js)
-  { id: 'diamond_pickaxe', bc: 150, cat: 'tools' },
-  { id: 'black_diamond_pickaxe', bc: 250, cat: 'tools' },
+  { id: 'diamond_pickaxe', bc: 200, cat: 'tools' },
+  { id: 'black_diamond_pickaxe', bc: 300, cat: 'tools' },
   { id: 'angel_wings', bc: 30, cat: 'wear' },
   { id: 'tiny_angel_wings', bc: 16, cat: 'wear' },
   { id: 'golden_wings', bc: 120, cat: 'wear' },
-  { id: 'golden_aura', bc: 120, cat: 'wear' },
-  { id: 'red_aura', bc: 120, cat: 'wear' },
+  { id: 'golden_aura', bc: 200, cat: 'wear' },
+  { id: 'red_aura', bc: 200, cat: 'wear' },
   { id: 'dark_diamond_aura', bc: 200, cat: 'wear' },
-  { id: 'diamond_aura', bc: 150, cat: 'wear' },
-  { id: 'white_aura', bc: 120, cat: 'wear' },
-  { id: 'super_saiyan_hair', bc: 16, cat: 'wear' },
-  { id: 'seraph_wings', bc: 36, cat: 'wear' },
-  { id: 'demon_wings', bc: 42, cat: 'wear' },
-  { id: 'phoenix_wings', bc: 150, cat: 'wear' },
-  { id: 'crystal_wings', bc: 60, cat: 'wear' },
-  { id: 'fairy_wings', bc: 48, cat: 'wear' },
-  { id: 'shadow_wings', bc: 54, cat: 'wear' },
-  { id: 'celestial_wings', bc: 84, cat: 'wear' },
-  { id: 'dragon_wings', bc: 66, cat: 'wear' },
-  { id: 'leaf_wings', bc: 36, cat: 'wear' },
-  { id: 'galaxy_wings', bc: 96, cat: 'wear' },
+  { id: 'diamond_aura', bc: 200, cat: 'wear' },
+  { id: 'white_aura', bc: 200, cat: 'wear' },
+  { id: 'super_saiyan_hair', bc: 200, cat: 'wear' },
+  { id: 'seraph_wings', gold: 20000, cat: 'wear' },
+  { id: 'demon_wings', gold: 20000, cat: 'wear' },
+  { id: 'phoenix_wings', gold: 20000, cat: 'wear' },
+  { id: 'crystal_wings', gold: 20000, cat: 'wear' },
+  { id: 'fairy_wings', gold: 20000, cat: 'wear' },
+  { id: 'shadow_wings', gold: 20000, cat: 'wear' },
+  { id: 'celestial_wings', gold: 20000, cat: 'wear' },
+  { id: 'dragon_wings', gold: 20000, cat: 'wear' },
+  { id: 'leaf_wings', gold: 20000, cat: 'wear' },
+  { id: 'galaxy_wings', gold: 20000, cat: 'wear' },
 ];
 
 // ---------- art ----------
@@ -433,6 +432,7 @@ $('shopx').onclick = closeShop;
 
 // ---------- using what you bought ----------
 function ownWorldOnly(what) {
+  if (ownLobby()) return toast("You can't use a " + what + ' in your lobby'), false;
   if (isOwner()) return true;
   toast(worldOwner ? 'Only ' + worldOwner + ' can use a ' + what + ' here' : 'Lock this world with a Gold Lock first, then use the ' + what);
   return false;

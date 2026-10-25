@@ -136,6 +136,14 @@ const QUEST_GENERAL = [
   { k: 'plant', n: 20 },
 ];
 const questCount = (base, min, r, p = 0.5) => Math.max(min, Math.round(base / Math.pow(r, p)));
+// Rare tier and up = a Balb Coin quest (questKind below); their seed / block counts: QUEST_RARE_N[0]..[1]
+const QUEST_RARE_N = [150, 200];
+const questRare = (r) => ['Rare', 'Epic', 'Legendary'].includes(rarityTier(r));
+function questBig(key) {
+  let h = 2166136261;
+  for (const ch of key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return QUEST_RARE_N[0] + ((h >>> 0) % (QUEST_RARE_N[1] - QUEST_RARE_N[0] + 1));
+}
 let questList = null,
   questKey = '';
 function questPool() {
@@ -151,13 +159,17 @@ function questPool() {
       })
       .sort();
   for (const id of ids) {
-    const r = rarityOf(id);
+    const r = rarityOf(id),
+      // a Rare (Balb Coin) quest (owner, Oct 25 2026): every seed / block count is 150-200, fixed per quest so every
+      // device shows the same number (harvesting trees keeps its own count)
+      rare = questRare(r),
+      n = (k, normal) => (rare ? questBig(id + '|' + k) : normal);
     list.push(
       { k: 'harvest', id, r, n: questCount(16, 2, r) },
-      { k: 'plant', id, r, n: questCount(24, 3, r) },
-      { k: 'break', id, r, n: questCount(120, 10, r) },
-      { k: 'give', id, r, n: questCount(200, 5, r, 0.7) },
-      { k: 'give', id: id + '_seed', r, n: questCount(30, 2, r) },
+      { k: 'plant', id, r, n: n('plant', questCount(24, 3, r)) },
+      { k: 'break', id, r, n: n('break', questCount(120, 10, r)) },
+      { k: 'give', id, r, n: n('give', questCount(200, 5, r, 0.7)) },
+      { k: 'give', id: id + '_seed', r, n: n('seed', questCount(30, 2, r)) },
     );
   }
   questKey = key;

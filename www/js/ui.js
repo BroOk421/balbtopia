@@ -548,6 +548,8 @@ function bagPicked(id) {
   const p = bagPick;
   if (!p) return;
   if (!p.ok(id)) return toast(p.bad ? p.bad(id) : "You can't pick that here");
+  // (keep: the bag stays open for more picks, e.g. dressing a Mannequin)
+  if (p.keep) return p.cb(id);
   bagPick = null;
   if (!$('inv').hidden) toggleInv();
   p.cb(id);
@@ -567,7 +569,9 @@ function toggleInv() {
   } else {
     w.hidden = true;
     trashMode = false;
+    const bp = bagPick;
     bagPick = null; // closing the bag cancels picking
+    if (bp && bp.onClose) bp.onClose();
     $('bagQ').value = ''; // the search starts empty next time
     closePop();
     $('info').hidden = true;
@@ -649,7 +653,9 @@ function dropItem(id, q) {
   spawnItemDrop(id, q);
 }
 function spawnItemDrop(id, q) {
+  const before = new Set(drops);
   spawnDrop(id, P.x + P.w / 2 + P.face * 22, P.y + P.h - 10, q, 1.2, playerName);
+  for (const d of drops) if (!before.has(d)) dropOut(d); // it flies out of you to where it lands (actions.js)
   savePlayer();
   toast('Dropped ' + (q > 1 ? q.toLocaleString() + ' ' : '') + ITEMS[id].name);
 }

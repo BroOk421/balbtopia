@@ -17,7 +17,7 @@ ITEMS.atm_machine = {
   rarity: 'Epic',
 };
 const isATMT = (t) => t === ATM;
-SHOP.push({ id: 'atm_machine', gold: 30000, cat: 'world' });
+SHOP.push({ id: 'atm_machine', gold: 10000, cat: 'world' });
 
 // what comes out (owner, Oct 24 2026): only SMALL coins, each its own drop with a fixed kind (`ck`, drawn as that
 // coin whatever its value): small bronze = 1 gold, small silver = 5, small gold = 10. Never big bronze / big gold /
@@ -86,7 +86,9 @@ function useATM(x, y) {
     drops.push(d);
     Net.sendDrop(d);
   }
-  // no smoke / coloured squares / shake on a pay-out (owner, Oct 24 2026: those are for BREAKING the ATM)
+  // the breaking smoke puffs out of it (owner, Oct 25 2026); still no coloured squares or shake. The coins grow from
+  // nothing to their size as they appear (drawGoldPile, coins.js)
+  smoke(x, y, 11, 1.6);
   Sfx.play('pickup');
   Native.haptic(L.k === 'Gold' ? 'heavy' : 'medium');
   saveWorld();

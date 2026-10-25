@@ -45,7 +45,9 @@ addEventListener('keydown', (e) => {
   keys[e.code] = true;
   if (['Space', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.code) && $('inv').hidden)
     e.preventDefault();
-  if (['Space', 'KeyW', 'ArrowUp'].includes(e.code)) P.buf = 0.12;
+  // one press = one jump (owner, Oct 25 2026): the key repeating while held must not jump again on landing or use
+  // the wings' air jump; a new press in the air still does
+  if (['Space', 'KeyW', 'ArrowUp'].includes(e.code) && !e.repeat) P.buf = 0.12;
   if (e.code === 'KeyB') {
     e.preventDefault();
     toggleInv();

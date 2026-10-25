@@ -15,16 +15,27 @@ ITEMS.display_box = {
   name: 'Display Box',
   kind: 'block',
   block: DISPLAY_BOX,
-  desc: 'A glass box that shows off one item. Wrench the empty box to pick an item from your bag (or hold an item and click the box); wrench it again to take it out.',
+  desc: 'A glass box that shows off one item. Wrench the empty box and tap an item in your bag to put it in; wrench it again to take it out. Display Box = Glass Block + Wooden Table.',
   rarity: 'Uncommon',
 };
 ITEMS.mannequin = {
   name: 'Mannequin',
   kind: 'block',
   block: MANNEQUIN,
-  desc: 'Dress it up! Hold the wrench and click it to put clothes from your bag on it, one for every slot.',
+  desc: 'Dress it up! Wrench it and tap clothes in your bag to put them on, one for every slot. Mannequin = White Block + Wooden Chair.',
   rarity: 'Uncommon',
 };
+// both grow from seeds now (owner, Oct 25 2026: out of the Shop): Display Box = Glass Block + Wooden Table,
+// Mannequin = White Block + Wooden Chair (farming.json + the SPLICE fallback in config.js)
+for (const [id, name, grow, col] of [
+  ['display_box', 'Display Box', 300, ['#bfe8ff', '#8a5a2b', '#ffffff']],
+  ['mannequin', 'Mannequin', 360, ['#e8cfa6', '#8a5a2b', '#ffffff']],
+]) {
+  ITEMS[id + '_seed'] = { name: name + ' Seed', kind: 'seed', from: id, desc: 'Plant it on top of a block to grow a ' + name + ' Tree.', rarity: 'Uncommon' };
+  SEED_COLOR[id] = col;
+  TREE_TIME[id] = grow;
+  SEED_CHANCE[id] = 0.3;
+}
 const displays = new Map(), // tile -> item id in the Display Box
   manns = new Map(); // tile -> { slot: item id } worn by the Mannequin
 const isDispT = (t) => t === DISPLAY_BOX,
@@ -117,34 +128,14 @@ function openDisplay(x, y) {
     vendIcon(body, id);
     return;
   }
-  // empty (owner, Oct 22 2026): Confirm / Cancel first; Confirm opens the bag, tapping an item closes it and opens
-  // the Display Box pop-up with that item (Put in). Holding an item and clicking the box still works (useDisplay).
-  dialog('DISPLAY BOX', '<p class="dtext">This Display Box is empty. Put an item in it?</p>', [
-    { label: 'Cancel', cls: 'ghost', run: () => {} },
-    {
-      label: 'Confirm',
-      run: () =>
-        pickFromBag(
-          'Tap the item to put in the Display Box',
-          (id) => displayable(id) && (countItem(id) > 0 || equipped.hand === id),
-          (id) => askDisplay(i, id),
-          () => "This can't go in a Display Box",
-        ),
-    },
-  ]);
-}
-// the Display Box pop-up for an item picked from the bag: its picture and name, Cancel / Put in
-function askDisplay(i, id) {
-  if (!isDispT(fg[i]) || displays.has(i)) return toast('This Display Box is not empty any more');
-  const body = dialog(
-    'DISPLAY BOX',
-    `<div class="vend"><div class="vrow"><div class="vpic"></div><div><b>${esc(ITEMS[id].name)}</b><br>You have ${(countItem(id) + (equipped.hand === id ? 1 : 0)).toLocaleString()}<br><small>One goes in the box</small></div></div></div>`,
-    [
-      { label: 'Cancel', cls: 'ghost', run: () => {} },
-      { label: 'Put in', run: () => putDisplay(i, id) },
-    ],
+  // empty (owner, Oct 25 2026): straight to the bag (no Confirm / Cancel, no "Put in" pop-up); tapping an item puts
+  // one in the box. Only the wrench does this: clicking the box while holding an item does nothing special any more.
+  pickFromBag(
+    'Tap the item to put in the Display Box',
+    (id) => displayable(id) && (countItem(id) > 0 || equipped.hand === id),
+    (id) => putDisplay(i, id),
+    () => "This can't go in a Display Box",
   );
-  vendIcon(body, id);
 }
 // one of item id into the empty Display Box on tile i (from a bag / hotbar stack, or the tool held in the Hand slot)
 function putDisplay(i, id) {
@@ -163,16 +154,14 @@ function putDisplay(i, id) {
   toast(ITEMS[id].name + ' is on display');
   return true;
 }
-// clicking a Display Box while holding something (owner, Oct 22 2026, like the Vending Machine): an empty box
-// takes one of it at once. A box that already shows something takes nothing else: wrench it and Take out first.
-// Players with access only, within WRENCH_REACH of your tile. Called from act (actions.js); true = click used.
-function useDisplay(x, y) {
-  const i = at(x, y);
-  if (!isDispT(fg[i]) || !hand || hand === 'fist' || hand === 'wrench' || !displayable(hand) || !hasAccess(playerName, i)) return false;
-  if (!inWrenchReach(x, y)) return toast('Move closer to the Display Box'), true;
-  return putDisplay(i, hand);
-}
 const SLOT_NAMES = SLOT_NAME;
+// Wrench on a Mannequin (owner, Oct 25 2026): its slots in a small pop-up on the LEFT and the bag on the RIGHT, the two
+// centred side by side (body class `mannmode`, CSS at the end of style.css). Tapping clothes (or a tool) in the bag
+// puts it on the Mannequin in that item's own slot (whatever was there comes back to the bag); the bag stays open for
+// the next one. Tapping a filled slot takes that item off. No item list / Put on button any more. Closing either
+// window closes both.
+let mannAt = -1;
+const mannOk = (id) => !!slotOf(id) && !ITEMS[id].bound && countItem(id) > 0;
 function openMannequin(x, y) {
   const i = at(x, y),
     m = manns.get(i) || {};
@@ -180,54 +169,78 @@ function openMannequin(x, y) {
     const on = EQ_SLOTS.filter((s) => m[s]).map((s) => ITEMS[m[s]].name);
     return toast(on.length ? 'Mannequin: ' + on.join(', ') : 'This Mannequin wears nothing');
   }
-  const choices = inv.filter((s) => slotOf(s.id) && !ITEMS[s.id].bound); // clothes and tools (into the hand); never bound items
-  const body = dialog(
-    'MANNEQUIN',
-    `<div class="vend">
-      <div class="mslots">${EQ_SLOTS.map(
-        (s) => `<div class="mslot" data-slot="${s}"><div class="vpic"></div><small>${SLOT_NAMES[s]}</small>
-          ${m[s] ? `<button class="btn ghost" type="button" data-off="${s}">Take off</button>` : '<span class="mnone">empty</span>'}</div>`,
-      ).join('')}</div>
-      <div class="lfield">Put on
-        <div class="vline"><select id="mItem">${
-          choices.map((s) => `<option value="${s.id}">${esc(ITEMS[s.id].name)} (${s.qty})</option>`).join('') || '<option value="">No clothes in your bag</option>'
-        }</select><button class="btn" id="mOn" type="button">Put on</button></div>
-      </div>
-    </div>`,
-    [{ label: 'Close', cls: 'ghost', run: () => {} }],
-  );
-  for (const s of EQ_SLOTS) if (m[s]) body.querySelector(`.mslot[data-slot="${s}"] .vpic`).appendChild(shopPic(m[s]));
-  body.querySelectorAll('[data-off]').forEach((b) => {
+  mannAt = i;
+  closePop();
+  trashMode = false;
+  const body = dialog('MANNEQUIN', '<div class="mannbox"></div>', [{ label: 'Close', cls: 'ghost', run: () => {} }]);
+  mannFill(body);
+  document.body.classList.add('mannmode');
+  // the bag, in a pick mode that stays open: every tap dresses the Mannequin
+  bagPick = {
+    note: 'Tap clothes to put them on the Mannequin',
+    ok: mannOk,
+    bad: (id) => (ITEMS[id] && ITEMS[id].bound ? "This can't go on a Mannequin" : 'Only clothes and tools go on a Mannequin'),
+    cb: (id) => mannPutOn(id),
+    keep: true,
+    onClose: () => mannClose(true),
+  };
+  if ($('inv').hidden) toggleInv();
+  else renderBars();
+  dlgDone = () => mannClose(false);
+}
+// leave the Mannequin pop-up: fromBag = the bag was closed (close the pop-up too), else the pop-up was (close the bag)
+function mannClose(fromBag) {
+  if (mannAt < 0) return;
+  mannAt = -1;
+  document.body.classList.remove('mannmode');
+  if (fromBag) {
+    dlgDone = null;
+    closeDialog();
+  } else if (!$('inv').hidden) toggleInv();
+}
+function mannFill(body) {
+  const box = body.querySelector('.mannbox'),
+    i = mannAt,
+    m = manns.get(i) || {};
+  if (!box) return;
+  box.innerHTML = `<div class="mslots">${EQ_SLOTS.map(
+    (s) => `<button type="button" class="mslot${m[s] ? ' on' : ''}" data-slot="${s}" ${m[s] ? `title="Take off ${esc(ITEMS[m[s]].name)}"` : 'disabled'}>
+      <div class="vpic"></div><small>${SLOT_NAMES[s]}</small>${m[s] ? '<span class="moff" aria-hidden="true">×</span>' : ''}</button>`,
+  ).join('')}</div>
+    <p class="mnote2">Tap clothes in your bag to dress it. Tap a slot to take it off.</p>`;
+  for (const s of EQ_SLOTS) if (m[s]) box.querySelector(`.mslot[data-slot="${s}"] .vpic`).appendChild(shopPic(m[s]));
+  box.querySelectorAll('.mslot.on').forEach((b) => {
     b.onclick = () => {
-      const sl = b.dataset.off,
+      const sl = b.dataset.slot,
         cur = manns.get(i) || {},
         id = cur[sl];
       if (!id || !addItem(id, 1)) return;
       setMann(i, { ...cur, [sl]: null });
       showChanged(i, 'm');
-      toast('Took off ' + ITEMS[id].name);
-      openMannequin(x, y);
+      renderBars();
+      mannFill(body);
     };
   });
-  body.querySelector('#mOn').onclick = () => {
-    const id = body.querySelector('#mItem').value,
-      it = ITEMS[id],
-      sl = slotOf(id);
-    if (!id || !it || !sl) return toast('You have no clothes to put on it');
-    const cur = manns.get(i) || {},
-      old = cur[sl];
-    // the item comes out of your bag; whatever was in that slot goes back in
-    if (!takeItem(id, 1)) return;
-    if (old && !addItem(old, 1)) {
-      addItem(id, 1);
-      return;
-    }
-    setMann(i, { ...cur, [sl]: id });
-    showChanged(i, 'm');
-    renderBars();
-    toast('The Mannequin wears ' + it.name);
-    openMannequin(x, y);
-  };
+}
+function mannPutOn(id) {
+  const i = mannAt,
+    it = ITEMS[id],
+    sl = slotOf(id);
+  if (i < 0 || !isMannT(fg[i]) || !it || !sl) return;
+  if (!hasAccess(playerName, i)) return toast("You can't dress this Mannequin");
+  const cur = manns.get(i) || {},
+    old = cur[sl];
+  // the item comes out of your bag; whatever was in that slot goes back in
+  if (!takeItem(id, 1)) return;
+  if (old && !addItem(old, 1)) {
+    addItem(id, 1);
+    return;
+  }
+  setMann(i, { ...cur, [sl]: id });
+  showChanged(i, 'm');
+  renderBars();
+  Sfx.play('pickup');
+  mannFill($('dlgBody'));
 }
 
 // ---------- drawing ----------

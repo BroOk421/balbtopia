@@ -187,6 +187,9 @@ Object.assign(HD_DECO, {
   },
   // mirrored ball hanging from a short chain; lit tiles and sparkles change between 2 frames
   disco_ball(x, { P, R }, f = 0) {
+    // f 2 = switched off (owner, Oct 25 2026): the still ball, no coloured spots and no "+" sparkles
+    const off = f === 2;
+    if (off) f = 0;
     // chain from the top
     for (let j = 0; j < 5; j++) P(16, j, j % 2 ? '#9aa0ad' : '#5d6478');
     R(14, 5, 5, 2, '#22263a');
@@ -224,13 +227,13 @@ Object.assign(HD_DECO, {
       }
     // coloured light spots on a few tiles, different each frame
     const spots = f ? [[11, 13, '#ff6ad8'], [20, 22, '#6ad8ff'], [17, 12, '#fff06a']] : [[19, 15, '#ff6ad8'], [10, 21, '#6ad8ff'], [14, 25, '#fff06a']];
-    for (const [i, j, c] of spots) {
+    for (const [i, j, c] of off ? [] : spots) {
       P(i, j, c);
       P(i + 1, j, c);
     }
     // sparkles around it
     const sp = f ? [[3, 9], [28, 26], [27, 8]] : [[2, 24], [29, 12], [5, 7]];
-    for (const [i, j] of sp) {
+    for (const [i, j] of off ? [] : sp) {
       P(i, j, '#ffffff');
       P(i - 1, j, '#c8ecff');
       P(i + 1, j, '#c8ecff');
@@ -326,3 +329,6 @@ Object.assign(HD_DECO, {
     leaf(21, 28, -1, 5);
   },
 });
+// the same board with the arrow pointing left (owner, Oct 25 2026): the right one drawn mirrored
+HD_DECO.arrow_placard_left = (x, h, ...rest) =>
+  HD_DECO.arrow_placard(x, { ...h, P: (i, j, c) => h.P(31 - i, j, c), R: (i, j, w, hh, c) => h.R(32 - i - w, j, w, hh, c) }, ...rest);

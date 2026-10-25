@@ -488,6 +488,10 @@ const Net = (() => {
       })
       .on('broadcast', { event: 'drop' }, ({ payload }) => netDrop(payload))
       .on('broadcast', { event: 'take' }, ({ payload }) => payload && netTake(payload.u, payload.by))
+      // 5 coins on one tile joined into a bigger one (coins.js)
+      .on('broadcast', { event: 'merge' }, ({ payload }) => typeof netMerge === 'function' && netMerge(payload))
+      // someone posted / removed a suggestion on a Suggestion Board (board.js): an open board reloads
+      .on('broadcast', { event: 'board' }, ({ payload }) => N.onBoard && N.onBoard(payload))
       // (once the server's chat:NAME is joined, chat sent by players themselves is ignored: its name could be fake)
       .on('broadcast', { event: 'chat' }, ({ payload }) => payload && !cJoined && N.onChat && N.onChat(payload))
       .on('broadcast', { event: 'die' }, ({ payload }) => {
@@ -617,6 +621,40 @@ const Net = (() => {
   };
   N.sendDie = () => {
     if (N.me) send('die', { id: N.me.id });
+  };
+  // coins that joined (coins.js): the 5 that went and the new one
+  N.sendMerge = (us, d) => {
+    if (N.me)
+      send('merge', { us, d: { u: d.uid, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined, k: d.ck } });
+  };
+  // ---------- Suggestion Board posts (board.js; schema.sql board_posts) ----------
+  // null = not online in a shared world (the board keeps its suggestions on this device instead)
+  N.boardWorld = () => (sb && N.me && joinedName ? joinedName : null);
+  const boardErr = (error) =>
+    error.code === 'PGRST202' || error.code === '42883'
+      ? 'The server needs an update for Suggestion Boards (run schema.sql)'
+      : error.code === 'P0001' || error.code === '42501'
+        ? error.message
+        : N.dbError(error);
+  N.boardList = async (i) => {
+    const { data, error } = await sb.rpc('board_list', { p_world: joinedName, p_tile: i });
+    return error ? { err: boardErr(error) } : { list: Array.isArray(data) ? data : [] };
+  };
+  N.boardPost = async (i, text) => {
+    const { error } = await sb.rpc('board_post', { p_world: joinedName, p_tile: i, p_text: text });
+    if (error) return boardErr(error);
+    send('board', { i });
+    return null;
+  };
+  N.boardDelete = async (i, id) => {
+    const { error } = await sb.rpc('board_delete', { p_id: id });
+    if (error) return boardErr(error);
+    send('board', { i });
+    return null;
+  };
+  N.boardClear = async (i) => {
+    const { error } = await sb.rpc('board_clear', { p_world: joinedName, p_tile: i });
+    if (!error) send('board', { i });
   };
   N.takeDrop = (u) => {
     if (N.me) send('take', { u, by: N.me.id });
@@ -1048,5 +1086,86 @@ const Net = (() => {
   N.markRead = (id) => sb.from('mail').update({ read: true }).eq('id', id).then(() => {});
   N.deleteMail = (id) => sb.from('mail').delete().eq('id', id).then(() => {});
   N.unread = () => N.mail.filter((m) => !m.read).length;
+  // ---------- Global Chat (globalchat.js; schema.sql global_chat / send_broadcast) ----------
+  // messages: { id, u (sender id), n (name), w (their world), t (text), at }
+  const gRow = (r) => ({ id: +r.id, u: r.from_id, n: r.from_name, w: r.world || '', t: r.body, at: Date.parse(r.created_at) || Date.now() });
+  N.globalList = async (after = 0) => {
+    if (!sb || !N.me) return null;
+    let q = sb.from('global_chat').select('id,from_id,from_name,world,body,created_at').order('id', { ascending: false }).limit(40);
+    if (after) q = q.gt('id', after);
+    const { data, error } = await q;
+    return error ? null : (data || []).map(gRow).reverse();
+  };
+  N.globalSend = async (text, world) => {
+    const { data, error } = await sb.rpc('send_broadcast', { p_text: text, p_world: world || '' });
+    if (!error) return { id: +data };
+    return {
+      err:
+        error.code === 'PGRST202' || error.code === '42883'
+          ? 'The server needs an update for Global Chat (run schema.sql)'
+          : error.code === 'P0001' || error.code === '42501'
+            ? error.message
+            : N.dbError(error),
+    };
+  };
+  let gch = null;
+  N.joinGlobal = () => {
+    if (!sb || !N.me || gch) return;
+    gch = sb.channel('global', chOpts(false));
+    gch.on('broadcast', { event: 'g' }, ({ payload }) => payload && N.onGlobal && N.onGlobal({ ...payload, id: +payload.id, at: Date.now() })).subscribe();
+  };
+  // ---------- the GM's updates (mailbox.js; schema.sql announcements) ----------
+  N.annList = async () => {
+    if (!sb || !N.me) return null;
+    const { data, error } = await sb.from('announcements').select('id,title,body,created_at').order('id', { ascending: false }).limit(20);
+    if (error) return null;
+    return (data || []).map((a) => ({ id: +a.id, title: a.title, body: a.body, at: Date.parse(a.created_at) || 0 }));
+  };
+  N.annPost = async (title, body) => {
+    const { error } = await sb.rpc('post_announcement', { p_title: title, p_body: body });
+    if (!error) return null;
+    return error.code === 'PGRST202' || error.code === '42883' ? 'The server needs an update for the Mailbox (run schema.sql)' : error.code === 'P0001' || error.code === '42501' ? error.message : N.dbError(error);
+  };
+  N.annDelete = async (id) => {
+    const { error } = await sb.rpc('delete_announcement', { p_id: id });
+    return error ? (error.code === 'P0001' || error.code === '42501' ? error.message : N.dbError(error)) : null;
+  };
+  // a look at another world's saved data without joining it or touching the save cache (Question Door, qdoor.js)
+  N.peekWorld = async (name) => {
+    if (!sb || !N.me) return null;
+    const { data, error } = await sb.from('worlds').select('data').eq('name', name).maybeSingle();
+    return error || !data ? null : data.data;
+  };
+  // ---------- letters in a Mailbox (schema.sql mailbox_letters; mailbox.js) ----------
+  // the letters in this world's Mailboxes: everyone gets who sent it and the subject; the world's owner also gets the
+  // text, the items and whether it was read
+  const mbErr = (error) =>
+    error.code === 'PGRST202' || error.code === '42883'
+      ? 'The server needs an update for the Mailbox (run schema.sql)'
+      : error.code === 'P0001' || error.code === '42501'
+        ? error.message
+        : N.dbError(error);
+  N.mailboxList = async (world) => {
+    if (!sb || !N.me) return null;
+    const { data, error } = await sb.rpc('mailbox_list', { p_world: world });
+    if (error || !Array.isArray(data)) return null;
+    return data;
+  };
+  N.mailboxSend = async (world, tile, subject, body, items) => {
+    const { data, error } = await sb.rpc('mailbox_send', { p_world: world, p_tile: tile, p_subject: subject, p_body: body, p_items: items });
+    return error ? { err: mbErr(error) } : { id: +data };
+  };
+  N.mailboxClaim = async (id) => {
+    const { data, error } = await sb.rpc('mailbox_claim', { p_id: id });
+    return error ? { err: mbErr(error) } : { items: Array.isArray(data) ? data : [] };
+  };
+  N.mailboxRead = async (id) => {
+    const { error } = await sb.rpc('mailbox_read', { p_id: id });
+    return error ? mbErr(error) : null;
+  };
+  N.mailboxDelete = async (id) => {
+    const { error } = await sb.rpc('mailbox_delete', { p_id: id });
+    return error ? mbErr(error) : null;
+  };
   return N;
 })();

@@ -15,7 +15,7 @@ function fixFloor() {
   for (let y = FLOOR_ROW; y < WH; y++)
     for (let x = 0; x < WW; x++) {
       const i = at(x, y);
-      if (!fg[i]) fg[i] = BEDROCK;
+      if (!fg[i] && !(ownLobby() && lobbyTile(i))) fg[i] = BEDROCK; // (the lobby room's own row stays open)
       else if (gmLock && isLockT(fg[i])) {
         const k = fg[i];
         fg[i] = BEDROCK;

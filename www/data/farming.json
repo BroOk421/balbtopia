@@ -621,6 +621,138 @@
     },
     "piano": {
       "growSeconds": 360
+    },
+    "display_box": {
+      "growSeconds": 300
+    },
+    "mannequin": {
+      "growSeconds": 360
+    },
+    "letter_a": {
+      "growSeconds": 180
+    },
+    "letter_b": {
+      "growSeconds": 180
+    },
+    "letter_c": {
+      "growSeconds": 180
+    },
+    "letter_d": {
+      "growSeconds": 180
+    },
+    "letter_e": {
+      "growSeconds": 180
+    },
+    "letter_f": {
+      "growSeconds": 180
+    },
+    "letter_g": {
+      "growSeconds": 180
+    },
+    "letter_h": {
+      "growSeconds": 180
+    },
+    "letter_i": {
+      "growSeconds": 180
+    },
+    "letter_j": {
+      "growSeconds": 180
+    },
+    "letter_k": {
+      "growSeconds": 180
+    },
+    "letter_l": {
+      "growSeconds": 180
+    },
+    "letter_m": {
+      "growSeconds": 180
+    },
+    "letter_n": {
+      "growSeconds": 180
+    },
+    "letter_o": {
+      "growSeconds": 180
+    },
+    "letter_p": {
+      "growSeconds": 180
+    },
+    "letter_q": {
+      "growSeconds": 180
+    },
+    "letter_r": {
+      "growSeconds": 180
+    },
+    "letter_s": {
+      "growSeconds": 180
+    },
+    "letter_t": {
+      "growSeconds": 180
+    },
+    "letter_u": {
+      "growSeconds": 180
+    },
+    "letter_v": {
+      "growSeconds": 180
+    },
+    "letter_w": {
+      "growSeconds": 180
+    },
+    "letter_x": {
+      "growSeconds": 180
+    },
+    "letter_y": {
+      "growSeconds": 180
+    },
+    "letter_z": {
+      "growSeconds": 180
+    },
+    "number_0": {
+      "growSeconds": 180
+    },
+    "number_1": {
+      "growSeconds": 180
+    },
+    "number_2": {
+      "growSeconds": 180
+    },
+    "number_3": {
+      "growSeconds": 180
+    },
+    "number_4": {
+      "growSeconds": 180
+    },
+    "number_5": {
+      "growSeconds": 180
+    },
+    "number_6": {
+      "growSeconds": 180
+    },
+    "number_7": {
+      "growSeconds": 180
+    },
+    "number_8": {
+      "growSeconds": 180
+    },
+    "number_9": {
+      "growSeconds": 180
+    },
+    "arrow_block_up": {
+      "growSeconds": 180
+    },
+    "arrow_block_down": {
+      "growSeconds": 180
+    },
+    "arrow_block_left": {
+      "growSeconds": 180
+    },
+    "arrow_block_right": {
+      "growSeconds": 180
+    },
+    "mailbox": {
+      "growSeconds": 240
+    },
+    "question_door": {
+      "growSeconds": 300
     }
   },
   "splices": [
@@ -2273,6 +2405,15 @@
     },
     {
       "seeds": [
+        "arrow_placard",
+        "arrow_placard"
+      ],
+      "result": "arrow_placard_left",
+      "source": "balbtopia",
+      "note": "Left Arrow Board = Arrow Board + Arrow Board (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
         "dark_aqua_block",
         "dark_green_block"
       ],
@@ -2407,28 +2548,436 @@
       "note": "Rose Hedge (id romantic_bush_block) = Romantic Bushes + Dirt (Oct 21 2026)"
     },
     {
-      "seeds": ["wooden_chair", "red_block"],
+      "seeds": [
+        "wooden_chair",
+        "red_block"
+      ],
       "result": "couch",
       "source": "balbtopia",
       "note": "Couch = Wooden Chair + Red Block (joins with couches beside it, faces the way you face; Oct 22 2026)"
     },
     {
-      "seeds": ["grass", "viney_block"],
+      "seeds": [
+        "grass",
+        "viney_block"
+      ],
       "result": "foliage",
       "source": "balbtopia",
       "note": "Foliage = Grass + Vine Block (walk-through leaves drawn in front of players; Oct 22 2026)"
     },
     {
-      "seeds": ["wooden_platform", "steel_block"],
+      "seeds": [
+        "wooden_platform",
+        "steel_block"
+      ],
       "result": "steel_beam",
       "source": "balbtopia",
       "note": "Steel Beam = Wooden Platform + Steel Block (a steel platform, joins with beams beside it; Oct 22 2026)"
     },
     {
-      "seeds": ["steel_beam", "iron_bars"],
+      "seeds": [
+        "steel_beam",
+        "iron_bars"
+      ],
       "result": "steel_bridge",
       "source": "balbtopia",
       "note": "Steel Bridge = Steel Beam + Iron Bars (a steel truss bridge platform, joins with pieces beside it; Oct 22 2026)"
+    },
+    {
+      "seeds": [
+        "glass_block",
+        "wooden_table"
+      ],
+      "result": "display_box",
+      "source": "balbtopia",
+      "note": "Display Box = Glass Block + Wooden Table (Balbtopia recipe, owner Oct 25 2026: no longer in the Shop)"
+    },
+    {
+      "seeds": [
+        "white_block",
+        "wooden_chair"
+      ],
+      "result": "mannequin",
+      "source": "balbtopia",
+      "note": "Mannequin = White Block + Wooden Chair (Balbtopia recipe, owner Oct 25 2026: no longer in the Shop)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "white_block"
+      ],
+      "result": "letter_a",
+      "source": "balbtopia",
+      "note": "A Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "black_block"
+      ],
+      "result": "letter_b",
+      "source": "balbtopia",
+      "note": "B Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "red_block"
+      ],
+      "result": "letter_c",
+      "source": "balbtopia",
+      "note": "C Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "grey_block"
+      ],
+      "result": "letter_d",
+      "source": "balbtopia",
+      "note": "D Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "green_block"
+      ],
+      "result": "letter_e",
+      "source": "balbtopia",
+      "note": "E Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "brown_block"
+      ],
+      "result": "letter_f",
+      "source": "balbtopia",
+      "note": "F Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "aqua_block"
+      ],
+      "result": "letter_g",
+      "source": "balbtopia",
+      "note": "G Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "yellow_block"
+      ],
+      "result": "letter_h",
+      "source": "balbtopia",
+      "note": "H Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "orange_block"
+      ],
+      "result": "letter_i",
+      "source": "balbtopia",
+      "note": "I Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "blue_block"
+      ],
+      "result": "letter_j",
+      "source": "balbtopia",
+      "note": "J Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "purple_block"
+      ],
+      "result": "letter_k",
+      "source": "balbtopia",
+      "note": "K Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_grey_block"
+      ],
+      "result": "letter_l",
+      "source": "balbtopia",
+      "note": "L Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_green_block"
+      ],
+      "result": "letter_m",
+      "source": "balbtopia",
+      "note": "M Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_brown_block"
+      ],
+      "result": "letter_n",
+      "source": "balbtopia",
+      "note": "N Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_red_block"
+      ],
+      "result": "letter_o",
+      "source": "balbtopia",
+      "note": "O Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_yellow_block"
+      ],
+      "result": "letter_p",
+      "source": "balbtopia",
+      "note": "P Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_aqua_block"
+      ],
+      "result": "letter_q",
+      "source": "balbtopia",
+      "note": "Q Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_blue_block"
+      ],
+      "result": "letter_r",
+      "source": "balbtopia",
+      "note": "R Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_orange_block"
+      ],
+      "result": "letter_s",
+      "source": "balbtopia",
+      "note": "S Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "dark_purple_block"
+      ],
+      "result": "letter_t",
+      "source": "balbtopia",
+      "note": "T Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "white_block"
+      ],
+      "result": "letter_u",
+      "source": "balbtopia",
+      "note": "U Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "black_block"
+      ],
+      "result": "letter_v",
+      "source": "balbtopia",
+      "note": "V Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "red_block"
+      ],
+      "result": "letter_w",
+      "source": "balbtopia",
+      "note": "W Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "grey_block"
+      ],
+      "result": "letter_x",
+      "source": "balbtopia",
+      "note": "X Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "green_block"
+      ],
+      "result": "letter_y",
+      "source": "balbtopia",
+      "note": "Y Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "aqua_block"
+      ],
+      "result": "letter_z",
+      "source": "balbtopia",
+      "note": "Z Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "yellow_block"
+      ],
+      "result": "number_0",
+      "source": "balbtopia",
+      "note": "0 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "orange_block"
+      ],
+      "result": "number_1",
+      "source": "balbtopia",
+      "note": "1 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "blue_block"
+      ],
+      "result": "number_2",
+      "source": "balbtopia",
+      "note": "2 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "purple_block"
+      ],
+      "result": "number_3",
+      "source": "balbtopia",
+      "note": "3 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "dark_grey_block"
+      ],
+      "result": "number_4",
+      "source": "balbtopia",
+      "note": "4 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "dark_green_block"
+      ],
+      "result": "number_5",
+      "source": "balbtopia",
+      "note": "5 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "dark_brown_block"
+      ],
+      "result": "number_6",
+      "source": "balbtopia",
+      "note": "6 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "dark_red_block"
+      ],
+      "result": "number_7",
+      "source": "balbtopia",
+      "note": "7 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "dark_yellow_block"
+      ],
+      "result": "number_8",
+      "source": "balbtopia",
+      "note": "8 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "crappy_sign",
+        "dark_aqua_block"
+      ],
+      "result": "number_9",
+      "source": "balbtopia",
+      "note": "9 Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "pointy_sign",
+        "white_block"
+      ],
+      "result": "arrow_block_up",
+      "source": "balbtopia",
+      "note": "Up Arrow Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "pointy_sign",
+        "black_block"
+      ],
+      "result": "arrow_block_down",
+      "source": "balbtopia",
+      "note": "Down Arrow Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "pointy_sign",
+        "red_block"
+      ],
+      "result": "arrow_block_left",
+      "source": "balbtopia",
+      "note": "Left Arrow Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "pointy_sign",
+        "grey_block"
+      ],
+      "result": "arrow_block_right",
+      "source": "balbtopia",
+      "note": "Right Arrow Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "steel_block"
+      ],
+      "result": "mailbox",
+      "source": "balbtopia",
+      "note": "Mailbox = Red Block + Steel Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "door",
+        "steel_block"
+      ],
+      "result": "question_door",
+      "source": "balbtopia",
+      "note": "Question Door = Door + Steel Block (Balbtopia recipe, owner Oct 25 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

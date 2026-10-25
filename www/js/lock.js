@@ -18,10 +18,24 @@ const isOwner = () => !!worldOwner && lc(worldOwner) === lc(playerName);
 const worldAccess = (name) => !worldOwner || lc(worldOwner) === lc(name) || lockCfg.open || lockCfg.access.includes(lc(name));
 // i (optional): the tile. A tile inside a Red / Blue Lock's area (alocks.js) follows THAT lock's rules instead of
 // the world's: its owner, the players it lists (even without access to the world), open, empty air, the world's owner.
-const hasAccess = (name, i) => (alockAt(i) ? alockAllows(i, name) : worldAccess(name));
+const hasAccess = (name, i) =>
+  ownLobby()
+    ? lc(name) === lc(playerName) && (i === undefined || i === null || lobbyTile(i)) // your own lobby: only its room (lobby.js)
+    : alockAt(i)
+      ? alockAllows(i, name)
+      : worldAccess(name);
+// REAL access (owner, Oct 25 2026; Disco Ball / Boombox): granted by a lock only: the Gold Lock's owner / list /
+// open world, or the Red / Blue Lock's own rules on its area. A spot no lock covers gives nobody access (GMs always).
+const realAccess = (name, i) =>
+  (ownLobby() ? hasAccess(name, i) : alockAt(i) ? alockAllows(i, name) : !!worldOwner && worldAccess(name)) || (lc(name) === lc(playerName) && isGM());
 // may this player change things here? (shows why not when they can't) i: the tile, when there is one
 function canEdit(quiet, i) {
   if (hasAccess(playerName, i)) return true;
+  if (!quiet && ownLobby()) {
+    toast('You can only build inside your lobby');
+    shake = Math.max(shake, 2);
+    return false;
+  }
   if (!quiet) {
     const a = alockAt(i);
     if (a) alockFlash(a.at);

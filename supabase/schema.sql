@@ -846,7 +846,7 @@ begin
     -- chat:NAME: world chat with the server's names (send_chat); players can only listen there, never send
     execute $p$create policy "balbtopia: receive" on realtime.messages for select to authenticated using (
       not public.is_banned()
-      and (realtime.topic() like 'world:%' or realtime.topic() like 'build:%' or realtime.topic() like 'chat:%' or realtime.topic() = 'lobby')
+      and (realtime.topic() like 'world:%' or realtime.topic() like 'build:%' or realtime.topic() like 'chat:%' or realtime.topic() = 'lobby' or realtime.topic() = 'global')
       and not public.world_banned(split_part(realtime.topic(), ':', 2))
     )$p$;
     execute $p$create policy "balbtopia: send" on realtime.messages for insert to authenticated with check (
@@ -939,45 +939,44 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('world_lock', 1, 2000, false, 0),
   ('red_lock', 1, 50, true, 0), -- area locks (alocks.js)
   ('blue_lock', 1, 200, true, 0),
-  ('atm_machine', 1, 30000, true, 0), -- atm.js
-  ('door_mover', 1, 1000, true, 0),
-  ('signal_jammer', 1, 2000, true, 0),
-  ('punch_jammer', 1, 2000, true, 0),
-  ('snow_weather_machine', 1, 5000, true, 0),
-  ('sunny_weather_machine', 1, 5000, true, 0),
-  ('rain_weather_machine', 1, 5000, true, 0),
-  ('clear_world', 1, 1500, true, 0),
+  ('atm_machine', 1, 10000, true, 0), -- atm.js
+  ('door_mover', 1, 10000, true, 0),
+  ('signal_jammer', 1, 15000, true, 0),
+  ('punch_jammer', 1, 15000, true, 0),
+  ('snow_weather_machine', 1, 10000, true, 0),
+  ('sunny_weather_machine', 1, 10000, true, 0),
+  ('rain_weather_machine', 1, 10000, true, 0),
+  ('clear_world', 1, 10000, true, 0),
   ('vending_machine', 1, 5000, true, 0),
-  ('display_box', 1, 1000, true, 0),
-  ('mannequin', 1, 2500, true, 0),
-  ('shovel', 1, 1500, true, 0),
+  -- (display_box / mannequin: recipes now, not sold; Oct 25 2026)
+  ('shovel', 1, 50000, true, 0),
   -- (golden_pickaxe: no longer sold, it is the level 100 reward: claim_level_reward)
-  ('name_changer', 1, 50000, true, 0), -- rename.js
-  ('world_transfer', 1, 20000, true, 0), -- rename.js
-  ('diamond_pickaxe', 1, 0, true, 150),
-  ('black_diamond_pickaxe', 1, 0, true, 250),
+  ('name_changer', 1, 30000, true, 0), -- rename.js
+  ('world_transfer', 1, 10000, true, 0), -- rename.js
+  ('diamond_pickaxe', 1, 0, true, 200),
+  ('black_diamond_pickaxe', 1, 0, true, 300),
   ('angel_wings', 1, 0, true, 30),
   ('tiny_angel_wings', 1, 0, true, 16),
   ('golden_wings', 1, 0, true, 120),
-  ('golden_aura', 1, 0, true, 120),
-  ('red_aura', 1, 0, true, 120),
+  ('golden_aura', 1, 0, true, 200),
+  ('red_aura', 1, 0, true, 200),
   ('dark_diamond_aura', 1, 0, true, 200),
-  ('diamond_aura', 1, 0, true, 150),
-  ('white_aura', 1, 0, true, 120),
-  ('super_saiyan_hair', 1, 0, true, 16),
-  ('seraph_wings', 1, 0, true, 36),
-  ('demon_wings', 1, 0, true, 42),
-  ('phoenix_wings', 1, 0, true, 150),
-  ('crystal_wings', 1, 0, true, 60),
-  ('fairy_wings', 1, 0, true, 48),
-  ('shadow_wings', 1, 0, true, 54),
-  ('celestial_wings', 1, 0, true, 84),
-  ('dragon_wings', 1, 0, true, 66),
-  ('leaf_wings', 1, 0, true, 36),
-  ('galaxy_wings', 1, 0, true, 96),
+  ('diamond_aura', 1, 0, true, 200),
+  ('white_aura', 1, 0, true, 200),
+  ('super_saiyan_hair', 1, 0, true, 200),
+  ('seraph_wings', 1, 20000, true, 0),
+  ('demon_wings', 1, 20000, true, 0),
+  ('phoenix_wings', 1, 20000, true, 0),
+  ('crystal_wings', 1, 20000, true, 0),
+  ('fairy_wings', 1, 20000, true, 0),
+  ('shadow_wings', 1, 20000, true, 0),
+  ('celestial_wings', 1, 20000, true, 0),
+  ('dragon_wings', 1, 20000, true, 0),
+  ('leaf_wings', 1, 20000, true, 0),
+  ('galaxy_wings', 1, 20000, true, 0),
   ('piano', 1, 3000, true, 0),
-  ('piano', 5, 12500, true, 0),
   ('genie_teapot', 1, 1000, true, 0),
+  ('microphone', 1, 2000, true, 0), -- globalchat.js: one Global Chat broadcast each
   -- outfit sets (sets.js): the set gives its pieces, which have recipes no more but aren't tracked
   ('set_gentleman', 1, 20000, false, 0),
   ('set_sporty', 1, 20000, false, 0),
@@ -1023,7 +1022,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_raptor', 1, 80000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('display_box', 1), ('mannequin', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('piano', 5), ('genie_teapot', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
@@ -1503,3 +1502,255 @@ returns text language sql stable security definer set search_path = public as $$
   select new_name from public.world_moves where old_name = p_old and at > now() - interval '10 minutes'
 $$;
 grant execute on function public.world_moved(text) to authenticated;
+
+-- ---------- NOTICE BOARD SUGGESTIONS (owner, Oct 25 2026; www/js/board.js) ----------
+-- Clicking a Notice Board shows its suggestions and a box to post one. Anyone signed in can post (not banned, not
+-- banned from that world): at most 120 letters, 3 posts per 30 s, the newest 100 per board are kept. The server puts
+-- the real name on each post. The poster, the world's owner and GMs remove posts; players who may build there clear
+-- a board when they break it. Safe to run more than once.
+create table if not exists public.board_posts (
+  id bigint generated always as identity primary key,
+  world text not null,
+  tile integer not null,
+  from_id uuid not null,
+  from_name text not null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists board_posts_board on public.board_posts (world, tile, id);
+create index if not exists board_posts_from on public.board_posts (from_id, created_at);
+alter table public.board_posts enable row level security;
+revoke all on public.board_posts from anon, authenticated;
+
+create or replace function public.board_list(p_world text, p_tile integer)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'n', from_name, 't', body,
+    'at', (extract(epoch from created_at) * 1000)::bigint) order by id), '[]'::jsonb)
+  from (select * from public.board_posts where world = p_world and tile = p_tile order by id desc limit 100) p
+$$;
+
+create or replace function public.board_post(p_world text, p_tile integer, p_text text)
+returns text language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); t text; n integer;
+begin
+  if me is null or public.is_banned() then raise exception 'You can''t post here' using errcode = '42501'; end if;
+  if p_world !~ '^[A-Z0-9]{1,16}$' then raise exception 'Bad world name'; end if;
+  if p_tile is null or p_tile < 0 or p_tile >= 100 * 60 then raise exception 'Bad tile'; end if;
+  if public.world_banned(p_world) then raise exception 'You are banned from this world' using errcode = '42501'; end if;
+  t := left(btrim(regexp_replace(coalesce(p_text, ''), '[[:cntrl:][:space:]]+', ' ', 'g')), 120); -- BOARD_MAX
+  if t = '' then raise exception 'Write your suggestion first' using errcode = 'P0001'; end if;
+  select count(*) into n from public.board_posts where from_id = auth.uid() and created_at > now() - interval '30 seconds';
+  if n >= 3 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
+  insert into public.board_posts (world, tile, from_id, from_name, body) values (p_world, p_tile, auth.uid(), me, t);
+  delete from public.board_posts where world = p_world and tile = p_tile and id not in
+    (select id from public.board_posts where world = p_world and tile = p_tile order by id desc limit 100);
+  return 'ok';
+end $$;
+
+create or replace function public.board_delete(p_id bigint)
+returns text language plpgsql security definer set search_path = public as $$
+declare r public.board_posts; own text;
+begin
+  select * into r from public.board_posts where id = p_id;
+  if not found then return 'gone'; end if;
+  select owner into own from public.worlds where name = r.world;
+  if r.from_id <> auth.uid() and not public.is_gm() and lower(coalesce(own, '')) <> lower(coalesce(public.my_name(), '-'))
+  then raise exception 'Only the poster or the world owner can remove this' using errcode = '42501'; end if;
+  delete from public.board_posts where id = p_id;
+  return 'ok';
+end $$;
+
+create or replace function public.board_clear(p_world text, p_tile integer)
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  if not public.can_edit_world(p_world) then raise exception 'You can''t build here' using errcode = '42501'; end if;
+  delete from public.board_posts where world = p_world and tile = p_tile;
+  return 'ok';
+end $$;
+grant execute on function public.board_list(text, integer), public.board_post(text, integer, text),
+  public.board_delete(bigint), public.board_clear(text, integer) to authenticated;
+
+-- ---------- MAILBOX: the GM's updates (owner, Oct 25 2026; www/js/mailbox.js) ----------
+-- The GM posts an update (title + text) from a Mailbox; every player's Mailbox shows its flag up until they read it.
+-- Everyone signed in can read them; only GMs post or remove. Safe to run more than once.
+create table if not exists public.announcements (
+  id bigint generated always as identity primary key,
+  title text not null default '',
+  body text not null,
+  by_name text,
+  created_at timestamptz not null default now()
+);
+alter table public.announcements enable row level security;
+revoke all on public.announcements from anon, authenticated;
+grant select on public.announcements to authenticated;
+drop policy if exists "announcements: read" on public.announcements;
+create policy "announcements: read" on public.announcements for select to authenticated using (true);
+create or replace function public.post_announcement(p_title text, p_body text)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare t text; b text; nid bigint;
+begin
+  if not public.is_gm() then raise exception 'Only the GM can post updates' using errcode = '42501'; end if;
+  t := left(btrim(regexp_replace(coalesce(p_title, ''), '[[:cntrl:]]', ' ', 'g')), 60);
+  b := left(btrim(coalesce(p_body, '')), 600);
+  if b = '' then raise exception 'Write the update first' using errcode = 'P0001'; end if;
+  insert into public.announcements (title, body, by_name) values (t, b, public.my_name()) returning id into nid;
+  return nid;
+end $$;
+create or replace function public.delete_announcement(p_id bigint)
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_gm() then raise exception 'Only the GM can remove updates' using errcode = '42501'; end if;
+  delete from public.announcements where id = p_id;
+  return 'ok';
+end $$;
+grant execute on function public.post_announcement(text, text), public.delete_announcement(bigint) to authenticated;
+
+-- ---------- MAILBOX LETTERS (owner, Oct 25 2026; www/js/mailbox.js) ----------
+-- Anyone signed in can put a letter (subject, text and up to 5 items) in a Mailbox (block 208) of a LOCKED world; it
+-- is for the world's owner. Everyone sees who sent each letter and its subject; only the owner gets the text and the
+-- items (Claim takes them out once), marks it read and deletes it (only once its items are claimed).
+-- At most 50 letters per Mailbox, one letter every 5 seconds per player. Safe to run more than once.
+create table if not exists public.mailbox_letters (
+  id bigint generated always as identity primary key,
+  world text not null,
+  tile integer not null,
+  from_id uuid not null,
+  from_name text not null,
+  subject text not null default '',
+  body text not null default '',
+  items jsonb not null default '[]'::jsonb,
+  is_read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists mailbox_letters_world on public.mailbox_letters (world, tile);
+create index if not exists mailbox_letters_from on public.mailbox_letters (from_id, created_at);
+alter table public.mailbox_letters enable row level security;
+revoke all on public.mailbox_letters from anon, authenticated;
+-- is the caller the owner of this world?
+create or replace function public.mailbox_mine(p_world text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.worlds w where w.name = p_world and w.owner is not null
+    and lower(w.owner) = lower(public.my_name()));
+$$;
+create or replace function public.mailbox_list(p_world text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare mine boolean;
+begin
+  if public.my_name() is null or public.is_banned() then return '[]'::jsonb; end if;
+  mine := public.mailbox_mine(p_world);
+  return coalesce((select jsonb_agg(case when mine then
+      jsonb_build_object('id', l.id, 'tile', l.tile, 'n', l.from_name, 's', l.subject, 'at', l.created_at,
+        'b', l.body, 'items', l.items, 'r', l.is_read)
+    else jsonb_build_object('id', l.id, 'tile', l.tile, 'n', l.from_name, 's', l.subject, 'at', l.created_at,
+        'k', jsonb_array_length(l.items)) end order by l.id desc)
+    from public.mailbox_letters l where l.world = p_world), '[]'::jsonb);
+end $$;
+create or replace function public.mailbox_send(p_world text, p_tile integer, p_subject text, p_body text, p_items jsonb)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); w public.worlds; t integer; s text; b text; e jsonb; clean jsonb := '[]'::jsonb;
+  n integer; nid bigint;
+begin
+  if me is null or public.is_banned() then raise exception 'You can''t send mail' using errcode = '42501'; end if;
+  select * into w from public.worlds where name = p_world;
+  if not found then raise exception 'This world isn''t saved yet' using errcode = 'P0001'; end if;
+  if w.owner is null then raise exception 'Nobody gets mail here: the world isn''t locked' using errcode = 'P0001'; end if;
+  begin
+    t := get_byte(decode(w.data ->> 'fg', 'base64'), p_tile);
+  exception when others then t := -1;
+  end;
+  if t <> 208 then raise exception 'There is no Mailbox there' using errcode = 'P0001'; end if;
+  s := left(btrim(regexp_replace(coalesce(p_subject, ''), '[[:cntrl:]]', ' ', 'g')), 40);
+  b := left(btrim(coalesce(p_body, '')), 300);
+  if s = '' then raise exception 'Write a subject first' using errcode = 'P0001'; end if;
+  if jsonb_typeof(p_items) = 'array' then
+    if jsonb_array_length(p_items) > 5 then raise exception 'At most 5 items' using errcode = 'P0001'; end if;
+    for e in select * from jsonb_array_elements(p_items) loop
+      if jsonb_typeof(e) <> 'array' or coalesce(e ->> 0, '') !~ '^[a-z0-9_]{1,40}$'
+        or jsonb_typeof(e -> 1) <> 'number' or (e ->> 1)::numeric < 1 or (e ->> 1)::numeric > 200 then
+        raise exception 'Bad item' using errcode = 'P0001';
+      end if;
+      clean := clean || jsonb_build_array(jsonb_build_array(e ->> 0, floor((e ->> 1)::numeric)::integer));
+    end loop;
+  end if;
+  select count(*) into n from public.mailbox_letters where from_id = auth.uid() and created_at > now() - interval '5 seconds';
+  if n > 0 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
+  select count(*) into n from public.mailbox_letters where world = p_world and tile = p_tile;
+  if n >= 50 then raise exception 'This Mailbox is full' using errcode = 'P0001'; end if;
+  insert into public.mailbox_letters (world, tile, from_id, from_name, subject, body, items)
+    values (p_world, p_tile, auth.uid(), me, s, b, clean) returning id into nid;
+  return nid;
+end $$;
+-- the owner takes the items out (once): returns them
+create or replace function public.mailbox_claim(p_id bigint)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare l public.mailbox_letters;
+begin
+  select * into l from public.mailbox_letters where id = p_id for update;
+  if not found then raise exception 'That letter is gone' using errcode = 'P0001'; end if;
+  if not public.mailbox_mine(l.world) then raise exception 'This mail isn''t yours' using errcode = '42501'; end if;
+  update public.mailbox_letters set items = '[]'::jsonb, is_read = true where id = p_id;
+  return l.items;
+end $$;
+create or replace function public.mailbox_read(p_id bigint)
+returns text language plpgsql security definer set search_path = public as $$
+declare wn text;
+begin
+  select world into wn from public.mailbox_letters where id = p_id;
+  if wn is null or not public.mailbox_mine(wn) then raise exception 'This mail isn''t yours' using errcode = '42501'; end if;
+  update public.mailbox_letters set is_read = true where id = p_id;
+  return 'ok';
+end $$;
+create or replace function public.mailbox_delete(p_id bigint)
+returns text language plpgsql security definer set search_path = public as $$
+declare l public.mailbox_letters;
+begin
+  select * into l from public.mailbox_letters where id = p_id for update;
+  if not found then return 'ok'; end if;
+  if not public.mailbox_mine(l.world) then raise exception 'This mail isn''t yours' using errcode = '42501'; end if;
+  if jsonb_array_length(l.items) > 0 then raise exception 'Claim the items first' using errcode = 'P0001'; end if;
+  delete from public.mailbox_letters where id = p_id;
+  return 'ok';
+end $$;
+revoke execute on function public.mailbox_mine(text) from public, anon;
+grant execute on function public.mailbox_list(text), public.mailbox_send(text, integer, text, text, jsonb),
+  public.mailbox_claim(bigint), public.mailbox_read(bigint), public.mailbox_delete(bigint) to authenticated;
+
+-- ---------- GLOBAL CHAT (owner, Oct 25 2026; www/js/globalchat.js) ----------
+-- Everyone sees the Global Chat panel. Sending a broadcast uses up one Microphone (Shop item, tracked in
+-- owned_items; GMs send for free). The server puts the real name and the sender's world on it, keeps the newest 200,
+-- and sends it live on the 'global' topic (players can only listen there; the receive policy above allows it).
+-- At most one broadcast every 3 seconds per player. Safe to run more than once.
+create table if not exists public.global_chat (
+  id bigint generated always as identity primary key,
+  from_id uuid not null,
+  from_name text not null,
+  world text not null default '',
+  body text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists global_chat_from on public.global_chat (from_id, created_at);
+alter table public.global_chat enable row level security;
+revoke all on public.global_chat from anon, authenticated;
+grant select on public.global_chat to authenticated;
+drop policy if exists "global chat: read" on public.global_chat;
+create policy "global chat: read" on public.global_chat for select to authenticated using (not public.is_banned());
+create or replace function public.send_broadcast(p_text text, p_world text)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); t text; w text; n integer; nid bigint;
+begin
+  if me is null or public.is_banned() then raise exception 'You can''t broadcast' using errcode = '42501'; end if;
+  t := left(btrim(regexp_replace(coalesce(p_text, ''), '[[:cntrl:]]', ' ', 'g')), 120);
+  if t = '' then raise exception 'Write something first' using errcode = 'P0001'; end if;
+  select count(*) into n from public.global_chat where from_id = auth.uid() and created_at > now() - interval '3 seconds';
+  if n > 0 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
+  perform public.use_owned('microphone'); -- one Microphone per broadcast (GMs: free); none = an error
+  w := case when coalesce(p_world, '') ~ '^[A-Z0-9]{1,16}$' then p_world else '' end;
+  insert into public.global_chat (from_id, from_name, world, body) values (auth.uid(), me, w, t) returning id into nid;
+  delete from public.global_chat where id < nid - 200;
+  begin
+    perform realtime.send(jsonb_build_object('id', nid, 'u', auth.uid(), 'n', me, 'w', w, 't', t), 'g', 'global', true);
+  exception when others then null; -- (the game also reads the table every few seconds)
+  end;
+  return nid;
+end $$;
+grant execute on function public.send_broadcast(text, text) to authenticated;

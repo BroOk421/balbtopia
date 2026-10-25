@@ -24,6 +24,9 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `signs.js` | Sign text (`signs` Map, saved with the world, `sign` realtime event), the bubble when you stand on a sign, wrench editing, and the RECIPES world builder |
 | `wear.js` | Everything you wear (`WEAR`: shirt/pants/feet repaint the body sprite per frame via `outfitBody`; hats, face, back and hairstyles are drawn overlays `WEAR_ART`) and hand tools (`TOOLS`: pickaxes, shovel, sword...), `hitsNeeded`, tool sparkles, Laser Eyes |
 | `vend.js` | Vending Machine: stock, price in World Locks, buying, collecting; saved per tile in the world (`vends`) |
+| `coins.js` | Single coins joining (5 of a kind in one tile -> 1 of the next), coin grow-in, `merge` realtime event |
+| `board.js` | Suggestion Board (block 127, id notice_board) pop-up, opened with the wrench (server `board_posts`, offline localStorage) |
+| `popguard.js` | Pop-ups take no taps for 350 ms after appearing on touch screens (`justopened`); grow-in animation is CSS `popGrow` |
 | `display.js` | Display Box (`displays`: tile -> item) and Mannequin (`manns`: tile -> { slot: item }), wrench dialogs, drawing, `show` realtime event |
 | `shop.js` | Shop window and items (Door Mover, Signal/Punch Jammer, Clear World, World Lock packs), Diamond / Black Diamond Locks, `isLockT`, double-click lock compressing |
 | `world.js` | World generation, `solidAt`, autotile masks |
@@ -37,11 +40,14 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `social.js` | `dialog()` pop-up helper, trade/friends/messages/email/gifts, world chat (CHAT button) |
 | `weather.js` | Snow Weather Machine block and the snowy weather: winter backdrop, falling snow, white flash |
 | `rest.js` | Sitting on chairs and sleeping in beds (pose, Zzz, 3 s wait, one player per bed / seat tile) |
-| `lobby.js` | The LOBBY world (empty, door in the middle; the owner builds it); everyone lands there after PLAY |
+| `lobby.js` | Every player's OWN LOBBY: an 11 x 6 room round the main door, bedrock everywhere else, saved in the player save (`lobby`) |
 | `gates.js` | Gates (Portcullis, Iron Bars), water from the Water Bucket (swimming), Death Spikes / Stalactite kill on touch |
 | `worlds.js` | Saving/loading worlds (`worldData` / `applyWorld`), entering worlds, world list |
 | `art64.js` | 64 x 64 art (painter `pix64Canvas`, steel colours `ST64`): Steel Block; the punching fist (`FIST_REF`) |
 | `steel.js` | Steel Beam / Steel Bridge platforms (blocks 162-163, 64 px art via `pix64Canvas`) |
+| `mailbox.js` | Mailbox block (208): flag up while you have unread email / a GM update; wrench = inbox + GM updates (server `announcements`) |
+| `globalchat.js` | Global Chat panel (top left, globe button), Microphone item (2,000 gold, one per broadcast), /go, name pop-up (Message / Add friend / Block 10 min) |
+| `letters.js` | A-Z, 0-9 and arrow blocks (168-207): `GLYPH_BLOCKS` (id, name, recipe seeds), `FONT57`, `glyphPic` |
 | `ui.js`, `menu.js` | Hotbar, bag (50 slots), item info, gold counter; menu tabs, XP and levels |
 
 ## Rules that are easy to break
@@ -49,7 +55,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js). fg / bg are Uint8Arrays: 255 is the LAST possible block number (47 left). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -1144,3 +1150,156 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   - ATM pay-out click: no smoke, no coloured squares (burst), no shake; only the punch pose, pickup sound and haptic.
     Breaking the ATM still has the normal break effects.
   - GAME_BUILD '2026-10-24 h'.
+- Oct 25 2026 (owner):
+  - Vending Machine / Display Box: ONLY the wrench opens them. Holding an item and clicking no longer puts it in
+    (`useVend` / `useDisplay` removed; such a click is a normal click: a block in hand does nothing on the taken tile,
+    fist / clothes / tools punch). Empty machine wrenched by the owner: straight to the bag (no Confirm / Cancel),
+    tapping an item opens `vendOwner(i, id)` (Qty, price). Empty Display Box wrenched: straight to the bag, tapping an
+    item puts one in (`putDisplay`; the `askDisplay` "Put in" pop-up is gone).
+  - ATM pay-out click: the breaking smoke again (`smoke(x, y, 11, 1.6)`; still no burst / shake). Every single coin
+    (`ck`) grows from 0 to its size when it appears (`coinGrow`, coins.js, used by drawGoldPile).
+  - Coins join (`coins.js`, after atm.js): 5 single coins (`ck`) of one kind in one tile (each on the floor for
+    `MERGE_WAIT` 0.45 s) fly together (`MERGE_FLY` 260 ms; not pickable meanwhile: `d.mg`) and become 1 of the next kind
+    (`COIN_UP`: small bronze -> big bronze -> small silver -> small gold -> big gold; big gold is the last). The new coin
+    is worth the SUM of the 5 (ATM silver 5 / block silver 25, so value per kind can differ), keeps their `by` if all
+    the same and the newest `born`, pops in with sparkles. Coins keep falling while others join; joins chain. Online
+    one player decides (`coinBoss`: lowest player id in the world; offline / LOBBY: you) and sends `merge`
+    { us: [5 uids], d: new drop } on world:NAME (`Net.sendMerge`, `netMerge`). A take that crosses a merge takes its
+    value off the new coin (`mergedFrom`, wrapped `netTake`).
+  - Notice Board (block 127) suggestions (`board.js`): click it within reach (not holding a tool: a tool punches it,
+    so it can be broken) -> pop-up SUGGESTIONS (count in the title), list (newest at the bottom, max-height
+    min(42vh, 260px), scrolls), input + Post at the bottom (120 letters, Enter posts). x on a post for its poster, the
+    world owner, GMs. Online: schema.sql `board_posts` + `board_list` / `board_post` (real name from the server, 3
+    posts per 30 s, newest 100 kept) / `board_delete` / `board_clear` (can_edit_world; called when a board is broken);
+    `board` { i } on world:NAME reloads an open board. Offline / LOBBY: localStorage `balbtopia.board.WORLD.TILE`.
+    Re-run schema.sql.
+  - GAME_BUILD '2026-10-25 a'.
+- Oct 25 2026 (owner, later):
+  - Notice Board renamed Suggestion Board (id `notice_board`, block 127 unchanged). Its pop-up opens with the WRENCH
+    (`wrenchBlock` + act's wrench branch -> `openBoard`); a click is a normal punch (`useBoard` removed).
+  - One press = one jump: `keydown` ignores `e.repeat` for the jump buffer (holding Space used to jump again on landing
+    and fire the wings' air jump by itself). A new press in the air still uses the wings.
+  - Mannequin wrench: `openMannequin` = small pop-up (3-column slots, 26 px pictures; tap a filled slot = take off) on
+    the LEFT and the bag on the RIGHT (`body.mannmode`, CSS vars --mw/--bw/--mg centre the pair; phone landscape
+    smaller; portrait stacks). The bag is in a pick mode that stays open (`bagPick.keep`, `bagPick.onClose`):
+    tapping clothes / a tool puts it in its slot (`mannPutOn`). Closing either window closes both (`mannClose`). The
+    item dropdown and Put on button are gone. Holding a wearable and clicking (`useMannequin`) still works.
+  - Disco Ball on/off: no toast.
+  - Left Arrow Board (block 167, sign, `arrow_placard_left`): the Arrow Board's HD art mirrored; recipe Arrow Board +
+    Arrow Board (farming.json + SPLICE).
+  - Steel Bridge art fills the whole tile height (bottom chord at 57-62 of 64, braces / post / end posts longer);
+    icon uses the full 64.
+  - Every pop-up (.win, .pop) grows in (`popGrow`, CSS `scale`, 0.2 s). On touch screens a pop-up that just appeared
+    (or a dialog replaced by another) takes no taps for 350 ms (`popguard.js`), so the opening tap can't press a
+    button in it (a world in the list).
+  - GAME_BUILD '2026-10-25 b'.
+- Oct 25 2026 (owner, later 2):
+  - Suggestion Board wrench badge shows for EVERY player (anyone may read / post), not only builders (signs.js
+    `drawSetupBadges`).
+  - Disco Ball / Boombox: switching on/off AND breaking need `realAccess(name, i)` (lock.js): the Gold Lock's owner /
+    list / open world, or the Red / Blue Lock's rules on its area; GMs always. A spot no lock covers gives nobody
+    access (toast "Put this ... inside your lock to use it"). Checked in act before the toggles.
+  - Disco Ball switched off = frame 2 of its HD art: still ball, no coloured spots, no "+" sparkles.
+  - Pop-ups grow from their OWN centre: `popOrigin` (popguard.js) sets transform-origin = half size + the window's
+    transform shift, because the CSS `scale` also scaled the centring translate(-50%,-50%).
+  - Profile SPAWN button: just "SPAWN", red with white letters (`.btn.spawnbtn`).
+  - Shop prices (owner): Door Mover 10,000, Signal / Punch Blocker 15,000 each, Clear World 10,000, Snow / Sun / Rain
+    Machine 10,000 each, ATM 10,000, Change Name 30,000, World Transfer 10,000, Shovel 50,000; all auras 200 BC,
+    Golden Spike Hair 200 BC, Diamond Pickaxe 200 BC, Black Diamond Pickaxe 300 BC; Seraph, Demon, Phoenix and every
+    wing after Phoenix in the list (Crystal, Fairy, Shadow, Celestial, Dragon, Leaf, Galaxy) 20,000 GOLD (no BC).
+    Angel, Tiny Angel, Golden Wings unchanged. Piano: one card only (the x5 pack is gone). schema.sql matches.
+  - Display Box and Mannequin are OUT of the Shop (and shop_prices, so no longer tracked) and grow from recipes:
+    Display Box = Glass Block + Wooden Table (300 s), Mannequin = White Block + Wooden Chair (360 s); seeds made in
+    display.js; farming.json + SPLICE. They show up in the RECIPES world by themselves.
+  - Re-run schema.sql. GAME_BUILD '2026-10-25 c'.
+- Oct 25 2026 (owner, later 3):
+  - Daily quests: a Rare-or-higher (Balb Coin) quest asks 150-200 for every seed / block count (plant, break, send
+    blocks, send seeds; `QUEST_RARE_N`, `questBig(id|kind)` = fixed per quest so every device agrees). Harvest counts
+    unchanged; Common / Uncommon quests unchanged.
+  - AFK logout after 15 min (`AFK_MS`, was 30) and no note on the log in screen. Closing the game doesn't get round it:
+    the last activity is kept in localStorage `balbtopia.lastActive` (every 5 s while active + on pagehide); opening
+    the game AFK_MS or more after it clears the offline session and sets `FORGET_KEY` / drops `ALIVE_KEY` so
+    `initOnline` signs the online session out (wrapped `initAuth`).
+  - Menu -> SPAWN plays the spike sound ('ouch') like touching spikes (physics.js `die`).
+  - Dropping an item: it flies OUT of the player to where it lands, growing from 40% to full size, the pick-up
+    vacuum backwards (`dropOut(d, from)` / `unvacs` / `OUT_MS` 280 in actions.js; drawn in render.js; the drop is
+    hidden while it flies: `d.outT`). Own drops via `spawnItemDrop`; other players' fresh drops (`netDrop` with `b`
+    = a player here, under 1.5 s old, not gold) fly out of them.
+  - Letter / number / arrow blocks (`letters.js`, after steel.js): 40 solid blocks (168-207), 32 px pictures with big
+    pixels: bevelled tile in 2 px steps, the glyph a 5 x 7 font at 3 px a dot (arrows 7 x 7, turned from the up
+    arrow), drawn from a pixel mask with bridges on diagonals, 1 px dark outline, shadow and lit stroke tops.
+    Letters: cream toy block, 6 inks in turn; numbers: navy block, gold; arrows: green block, white. Recipes
+    (tree 180 s): letters A-T = Sign + a coloured block, U-Z = Old Sign + a coloured block, 0-9 = Old Sign + a
+    coloured block, arrows = Arrow Sign + White / Black / Red / Grey Block (farming.json + SPLICE; all 40 listed in
+    `GLYPH_BLOCKS`). They show in the RECIPES world by themselves.
+  - GAME_BUILD '2026-10-25 d'.
+- Oct 25 2026 (owner, later 4): every player has their OWN LOBBY (`lobby.js`, rewritten).
+  - The room: `LOBBY_W` x `LOBBY_H` = 11 x 6 tiles (`lobbyBox`: x WW/2 +-5, y FLOOR_ROW-5 .. FLOOR_ROW), the main door at
+    (WW/2, FLOOR_ROW-1) as before, the bedrock under it stays. Everything outside the room is BEDROCK. New lobby
+    (`buildLobbyBase`): Wood Block frame round the room (its bottom row is the floor row), Wooden Background inside.
+  - Only the room's tiles can be built on (`lobbyTile` / `LOBBY_TILES`; `hasAccess` in lock.js: in the LOBBY only you,
+    only the room; `canEdit` toasts "You can only build inside your lobby"; `realAccess` follows it). The floor row of
+    the room is open (`floorClosed(x, y)` in act, `fixFloor` skips the room). No locks (act), no Door Mover / Clear
+    World (`ownWorldOnly`).
+  - Saved in the PLAYER save as `lobby` = { f, b, v (the room's tiles in LOBBY_TILES order), trees, signs, disp, mann,
+    vends, songs, atm, drops } (`lobbyData`, wrapped playerData / applyPlayer; `saveWorld` in the LOBBY only updates
+    `myLobby`, force = savePlayer). Entering the LOBBY never fetches a world: `buildMyLobby` (worlds.js
+    `enterWorldNow`) = the base room + the saved tiles (locks dropped, the door tile kept clear) + the maps through
+    `applyWorld`. Still no realtime channel there, so nobody else sees it. The old shared LOBBY world on the server
+    (the GM's build) is no longer used.
+  - GAME_BUILD '2026-10-25 e'.
+- Oct 25 2026 (owner, later 5): LOBBY: no bedrock walls / ceiling any more, only the bedrock floor (the scenery shows
+  round the room); invisible walls round the room (`lobbyWall`, checked in world.js `solidAt`). Camera fixed on the
+  room (`lobbyZoom`: the room fits 95% of the width / 86% of the height, set in render.js `resize`; `lobbyCam` in
+  main.js and after entering, worlds.js calls `resize()`), the Camera setting doesn't change it there.
+  GAME_BUILD '2026-10-25 f'.
+- Oct 25 2026 (owner, later 6):
+  - The GM keeps the OLD shared LOBBY world he built (server world `LOBBY`, rv `LOBBY_V` 'LOBBY:3', `buildGmLobby` only
+    when missing): loaded / saved like any world, no room walls, no own-lobby rules (`ownLobby()` = LOBBY and not the
+    GM; used by hasAccess / canEdit / realAccess / floorClosed / fixFloor / lobbyWall / locks / ownWorldOnly /
+    saveWorld / enterWorldNow). The fixed lobby camera is for every lobby, the GM's too.
+  - Players' own lobby: no background any more (open sky inside the wood frame) and a Mailbox on the right
+    (x1-1, y1-1) in a new lobby (`OWN_LOBBY_V` 'OWN:1').
+  - Mailbox (`mailbox.js`, block 208, walk-through, 32 px art: red box on a steel post; frame 1 = flag up + a letter):
+    drawn per viewer, flag up while `hasNewMail()` (unread email or a GM update newer than `annSeen`, saved with the
+    player). Wrench (everyone, badge for everyone): MAILBOX pop-up = inbox line (Open Email -> Menu Email) + Updates
+    list (reading marks them seen) + for GMs a Post update form and x per update. Server: schema.sql `announcements`,
+    `post_announcement(title, body)` / `delete_announcement(id)` (GM only); offline localStorage `balbtopia.updates`.
+    Updates re-read every 60 s and on entering the lobby (wrapped enterWorldNow); a new one toasts. Recipe Mailbox =
+    Red Block + Steel Block (240 s).
+  - Wood Block outline 1 px (`edgeW`, like Bricks; owner: too thick).
+  - Re-run schema.sql. GAME_BUILD '2026-10-25 g'.
+- Oct 25 2026 (owner, later 7): Mailbox art redrawn with BIG pixels (16 x 16 grid of 2 px cells) and a thin 1 px outline
+  round the shape; empty = the yellow flag lies flat on the box's side (no grey bar sticking out on the left any
+  more), mail = flag up on a dark pole at the left + a letter out of the top. GAME_BUILD '2026-10-25 h'.
+- Oct 25 2026 (owner, later 8):
+  - Mailbox: no longer placed in new lobbies. New art (owner's mockup): a tall BLUE box with a round top, a light line
+    along the top like a stroke, a dark slot in its upper part; frame 1 = a white envelope sticking out of the slot.
+    Still 2 px cells + 1 px outline.
+  - A world takes at most `WORLD_MAX` (30, config.js) players: `enterWorldNow` counts `Net.people` (lobby presence)
+    whose world is that one and refuses with a toast; the world's owner and GMs always get in, the LOBBY never counts.
+  - Global Chat (`globalchat.js`, after mailbox.js): top-left panel `#gchat` (built in JS, CSS at the end of style.css),
+    minimised = round globe button (red dot when something new came), open = header (GLOBAL, mic count, - button),
+    list "name: message" (newest at the bottom, `GCHAT_KEEP` 60), input + Send (Enter). Open/closed kept in
+    localStorage `balbtopia.gopen`; shown only while in a world. Broadcasting needs a Microphone (`microphone`,
+    consumable, `noDrop`, Shop WORLD 2,000 gold, tracked): one used per message (server `use_owned`; the game then
+    `takeItem`s one; GMs free). "/go" = enter the world of the newest message not from you / not blocked (not a
+    lobby). Tapping a name: Message (composeMessage) / Add friend (friend_req) / Block this player (hides their
+    messages for `GMUTE_MS` 10 min, localStorage `balbtopia.gmute`) / Close. Server (schema.sql): `global_chat` table
+    (readable by everyone signed in), `send_broadcast(text, world)` (real name, 120 letters, 1 per 3 s, uses a
+    Microphone, keeps 200, `realtime.send` event 'g' on topic 'global'; the receive policy now allows 'global'),
+    `shop_prices` row microphone. The game joins 'global' (`Net.joinGlobal`) and also reads the table every 8 s
+    (`Net.globalList(after)`), so nothing is lost if realtime is off. Offline: only your own messages.
+  - Re-run schema.sql. GAME_BUILD '2026-10-25 i'.
+- Oct 25 2026 (owner, later 9): Mailbox shows "MAIL" under the slot (1 px font, light with a dark drop shadow, centred),
+  like the owner's mockup. GAME_BUILD '2026-10-25 j'.
+
+- Oct 25 2026 (build k): lobbyCam centres on the MAIN DOOR (door.x, door.y - 1), not on LOBBY_BOX: the GM moved his lobby door, so the camera showed empty sky + bedrock. Own lobbies are unchanged (door in the middle).
+
+- Oct 25 2026 (build l): Mailbox = letters for the WORLD OWNER (mailbox.js). Wrench -> list (name + subject; owner gets Claim / Read / Delete, others only see the list), Create -> NEW MAIL left + bag right (`mannmode mailmode`), subject + text + 5 item slots, Submit. Updates (GM news + email line) moved behind an Updates button. Envelope shows while letters are inside; a Mailbox with letters cannot be broken. Server: schema.sql `mailbox_letters` + mailbox_list/_send/_claim/_read/_delete (re-run schema.sql). Piano: wrench only now (actions.js), wrench badge in its middle for everyone.
+
+- Oct 25 2026 (build m): Question Door (block 209, qdoor.js; Door + Steel Block): a door with a list of destinations (`qdoors`, world save `qd`, show event k "q"). Quick click = list pop-up (pick one: zoom + go to that world/door ID); holding the click punches/breaks it (qdFirst/qdPress round input.js pointerdown). Wrench (builders) = label + list + "Create door destination" (world, ID, name; checked that the door exists via Net.peekWorld / local store), sorted A-Z / 1-9, max 20. All doors now have an optional label in their text ("#id /W#n |label", signs.js doorInfo/setDoor), shown in a bubble above the door while standing in it. Mail item slots smaller.
+
+- Oct 25 2026 (build n): Question Door renamed MYSTERY DOOR (item id stays question_door). Its pop-ups have a Search box (name / world) and a scrolling list (smaller on phones: `.dlg:has(.qdoor)` media rule); the wrench pop-up has Search instead of the Label and no help note; its inputs are styled like the game boxes (`.qdoor input`). Players add up to `QD_USER_MAX` 50, the RECIPES world up to `QD_MAX` 600. RECIPES world (`L10:`): a Door beside EVERY recipe sign (right side, label = the item name) and a Mystery Door right of the main door (label RECIPES) listing all of them A-Z by item name.
+
+- Oct 25 2026 (build o): Microphone picture = a yellow megaphone (owner's photo) in big pixels (`micPic`, globalchat.js: 16 x 16 grid of 2 px cells worked out from shapes, 1 px outline). Global Chat button is square like the top-right menu buttons, with a red rounded count of new messages (`gUnread`, `.gbadge`, white number, 99+). Messages from before you came online are never shown: the first read after login only notes the newest id (`gPrimed`).

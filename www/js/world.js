@@ -75,6 +75,8 @@ const solidAt = (x, y) => {
   if (x < 0 || x >= WW) return true;
   if (y < 0) return true; // the top of the world is a ceiling (owner, Oct 24 2026): nobody goes above the top row
   if (y >= WH) return true;
+  // your own LOBBY: invisible walls round the room (lobby.js), so nobody walks out into the open air
+  if (worldName === LOBBY_WORLD && lobbyWall(x, y)) return true; // (only a player's own lobby has walls)
   const t = fg[at(x, y)];
   if (t !== EMPTY && BLOCK[t].gate) return !gatePass(at(x, y), playerName); // gates.js: shut unless you may pass
   return t !== EMPTY && BLOCK[t].solid !== false;

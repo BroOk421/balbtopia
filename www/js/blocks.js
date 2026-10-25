@@ -153,7 +153,7 @@ const NEW_ITEMS = [
   { id: 'lantern', t: 124, name: 'Lantern', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 240, seed: ['#ffb030',  '#3a2a1a',  '#fff0a0'], fx: ['#ffb030',  '#fff0a0',  '#3a2a1a'], desc: "A little hanging lantern with a flickering flame. Lantern = Glass Pane + Torch." },
   { id: 'flower_pot', t: 125, name: 'Flower Pot', kind: 'deco', hits: 2, rarity: 'Common', grow: 200, seed: ['#c86a3a',  '#7a3a1a',  '#ffd23f'], fx: ['#c86a3a',  '#ffd23f',  '#4caf3a'], desc: "A clay pot with a happy yellow flower. Flower Pot = Brown Block + Daisy." },
   { id: 'sunflower', t: 126, name: 'Sunflower', kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 240, seed: ['#ffc81e',  '#6a4010',  '#4caf3a'], fx: ['#ffc81e',  '#4caf3a',  '#6a4010'], desc: "A tall sunflower that follows the sun. Sunflower = Daisy + Yellow Block." },
-  { id: 'notice_board', t: 127, name: 'Notice Board', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 260, seed: ['#a86c3c',  '#5a3a20',  '#f2e8c8'], fx: ['#a86c3c',  '#f2e8c8',  '#ff6a5a'], desc: "A cork board covered in notes and pins. Notice Board = Sign + Wood Block." },
+  { id: 'notice_board', t: 127, name: 'Suggestion Board', kind: 'deco', hits: 3, rarity: 'Uncommon', grow: 260, seed: ['#a86c3c',  '#5a3a20',  '#f2e8c8'], fx: ['#a86c3c',  '#f2e8c8',  '#ff6a5a'], desc: "A cork board for suggestions. Wrench it to read what everyone suggested and post your own. Suggestion Board = Sign + Wood Block." },
   { id: 'fish_tank', t: 128, name: 'Fish Tank', kind: 'deco', hits: 3, rarity: 'Rare', grow: 300, seed: ['#3a8ad8',  '#1a3a6a',  '#9fd6f5'], fx: ['#3a8ad8',  '#9fd6f5',  '#ff8a2a'], desc: "A glass tank with little fish swimming around. Fish Tank = Blue Block + Glass Pane." },
   { id: 'magic_mushroom', t: 129, name: 'Magic Mushroom', kind: 'deco', hits: 2, rarity: 'Rare', grow: 300, seed: ['#a040e0',  '#4a1a6a',  '#ffb0ff'], fx: ['#a040e0',  '#ffb0ff',  '#fff6c0'], desc: "A glowing purple mushroom with sparkling spots. Magic Mushroom = Mushroom + Torch." },
   { id: 'lava_lamp', t: 130, name: 'Lava Lamp', kind: 'deco', hits: 3, rarity: 'Rare', grow: 320, seed: ['#ff5a2a',  '#3a2a4a',  '#ffd040'], fx: ['#ff5a2a',  '#ffd040',  '#8a3aa0'], desc: "Slow blobs of lava rise and fall inside. Lava Lamp = Glass Pane + Lava." },
@@ -165,7 +165,8 @@ const NEW_ITEMS = [
   { id: 'viney_wallpaper', bgId: 30, name: "Vine Wallpaper", kind: 'bg', rarity: 'Common', grow: 172, seed: ["#38732d", "#1a3a14", "#62e4a7"], fx: ["#38732d", "#62e4a7", "#1a3a14"], desc: "A dark jungle wall of tangled vines. Vine Wallpaper = Dark Aqua Block + Grass." },
   { id: 'evil_brick_background', bgId: 31, name: "Dark Brick Wall", kind: 'bg', rarity: 'Rare', grow: 436, seed: ["#2b2b2b", "#140608", "#f40000"], fx: ["#2b2b2b", "#f40000", "#140608"], desc: "Near-black bricks with glowing red mortar, for behind your blocks. Dark Brick Wall = Red Wallpaper + Red Bricks." },
   { id: 'street_sign', t: 132, name: "Street Sign", kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 180, seed: ["#2f8a4a", "#5a606e", "#ffffff"], fx: ["#2f8a4a", "#ffffff", "#5a606e"], sign: true, desc: "A green street-name plate on a grey pole. Wrench it to write the street name. Street Sign = Arrow Sign + Sidewalk." },
-  { id: 'arrow_placard', t: 133, name: "Arrow Board", kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 196, seed: ["#c98a52", "#6b4424", "#ff8a1e"], fx: ["#c98a52", "#ff8a1e", "#6b4424"], sign: true, desc: "A wooden board on a post with a big arrow. Wrench it to write on it. Arrow Board = Big Arrow + Notice Board." },
+  { id: 'arrow_placard', t: 133, name: "Arrow Board", kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 196, seed: ["#c98a52", "#6b4424", "#ff8a1e"], fx: ["#c98a52", "#ff8a1e", "#6b4424"], sign: true, desc: "A wooden board on a post with a big arrow. Wrench it to write on it. Arrow Board = Big Arrow + Suggestion Board." },
+  { id: 'arrow_placard_left', t: 167, name: "Left Arrow Board", kind: 'deco', hits: 2, rarity: 'Uncommon', grow: 196, seed: ["#c98a52", "#6b4424", "#ff8a1e"], fx: ["#c98a52", "#ff8a1e", "#6b4424"], sign: true, desc: "A wooden board on a post with a big arrow pointing left. Wrench it to write on it. Left Arrow Board = Arrow Board + Arrow Board." },
   { id: 'jade_block', t: 134, name: "Jade Block", kind: 'block', hits: 5, rarity: 'Uncommon', grow: 252, seed: ["#268c7c", "#15453d", "#5ad0b8"], fx: ["#268c7c", "#5ad0b8", "#15453d"], edge: ["#0a221e", "#5ad0b8", "#15453d"], desc: "Carved green jade with a polished bevel. Jade Block = Dark Aqua Block + Dark Green Block." },
   { id: 'viney_block', t: 135, name: "Vine Block", kind: 'block', hits: 4, rarity: 'Common', grow: 172, seed: ["#6a707e", "#2a6e22", "#4caf3a"], fx: ["#6a707e", "#4caf3a", "#2a6e22"], edge: ["#1a1e24", "#9be36b", "#2a6e22"], desc: "A stone block wrapped in leafy green vines. Vine Block = Dark Green Block + Grass." },
   { id: 'iron_bars', t: 136, name: "Iron Bars", kind: 'block', hits: 6, rarity: 'Uncommon', grow: 268, seed: ["#959595", "#585858", "#d0d0d0"], fx: ["#959595", "#d0d0d0", "#585858"], desc: "Heavy iron jail bars. You can see through them but not walk through. Iron Bars = Plumbing + Death Spikes." },
@@ -260,6 +261,7 @@ for (const id of ['sign', 'crappy_sign', 'pointy_sign']) BLOCK[ITEMS[id].block].
 BLOCK[ITEMS.picket_fence.block].front = true;
 // Bricks: a 1 px outline where they face air (owner found 2 px too thick)
 BLOCK[ITEMS.bricks.block].edgeW = 1;
+BLOCK[ITEMS.wood_block.block].edgeW = 1; // thinner outline on Wood Blocks too (owner, Oct 25 2026: it was too thick)
 // these old blocks get chip colours here too
 BLOCK[DOOR].fx = ['#a86c3c', '#6b4424', '#c98a52'];
 const isPlat = (x, y) => inW(x, y) && !!(BLOCK[fg[at(x, y)]] || {}).plat;
@@ -2066,7 +2068,7 @@ function drawNewBlock(b, x, y, px, py, T) {
         : b.id === 'wooden_platform'
           ? (x > 0 && fg[at(x - 1, y)] === fg[at(x, y)] ? 1 : 0) | (x < WW - 1 && fg[at(x + 1, y)] === fg[at(x, y)] ? 2 : 0)
           : vari[at(x, y)] & ANIM_OFF && ANIM_TOGGLE.has(b.id)
-            ? 0 // switched off: stays on its first frame
+            ? b.id === 'disco_ball' ? 2 : 0 // switched off: stays on its first frame (the Disco Ball: frame 2, no sparkles)
             : isJamT(fg[at(x, y)]) && jamOff(at(x, y))
               ? JAM_OFF_FRAME // a jammer switched off: dark and still (shop.js)
               : decoFrame(b.id);
@@ -2286,7 +2288,8 @@ const ANIM_TOGGLE = new Set(['disco_ball']);
 const canStopAnim = (t) => !!(BLOCK[t] && ANIM_TOGGLE.has(BLOCK[t].id));
 function toggleAnim(i) {
   vari[i] ^= ANIM_OFF;
-  toast(BLOCK[fg[i]].name + (vari[i] & ANIM_OFF ? ': off' : ': on'));
+  // no 'Disco Ball: on / off' text (owner, Oct 25 2026: the ball itself shows it)
+  if (BLOCK[fg[i]].id !== 'disco_ball') toast(BLOCK[fg[i]].name + (vari[i] & ANIM_OFF ? ': off' : ': on'));
   saveWorld();
 }
 {

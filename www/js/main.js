@@ -42,6 +42,7 @@ function loop(ts) {
   // the top of the screen never goes above the top row of the map (owner, Oct 24 2026: the empty band above it looked
   // like 2 more rows that couldn't be built on); the top row is a ceiling (solidAt in world.js)
   cam.y = Math.max(0, Math.min(WH * TS - vh, cam.y));
+  if (inLobby()) lobbyCam(); // your LOBBY: the camera stays on the room (lobby.js)
   shake = Math.max(0, shake - dt * 20);
   Net.tick(dt);
   const dz = doorZoomBegin(); // walking through a door: the camera zooms into it (signs.js)

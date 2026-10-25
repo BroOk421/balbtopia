@@ -1,6 +1,6 @@
 // Music: the Piano and its song maker (Balbtopia's own design).
 // Piano (block 154, walk-through, Shop MUSIC tab only: it has no recipe, and breaking it always gives the Piano back,
-// like the Vending Machine): stand on it and click it to open the
+// like the Vending Machine): wrench it (owner, Oct 25 2026: only the wrench; a wrench shows in its middle) to open the
 // SONG MAKER. At the top is the note list in three groups: PIANO (five octaves C2-C7 with every sharp, low to
 // high), VIOLIN (G3-C7) and DRUMS (a full kit, low to high); the SORT button next to the name box puts the notes of
 // each letter together instead (all the Cs, then all the C#s ...). Players who can't build here only get a small
@@ -44,7 +44,7 @@ for (const m of OLD_NOTES) {
 // ---------- the Piano block ----------
 const PIANO = 154;
 BLOCK[PIANO] = { id: 'piano', name: 'Piano', hits: 4, art: 'deco', solid: false, fx: ['#1a1210', '#f2f2f6', '#8a5a32'] };
-ITEMS.piano = { name: 'Piano', kind: 'block', block: PIANO, desc: 'A little piano. Stand on it and click it to make songs; it plays its song for everyone nearby. Buy it in the Shop (MUSIC).', rarity: 'Uncommon' };
+ITEMS.piano = { name: 'Piano', kind: 'block', block: PIANO, desc: 'A little piano. Wrench it to make songs; it plays its song for everyone nearby. Buy it in the Shop (MUSIC).', rarity: 'Uncommon' };
 // the Piano can't be spliced any more: its seed is retired (old seeds and trees still grow; not in the GM bag)
 ITEMS.piano_seed = { name: 'Piano Seed', kind: 'seed', from: 'piano', desc: 'An old Piano seed. Pianos are only sold in the Shop now.', rarity: 'Uncommon', retired: true };
 SEED_COLOR.piano = ['#2a2420', '#f2f2f6', '#8a5a32'];
@@ -95,7 +95,7 @@ HD_DECO.piano = (x, { P, R, E }) => {
 SHOP_ICON.piano = () => decoCanvas('piano');
 // the Shop: a MUSIC tab with the Piano, one or a pack of 5 (prices picked by Claude; the owner gave none)
 SHOP_TABS.push({ id: 'music', label: 'MUSIC' });
-SHOP.push({ id: 'piano', gold: 3000, cat: 'music' }, { id: 'piano', qty: 5, gold: 12500, cat: 'music' });
+SHOP.push({ id: 'piano', gold: 3000, cat: 'music' }); // one Piano only (owner, Oct 25 2026: the x5 pack is gone)
 
 // ---------- the notes ----------
 // Note numbers are saved in songs, so they never change; new notes take the next numbers.
@@ -1038,7 +1038,7 @@ function renderOwnerList(el) {
 addEventListener('keydown', (e) => {
   if (songWin && e.code === 'Escape') $('dlg').hidden ? closeSongMaker() : closeDialog();
 });
-// clicking a Piano you are standing in opens the song maker (a click never breaks it while you stand there)
+// (old: clicking a Piano you stood in opened the song maker; only the wrench does that now, actions.js. Not used.)
 function usePiano(x, y) {
   const i = at(x, y);
   if (!isPianoT(fg[i])) return false;

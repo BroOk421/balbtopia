@@ -26,7 +26,7 @@ Object.assign(ITEMS, {
     noDrop: true,
   },
 });
-SHOP.push({ id: 'name_changer', gold: 50000, cat: 'world' }, { id: 'world_transfer', gold: 20000, cat: 'world' });
+SHOP.push({ id: 'name_changer', gold: 30000, cat: 'world' }, { id: 'world_transfer', gold: 10000, cat: 'world' });
 // icons, 32 x 32
 function renamePic(paint) {
   const c = document.createElement('canvas');

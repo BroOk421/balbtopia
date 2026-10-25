@@ -52,6 +52,7 @@ function resize() {
   // but never so close that fewer than about 4 tiles fit top to bottom
   const near = Math.max(far, Math.floor(cv.height / (4 * TS)));
   Z = Math.min(far + ((typeof settings !== 'undefined' && settings.zoom) || 0), near);
+  if (typeof inLobby === 'function' && inLobby()) Z = lobbyZoom(); // your LOBBY: fixed, the whole room fits (lobby.js)
   g.imageSmoothingEnabled = false;
 }
 addEventListener('resize', resize);
@@ -682,6 +683,7 @@ function render() {
       y = oy + (d.y + bob) * Z;
     // every drop looks the same, also one this visitor can't take yet (owner, Oct 21 2026: no see-through,
     // no timer ring; walking into it still says how many seconds are left, see dropHint)
+    if (d.outT && now - d.outT < OUT_MS) continue; // still flying out of whoever dropped it (unvacs, below)
     if (d.id === 'gold') drawGoldPile(d, x, y, s);
     else drawIcon(d.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
     // floating drops show no number, only the item
@@ -702,6 +704,24 @@ function render() {
       g.drawImage(im, x - (w / 2) * Z, y - (s / 2) * Z, w * Z, s * Z);
     }
     else drawIcon(v.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
+  }
+  // dropped items flying out of the player to where they land: the pick-up backwards (dropOut, actions.js)
+  for (let k = unvacs.length - 1; k >= 0; k--) {
+    const v = unvacs[k],
+      u = Math.min(1, (now - v.t0) / OUT_MS);
+    if (u >= 1 || !drops.includes(v.d)) {
+      unvacs.splice(k, 1);
+      continue;
+    }
+    const w = v.from || P,
+      fx = w.x + w.w / 2,
+      fy = w.y + w.h * 0.45,
+      e = 1 - (1 - u) * (1 - u), // fast out of the hand, slowing as it lands
+      bob = Math.sin(now / 380 + v.d.ph) * 2.5 * u,
+      s = DROP_SIZE * (0.4 + 0.6 * u),
+      x = ox + (fx + (v.d.x - fx) * e) * Z,
+      y = oy + (fy + (v.d.y + bob - fy) * e - Math.sin(u * Math.PI) * 8) * Z;
+    drawIcon(v.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
   }
   // other players in this world (online), then you on top
   // holding the wrench: a small wrench shows next to each other player's name; click it (or them) for their menu
@@ -1363,9 +1383,17 @@ const COIN_SCALE = 0.85; // a big coin's width in drops
 function drawGoldPile(d, x, y, s) {
   // one fixed coin (ATM coins: `ck` = its kind, whatever its value): a single spinning coin
   if (d.ck) {
+    // grows from nothing to its size when it appears; flies into the others while 5 join (coins.js)
+    const grow = typeof coinGrow === 'function' ? coinGrow(d) : 1,
+      mg = d.mg ? coinMergeAt(d) : null;
+    if (grow <= 0.01) return;
+    if (mg) {
+      x += mg.dx * Z;
+      y += mg.dy * Z;
+    }
     const im = coinCanvas(d.ck),
       [bw, , below] = coinBox(d.ck),
-      k = (s * COIN_SCALE) / 26,
+      k = ((s * COIN_SCALE) / 26) * grow * (mg ? mg.s : 1),
       S = 32 * k * Z,
       sx = Math.max(0.15, Math.abs(Math.cos(now / 220 + d.ph)));
     g.save();

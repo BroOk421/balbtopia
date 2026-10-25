@@ -13,7 +13,7 @@ function wrenchBlock(x, y) {
   const t = fg[at(x, y)];
   if (!t) return false;
   if (isDoorT(t)) return !isDoorTile(x, y);
-  return isLockT(t) || isALockT(t) || isSignT(t) || isVendT(t) || isDispT(t) || isMannT(t) || isGateT(t) || isTeapotT(t);
+  return isLockT(t) || isALockT(t) || isSignT(t) || isVendT(t) || isDispT(t) || isMannT(t) || isGateT(t) || isTeapotT(t) || (typeof isBoardT === 'function' && isBoardT(t)) || (typeof isMailboxT === 'function' && isMailboxT(t)) || isPianoT(t);
 }
 // close enough to use the wrench on a block: WRENCH_REACH tiles round the tile you stand in
 function inWrenchReach(tx, ty) {
@@ -103,6 +103,9 @@ function act() {
     if (inW(t.x, t.y) && isMannT(fg[at(t.x, t.y)])) return openMannequin(t.x, t.y);
     if (inW(t.x, t.y) && isGateT(fg[at(t.x, t.y)])) return openGate(t.x, t.y);
     if (inW(t.x, t.y) && isTeapotT(fg[at(t.x, t.y)])) return openTeapot(t.x, t.y); // daily quest (quests.js)
+    if (inW(t.x, t.y) && typeof isBoardT === 'function' && isBoardT(fg[at(t.x, t.y)])) return openBoard(at(t.x, t.y)); // suggestions (board.js)
+    if (inW(t.x, t.y) && typeof isMailboxT === 'function' && isMailboxT(fg[at(t.x, t.y)])) return openMailbox(t.x, t.y); // letters + GM updates (mailbox.js)
+    if (inW(t.x, t.y) && isPianoT(fg[at(t.x, t.y)])) return openSongMaker(at(t.x, t.y), !canEdit(true, at(t.x, t.y))); // song maker (music.js; others: the small view)
     const onSelf = ptr.x > P.x - 4 && ptr.x < P.x + P.w + 4 && ptr.y > P.y - 14 && ptr.y < P.y + P.h + 4;
     if (onSelf)
       toast(Net.online ? 'Use the wrench on another player' : 'The wrench works on other players (online)');
@@ -113,16 +116,14 @@ function act() {
   if (hand === 'door_mover') return inW(x, y) && moveDoor(x, y);
   if (hand === 'clear_world') return askClearWorld();
   if (!inW(x, y) || !inReach(x, y)) return;
+  // a Question Door: a quick click opens its list of doors, holding punches it (qdoor.js)
+  if (typeof qdoorTap === 'function' && qdoorTap(x, y)) return;
   // a door with a destination, clicked while standing in it: go to that world (signs.js)
   if (useDoor(x, y)) return;
-  // a Piano you are standing in: open its song maker (music.js)
-  if (usePiano(x, y)) return;
+  // (the Piano: only the wrench opens its song maker now, owner Oct 25 2026)
   // a Mannequin: dress it with what you hold, or take its things back with the fist (display.js)
   if (useMannequin(x, y)) return;
-  // a Vending Machine clicked while holding something to sell: its pop-up, with that item (vend.js)
-  if (useVend(x, y)) return;
-  // a Display Box clicked while holding something: an empty box takes one of it (display.js)
-  if (useDisplay(x, y)) return;
+  // (Vending Machine / Display Box / Suggestion Board / Mailbox / Piano: only the wrench opens them, owner Oct 25 2026)
   // an ATM Machine you stand in: today's coins (atm.js)
   if (typeof useATM === 'function' && useATM(x, y)) return;
   const held = ITEMS[hand];
@@ -181,6 +182,12 @@ function act() {
       shake = Math.max(shake, 2);
       return;
     }
+    // a Mailbox with letters in it can't be broken (mailbox.js)
+    if (typeof mailBusy === 'function' && mailBusy(i)) {
+      toast('Empty the Mailbox first: claim and delete its mail (wrench it)');
+      shake = Math.max(shake, 2);
+      return;
+    }
     // a Display Box with an item, or a dressed Mannequin, can't be broken either
     if (showBusy(i)) {
       toast(isDispT(fg[i]) ? 'Take the item out of the Display Box first (wrench it)' : 'Take the clothes off the Mannequin first (wrench it)');
@@ -193,6 +200,16 @@ function act() {
       if (b.hits === Infinity) {
         shake = 4;
         toast('Bedrock is too hard to break');
+        return;
+      }
+      // Disco Ball / Boombox (owner, Oct 25 2026): only players a lock gives access (Gold Lock, or the Red / Blue
+      // Lock it stands in) can switch it on / off or break it; outside every lock nobody can
+      if ((b.id === 'disco_ball' || b.id === 'boombox') && !realAccess(playerName, i)) {
+        shake = Math.max(shake, 2);
+        if (now - farWrenchT > 1500) {
+          farWrenchT = now;
+          toast(alockAt(i) || worldOwner ? 'You have no access to this ' + b.name : 'Put this ' + b.name + ' inside your lock to use it');
+        }
         return;
       }
       // a Weather Machine: every punch switches it off / on (punch it fast a few times to break it)
@@ -218,8 +235,10 @@ function act() {
         manns.delete(i);
         if (signs.delete(i)) Net.sendSign(i, ''); // sign text / door destination goes with the block
         pianoSongs.delete(i); // and a Piano's song
+        if (typeof qdoors !== 'undefined' && qdoors.delete(i)) Net.sendShow(i, 'q', null); // and a Question Door's list (qdoor.js)
+        if (typeof isBoardT === 'function' && isBoardT(fg[i])) boardBroken(i); // and a Suggestion Board's posts (board.js)
         if (typeof atms !== 'undefined') atms.delete(i); // and an ATM's wait (placed again = starts over, atm.js)
-        fg[i] = isFloorRow(y) ? BEDROCK : 0; // (something in the bedrock floor: the floor closes again)
+        fg[i] = floorClosed(x, y) ? BEDROCK : 0; // (something in the bedrock floor: the floor closes again; not the lobby room's own row)
         dmg[i] = 0;
         if (y > 0) uproot(x, y - 1);
         addXP(1);
@@ -274,7 +293,9 @@ function act() {
       return;
     }
     // nothing goes into the bedrock floor (a hole there is filled again: worldfix.js)
-    if (isFloorRow(y)) return toast("Nothing can be placed in the bedrock");
+    if (floorClosed(x, y)) return toast("Nothing can be placed in the bedrock");
+    // no locks in a lobby (lobby.js)
+    if (ownLobby() && (isLockT(it.block) || isALockT(it.block))) return toast("Locks can't be placed in your lobby");
     // a Red / Blue Lock only goes where it may (no Gold Lock here, not in another lock's area): alocks.js
     if (isALockT(it.block) && !alockCanPlace(i, it.block)) return;
     if (isLockT(it.block)) {
@@ -501,7 +522,11 @@ function netDrop(p) {
   if (d) Object.assign(d, { qty, born });
   else {
     const ck = p.id === 'gold' && COIN_LOOK[p.k] ? p.k : undefined; // one fixed coin (ATM)
-    drops.push({ uid: p.u, id: p.id, qty, x: +p.x || 0, y: +p.y || 0, age: 0, minAge: 0.25, ph: Math.random() * 6.28, born, by: p.b || null, ck });
+    const nd = { uid: p.u, id: p.id, qty, x: +p.x || 0, y: +p.y || 0, age: 0, minAge: 0.25, ph: Math.random() * 6.28, born, by: p.b || null, ck };
+    drops.push(nd);
+    // just dropped by a player who is here: it flies out of them (dropOut)
+    if (p.b && +p.a < 1500 && p.id !== 'gold')
+      for (const r of Net.remotes.values()) if (r.name && lc(r.name) === lc(p.b)) dropOut(nd, r);
   }
 }
 // another player picked a drop up: it flies to them
@@ -515,6 +540,14 @@ function netTake(u, by) {
 // drops being sucked up: they fly into whoever took them, shrinking (drawn by render.js)
 const vacs = [];
 const VAC_TIME = 0.22;
+// the other way (owner, Oct 25 2026): an item a player drops flies OUT of them to where it lands, growing from
+// small to full size, the pick-up animation backwards. The new drop itself is hidden until it gets there (`d.outT`).
+const unvacs = []; // { id, ck, d (the drop), from (null = you, else a remote player), t0 }
+const OUT_MS = 280;
+function dropOut(d, from = null) {
+  d.outT = now;
+  unvacs.push({ id: d.id, ck: d.ck, d, from, t0: now });
+}
 function floatText(x, y, s) {
   floats.push({ x: x * TS + 16, y: y * TS, s, life: 1.1 });
 }

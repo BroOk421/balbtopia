@@ -54,18 +54,12 @@ const sellable = (id) => ITEMS[id] && ITEMS[id].kind !== 'tool' && !ITEMS[id].ke
 function openVend(x, y) {
   const i = at(x, y),
     v = vends.get(i);
-  if (isOwner()) return v && (v.n > 0 || v.e > 0) ? vendOwner(i) : askVendFill(i);
+  // an empty machine (owner, Oct 25 2026): no Confirm / Cancel any more, the bag opens at once; tapping an item
+  // closes it and opens the machine's pop-up with that item, ready for how many and the price
+  if (isOwner()) return v && (v.n > 0 || v.e > 0) ? vendOwner(i) : vendPick(i);
   if (!worldOwner) return toast('Lock this world with a Gold Lock to use a Vending Machine');
   if (!v || !v.id || v.n <= 0) return toast('This Vending Machine is empty');
   vendBuyer(i);
-}
-// an empty machine (owner, Oct 22 2026): Confirm / Cancel first; Confirm opens the bag, tapping an item closes it
-// and opens the machine's pop-up with that item, ready for how many and the price
-function askVendFill(i) {
-  dialog('VENDING MACHINE', '<p class="dtext">This Vending Machine is empty. Put an item in it to sell?</p>', [
-    { label: 'Cancel', cls: 'ghost', run: () => {} },
-    { label: 'Confirm', run: () => vendPick(i) },
-  ]);
 }
 function vendPick(i) {
   pickFromBag(
@@ -79,10 +73,9 @@ function vendIcon(body, id) {
   const box = body.querySelector('.vpic');
   if (box && id) box.appendChild(shopPic(id));
 }
-// the owner: fill it, price it, empty it, collect. What goes in is the item you HOLD when you click the machine
-// (owner, Oct 21 2026: no search box or item list any more): hold a block, seed, wearable... and click the machine
-// from up to WRENCH_REACH tiles away (useVend). The top shows that item's picture, how many are inside and how many
-// you have; under it the amount to put in. With the wrench it opens on what is already inside.
+// the owner: fill it, price it, empty it, collect. Only with the wrench (owner, Oct 25 2026: clicking the machine
+// while holding an item no longer opens it). An empty machine opens the bag first (vendPick) and comes here with the
+// picked item; a machine with something inside opens on what is in it.
 function vendOwner(i, held) {
   const v = vends.get(i) || { id: null, n: 0, p: 1, per: false, e: 0 };
   const id = held || (v.id && v.n > 0 ? v.id : null),
@@ -159,20 +152,6 @@ function vendOwner(i, held) {
     Native.haptic('medium');
     save({ ...v, e: 0, c: (v.c | 0) + 1 });
   };
-}
-// clicking a Vending Machine while holding something it can sell (owner only, within WRENCH_REACH of your tile,
-// like the wrench): its pop-up opens with that item ready to put in (called from act, actions.js)
-function useVend(x, y) {
-  const i = at(x, y);
-  if (!isVendT(fg[i]) || !isOwner() || !hand || hand === 'fist' || hand === 'wrench' || !sellable(hand)) return false;
-  if (!inWrenchReach(x, y)) {
-    toast('Move closer to the Vending Machine');
-    return true;
-  }
-  const v = vends.get(i);
-  if (v && v.id && v.n > 0 && v.id !== hand) toast('This machine sells ' + ITEMS[v.id].name + ': take it out first to sell something else');
-  vendOwner(i, hand);
-  return true;
 }
 // a visitor: how many, then buy
 function vendBuyer(i) {
