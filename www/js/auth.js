@@ -186,6 +186,7 @@ function setAuthMode(m) {
   $('aPwRow').classList.toggle('two', m === 'register'); // password + confirm on one row
   $('aRememberL').hidden = m === 'register'; // (owner, Oct 25 2026: no "Stay logged in" on Register; a new account stays logged in)
   $('aRemember').checked = true;
+  $('aForgot').hidden = m === 'register'; // only under LOG IN
   $('aGo').textContent = m === 'register' ? 'CREATE ACCOUNT' : 'LOG IN';
   $('aPass').autocomplete = m === 'register' ? 'new-password' : 'current-password';
   $('aErr').textContent = '';
@@ -233,11 +234,8 @@ function initAuth() {
     }
   };
   $('logout2').onclick = logout;
-  $('aNote').textContent = Net.online
-    ? 'Online: your account works on any device.'
-    : Net.why
-      ? 'Offline: ' + Net.why + '. Accounts are saved on this device only.'
-      : 'Accounts are saved on this device only.';
+  // Forgot password: only the button for now (owner, Oct 26 2026: how it resets is decided later)
+  $('aForgot').onclick = () => toast('Forgot password is coming soon');
   if (Net.online) return initOnline();
   setAuthMode(Object.keys(accounts()).length ? 'login' : 'register');
   // still logged in from last time

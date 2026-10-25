@@ -540,7 +540,10 @@ const Net = (() => {
   // other players: we only get a few updates a second, so they glide between them
   const gone = new Map(); // players who just left: ignore their last few messages
   // would another player's body at (x, y) overlap a solid block? (gates count as open: we don't know if they may pass)
-  function remoteHits(x, y, w, h) {
+  // name: whose guess it is. A gate (Iron Bars, Portcullis) is solid for them unless they may pass (gates.js
+  // gatePass), just like on their own screen (owner's bug, Oct 26 2026: a player spam-jumping on Iron Bars sank
+  // into them on everyone else's screen, then popped back up with the next update).
+  function remoteHits(x, y, w, h, name) {
     const x0 = Math.floor((x + 1) / TS),
       x1 = Math.floor((x + w - 2) / TS),
       y0 = Math.floor((y + 1) / TS),
@@ -549,9 +552,32 @@ const Net = (() => {
       for (let tx = x0; tx <= x1; tx++) {
         if (tx < 0 || tx >= WW || ty < 0 || ty >= WH) return true;
         const t = fg[at(tx, ty)];
-        if (t && BLOCK[t] && BLOCK[t].solid !== false && !BLOCK[t].gate) return true;
+        if (!t || !BLOCK[t]) continue;
+        if (BLOCK[t].gate) {
+          if (!(typeof gatePass === 'function' && name && gatePass(at(tx, ty), name))) return true;
+        } else if (BLOCK[t].solid !== false) return true;
       }
     return false;
+  }
+  // falling from y0 to y1 (top of the body): the top of a platform (Steel Beam / Bridge, Bookcase...) or a shut gate
+  // the feet go past, or -1. Platforms only catch from above, like in physics.js collide.
+  function remoteLand(x, y0, y1, w, h, name) {
+    const b0 = y0 + h,
+      b1 = y1 + h,
+      x0 = Math.floor((x + 1) / TS),
+      x1 = Math.floor((x + w - 2) / TS);
+    for (let ty = Math.floor(b0 / TS); ty <= Math.floor(b1 / TS); ty++) {
+      const top = ty * TS;
+      if (top < b0 - 0.5 || top > b1) continue;
+      for (let tx = x0; tx <= x1; tx++) {
+        if (tx < 0 || tx >= WW || ty < 0 || ty >= WH) continue;
+        const t = fg[at(tx, ty)],
+          B = t && BLOCK[t];
+        if (!B) continue;
+        if (B.plat || (B.gate && !(typeof gatePass === 'function' && name && gatePass(at(tx, ty), name)))) return top;
+      }
+    }
+    return -1;
   }
   // ---- names over other players' heads come from the SERVER (schema.sql PLAYER NAMES OVER HEADS) ----
   // A position message's id and name are written by the sender's game, so a changed game could use any name.
@@ -1045,11 +1071,18 @@ const Net = (() => {
       // real jump and stops at solid blocks, one axis at a time, instead of flying on in a straight line
       if (!r.dead && r.vx !== undefined && now - r.posAt < POS_EVERY * 1500) {
         if (r.vy) r.vy = Math.min(MAX_FALL, r.vy + GRAVITY * dt);
+        const rw = r.w || P.w,
+          rh = r.h || P.h;
         const nx = r.tx + r.vx * dt;
-        if (!remoteHits(nx, r.ty, r.w || P.w, r.h || P.h)) r.tx = nx;
+        if (!remoteHits(nx, r.ty, rw, rh, r.name)) r.tx = nx;
         else r.vx = 0;
-        const ny = r.ty + r.vy * dt;
-        if (!remoteHits(r.tx, ny, r.w || P.w, r.h || P.h)) r.ty = ny;
+        const ny = r.ty + r.vy * dt,
+          land = r.vy > 0 ? remoteLand(r.tx, r.ty, ny, rw, rh, r.name) : -1;
+        if (land >= 0) {
+          // landed on a platform / shut gate: stand on it instead of sinking through until the next update
+          r.ty = land - rh;
+          r.vy = 0;
+        } else if (!remoteHits(r.tx, ny, rw, rh, r.name)) r.ty = ny;
         else r.vy = 0;
       }
       const k = r.dead ? 0 : Math.min(1, dt * 12);

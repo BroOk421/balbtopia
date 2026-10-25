@@ -42,6 +42,16 @@ addEventListener('keydown', (e) => {
     if (e.code === 'Escape') $('wstay').click();
     return;
   }
+  // Enter (keyboard, desktop): opens the world chat with the cursor in the box (owner, Oct 26 2026); Enter in the
+  // box sends (social.js openChat). Only when no other window or pop-up is open.
+  if (e.key === 'Enter' || e.code === 'NumpadEnter') {
+    e.preventDefault();
+    if (e.repeat || !inWorld || doorTrip) return;
+    if (['dlg', 'menu', 'shop', 'inv', 'pmenu', 'lockwin', 'trade', 'info', 'pop'].some((id) => $(id) && !$(id).hidden)) return;
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); // a focused button would click too
+    openChat();
+    return;
+  }
   keys[e.code] = true;
   if (['Space', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.code) && $('inv').hidden)
     e.preventDefault();

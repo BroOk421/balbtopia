@@ -103,3 +103,16 @@ const Sfx = (() => {
   });
   return { play, unlock, loop, playing: (n) => !!loops[n], ctx: () => ctx };
 })();
+
+// Tabs and the buttons that open the Shop, the bag, the menu and the Global Chat click with the door sound
+// (owner, Oct 26 2026). Capture phase, so tabs that stop the click (the GM bag tabs) are heard too.
+const TAB_SFX_SEL =
+  '#shopTabs button, #gmTabs button, #menu .tabs button, .tswitch button, #shopBtn, #bag, #burger, #gOpen, #gMin';
+document.addEventListener(
+  'click',
+  (e) => {
+    const b = e.target && e.target.closest && e.target.closest(TAB_SFX_SEL);
+    if (b && !b.disabled) Sfx.play('door');
+  },
+  true,
+);

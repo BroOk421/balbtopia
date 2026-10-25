@@ -187,7 +187,11 @@ function askKick(to, k) {
         cls: out ? 'danger' : '',
         run: () => {
           if (!isOwner()) return;
-          Net.sendKick(to, out ? 'out' : 'spawn').then((err) => toast(err || (out ? 'Kicked ' : 'Sent back to the door: ') + who));
+          Net.sendKick(to, out ? 'out' : 'spawn').then((err) => {
+            // Spawn: the owner hears the spike sound too, like the player who is sent back (owner, Oct 26 2026)
+            if (!err && !out) Sfx.play('ouch');
+            toast(err || (out ? 'Kicked ' : 'Sent back to the door: ') + who);
+          });
         },
       },
     ],
@@ -221,6 +225,8 @@ Net.onKick = (p) => {
     });
     return;
   }
+  // sent back to the door by the owner: the same spike sound as dying on Death Spikes / Menu -> SPAWN (owner, Oct 26 2026)
+  if (p.k === 'spawn') Sfx.play('ouch');
   toDoor(p.n + (p.k === 'out' ? ' kicked you back to the door' : ' sent you back to the door'));
 };
 // back to the main door at once (not a Checkpoint), fading in

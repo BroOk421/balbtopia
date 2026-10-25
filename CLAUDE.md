@@ -1308,7 +1308,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 
 - Oct 25 2026 (build q): private messages (`gotDM`, social.js) count on the menu button (`dmUnseen`, cleared when the menu opens) and on the Email tab (`#emailBadge`, `dmUnread`, cleared when the Email tab shows), both added to the unread email count in `updateBadge`. The Messages list scrolls (`.mlist.mmsgs`, max min(30vh, 190px)). `toot()` (globalchat.js): a two-beep scanner sound (Web Audio square waves through a low-pass, at most every 0.6 s, off with Settings -> Sound) for every incoming Global Chat message from someone else and every private message.
 
-- Oct 25 2026 (build r): other players no longer seem to go through blocks when jumping: the in-between guess in `N.tick` (net.js) now falls with GRAVITY and stops at solid blocks per axis (`remoteHits`; gates count as open) instead of flying on in a straight line for up to 0.3 s. Vending Machine: setting an item / adding stock / changing the price (`vendNews`) makes it flash white (`vendFlash`, `vendWhitePic` silhouette, `VEND_FLASH_MS` 450, fades out; others see it via Net.onVend) and plays the break sound for the owner.
+- Oct 25 2026 (build r): other players no longer seem to go through blocks when jumping: the in-between guess in `N.tick` (net.js) now falls with GRAVITY and stops at solid blocks per axis (`remoteHits`; gates: see build 2026-10-26 a) instead of flying on in a straight line for up to 0.3 s. Vending Machine: setting an item / adding stock / changing the price (`vendNews`) makes it flash white (`vendFlash`, `vendWhitePic` silhouette, `VEND_FLASH_MS` 450, fades out; others see it via Net.onVend) and plays the break sound for the owner.
 
 - Oct 25 2026 (build s): LEVEL CHECK (schema.sql, before claim_level_reward): the server keeps its own XP count per player
   (`xp_track`: total, credit, day_xp; `xp_need` / `xp_total` / `xp_level` = menu.js xpNeed) in a trigger on every player
@@ -1364,3 +1364,19 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   pool's quests of that kind (same hash); `quest.key` (k:id:n, saved) restarts the count when the picked quest
   changes. claimQuest shows the server's `kind` from the reply. Offline: the whole pool, as before. Still the game's:
   the quest's count. 126 PGlite tests (+ 26 / 16 / 40) and a page test. Re-run schema.sql.
+
+- Oct 26 2026 (build a, owner):
+  - Spam-jumping on Iron Bars / a platform made the player sink into it and pop back up ON OTHER PLAYERS' SCREENS: the
+    in-between guess in `N.tick` (net.js) ignored gates and platforms. `remoteHits(x, y, w, h, name)` now treats a gate
+    as solid unless `gatePass(i, name)` for that player, and `remoteLand` stops a falling guess on the top of a
+    platform (`plat`) or a shut gate (only crossing it from above, like physics.js). The local player was fine.
+  - Enter (keyboard) opens the world chat with the cursor in the box (input.js keydown; not while a window / pop-up
+    is open, the bag, menu, shop...). Enter in the box still sends and closes.
+  - Door sound on clicks of: Shop tabs, GM bag tabs, Menu tabs (Settings etc.), TOP UP GOLD / BALB COINS switch, and
+    the SHOP, BAG, menu, Global Chat open / minimise buttons (one capture-phase listener at the end of sound.js,
+    `TAB_SFX_SEL`).
+  - Owner's Spawn (Gold Lock window / wrench player menu / Spawn all): the spike sound ('ouch') plays for the player
+    sent back (`Net.onKick`, k 'spawn') and for the owner when it went through (`askKick`).
+  - Log in: "Forgot password?" link under LOG IN (`#aForgot`, hidden on Register); for now it only toasts "coming
+    soon" (owner: decide later how it resets; accounts have no real e-mail). The "Online: your account works on any
+    device." note (`#aNote`) is gone.
