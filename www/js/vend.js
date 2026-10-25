@@ -37,8 +37,29 @@ function vendChanged(i) {
 Net.onVend = (p, trusted = true) => {
   if (!p || !Number.isInteger(p.i) || p.i < 0 || p.i >= fg.length) return;
   if (!trusted && !vendSaleOk(vends.get(p.i), p.v)) return;
+  const o = vends.get(p.i);
   setVend(p.i, p.v);
+  if (vendNews(o, vends.get(p.i))) vendFlash.set(p.i, now); // the owner set it up: everyone sees it flash
 };
+// ---------- the flash (owner, Oct 25 2026): setting an item / price makes the machine light up white for a moment
+const VEND_FLASH_MS = 450,
+  vendFlash = new Map(); // tile -> when it flashed
+// did the owner change what it sells (a new item, more of it, a new price)? (a sale only takes stock away)
+const vendNews = (o, n) => !!n && !!n.id && (!o || o.id !== n.id || n.n > o.n || n.p !== o.p || n.per !== o.per);
+let vendWhite = null; // the machine's shape in plain white
+function vendWhitePic() {
+  if (vendWhite) return vendWhite;
+  const src = NEWART.vend || cells(VEND_ART),
+    c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  const x = c.getContext('2d');
+  x.drawImage(src, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, c.width, c.height);
+  return (vendWhite = c);
+}
 function vendSaleOk(o, n) {
   if (!o || !n || typeof n !== 'object' || typeof n.n !== 'number' || typeof n.e !== 'number') return false;
   if (n.id !== o.id || (n.p | 0) !== o.p || !!n.per !== o.per || (n.c | 0) !== o.c) return false;
@@ -114,7 +135,12 @@ function vendOwner(i, held) {
     }
   };
   const save = (nv) => {
+    const o = vends.get(i);
     setVend(i, nv);
+    if (vendNews(o, vends.get(i))) {
+      vendFlash.set(i, now);
+      Sfx.play('break'); // (owner: the break sound)
+    }
     vendChanged(i);
     vendOwner(i, held && countItem(held) > 0 ? held : null);
   };
@@ -240,7 +266,21 @@ const VEND_GLASS = { x: 3 / 16, y: 3 / 16, w: 10 / 16, h: 9 / 16 };
 function drawVend(x, y, px, py, T) {
   g.drawImage((NEWART.vend ||= cells(VEND_ART)), px, py, T, T);
   const v = vends.get(at(x, y));
-  if (!(v && v.id && v.n > 0)) return;
+  if (v && v.id && v.n > 0) drawVendItem(v, px, py, T);
+  // just set up: the whole machine glows white, fading back to normal
+  const f = vendFlash.get(at(x, y));
+  if (f !== undefined) {
+    const u = (now - f) / VEND_FLASH_MS;
+    if (u >= 1 || u < 0) vendFlash.delete(at(x, y));
+    else {
+      g.save();
+      g.globalAlpha = 0.95 * (1 - u) * (1 - u);
+      g.drawImage(vendWhitePic(), px, py, T, T);
+      g.restore();
+    }
+  }
+}
+function drawVendItem(v, px, py, T) {
   // the item, as big as the glass allows (cropped to its picture, like in the Display Box)
   const s = T * VEND_GLASS.h * 0.96;
   drawFitted(px + T * (VEND_GLASS.x + VEND_GLASS.w / 2) - s / 2, py + T * (VEND_GLASS.y + VEND_GLASS.h / 2) - s / 2, s, v.id);

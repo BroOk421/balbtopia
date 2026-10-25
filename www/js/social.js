@@ -4,6 +4,10 @@
 // ===== social =====
 const myFriends = []; // { id, name } — saved with the player
 const msgLog = []; // recent private messages this session: { id, name, text, mine, at }
+// private messages not looked at yet (owner, Oct 25 2026): `dmUnseen` = red number on the menu button until the menu
+// opens; `dmUnread` = red number on the Email tab until that tab is opened
+let dmUnseen = 0,
+  dmUnread = 0;
 
 // ---------- small dialog window ----------
 // buttons: [{ label, cls, run(body) }]; run returns false to keep the window open
@@ -399,7 +403,9 @@ function composeMessage(id, name) {
     ],
   );
 }
-Net.onLobby('dm', (p) => {
+// a private message came in
+Net.onLobby('dm', (p) => gotDM(p));
+function gotDM(p) {
   const text = String(p.text || '').slice(0, 120),
     name = String(p.fn || 'Player').slice(0, 16);
   msgLog.unshift({ id: p.from, name, text, mine: false, at: Date.now() });
@@ -408,8 +414,14 @@ Net.onLobby('dm', (p) => {
   if (r) r.say = { text, t: 5 };
   toast(name + ': ' + text);
   Native.haptic('light');
+  if (typeof toot === 'function') toot();
+  if ($('menu').hidden || menuTab !== 'email') {
+    dmUnread++;
+    if ($('menu').hidden) dmUnseen++;
+  }
+  updateBadge();
   refreshMenu('email');
-});
+}
 
 // ---------- email ----------
 function composeMail(id, name, subject) {
@@ -434,10 +446,16 @@ function composeMail(id, name, subject) {
     ],
   );
 }
+// the red numbers: menu button = unread emails + private messages since the menu was last opened; Email tab =
+// unread emails + private messages not looked at in the Email tab
 function updateBadge() {
-  const n = Net.online ? Net.unread() : 0;
-  $('badge').hidden = !n;
-  $('badge').textContent = n > 9 ? '9+' : n;
+  const mail = Net.online ? Net.unread() : 0,
+    set = (el, n) => {
+      el.hidden = !n;
+      el.textContent = n > 9 ? '9+' : n;
+    };
+  set($('badge'), mail + dmUnseen);
+  set($('emailBadge'), mail + dmUnread);
 }
 Net.onLobby('mail_ping', (p) => {
   Net.loadMail().then(() => {
@@ -706,7 +724,12 @@ function mailTab(el) {
     return;
   }
   el.innerHTML = `<p class="mlabel">Inbox <span>${Net.mail.length}</span></p><ul class="mlist" id="mmail"></ul>
-    <p class="mlabel">Messages <span>${msgLog.length}</span></p><ul class="mlist" id="mmsg"></ul>`;
+    <p class="mlabel">Messages <span>${msgLog.length}</span></p><ul class="mlist mmsgs" id="mmsg"></ul>`;
+  // looking at the Email tab = the messages are seen
+  if (dmUnread || dmUnseen) {
+    dmUnread = dmUnseen = 0;
+    updateBadge();
+  }
   const ul = el.querySelector('#mmail');
   if (!Net.mail.length) ul.innerHTML = '<li class="empty"><b>No mail</b>Emails from other players show up here.</li>';
   for (const m of Net.mail) {

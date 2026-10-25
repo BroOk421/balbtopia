@@ -532,6 +532,20 @@ const Net = (() => {
 
   // other players: we only get a few updates a second, so they glide between them
   const gone = new Map(); // players who just left: ignore their last few messages
+  // would another player's body at (x, y) overlap a solid block? (gates count as open: we don't know if they may pass)
+  function remoteHits(x, y, w, h) {
+    const x0 = Math.floor((x + 1) / TS),
+      x1 = Math.floor((x + w - 2) / TS),
+      y0 = Math.floor((y + 1) / TS),
+      y1 = Math.floor((y + h - 2) / TS);
+    for (let ty = y0; ty <= y1; ty++)
+      for (let tx = x0; tx <= x1; tx++) {
+        if (tx < 0 || tx >= WW || ty < 0 || ty >= WH) return true;
+        const t = fg[at(tx, ty)];
+        if (t && BLOCK[t] && BLOCK[t].solid !== false && !BLOCK[t].gate) return true;
+      }
+    return false;
+  }
   function onPos(p) {
     if (!p || p.id === (N.me && N.me.id)) return;
     if (gone.has(p.id) && now - gone.get(p.id) < 3000) return;
@@ -940,9 +954,16 @@ const Net = (() => {
       if (r.spawnT > 0) r.spawnT -= dt;
       // between updates (POS_EVERY apart) a walking player keeps moving the way they went, for a short while,
       // so they glide instead of hopping from one update to the next
+      // (owner's bug, Oct 25 2026: jumping players seemed to go through blocks) the guess falls with gravity like a
+      // real jump and stops at solid blocks, one axis at a time, instead of flying on in a straight line
       if (!r.dead && r.vx !== undefined && now - r.posAt < POS_EVERY * 1500) {
-        r.tx += r.vx * dt;
-        r.ty += r.vy * dt;
+        if (r.vy) r.vy = Math.min(MAX_FALL, r.vy + GRAVITY * dt);
+        const nx = r.tx + r.vx * dt;
+        if (!remoteHits(nx, r.ty, r.w || P.w, r.h || P.h)) r.tx = nx;
+        else r.vx = 0;
+        const ny = r.ty + r.vy * dt;
+        if (!remoteHits(r.tx, ny, r.w || P.w, r.h || P.h)) r.ty = ny;
+        else r.vy = 0;
       }
       const k = r.dead ? 0 : Math.min(1, dt * 12);
       r.x += (r.tx - r.x) * k;

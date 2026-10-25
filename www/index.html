@@ -146,7 +146,7 @@
             <button data-tab="profile" role="tab">Profile</button
             ><button data-tab="worlds" role="tab">Worlds</button
             ><button data-tab="friends" role="tab">Friends</button
-            ><button data-tab="email" role="tab">Email</button
+            ><button data-tab="email" role="tab">Email<b class="badge" id="emailBadge" hidden></b></button
             ><button data-tab="settings" role="tab">Settings</button>
           </div>
           <button class="x" id="menux" aria-label="Close menu">X</button>
@@ -163,25 +163,29 @@
               ><button type="button" data-mode="register" role="tab" aria-selected="false">Register</button>
             </div>
             <form id="authF" class="authf" autocomplete="off" novalidate>
+              <!-- errors always show at the top, above Username (owner, Oct 25 2026) -->
+              <p class="werr" id="aErr" role="alert"></p>
               <label class="pname" for="aUser"
                 >Username
                 <input id="aUser" maxlength="16" spellcheck="false" autocomplete="username" />
               </label>
-              <label class="pname" for="aPass"
-                >Password
-                <input id="aPass" type="password" maxlength="64" autocomplete="current-password" />
-              </label>
-              <label class="pname" for="aPass2" id="aPass2L" hidden
-                >Confirm password
-                <input id="aPass2" type="password" maxlength="64" autocomplete="new-password" />
-              </label>
+              <!-- Register: password and confirm side by side on one row -->
+              <div class="pwrow" id="aPwRow">
+                <label class="pname" for="aPass"
+                  >Password
+                  <input id="aPass" type="password" maxlength="64" autocomplete="current-password" />
+                </label>
+                <label class="pname" for="aPass2" id="aPass2L" hidden
+                  >Confirm
+                  <input id="aPass2" type="password" maxlength="64" autocomplete="new-password" />
+                </label>
+              </div>
               <!-- Register only: pick a flag, shown at the left of your name (flags.js, levels.js) -->
               <div class="pname flagpick" id="aFlagL" hidden>
                 <span>Flag <small id="aFlagN">(optional)</small></span>
                 <div class="flagsel"><button class="btn ghost" id="aFlagBtn" type="button">SELECT</button><span class="flagshow" id="aFlagShow"></span></div>
               </div>
-              <label class="remember"><input type="checkbox" id="aRemember" checked /> Stay logged in</label>
-              <p class="werr" id="aErr" role="alert"></p>
+              <label class="remember" id="aRememberL"><input type="checkbox" id="aRemember" checked /> Stay logged in</label>
               <button class="btn" id="aGo" type="submit">LOG IN</button>
               <p class="anote" id="aNote">Accounts are saved on this device only.</p>
             </form>

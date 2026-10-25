@@ -43,6 +43,11 @@ const ZOOM_MAX = 3;
 let menuTab = 'profile';
 function openMenu(tab) {
   if (tab) menuTab = tab;
+  // opening the menu: the menu button's message count goes (the Email tab keeps its own until opened)
+  if (typeof dmUnseen !== 'undefined' && dmUnseen) {
+    dmUnseen = 0;
+    updateBadge();
+  }
   for (const k in keys) keys[k] = false;
   ptr.down = false;
   $('menu').hidden = false;

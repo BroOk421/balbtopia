@@ -1042,6 +1042,20 @@ button:focus-visible {
   max-height: 40vh;
   overflow-y: auto;
 }
+/* private messages: a short list that scrolls (owner, Oct 25 2026) */
+.mlist.mmsgs {
+  max-height: min(30vh, 190px);
+  align-content: start;
+  padding-right: 2px;
+}
+/* the red number on the Email tab, top right of the tab */
+#menu .tabs button {
+  position: relative;
+}
+#emailBadge {
+  top: -7px;
+  right: -7px;
+}
 .mnote {
   font-size: 12px;
   color: var(--muted);
@@ -1164,9 +1178,31 @@ button:focus-visible {
   margin-bottom: 6px;
   cursor: pointer;
 }
-.authf .werr {
+.start .authf .werr {
   max-width: 280px;
   margin: 0 auto 8px;
+  text-align: center;
+  color: var(--danger);
+  font-size: 13px;
+}
+.start .authf .werr:empty {
+  display: none;
+}
+.remember[hidden] {
+  display: none;
+}
+/* Register: Password and Confirm side by side */
+.authf .pwrow.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+.authf .pwrow.two .pname {
+  max-width: none;
+  margin: 0 0 10px;
+  min-width: 0;
 }
 .anote {
   font-size: 12px !important;

@@ -55,16 +55,11 @@ gEl.innerHTML = `<button class="gtoggle" id="gOpen" type="button" title="Global 
     <div class="gform"><input id="gText" maxlength="${GCHAT_MAX}" placeholder="Broadcast… (/go = their world)" autocomplete="off" enterkeyhint="send" /><button class="btn" id="gSend" type="button">Send</button></div>
   </section>`;
 $('wrap').appendChild(gEl);
+// always starts minimised (owner, Oct 25 2026: after logging in it was still open), so nothing is remembered
 let gOpenNow = false;
-try {
-  gOpenNow = localStorage.getItem('balbtopia.gopen') === '1';
-} catch (e) {}
 function gShow(open) {
   gOpenNow = open;
   gEl.classList.toggle('open', open);
-  try {
-    localStorage.setItem('balbtopia.gopen', open ? '1' : '0');
-  } catch (e) {}
   if (open) {
     gUnread = 0;
     gBadge();
@@ -74,9 +69,15 @@ function gShow(open) {
 }
 $('gOpen').onclick = () => gShow(true);
 $('gMin').onclick = () => gShow(false);
-// shown only while playing (not on the log in screen)
-setInterval(() => (gEl.hidden = !(typeof account !== 'undefined' && account && inWorld)), 500);
-setTimeout(() => gShow(gOpenNow), 0); // (after gPoll / gRender below exist)
+// shown only while playing: never on the log in / PLAY screen (a world can be drawn behind it there); it is
+// minimised again whenever that screen shows
+const gPlaying = () => typeof account !== 'undefined' && !!account && inWorld && $('start').hidden;
+setInterval(() => {
+  const on = gPlaying();
+  if (!on && gOpenNow) gShow(false);
+  gEl.hidden = !on;
+}, 300);
+gEl.hidden = true;
 
 function gRender(toEnd) {
   const ul = $('gList');
@@ -111,7 +112,44 @@ function gAdd(list) {
   gmsgs.sort((a, b) => a.id - b.id);
   if (gmsgs.length > GCHAT_KEEP) gmsgs = gmsgs.slice(-GCHAT_KEEP);
   if (added && !gOpenNow) gBadge();
+  if (added) toot();
   gRender();
+}
+// "toot toot" (owner, Oct 25 2026: like a scanner's beep) when a Global Chat or private message comes in: two short
+// bright beeps made with Web Audio (square wave softened by a low-pass filter, quick fade), at most one every 0.6 s;
+// Menu -> Settings -> Sound turns it off
+let tootT = 0;
+function toot() {
+  if (typeof settings !== 'undefined' && settings.sound === false) return;
+  if (performance.now() - tootT < 600) return;
+  tootT = performance.now();
+  const ac = Sfx.ctx();
+  if (!ac) return;
+  if (ac.state === 'suspended') ac.resume().catch(() => {});
+  if (ac.state === 'closed') return;
+  const t0 = ac.currentTime + 0.01,
+    lp = ac.createBiquadFilter(),
+    out = ac.createGain();
+  lp.type = 'lowpass';
+  lp.frequency.value = 5200;
+  out.gain.value = 0.16;
+  lp.connect(out).connect(ac.destination);
+  for (const [at, hz] of [
+    [0, 2093],
+    [0.11, 2637],
+  ]) {
+    const o = ac.createOscillator(),
+      gn = ac.createGain();
+    o.type = 'square';
+    o.frequency.value = hz;
+    gn.gain.setValueAtTime(0, t0 + at);
+    gn.gain.linearRampToValueAtTime(1, t0 + at + 0.006);
+    gn.gain.setValueAtTime(1, t0 + at + 0.06);
+    gn.gain.exponentialRampToValueAtTime(0.001, t0 + at + 0.085);
+    o.connect(gn).connect(lp);
+    o.start(t0 + at);
+    o.stop(t0 + at + 0.1);
+  }
 }
 // the red number on the globe button (white, rounded; 99+ at most)
 function gBadge() {
@@ -149,6 +187,8 @@ async function gSend() {
     if (!m) return toast('Nobody has broadcast yet');
     if (!m.w || m.w === LOBBY_WORLD) return toast(m.n + ' is in their own lobby');
     inp.value = '';
+    inp.blur();
+    gShow(false); // the panel closes when you go (owner, Oct 25 2026)
     toast('Going to ' + m.w + '…');
     enterWorld(m.w);
     return;

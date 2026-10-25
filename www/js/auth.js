@@ -183,6 +183,9 @@ function setAuthMode(m) {
     .querySelectorAll('.atabs button')
     .forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
   $('aPass2L').hidden = m !== 'register';
+  $('aPwRow').classList.toggle('two', m === 'register'); // password + confirm on one row
+  $('aRememberL').hidden = m === 'register'; // (owner, Oct 25 2026: no "Stay logged in" on Register; a new account stays logged in)
+  $('aRemember').checked = true;
   $('aGo').textContent = m === 'register' ? 'CREATE ACCOUNT' : 'LOG IN';
   $('aPass').autocomplete = m === 'register' ? 'new-password' : 'current-password';
   $('aErr').textContent = '';
