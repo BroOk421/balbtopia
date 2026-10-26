@@ -491,6 +491,7 @@ const Net = (() => {
           if (r) r.shove = (payload.d || 1) * 10;
         }
       })
+      .on('broadcast', { event: 'shot' }, ({ payload }) => payload && N.onShot && N.onShot(payload))
       .on('broadcast', { event: 'drop' }, ({ payload }) => netDrop(payload))
       .on('broadcast', { event: 'take' }, ({ payload }) => payload && netTake(payload.u, payload.by))
       // 5 coins on one tile joined into a bigger one (coins.js)
@@ -923,6 +924,10 @@ const Net = (() => {
   // a gift or trade happened here: everyone else in the world sees the items fly
   N.sendFly = (from, to, items) => send('fly', { from, to, items });
   // you punched another player: they get knocked back on their screen
+  // a shot from a hand item (water from the Water Gun, an arrow from the Heartbow; handfx.js): others only see it fly
+  N.sendShot = (k, x, y, tx, ty) => {
+    if (N.me) send('shot', { id: N.me.id, k, x: Math.round(x), y: Math.round(y), tx: Math.round(tx), ty: Math.round(ty) });
+  };
   N.hit = (r, dir) => {
     if (!N.me) return;
     send('hit', { to: r.id, from: N.me.id, n: playerName, d: dir });

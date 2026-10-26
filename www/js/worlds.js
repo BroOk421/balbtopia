@@ -46,9 +46,32 @@ const fromB64 = (b, into) => {
   for (let i = 0; i < into.length; i++) into[i] = s.charCodeAt(i);
 };
 
+// Block numbers above 254 (owner, Oct 26 2026: more blocks than one byte holds). fg is a Uint16Array in memory, but
+// the saved `fg` stays ONE BYTE per tile (the server's lock checks read those bytes): 0-254 as they are, 255 means
+// "look in `fgx`", which holds the number - 254 (so blocks 255-509). Saves made before this have no fgx.
+const FG_EXT = 255;
+function fgBytes() {
+  const lo = new Uint8Array(fg.length),
+    hi = new Uint8Array(fg.length);
+  for (let i = 0; i < fg.length; i++) {
+    const t = fg[i];
+    if (t < FG_EXT) lo[i] = t;
+    else (lo[i] = FG_EXT), (hi[i] = Math.min(255, t - 254));
+  }
+  return [lo, hi];
+}
+function setFgBytes(loB64, hiB64) {
+  const lo = new Uint8Array(fg.length),
+    hi = new Uint8Array(fg.length);
+  fromB64(loB64, lo);
+  if (typeof hiB64 === 'string') fromB64(hiB64, hi);
+  for (let i = 0; i < fg.length; i++) fg[i] = lo[i] !== FG_EXT ? lo[i] : hi[i] && BLOCK[254 + hi[i]] ? 254 + hi[i] : 0;
+}
 function worldData() {
+  const [fgLo, fgHi] = fgBytes();
   return {
-    fg: toB64(fg),
+    fg: toB64(fgLo),
+    fgx: toB64(fgHi),
     bg: toB64(bg),
     vari: toB64(vari),
     door: [door.x, door.y],
@@ -70,7 +93,7 @@ function worldData() {
 }
 // skew: how far our clock is ahead of the clock that wrote w (for the age of drops)
 function applyWorld(w, skew = 0) {
-  fromB64(w.fg, fg);
+  setFgBytes(w.fg, w.fgx);
   fromB64(w.bg, bg);
   fromB64(w.vari, vari);
   migrateTiles(); // items that moved between block and background (blocks.js)

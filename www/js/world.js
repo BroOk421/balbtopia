@@ -1,6 +1,7 @@
 // World size, generation and the autotile mask.
 // ===== world =====
-const fg = new Uint8Array(WW * WH),
+// fg holds block numbers up to 509 (Uint16; saved as one byte + `fgx`, see worlds.js fgBytes)
+const fg = new Uint16Array(WW * WH),
   bg = new Uint8Array(WW * WH),
   vari = new Uint8Array(WW * WH);
 const dmg = new Float32Array(WW * WH),
@@ -79,6 +80,7 @@ const solidAt = (x, y) => {
   if (worldName === LOBBY_WORLD && lobbyWall(x, y)) return true; // (only a player's own lobby has walls)
   const t = fg[at(x, y)];
   if (t !== EMPTY && BLOCK[t].gate) return !gatePass(at(x, y), playerName); // gates.js: shut unless you may pass
+  if (t !== EMPTY && BLOCK[t].shut) return BLOCK[t].shut(at(x, y)); // Spike Gate (blocks64b.js): solid while shut
   return t !== EMPTY && BLOCK[t].solid !== false;
 };
 function joins(a, b) {

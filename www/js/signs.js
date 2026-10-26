@@ -387,7 +387,7 @@ let worldRV = null; // which recipe list the RECIPES world was built from (saved
 // L7: items were renamed (Oct 2026); the names are part of the tag so a rename rebuilds the signs too
 // L8 (Oct 22 2026): rebuilt once more so no outfit-set wear is left in an old RECIPES world
 const recipesVersion = () =>
-  'L10:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length;
+  'L11:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length;
 // one entry per item the splices make (an item with two recipes, like Grass, gets one sign with both),
 // sorted A to Z by name
 function recipeList() {
@@ -429,7 +429,8 @@ function buildRecipesWorld() {
   signs.set(at(hello, FLOOR - 1), 'Welcome to RECIPES! Stand on a sign to read it. What it makes is above it: clothes on a Mannequin, everything else in a Display Box. Jump up through the shelves for more.');
   let k = 0;
   // each shelf is three tiles tall: platform, sign, the item above the sign
-  for (let floor = 0; k < list.length && floor < 10; floor++) {
+  // up to 16 shelves (owner, Oct 26 2026: more recipes than 10 shelves hold): about 750 recipes fit
+  for (let floor = 0; k < list.length && floor < 16; floor++) {
     const row = FLOOR - 1 - floor * 3;
     if (floor > 0) for (let x = 1; x < WW - 1; x++) fg[at(x, row + 1)] = PLAT;
     for (let x = 2; x < WW - 2 && k < list.length; x += 2) {

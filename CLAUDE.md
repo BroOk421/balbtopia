@@ -55,7 +55,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js). fg / bg are Uint8Arrays: 255 is the LAST possible block number (47 left). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js), 209 Mystery Door (qdoor.js), 210 Desert Machine (weather.js), 211-230 64 px splice blocks (blocks64.js), 231-246 more (blocks64b.js; 231 Spike Gate), 247-276 (blocks64c.js; 247 Chest, 248 Stove), 277-306 (blocks64d.js), 307-326 (blocks64e.js), 327-346 (blocks64f.js), 347-366 (blocks64g.js). Since build s block numbers go up to 509 (fg is a Uint16Array; saved as the `fg` byte + `fgx`, see worlds.js fgBytes): next free 367. bg / vari are Uint8Arrays; fg is a Uint16Array since build s (blocks up to 509). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -1544,3 +1544,185 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     (`bands.pose`).
   - Blue Jeans / White Sneakers are ordinary recolouring items now (no `keep`).
   - GAME_BUILD '2026-10-26 o'.
+
+- Oct 26 2026 (build p, owner sent his own Diamond / Golden Diaper pictures, "add to wear"): the diapers are BACK, as
+  his pictures (`diaper.js`, after baby.js). His 8 walking frames per diaper (porcelain, 118 x 215, same drawing,
+  only the diaper's colours differ) are in `art-source/character/diaper_owner/`; `diaper_cut.py` makes
+  `<skin>/diaper_walk_0..7.png` (walking bodies, skin recoloured like base_cut), `dmask_walk_0..7.png` (R diaper,
+  G feet, for shirts / shoes), `items/<kind>_diaper_0..7.png` (the diaper alone per frame) and
+  `items/<kind>_diaper_idle.png` (frame 0's diaper moved onto the standing frame; covers the white briefs).
+  - Walking in a diaper: render.js uses `diaperFrame(c, wf)` (12-step cycle -> his 8 frames, head bob `DIAPER_DY`
+    so hats / face follow), then `drawDiaper` lays the diaper over the body. Standing / blinking / punching / tool
+    swing: our frame + the idle diaper. Sitting / swimming: no diaper drawn (briefs). Mannequin: not shown yet.
+  - `outfitBody` gets no pants for a diaper; `bodyMask` knows the `dwalk_` keys; `wearIcon` = the diaper cropped.
+  - Shop WEAR: Golden Diaper 50,000 gold, Diamond Diaper 100 Balb Coins (prices picked by Claude, same as build k);
+    shop_prices rows (re-run schema.sql). GAME_BUILD '2026-10-26 p'.
+
+- Oct 26 2026 (build q, owner):
+  - Diamond Diaper renamed ANGEL DIAPER, Golden Diaper renamed WISDOM DIAPER (names only; ids stay `diamond_diaper` /
+    `golden_diaper` and the picture files stay diamond_* / golden_*).
+  - The diaper is now laid over the body INSIDE `outfitBody` (diaper.js wrapper, `diaperPart(key)`), so every body
+    gets it: walking (his frames), standing / punching / swinging / sleeping / ghost / MANNEQUIN (idle diaper), and
+    SITTING (`<kind>_diaper_sit.png`, 198 x 215 like the sitting picture, made by
+    `art-source/character/diaper_sit_cut.py` from `sit_briefs_porcelain.png`: his diaper's pixels on a puffy mound
+    under the shirt, left see-through over the hands and flip-flop soles so they stay in front). Swimming: none.
+    render.js only swaps in his walking frames (`diaperFrame`).
+  - 20 new blocks with 64 x 64 art (`blocks64.js`, after steel.js; pix64Canvas; NEWART / SHOP_ICON set to the
+    picture), blocks 211-230, Balbtopia recipes (farming.json + SPLICE), prices none (recipes only):
+    solid: Crystal Block = Glass Block + Ice, Ruby / Emerald / Amethyst Block = Red / Green / Purple Block + Crystal
+    Block (faceted gems, `gem64`), Marble Checker Floor = Marble Block + Black Block, Cobblestone = Rock + Sidewalk,
+    Mossy Cobblestone = Cobblestone + Grass (stone cells wrap, so blocks join), Cloud Block = White Block + Bubble
+    Wrap, Candy Cane Block = Sugar Cane + Lollipop, Chocolate Block = Dark Brown Block + Sugar Cane, ABC Toy Block =
+    A Block + Wood Block, Wooden Crate = Wood Block + Barrel; walk-through: Angel Statue = Marble Block + Cloud Block,
+    Wisdom Owl = Golden Block + Bookcase, Baby Crib = Bed + Picket Fence, Baby Bottle = Glass Pane + White Block,
+    Teddy Bear = Brown Block + Bubble Wrap, Rubber Duck = Yellow Block + Water Bucket, Crystal Cluster = Crystal
+    Block + Rock, Baby Mobile = Lantern + Cloud Block (hangs from the top of its tile). Names / recipes picked by Claude.
+  - GAME_BUILD '2026-10-26 q'.
+
+- Oct 26 2026 (build r, owner: "more blocks, and steel + spike that opens and closes when clicked"):
+  - `blocks64b.js` (after blocks64.js, same 64 px painters + `cells64` wrapping Voronoi, `bricks64`), blocks 231-246.
+  - SPIKE GATE (231) = Steel Block + Death Spikes: steel frame (`SPG_FRAME`) + spiked shutter (`SPG_SHUTTER`).
+    Punch = open / shut (`toggleSpikeGate`, portcullis sound, toast; only with realAccess like the Disco Ball; each
+    punch still counts towards breaking). State = vari bit `SPIKE_OPEN` 64 (saved / synced; new gates are shut).
+    `BLOCK[231].shut(i)`: world.js solidAt treats any block with `shut` as solid while it returns true; physics.js
+    side probes (left / right only, not standing on top) hurt like a Cactus while shut. Drawn by a drawNewBlock
+    wrapper: shutter eased up into the housing (`spikeSlide`, 3 openings / s), clipped under the housing.
+  - Solid: Sapphire Block = Blue Block + Crystal Block, Topaz Block = Orange Block + Crystal Block, Obsidian (9 hits) =
+    Lava + Dark Cave, Gold Bricks = Golden Block + Bricks, Ice Bricks = Ice + Bricks, Hay Bale = Barn Block + Grass,
+    Gift Box = Red Block + Wooden Crate, Magma Block (does NOT burn) = Lava + Cobblestone, Pastel Tiles = Ceramic Tile
+    + Cloud Block. Walk-through: Treasure Chest = Wooden Crate + Golden Block, Baby Rattle = Lollipop + Baby Bottle,
+    Rainbow (`rainbow_arch`) = Rainbow Block + Cloud Block, Golden Trophy = Golden Block + Flower Pot, Snowman = Ice +
+    White Block, Bonsai Tree = Flower Pot + Bush. Names / recipes picked by Claude.
+  - GAME_BUILD '2026-10-26 r'.
+
+- Oct 26 2026 (build s, owner: "about 30 more blocks; a chest that opens / closes: items in it vanish when shut, come
+  back when opened; a stove that works the same"):
+  - BIGGER BLOCK NUMBERS: `fg` is a Uint16Array (world.js). Saves keep `fg` ONE byte per tile (the server's lock
+    guards and the Mailbox check read those bytes): 0-254 as is, 255 = "extended", and the new `fgx` (b64, one byte
+    per tile) holds number - 254 (blocks 255-509). `fgBytes` / `setFgBytes` (worlds.js); old saves have no fgx; an
+    unknown extended number loads as empty. schema.sql `alock_guard` / `alock_area_only` copy the fgx bytes of guarded
+    / allowed tiles like fg (tested on a local Postgres 16) -> RE-RUN schema.sql. Realtime `tiles` messages carry
+    plain numbers. Players on older builds would see blocks >= 256 wrong: everyone needs build s.
+  - `blocks64c.js` (after blocks64b.js), blocks 247-276, Balbtopia recipes:
+    CHEST (`storage_chest`, 247) = Wooden Crate + Steel Block, STOVE (248) = Steel Block + Fireplace: punch = shut /
+    open (realAccess like the Spike Gate; door sound; toast says how many items are inside). vari bit STORE_SHUT (64;
+    new = open). While shut, drops whose centre is on the tile are hidden (render.js) and can't be picked up
+    (physics.js): `dropHidden(d)`. Drops stay in the world's drop list (saved / synced as usual). Pictures: closed /
+    open (`CHEST_OPEN_PIC`, `STOVE_OPEN_PIC`), drawn by a drawNewBlock wrapper.
+    Solid: Rose Quartz Block = Crystal Block + Rose, Onyx Block = Black Block + Crystal Block, Terracotta Tiles = Bricks
+    + Sand, Sandstone Bricks = Sandstone + Bricks, Cherry Wood Planks = Wood Block + Cherry Blossom, Bamboo Block =
+    Grass + Sugar Cane, Cheese Block = Yellow Block + Honeycomb Block, Cookie Block = Chocolate Block + Sand, Jelly
+    Block = Candy Cane Block + Water Bucket, Starry Night Block = Dark Blue Block + Crystal Block, Circuit Block =
+    Steel Block + Green Block, Snow Block = Ice + Cloud Block, Leaf Block = Foliage + Grass, Slate Tiles = Cobblestone
+    + Sidewalk. Walk-through: Fridge = Ice + Steel Block, Birthday Cake = Candy Cane Block + Chocolate Block,
+    Grandfather Clock = Wood Block + Golden Block, Floor Lamp = Lantern + Wood Block, Piggy Bank = Pastel Tiles +
+    Golden Block, Christmas Tree = Bonsai Tree + Gift Box, Jack-o'-Lantern = Orange Block + Torch, Campfire (doesn't
+    burn) = Wood Block + Lava, Globe = Blue Block + Wooden Table, Telescope = Steel Block + Glass Pane, Toy Robot =
+    Steel Block + ABC Toy Block, Rocking Horse = Teddy Bear + Wood Block, Baby High Chair = Wooden Chair + Baby
+    Bottle, Baby Stroller = Baby Crib + Steel Block. Names / recipes picked by Claude.
+  - GAME_BUILD '2026-10-26 s'.
+
+- Oct 26 2026 (build t, owner: "the campfire's fire just goes out, the lamp's light just goes out; make more blocks"):
+  - `blocks64d.js` (after blocks64c.js and liven.js). Campfire / Floor Lamp: punch = off / on (ANIM_TOGGLE, bit
+    ANIM_OFF via toggleAnim; anyone can switch them like the Torch; hits 3). Campfire: 4 dancing flame frames + the
+    Torch's warm 'glow' with embers; off = charred logs, ash, two dull embers, a puff of smoke when put out and a wisp
+    now and then. Floor Lamp: lit shade + a soft warm pool of light ('lamp' liveFx, drawLiveFx wrapper); off = dim
+    shade, no light. Neither hurts.
+  - Blocks 277-306, Balbtopia recipes (ids as in B64D; names / recipes picked by Claude):
+    solid: Stained Glass = glass_block + rainbow_block, Mosaic Tiles = ceramic_tile + blue_block, Granite Block = rock + marble_block, Red Carpet = red_block + flowery_wallpaper, Wool Block = cloud_block + barn_block, Coral Block = seaweed + rose, Mushroom Block = mushroom + orange_block, Watermelon Block = green_block + apple, Ice Cream Block = snow_block + candy_block, Glow Block = neon_lights + crystal_block, Diamond Plate = steel_block + sidewalk, Rusty Metal = steel_block + water_bucket, Cardboard Box = wooden_crate + brown_block, White Bricks = bricks + white_block, Gingerbread Block = cookie_block + candy_block;
+    walk-through: Fountain = cobblestone + water_bucket, Scarecrow = hay_bale + jack_o_lantern, Park Bench = wood_block + iron_bars, Potted Fern = flower_pot + leaf_block, Tulip Pot = flower_pot + rose, Beach Umbrella = rainbow_block + wooden_platform, Arcade Machine = circuit_block + black_block, Retro TV = circuit_block + glass_pane, Guitar = cherry_planks + note_block, Easel = wood_block + painting_dink_duck, Bean Bag = bubble_wrap + red_block, Toy Car = toy_block + red_block, Balloon Bunch = das_red_balloon + rainbow_block, Baby Bath = bathtub + rubber_duck, Diaper Stack = cloud_block + baby_bottle.
+  - GAME_BUILD '2026-10-26 t'.
+
+- Oct 26 2026 (build u, owner, with a picture of a cloud tile: plain inside, a puffy cloud border; "blocks next to
+  each other combine, the curve in the middle goes away; neon lights too, circle to rectangle, up / down / left /
+  right"): `joinblocks.js` (after blocks64d.js). `joinMask(x, y)` = same-block neighbours (4 sides + diagonals);
+  `joinKey` keeps a diagonal only when both sides next to it join; pictures are made per key (64 px, cached).
+  - Cloud Block: plain white inside, puffs (big 11 / small 8.5 every 32 px, on a grid shared by all tiles, tops
+    inside the tile so the edge is scalloped) only on open sides, a big puff in outside corners, a small one in
+    inside corners (two joined sides, diagonal missing); outline only where the cloud meets something else.
+  - Neon Lights (block 68): `depth(i, j)` = distance in from the group's outer edge (open sides, outside corners
+    rounded with radius 32, inside corners round the missing diagonal); pink tube at depth 7, cyan at 17, dark
+    panel inside, see-through outside: alone = a round sign, a row = a capsule, 2 x 2 = rounded square, etc.
+  - Both: `BLOCK.edge` removed, the lone picture is NEWART / SHOP_ICON. Collision is still the full square.
+  - GAME_BUILD '2026-10-26 u'.
+
+- Oct 26 2026 (build v, owner):
+  - Cloud Block whiter: puffs white with only a faint blue shade (`CLOUD_PUFF`), softer outline `CLOUD_OL`, inside
+    near-white. Neon Lights SQUARE, not round: outside corner radius `RAD` 10 (was 32), so a lone block is a square
+    sign and groups are rectangles / L / plus shapes with slightly rounded outer corners.
+  - `blocks64e.js` (after joinblocks.js), blocks 307-326, Balbtopia recipes (names / recipes picked by Claude):
+    solid: Capiz Window = Glass Pane + White Bricks, Nipa Thatch = Hay Bale + Bamboo Block, Banig Mat = Wool Block + Rainbow Block, Pearl Block = Coral Block + Crystal Block, Hexagon Tiles = Ceramic Tile + Honeycomb Block, Mossy Bricks = Bricks + Leaf Block, Quilt Block = Wool Block + Flowery Wallpaper, Steel Grate = Iron Bars + Steel Block, Gold Coin Pile = Gold Bricks + Piggy Bank, Galaxy Block = Starry Night Block + Amethyst Block;
+    walk-through: Parol = Lantern + Rainbow Block, Halo-Halo = Ice Cream Block + Glass Pane, Coconut Tree = Leaf Block + Sand, Electric Fan = Steel Block + Cloud Block, Rice Cooker = Stove + White Block, Bubble Tea = Baby Bottle + Chocolate Block, Basketball Hoop = Steel Block + Orange Block, Cactus Pot = Flower Pot + Cactus, Hammock = Wool Block + Bamboo Block, Toy Rocket = Toy Robot + Glow Block.
+    The Parol glows (the Floor Lamp's 'lamp' light), the Electric Fan's blades spin (4 frames, `FAN_PICS`).
+  - GAME_BUILD '2026-10-26 v'.
+
+- Oct 26 2026 (build w, owner: "change the Air Duct into an air exhaust, steel, a fan in the middle that spins; more
+  blocks"): `blocks64f.js` (after blocks64e.js).
+  - Air Duct (background 29, id `air_duct` kept) is shown as AIR EXHAUST (ITEMS name / seed name / desc changed):
+    64 px steel housing (bevelled frame, 4 screws), round shroud, guard grille, 5-blade fan; 8 frames
+    (`EXHAUST_PICS`, 45 ms each) via a `bgImage` wrapper, so every Air Exhaust background spins (all in step).
+  - Blocks 327-346, Balbtopia recipes (names / recipes picked by Claude):
+    solid: Copper Block = Copper Plumbing + Steel Block, Marble Pillar = Marble Block + White Bricks, Basalt = Obsidian + Rock, Dark Oak Planks = Wood Block + Black Block, Pool Tiles = Ceramic Tile + Water Bucket, Donut Block = Cookie Block + Pastel Tiles, Moon Rock = Rock + Starry Night Block, Toy Bricks = ABC Toy Block + Bricks, Frost Block = Snow Block + Crystal Block, Vine Wall = Leaf Block + Stone Wall;
+    walk-through: Air Conditioner = Air Exhaust + Fridge, Water Dispenser = Water Bucket + Fridge, Karaoke Machine = Boombox + Retro TV, Banana Tree = Leaf Block + Yellow Block, Fruit Basket = Apple + Barrel, Lucky Cat = Piggy Bank + White Block, Snow Globe = Snowman + Glass Pane, Bird Cage = Iron Bars + Sunflower, Gaming PC = Circuit Block + Retro TV, Cupcake = Birthday Cake + Cherry.
+    The Snow Globe's snow falls (4 frames, `GLOBE_PICS`).
+  - GAME_BUILD '2026-10-26 w'.
+
+- Oct 26 2026 (build x, owner: "marble pillar should combine when I put one above / below; more blocks; update the
+  RECIPES world"): `blocks64g.js` (after blocks64f.js).
+  - Marble Pillar joins up / down: `JOIN_PIC.marble_pillar` (joinblocks.js draws it) picks one of `PILLAR_PICS` by
+    the up / down neighbours: capital only on the top block, base only on the bottom one, the shaft runs through.
+  - Blocks 347-366, Balbtopia recipes (names / recipes picked by Claude):
+    solid: Sakura Leaves = Leaf Block + Cherry Blossom, Autumn Leaves = Leaf Block + Orange Block, Diner Tiles = Marble Checker Floor + Red Block, Caramel Block = Chocolate Block + Sugar Cane, Disco Floor = Disco Ball + Pastel Tiles, Aquarium Glass = Fish Tank + Glass Block, Ancient Ruins = Sandstone Bricks + Vine Wall, Royal Velvet = Amethyst Block + Red Carpet, Camouflage Block = Leaf Block + Dark Oak Planks, Solar Panel = Circuit Block + Glass Block;
+    walk-through: Ice Cream Cart = Ice Cream Block + Baby Stroller, Desk Lamp = Floor Lamp + Steel Block, Monstera Plant = Potted Fern + Leaf Block, Unicorn Plush = Teddy Bear + Rainbow Block, Drum Set = Drum Note + Steel Block, Microphone Stand = Karaoke Machine + Steel Block, Traffic Cone = Orange Block + White Bricks, Fire Hydrant = Red Block + Water Dispenser, Pirate Flag = Skeleton + Wooden Platform, Wishing Well = Stone Wall + Water Bucket.
+    Animated: Disco Floor (tiles light up in turns), Aquarium Glass (fish swim); the Desk Lamp gives a little light.
+  - RECIPES world: up to 16 shelves now (was 10; signs.js buildRecipesWorld), about 750 recipes fit; version tag
+    L11 so it rebuilds. Checked: all 404 recipes get a sign + Display Box / Mannequin (the Mystery Door lists up to
+    QD_MAX 600).
+  - GAME_BUILD '2026-10-26 x'.
+
+- Oct 26 2026 (build y, owner: "is there really a line in the pillar? it should be continuous; make wearable weapons"):
+  - The lines in the pillar preview were only gaps in Claude's test picture; in the game a stack is seamless
+    (checked with 4 stacked in a world). No code change.
+  - `weapons.js` (after blocks64g.js; uses hd/tools.js `hdtSprite` / `hdtSeg` / `hdtDisc` / `HDT_ART`): 10 hand
+    weapons added to TOOLS (`weapon: true`, `blade: true`, bonus 0, just for show; hold in the hotbar or the Hand slot,
+    swung when you punch). Fire / Ice / Golden / Plasma Sword have `sparkle` colours, so hits throw sparks
+    (toolSparkles). 32 px 1 px art, grip at the bottom left like the Sword. Balbtopia recipes (360 s trees):
+    Katana = Sword + Steel Block, Fire Sword = Sword + Lava, Ice Sword = Sword + Ice, Golden Sword = Sword + Golden
+    Block, Plasma Sword = Sword + Neon Lights, Battle Axe = Steel Block + Wood Block, War Hammer = Steel Block +
+    Barrel, Spear = Wooden Platform + Death Spikes, Bolo = Sword + Bamboo Block, Arnis Stick = Bamboo Block + Red
+    Block. Not sold in the Shop. Names / recipes picked by Claude.
+  - GAME_BUILD '2026-10-26 y'.
+
+- Oct 26 2026 (build z, owner: "more", in the style of the hand items of the game he copies; he asked that its name is
+  NOT written in the code for these): `weapons2.js` (after weapons.js), 12 more hand items, same system as
+  weapons.js (TOOLS, `hdtSprite` art, `hdtArc` helper for curved blades / bows; `sparkle` = sparks on hits).
+  Balbtopia recipes (360 s trees): Hand Scythe = Bolo + Grass, Leaf Blower = Electric Fan + Leaf Block,
+  Oil-paper Umbrella = Beach Umbrella + Bamboo Block, Staff of S'mores = Campfire + Cookie Block, Death Scythe =
+  Hand Scythe + Skeleton, Heartbow = Rose + Spear, Fire Wand = Torch + Crystal Block, Ice Wand = Ice + Crystal
+  Cluster, Chainsaw = Battle Axe + Circuit Block, Water Gun = Water Bucket + Toy Car, Dragon Hand = Fire Sword +
+  Obsidian, Thunder Hammer = War Hammer + Glow Block. GAME_BUILD '2026-10-26 z'.
+
+- Oct 26 2026 (build z2, owner): `handfx.js` (after weapons2.js) makes three hand items work:
+  - Chainsaw: the chain runs while held (6 frames `CHAINSAW_PICS`, toolSprite wrapped; motor shakes, exhaust puff).
+  - Water Gun: a click (act wrapper, 140 ms apart) sprays 6 water drops at the pointer (`SHOTS`, gravity, stop at a
+    solid block / player with a splash). It NEVER touches blocks. The first drop that reaches another player calls
+    Net.hit (they are pushed away like a punch) unless a Punch Blocker is on (`jammed(PUNCH_JAMMER)`; the receiver's
+    gotHit checks it too).
+  - Heartbow: a click (380 ms apart) shoots an arrow (heart tip) at the pointer; a player it reaches is knocked back
+    (same Punch Blocker rule); clicking a block also punches it normally (falls through to the old act: reach,
+    locks, damage). Clicking right on a player: only the arrow hits (no extra punch).
+  - Others see the shots: new realtime event `shot` { id, k: 'water' | 'arrow', x, y, tx, ty } (net.js
+    N.sendShot / N.onShot); only the shooter decides hits. Shots are drawn in the drawLiveFx wrapper.
+  - GAME_BUILD '2026-10-26 z2'.
+
+- Oct 26 2026 (build z3, owner): handfx.js additions.
+  - Heartbow animation: `BOW_PICS` idle (arrow nocked) / draw (string pulled back, 90 ms after a shot) / twang (no
+    arrow, string wobbles) / shot (no arrow) until BOW_RELOAD 420 ms. toolSprite('heart_bow') picks by the character
+    being drawn (`bowWho`, set by a drawCharacter wrapper): `P.bowT` for you, `r.bowT` from their 'shot' event.
+  - DOORS FIRST with hand items (owner: weapons, Water Gun, Heartbow, Chainsaw, anything but pickaxes / shovel,
+    `doorFirstTool`): standing in the main door and clicking it = the main door (exitToLobby / world list in the
+    lobby), even with another player there; standing in any other door and clicking it = the act from before the
+    Water Gun / Heartbow wrapper (`actNoShot`: useDoor, Mystery Door list). Not standing in it: the item works as
+    usual (the Water Gun sprays whoever is at the door). Tested: water gun / heartbow / chainsaw / katana on the main
+    door open it with no shot; off the door the water gun sprays it.
+  - GAME_BUILD '2026-10-26 z3'.

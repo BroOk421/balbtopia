@@ -515,13 +515,17 @@ function drawCharacter(c, ox, oy) {
     wf = Math.floor(c.walkPh) % 12;
   const walking = c.walking && canWalk;
   const punching = !!(c.punch || c.place);
+  // walking in a Diamond / Golden Diaper: the owner's own walking frames (diaper.js)
+  const dw = walking && !punching ? diaperFrame(c, wf) : null;
   const im = punching
       ? IMG['punch_' + c.skin]
-      : walking
-        ? IMG[wkey + c.skin + '_' + wf]
-        : IMG['skin_' + c.skin + '_' + fr],
+      : dw
+        ? dw.im
+        : walking
+          ? IMG[wkey + c.skin + '_' + wf]
+          : IMG['skin_' + c.skin + '_' + fr],
     sc = CHAR_H / FR.h;
-  const bodyDy = walking && !punching ? WALK_BOB[style][wf] / 2 : 0; // in sprite px (scaled by sc)
+  const bodyDy = dw ? dw.dy : walking && !punching ? WALK_BOB[style][wf] / 2 : 0; // in sprite px (scaled by sc)
   // skins without walk frames yet fall back to a small bounce
   const bob = c.walking && !canWalk ? -Math.abs(Math.sin(now / 70)) * 2.2 : 0;
   const cx = Math.round(ox + (c.x + c.w / 2) * Z),
@@ -543,7 +547,7 @@ function drawCharacter(c, ox, oy) {
   drawBehind(c, top, sc, dy);
   // swinging a tool: the body without its back arm (that arm swings); else the normal frame
   const body = swinging ? noBackArm(c.skin) : im,
-    frameKey = swinging ? 'noarm_' + c.skin : punching ? 'punch_' + c.skin : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
+    frameKey = swinging ? 'noarm_' + c.skin : punching ? 'punch_' + c.skin : dw ? dw.key : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
   g.drawImage(outfitBody(body, frameKey, eq), (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
   if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
@@ -830,6 +834,7 @@ function render() {
     // every drop looks the same, also one this visitor can't take yet (owner, Oct 21 2026: no see-through,
     // no timer ring; walking into it still says how many seconds are left, see dropHint)
     if (d.outT && now - d.outT < OUT_MS) continue; // still flying out of whoever dropped it (unvacs, below)
+    if (dropHidden(d)) continue; // inside a shut Chest / Stove (blocks64c.js)
     if (d.id === 'gold') drawGoldPile(d, x, y, s);
     else drawIcon(d.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
     // floating drops show no number, only the item

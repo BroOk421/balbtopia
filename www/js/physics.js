@@ -147,13 +147,16 @@ function step(dt) {
     [P.x + P.w / 2, P.y + P.h + 1],
     [P.x + P.w / 2, P.y - 1],
   ];
-  for (const [px, py] of probe) {
+  // a shut Spike Gate (blocks64b.js) hurts like a Cactus when you touch its sides
+  let spiky = false;
+  probe.forEach(([px, py], k) => {
     const tx = Math.floor(px / TS),
       ty = Math.floor(py / TS);
     if (inW(tx, ty) && fg[at(tx, ty)] === LAVA) hot = true;
-  }
+    const sb = k < 2 && inW(tx, ty) && BLOCK[fg[at(tx, ty)]];
+    if (sb && sb.shut && sb.shut(at(tx, ty))) spiky = true;
+  });
   // Cactus hurts like lava when you're inside its tile; Death Spikes and Stalactite kill at once (gates.js)
-  let spiky = false;
   for (let ty = Math.floor(P.y / TS); ty <= Math.floor((P.y + P.h - 1) / TS); ty++)
     for (let tx = Math.floor(P.x / TS); tx <= Math.floor((P.x + P.w - 1) / TS); tx++) {
       const b = inW(tx, ty) && BLOCK[fg[at(tx, ty)]];
@@ -238,6 +241,7 @@ function stepFx(dt) {
     const d = drops[k];
     d.age += dt;
     if (d.mg) continue; // joining 4 others into a bigger coin (coins.js): not up for grabs
+    if (dropHidden(d)) continue; // kept inside a shut Chest / Stove (blocks64c.js)
     const touching = d.x + r > P.x && d.x - r < P.x + P.w && d.y + r > P.y && d.y - r < P.y + P.h && (d.id !== 'gold' || inDropTile(d, P)); // coins: only from inside their tile
     if (d.age > d.minAge && touching && !P.dead) {
       // visitors in a locked world have to wait (see canTakeDrop)

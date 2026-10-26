@@ -759,6 +759,540 @@
     },
     "white_sneakers": {
       "growSeconds": 240
+    },
+    "crystal_block": {
+      "growSeconds": 300
+    },
+    "ruby_block": {
+      "growSeconds": 420
+    },
+    "emerald_block": {
+      "growSeconds": 420
+    },
+    "amethyst_block": {
+      "growSeconds": 420
+    },
+    "checker_marble": {
+      "growSeconds": 300
+    },
+    "cobblestone": {
+      "growSeconds": 180
+    },
+    "mossy_cobblestone": {
+      "growSeconds": 240
+    },
+    "cloud_block": {
+      "growSeconds": 240
+    },
+    "candy_block": {
+      "growSeconds": 300
+    },
+    "chocolate_block": {
+      "growSeconds": 300
+    },
+    "toy_block": {
+      "growSeconds": 240
+    },
+    "wooden_crate": {
+      "growSeconds": 240
+    },
+    "angel_statue": {
+      "growSeconds": 480
+    },
+    "wisdom_owl": {
+      "growSeconds": 480
+    },
+    "baby_crib": {
+      "growSeconds": 360
+    },
+    "baby_bottle": {
+      "growSeconds": 240
+    },
+    "teddy_bear": {
+      "growSeconds": 300
+    },
+    "rubber_duck": {
+      "growSeconds": 240
+    },
+    "crystal_cluster": {
+      "growSeconds": 420
+    },
+    "baby_mobile": {
+      "growSeconds": 360
+    },
+    "spike_gate": {
+      "growSeconds": 420
+    },
+    "sapphire_block": {
+      "growSeconds": 420
+    },
+    "topaz_block": {
+      "growSeconds": 420
+    },
+    "obsidian_block": {
+      "growSeconds": 480
+    },
+    "gold_bricks": {
+      "growSeconds": 420
+    },
+    "ice_bricks": {
+      "growSeconds": 300
+    },
+    "hay_bale": {
+      "growSeconds": 180
+    },
+    "gift_box": {
+      "growSeconds": 300
+    },
+    "magma_block": {
+      "growSeconds": 360
+    },
+    "pastel_tiles": {
+      "growSeconds": 240
+    },
+    "treasure_chest": {
+      "growSeconds": 480
+    },
+    "baby_rattle": {
+      "growSeconds": 300
+    },
+    "rainbow_arch": {
+      "growSeconds": 420
+    },
+    "golden_trophy": {
+      "growSeconds": 420
+    },
+    "snowman": {
+      "growSeconds": 300
+    },
+    "bonsai_tree": {
+      "growSeconds": 360
+    },
+    "storage_chest": {
+      "growSeconds": 300
+    },
+    "stove": {
+      "growSeconds": 360
+    },
+    "rose_quartz_block": {
+      "growSeconds": 420
+    },
+    "onyx_block": {
+      "growSeconds": 420
+    },
+    "terracotta_block": {
+      "growSeconds": 240
+    },
+    "sandstone_bricks": {
+      "growSeconds": 240
+    },
+    "cherry_planks": {
+      "growSeconds": 300
+    },
+    "bamboo_block": {
+      "growSeconds": 240
+    },
+    "cheese_block": {
+      "growSeconds": 240
+    },
+    "cookie_block": {
+      "growSeconds": 300
+    },
+    "jelly_block": {
+      "growSeconds": 300
+    },
+    "starry_block": {
+      "growSeconds": 420
+    },
+    "circuit_block": {
+      "growSeconds": 360
+    },
+    "snow_block": {
+      "growSeconds": 180
+    },
+    "leaf_block": {
+      "growSeconds": 180
+    },
+    "slate_tiles": {
+      "growSeconds": 240
+    },
+    "fridge": {
+      "growSeconds": 360
+    },
+    "birthday_cake": {
+      "growSeconds": 300
+    },
+    "grandfather_clock": {
+      "growSeconds": 420
+    },
+    "floor_lamp": {
+      "growSeconds": 240
+    },
+    "piggy_bank": {
+      "growSeconds": 360
+    },
+    "christmas_tree": {
+      "growSeconds": 420
+    },
+    "jack_o_lantern": {
+      "growSeconds": 300
+    },
+    "campfire": {
+      "growSeconds": 300
+    },
+    "globe": {
+      "growSeconds": 360
+    },
+    "telescope": {
+      "growSeconds": 360
+    },
+    "toy_robot": {
+      "growSeconds": 360
+    },
+    "rocking_horse": {
+      "growSeconds": 360
+    },
+    "high_chair": {
+      "growSeconds": 300
+    },
+    "baby_stroller": {
+      "growSeconds": 360
+    },
+    "stained_glass": {
+      "growSeconds": 360
+    },
+    "mosaic_tiles": {
+      "growSeconds": 300
+    },
+    "granite_block": {
+      "growSeconds": 300
+    },
+    "carpet_block": {
+      "growSeconds": 240
+    },
+    "wool_block": {
+      "growSeconds": 240
+    },
+    "coral_block": {
+      "growSeconds": 300
+    },
+    "mushroom_block": {
+      "growSeconds": 240
+    },
+    "watermelon_block": {
+      "growSeconds": 240
+    },
+    "ice_cream_block": {
+      "growSeconds": 300
+    },
+    "glow_block": {
+      "growSeconds": 360
+    },
+    "diamond_plate": {
+      "growSeconds": 300
+    },
+    "rusty_metal": {
+      "growSeconds": 300
+    },
+    "cardboard_box": {
+      "growSeconds": 180
+    },
+    "white_bricks": {
+      "growSeconds": 240
+    },
+    "gingerbread_block": {
+      "growSeconds": 300
+    },
+    "fountain": {
+      "growSeconds": 420
+    },
+    "scarecrow": {
+      "growSeconds": 300
+    },
+    "park_bench": {
+      "growSeconds": 300
+    },
+    "potted_fern": {
+      "growSeconds": 240
+    },
+    "potted_tulips": {
+      "growSeconds": 240
+    },
+    "beach_umbrella": {
+      "growSeconds": 300
+    },
+    "arcade_machine": {
+      "growSeconds": 420
+    },
+    "retro_tv": {
+      "growSeconds": 360
+    },
+    "guitar": {
+      "growSeconds": 360
+    },
+    "easel": {
+      "growSeconds": 300
+    },
+    "bean_bag": {
+      "growSeconds": 240
+    },
+    "toy_car": {
+      "growSeconds": 300
+    },
+    "balloon_bunch": {
+      "growSeconds": 300
+    },
+    "baby_bath": {
+      "growSeconds": 300
+    },
+    "diaper_stack": {
+      "growSeconds": 240
+    },
+    "capiz_window": {
+      "growSeconds": 360
+    },
+    "nipa_thatch": {
+      "growSeconds": 240
+    },
+    "banig_mat": {
+      "growSeconds": 300
+    },
+    "pearl_block": {
+      "growSeconds": 420
+    },
+    "hex_tiles": {
+      "growSeconds": 300
+    },
+    "mossy_bricks": {
+      "growSeconds": 240
+    },
+    "quilt_block": {
+      "growSeconds": 300
+    },
+    "steel_grate": {
+      "growSeconds": 300
+    },
+    "gold_coins_block": {
+      "growSeconds": 480
+    },
+    "galaxy_block": {
+      "growSeconds": 480
+    },
+    "parol": {
+      "growSeconds": 420
+    },
+    "halo_halo": {
+      "growSeconds": 300
+    },
+    "coconut_tree": {
+      "growSeconds": 360
+    },
+    "electric_fan": {
+      "growSeconds": 300
+    },
+    "rice_cooker": {
+      "growSeconds": 300
+    },
+    "bubble_tea": {
+      "growSeconds": 240
+    },
+    "basketball_hoop": {
+      "growSeconds": 360
+    },
+    "cactus_pot": {
+      "growSeconds": 240
+    },
+    "hammock": {
+      "growSeconds": 300
+    },
+    "toy_rocket": {
+      "growSeconds": 360
+    },
+    "copper_block": {
+      "growSeconds": 360
+    },
+    "marble_pillar": {
+      "growSeconds": 360
+    },
+    "basalt_block": {
+      "growSeconds": 360
+    },
+    "dark_oak_planks": {
+      "growSeconds": 240
+    },
+    "pool_tiles": {
+      "growSeconds": 240
+    },
+    "donut_block": {
+      "growSeconds": 300
+    },
+    "moon_rock": {
+      "growSeconds": 360
+    },
+    "toy_bricks": {
+      "growSeconds": 240
+    },
+    "frost_block": {
+      "growSeconds": 300
+    },
+    "vine_wall": {
+      "growSeconds": 240
+    },
+    "air_conditioner": {
+      "growSeconds": 360
+    },
+    "water_dispenser": {
+      "growSeconds": 300
+    },
+    "karaoke_machine": {
+      "growSeconds": 420
+    },
+    "banana_tree": {
+      "growSeconds": 300
+    },
+    "fruit_basket": {
+      "growSeconds": 240
+    },
+    "lucky_cat": {
+      "growSeconds": 360
+    },
+    "snow_globe": {
+      "growSeconds": 360
+    },
+    "bird_cage": {
+      "growSeconds": 360
+    },
+    "gaming_pc": {
+      "growSeconds": 420
+    },
+    "cupcake": {
+      "growSeconds": 240
+    },
+    "sakura_leaves": {
+      "growSeconds": 240
+    },
+    "autumn_leaves": {
+      "growSeconds": 240
+    },
+    "diner_tiles": {
+      "growSeconds": 300
+    },
+    "caramel_block": {
+      "growSeconds": 300
+    },
+    "disco_floor": {
+      "growSeconds": 420
+    },
+    "aquarium_glass": {
+      "growSeconds": 420
+    },
+    "ruin_bricks": {
+      "growSeconds": 360
+    },
+    "royal_velvet": {
+      "growSeconds": 360
+    },
+    "camo_block": {
+      "growSeconds": 240
+    },
+    "solar_panel": {
+      "growSeconds": 360
+    },
+    "ice_cream_cart": {
+      "growSeconds": 420
+    },
+    "desk_lamp": {
+      "growSeconds": 240
+    },
+    "potted_monstera": {
+      "growSeconds": 300
+    },
+    "unicorn_plush": {
+      "growSeconds": 360
+    },
+    "drum_set": {
+      "growSeconds": 420
+    },
+    "mic_stand": {
+      "growSeconds": 300
+    },
+    "traffic_cone": {
+      "growSeconds": 180
+    },
+    "fire_hydrant": {
+      "growSeconds": 300
+    },
+    "pirate_flag": {
+      "growSeconds": 360
+    },
+    "wishing_well": {
+      "growSeconds": 420
+    },
+    "katana": {
+      "growSeconds": 360
+    },
+    "fire_sword": {
+      "growSeconds": 360
+    },
+    "ice_sword": {
+      "growSeconds": 360
+    },
+    "golden_sword": {
+      "growSeconds": 360
+    },
+    "plasma_sword": {
+      "growSeconds": 360
+    },
+    "battle_axe": {
+      "growSeconds": 360
+    },
+    "war_hammer": {
+      "growSeconds": 360
+    },
+    "spear": {
+      "growSeconds": 360
+    },
+    "bolo": {
+      "growSeconds": 360
+    },
+    "arnis_stick": {
+      "growSeconds": 360
+    },
+    "hand_scythe": {
+      "growSeconds": 360
+    },
+    "leaf_blower": {
+      "growSeconds": 360
+    },
+    "paper_umbrella": {
+      "growSeconds": 360
+    },
+    "smores_staff": {
+      "growSeconds": 360
+    },
+    "death_scythe": {
+      "growSeconds": 360
+    },
+    "heart_bow": {
+      "growSeconds": 360
+    },
+    "fire_wand": {
+      "growSeconds": 360
+    },
+    "ice_wand": {
+      "growSeconds": 360
+    },
+    "chainsaw": {
+      "growSeconds": 360
+    },
+    "water_gun": {
+      "growSeconds": 360
+    },
+    "dragon_hand": {
+      "growSeconds": 360
+    },
+    "thunder_hammer": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -2371,7 +2905,7 @@
       ],
       "result": "air_duct",
       "source": "growtopia",
-      "note": "Air Duct = Dark Grey Block + Grey Block (growtopiawiki.com)"
+      "note": "Air Exhaust (was Air Duct) = Dark Grey Block + Grey Block (growtopiawiki.com)"
     },
     {
       "seeds": [
@@ -3002,6 +3536,1608 @@
       "result": "white_sneakers",
       "source": "balbtopia",
       "note": "White Sneakers = Dirt + White Block"
+    },
+    {
+      "seeds": [
+        "glass_block",
+        "ice"
+      ],
+      "result": "crystal_block",
+      "source": "balbtopia",
+      "note": "Crystal Block = Glass Block + Ice (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "crystal_block"
+      ],
+      "result": "ruby_block",
+      "source": "balbtopia",
+      "note": "Ruby Block = Red Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "green_block",
+        "crystal_block"
+      ],
+      "result": "emerald_block",
+      "source": "balbtopia",
+      "note": "Emerald Block = Green Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "purple_block",
+        "crystal_block"
+      ],
+      "result": "amethyst_block",
+      "source": "balbtopia",
+      "note": "Amethyst Block = Purple Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "marble_block",
+        "black_block"
+      ],
+      "result": "checker_marble",
+      "source": "balbtopia",
+      "note": "Marble Checker Floor = Marble Block + Black Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "rock",
+        "sidewalk"
+      ],
+      "result": "cobblestone",
+      "source": "balbtopia",
+      "note": "Cobblestone = Rock + Sidewalk (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "cobblestone",
+        "grass"
+      ],
+      "result": "mossy_cobblestone",
+      "source": "balbtopia",
+      "note": "Mossy Cobblestone = Cobblestone + Grass (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "white_block",
+        "bubble_wrap"
+      ],
+      "result": "cloud_block",
+      "source": "balbtopia",
+      "note": "Cloud Block = White Block + Bubble Wrap (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sugar_cane",
+        "lollipop"
+      ],
+      "result": "candy_block",
+      "source": "balbtopia",
+      "note": "Candy Cane Block = Sugar Cane + Lollipop (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "dark_brown_block",
+        "sugar_cane"
+      ],
+      "result": "chocolate_block",
+      "source": "balbtopia",
+      "note": "Chocolate Block = Dark Brown Block + Sugar Cane (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "letter_a",
+        "wood_block"
+      ],
+      "result": "toy_block",
+      "source": "balbtopia",
+      "note": "ABC Toy Block = A Block + Wood Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wood_block",
+        "barrel"
+      ],
+      "result": "wooden_crate",
+      "source": "balbtopia",
+      "note": "Wooden Crate = Wood Block + Barrel (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "marble_block",
+        "cloud_block"
+      ],
+      "result": "angel_statue",
+      "source": "balbtopia",
+      "note": "Angel Statue = Marble Block + Cloud Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "golden_block",
+        "bookcase"
+      ],
+      "result": "wisdom_owl",
+      "source": "balbtopia",
+      "note": "Wisdom Owl = Golden Block + Bookcase (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bed",
+        "picket_fence"
+      ],
+      "result": "baby_crib",
+      "source": "balbtopia",
+      "note": "Baby Crib = Bed + Picket Fence (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "white_block"
+      ],
+      "result": "baby_bottle",
+      "source": "balbtopia",
+      "note": "Baby Bottle = Glass Pane + White Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "brown_block",
+        "bubble_wrap"
+      ],
+      "result": "teddy_bear",
+      "source": "balbtopia",
+      "note": "Teddy Bear = Brown Block + Bubble Wrap (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "yellow_block",
+        "water_bucket"
+      ],
+      "result": "rubber_duck",
+      "source": "balbtopia",
+      "note": "Rubber Duck = Yellow Block + Water Bucket (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "crystal_block",
+        "rock"
+      ],
+      "result": "crystal_cluster",
+      "source": "balbtopia",
+      "note": "Crystal Cluster = Crystal Block + Rock (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "lantern",
+        "cloud_block"
+      ],
+      "result": "baby_mobile",
+      "source": "balbtopia",
+      "note": "Baby Mobile = Lantern + Cloud Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "death_spikes"
+      ],
+      "result": "spike_gate",
+      "source": "balbtopia",
+      "note": "Spike Gate = Steel Block + Death Spikes (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "crystal_block"
+      ],
+      "result": "sapphire_block",
+      "source": "balbtopia",
+      "note": "Sapphire Block = Blue Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "orange_block",
+        "crystal_block"
+      ],
+      "result": "topaz_block",
+      "source": "balbtopia",
+      "note": "Topaz Block = Orange Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "lava",
+        "dark_cave"
+      ],
+      "result": "obsidian_block",
+      "source": "balbtopia",
+      "note": "Obsidian = Lava + Dark Cave (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "golden_block",
+        "bricks"
+      ],
+      "result": "gold_bricks",
+      "source": "balbtopia",
+      "note": "Gold Bricks = Golden Block + Bricks (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ice",
+        "bricks"
+      ],
+      "result": "ice_bricks",
+      "source": "balbtopia",
+      "note": "Ice Bricks = Ice + Bricks (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "barn_block",
+        "grass"
+      ],
+      "result": "hay_bale",
+      "source": "balbtopia",
+      "note": "Hay Bale = Barn Block + Grass (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "wooden_crate"
+      ],
+      "result": "gift_box",
+      "source": "balbtopia",
+      "note": "Gift Box = Red Block + Wooden Crate (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "lava",
+        "cobblestone"
+      ],
+      "result": "magma_block",
+      "source": "balbtopia",
+      "note": "Magma Block = Lava + Cobblestone (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ceramic_tile",
+        "cloud_block"
+      ],
+      "result": "pastel_tiles",
+      "source": "balbtopia",
+      "note": "Pastel Tiles = Ceramic Tile + Cloud Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wooden_crate",
+        "golden_block"
+      ],
+      "result": "treasure_chest",
+      "source": "balbtopia",
+      "note": "Treasure Chest = Wooden Crate + Golden Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "lollipop",
+        "baby_bottle"
+      ],
+      "result": "baby_rattle",
+      "source": "balbtopia",
+      "note": "Baby Rattle = Lollipop + Baby Bottle (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "rainbow_block",
+        "cloud_block"
+      ],
+      "result": "rainbow_arch",
+      "source": "balbtopia",
+      "note": "Rainbow = Rainbow Block + Cloud Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "golden_block",
+        "flower_pot"
+      ],
+      "result": "golden_trophy",
+      "source": "balbtopia",
+      "note": "Golden Trophy = Golden Block + Flower Pot (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ice",
+        "white_block"
+      ],
+      "result": "snowman",
+      "source": "balbtopia",
+      "note": "Snowman = Ice + White Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "flower_pot",
+        "bush"
+      ],
+      "result": "bonsai_tree",
+      "source": "balbtopia",
+      "note": "Bonsai Tree = Flower Pot + Bush (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wooden_crate",
+        "steel_block"
+      ],
+      "result": "storage_chest",
+      "source": "balbtopia",
+      "note": "Chest = Wooden Crate + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "fireplace"
+      ],
+      "result": "stove",
+      "source": "balbtopia",
+      "note": "Stove = Steel Block + Fireplace (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "crystal_block",
+        "rose"
+      ],
+      "result": "rose_quartz_block",
+      "source": "balbtopia",
+      "note": "Rose Quartz Block = Crystal Block + Rose (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "crystal_block"
+      ],
+      "result": "onyx_block",
+      "source": "balbtopia",
+      "note": "Onyx Block = Black Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bricks",
+        "sand"
+      ],
+      "result": "terracotta_block",
+      "source": "balbtopia",
+      "note": "Terracotta Tiles = Bricks + Sand (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sandstone",
+        "bricks"
+      ],
+      "result": "sandstone_bricks",
+      "source": "balbtopia",
+      "note": "Sandstone Bricks = Sandstone + Bricks (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wood_block",
+        "cherry_blossom"
+      ],
+      "result": "cherry_planks",
+      "source": "balbtopia",
+      "note": "Cherry Wood Planks = Wood Block + Cherry Blossom (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "grass",
+        "sugar_cane"
+      ],
+      "result": "bamboo_block",
+      "source": "balbtopia",
+      "note": "Bamboo Block = Grass + Sugar Cane (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "yellow_block",
+        "honeycomb_block"
+      ],
+      "result": "cheese_block",
+      "source": "balbtopia",
+      "note": "Cheese Block = Yellow Block + Honeycomb Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "chocolate_block",
+        "sand"
+      ],
+      "result": "cookie_block",
+      "source": "balbtopia",
+      "note": "Cookie Block = Chocolate Block + Sand (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "candy_block",
+        "water_bucket"
+      ],
+      "result": "jelly_block",
+      "source": "balbtopia",
+      "note": "Jelly Block = Candy Cane Block + Water Bucket (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "dark_blue_block",
+        "crystal_block"
+      ],
+      "result": "starry_block",
+      "source": "balbtopia",
+      "note": "Starry Night Block = Dark Blue Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "green_block"
+      ],
+      "result": "circuit_block",
+      "source": "balbtopia",
+      "note": "Circuit Block = Steel Block + Green Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ice",
+        "cloud_block"
+      ],
+      "result": "snow_block",
+      "source": "balbtopia",
+      "note": "Snow Block = Ice + Cloud Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "foliage",
+        "grass"
+      ],
+      "result": "leaf_block",
+      "source": "balbtopia",
+      "note": "Leaf Block = Foliage + Grass (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "cobblestone",
+        "sidewalk"
+      ],
+      "result": "slate_tiles",
+      "source": "balbtopia",
+      "note": "Slate Tiles = Cobblestone + Sidewalk (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ice",
+        "steel_block"
+      ],
+      "result": "fridge",
+      "source": "balbtopia",
+      "note": "Fridge = Ice + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "candy_block",
+        "chocolate_block"
+      ],
+      "result": "birthday_cake",
+      "source": "balbtopia",
+      "note": "Birthday Cake = Candy Cane Block + Chocolate Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wood_block",
+        "golden_block"
+      ],
+      "result": "grandfather_clock",
+      "source": "balbtopia",
+      "note": "Grandfather Clock = Wood Block + Golden Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "lantern",
+        "wood_block"
+      ],
+      "result": "floor_lamp",
+      "source": "balbtopia",
+      "note": "Floor Lamp = Lantern + Wood Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "pastel_tiles",
+        "golden_block"
+      ],
+      "result": "piggy_bank",
+      "source": "balbtopia",
+      "note": "Piggy Bank = Pastel Tiles + Golden Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bonsai_tree",
+        "gift_box"
+      ],
+      "result": "christmas_tree",
+      "source": "balbtopia",
+      "note": "Christmas Tree = Bonsai Tree + Gift Box (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "orange_block",
+        "torch"
+      ],
+      "result": "jack_o_lantern",
+      "source": "balbtopia",
+      "note": "Jack-o'-Lantern = Orange Block + Torch (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wood_block",
+        "lava"
+      ],
+      "result": "campfire",
+      "source": "balbtopia",
+      "note": "Campfire = Wood Block + Lava (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "wooden_table"
+      ],
+      "result": "globe",
+      "source": "balbtopia",
+      "note": "Globe = Blue Block + Wooden Table (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "glass_pane"
+      ],
+      "result": "telescope",
+      "source": "balbtopia",
+      "note": "Telescope = Steel Block + Glass Pane (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "toy_block"
+      ],
+      "result": "toy_robot",
+      "source": "balbtopia",
+      "note": "Toy Robot = Steel Block + ABC Toy Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "teddy_bear",
+        "wood_block"
+      ],
+      "result": "rocking_horse",
+      "source": "balbtopia",
+      "note": "Rocking Horse = Teddy Bear + Wood Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wooden_chair",
+        "baby_bottle"
+      ],
+      "result": "high_chair",
+      "source": "balbtopia",
+      "note": "Baby High Chair = Wooden Chair + Baby Bottle (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "baby_crib",
+        "steel_block"
+      ],
+      "result": "baby_stroller",
+      "source": "balbtopia",
+      "note": "Baby Stroller = Baby Crib + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "glass_block",
+        "rainbow_block"
+      ],
+      "result": "stained_glass",
+      "source": "balbtopia",
+      "note": "Stained Glass = Glass Block + Rainbow Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ceramic_tile",
+        "blue_block"
+      ],
+      "result": "mosaic_tiles",
+      "source": "balbtopia",
+      "note": "Mosaic Tiles = Ceramic Tile + Blue Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "rock",
+        "marble_block"
+      ],
+      "result": "granite_block",
+      "source": "balbtopia",
+      "note": "Granite Block = Rock + Marble Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "flowery_wallpaper"
+      ],
+      "result": "carpet_block",
+      "source": "balbtopia",
+      "note": "Red Carpet = Red Block + Flowery Wallpaper (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "cloud_block",
+        "barn_block"
+      ],
+      "result": "wool_block",
+      "source": "balbtopia",
+      "note": "Wool Block = Cloud Block + Barn Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "seaweed",
+        "rose"
+      ],
+      "result": "coral_block",
+      "source": "balbtopia",
+      "note": "Coral Block = Seaweed + Rose (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "mushroom",
+        "orange_block"
+      ],
+      "result": "mushroom_block",
+      "source": "balbtopia",
+      "note": "Mushroom Block = Mushroom + Orange Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "green_block",
+        "apple"
+      ],
+      "result": "watermelon_block",
+      "source": "balbtopia",
+      "note": "Watermelon Block = Green Block + Apple (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "snow_block",
+        "candy_block"
+      ],
+      "result": "ice_cream_block",
+      "source": "balbtopia",
+      "note": "Ice Cream Block = Snow Block + Candy Cane Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "crystal_block"
+      ],
+      "result": "glow_block",
+      "source": "balbtopia",
+      "note": "Glow Block = Neon Lights + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "sidewalk"
+      ],
+      "result": "diamond_plate",
+      "source": "balbtopia",
+      "note": "Diamond Plate = Steel Block + Sidewalk (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "water_bucket"
+      ],
+      "result": "rusty_metal",
+      "source": "balbtopia",
+      "note": "Rusty Metal = Steel Block + Water Bucket (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wooden_crate",
+        "brown_block"
+      ],
+      "result": "cardboard_box",
+      "source": "balbtopia",
+      "note": "Cardboard Box = Wooden Crate + Brown Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bricks",
+        "white_block"
+      ],
+      "result": "white_bricks",
+      "source": "balbtopia",
+      "note": "White Bricks = Bricks + White Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "cookie_block",
+        "candy_block"
+      ],
+      "result": "gingerbread_block",
+      "source": "balbtopia",
+      "note": "Gingerbread Block = Cookie Block + Candy Cane Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "cobblestone",
+        "water_bucket"
+      ],
+      "result": "fountain",
+      "source": "balbtopia",
+      "note": "Fountain = Cobblestone + Water Bucket (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "hay_bale",
+        "jack_o_lantern"
+      ],
+      "result": "scarecrow",
+      "source": "balbtopia",
+      "note": "Scarecrow = Hay Bale + Jack-o'-Lantern (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wood_block",
+        "iron_bars"
+      ],
+      "result": "park_bench",
+      "source": "balbtopia",
+      "note": "Park Bench = Wood Block + Iron Bars (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "flower_pot",
+        "leaf_block"
+      ],
+      "result": "potted_fern",
+      "source": "balbtopia",
+      "note": "Potted Fern = Flower Pot + Leaf Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "flower_pot",
+        "rose"
+      ],
+      "result": "potted_tulips",
+      "source": "balbtopia",
+      "note": "Tulip Pot = Flower Pot + Rose (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "rainbow_block",
+        "wooden_platform"
+      ],
+      "result": "beach_umbrella",
+      "source": "balbtopia",
+      "note": "Beach Umbrella = Rainbow Block + Wooden Platform (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "circuit_block",
+        "black_block"
+      ],
+      "result": "arcade_machine",
+      "source": "balbtopia",
+      "note": "Arcade Machine = Circuit Block + Black Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "circuit_block",
+        "glass_pane"
+      ],
+      "result": "retro_tv",
+      "source": "balbtopia",
+      "note": "Retro TV = Circuit Block + Glass Pane (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "cherry_planks",
+        "note_block"
+      ],
+      "result": "guitar",
+      "source": "balbtopia",
+      "note": "Guitar = Cherry Wood Planks + Note Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wood_block",
+        "painting_dink_duck"
+      ],
+      "result": "easel",
+      "source": "balbtopia",
+      "note": "Easel = Wood Block + Painting: Dink Duck (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bubble_wrap",
+        "red_block"
+      ],
+      "result": "bean_bag",
+      "source": "balbtopia",
+      "note": "Bean Bag = Bubble Wrap + Red Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "toy_block",
+        "red_block"
+      ],
+      "result": "toy_car",
+      "source": "balbtopia",
+      "note": "Toy Car = ABC Toy Block + Red Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "das_red_balloon",
+        "rainbow_block"
+      ],
+      "result": "balloon_bunch",
+      "source": "balbtopia",
+      "note": "Balloon Bunch = Red Balloon + Rainbow Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bathtub",
+        "rubber_duck"
+      ],
+      "result": "baby_bath",
+      "source": "balbtopia",
+      "note": "Baby Bath = Bathtub + Rubber Duck (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "cloud_block",
+        "baby_bottle"
+      ],
+      "result": "diaper_stack",
+      "source": "balbtopia",
+      "note": "Diaper Stack = Cloud Block + Baby Bottle (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "white_bricks"
+      ],
+      "result": "capiz_window",
+      "source": "balbtopia",
+      "note": "Capiz Window = Glass Pane + White Bricks (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "hay_bale",
+        "bamboo_block"
+      ],
+      "result": "nipa_thatch",
+      "source": "balbtopia",
+      "note": "Nipa Thatch = Hay Bale + Bamboo Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wool_block",
+        "rainbow_block"
+      ],
+      "result": "banig_mat",
+      "source": "balbtopia",
+      "note": "Banig Mat = Wool Block + Rainbow Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "coral_block",
+        "crystal_block"
+      ],
+      "result": "pearl_block",
+      "source": "balbtopia",
+      "note": "Pearl Block = Coral Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ceramic_tile",
+        "honeycomb_block"
+      ],
+      "result": "hex_tiles",
+      "source": "balbtopia",
+      "note": "Hexagon Tiles = Ceramic Tile + Honeycomb Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bricks",
+        "leaf_block"
+      ],
+      "result": "mossy_bricks",
+      "source": "balbtopia",
+      "note": "Mossy Bricks = Bricks + Leaf Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wool_block",
+        "flowery_wallpaper"
+      ],
+      "result": "quilt_block",
+      "source": "balbtopia",
+      "note": "Quilt Block = Wool Block + Flowery Wallpaper (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "iron_bars",
+        "steel_block"
+      ],
+      "result": "steel_grate",
+      "source": "balbtopia",
+      "note": "Steel Grate = Iron Bars + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "gold_bricks",
+        "piggy_bank"
+      ],
+      "result": "gold_coins_block",
+      "source": "balbtopia",
+      "note": "Gold Coin Pile = Gold Bricks + Piggy Bank (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "starry_block",
+        "amethyst_block"
+      ],
+      "result": "galaxy_block",
+      "source": "balbtopia",
+      "note": "Galaxy Block = Starry Night Block + Amethyst Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "lantern",
+        "rainbow_block"
+      ],
+      "result": "parol",
+      "source": "balbtopia",
+      "note": "Parol = Lantern + Rainbow Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ice_cream_block",
+        "glass_pane"
+      ],
+      "result": "halo_halo",
+      "source": "balbtopia",
+      "note": "Halo-Halo = Ice Cream Block + Glass Pane (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "leaf_block",
+        "sand"
+      ],
+      "result": "coconut_tree",
+      "source": "balbtopia",
+      "note": "Coconut Tree = Leaf Block + Sand (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "cloud_block"
+      ],
+      "result": "electric_fan",
+      "source": "balbtopia",
+      "note": "Electric Fan = Steel Block + Cloud Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "stove",
+        "white_block"
+      ],
+      "result": "rice_cooker",
+      "source": "balbtopia",
+      "note": "Rice Cooker = Stove + White Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "baby_bottle",
+        "chocolate_block"
+      ],
+      "result": "bubble_tea",
+      "source": "balbtopia",
+      "note": "Bubble Tea = Baby Bottle + Chocolate Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "orange_block"
+      ],
+      "result": "basketball_hoop",
+      "source": "balbtopia",
+      "note": "Basketball Hoop = Steel Block + Orange Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "flower_pot",
+        "cactus"
+      ],
+      "result": "cactus_pot",
+      "source": "balbtopia",
+      "note": "Cactus Pot = Flower Pot + Cactus (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wool_block",
+        "bamboo_block"
+      ],
+      "result": "hammock",
+      "source": "balbtopia",
+      "note": "Hammock = Wool Block + Bamboo Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "toy_robot",
+        "glow_block"
+      ],
+      "result": "toy_rocket",
+      "source": "balbtopia",
+      "note": "Toy Rocket = Toy Robot + Glow Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "copper_plumbing",
+        "steel_block"
+      ],
+      "result": "copper_block",
+      "source": "balbtopia",
+      "note": "Copper Block = Copper Plumbing + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "marble_block",
+        "white_bricks"
+      ],
+      "result": "marble_pillar",
+      "source": "balbtopia",
+      "note": "Marble Pillar = Marble Block + White Bricks (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "obsidian_block",
+        "rock"
+      ],
+      "result": "basalt_block",
+      "source": "balbtopia",
+      "note": "Basalt = Obsidian + Rock (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wood_block",
+        "black_block"
+      ],
+      "result": "dark_oak_planks",
+      "source": "balbtopia",
+      "note": "Dark Oak Planks = Wood Block + Black Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ceramic_tile",
+        "water_bucket"
+      ],
+      "result": "pool_tiles",
+      "source": "balbtopia",
+      "note": "Pool Tiles = Ceramic Tile + Water Bucket (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "cookie_block",
+        "pastel_tiles"
+      ],
+      "result": "donut_block",
+      "source": "balbtopia",
+      "note": "Donut Block = Cookie Block + Pastel Tiles (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "rock",
+        "starry_block"
+      ],
+      "result": "moon_rock",
+      "source": "balbtopia",
+      "note": "Moon Rock = Rock + Starry Night Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "toy_block",
+        "bricks"
+      ],
+      "result": "toy_bricks",
+      "source": "balbtopia",
+      "note": "Toy Bricks = ABC Toy Block + Bricks (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "snow_block",
+        "crystal_block"
+      ],
+      "result": "frost_block",
+      "source": "balbtopia",
+      "note": "Frost Block = Snow Block + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "leaf_block",
+        "stone_wall"
+      ],
+      "result": "vine_wall",
+      "source": "balbtopia",
+      "note": "Vine Wall = Leaf Block + Stone Wall (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "air_duct",
+        "fridge"
+      ],
+      "result": "air_conditioner",
+      "source": "balbtopia",
+      "note": "Air Conditioner = Air Exhaust + Fridge (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "fridge"
+      ],
+      "result": "water_dispenser",
+      "source": "balbtopia",
+      "note": "Water Dispenser = Water Bucket + Fridge (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "boombox",
+        "retro_tv"
+      ],
+      "result": "karaoke_machine",
+      "source": "balbtopia",
+      "note": "Karaoke Machine = Boombox + Retro TV (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "leaf_block",
+        "yellow_block"
+      ],
+      "result": "banana_tree",
+      "source": "balbtopia",
+      "note": "Banana Tree = Leaf Block + Yellow Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "apple",
+        "barrel"
+      ],
+      "result": "fruit_basket",
+      "source": "balbtopia",
+      "note": "Fruit Basket = Apple + Barrel (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "piggy_bank",
+        "white_block"
+      ],
+      "result": "lucky_cat",
+      "source": "balbtopia",
+      "note": "Lucky Cat = Piggy Bank + White Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "snowman",
+        "glass_pane"
+      ],
+      "result": "snow_globe",
+      "source": "balbtopia",
+      "note": "Snow Globe = Snowman + Glass Pane (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "iron_bars",
+        "sunflower"
+      ],
+      "result": "bird_cage",
+      "source": "balbtopia",
+      "note": "Bird Cage = Iron Bars + Sunflower (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "circuit_block",
+        "retro_tv"
+      ],
+      "result": "gaming_pc",
+      "source": "balbtopia",
+      "note": "Gaming PC = Circuit Block + Retro TV (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "birthday_cake",
+        "cherry"
+      ],
+      "result": "cupcake",
+      "source": "balbtopia",
+      "note": "Cupcake = Birthday Cake + Cherry (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "leaf_block",
+        "cherry_blossom"
+      ],
+      "result": "sakura_leaves",
+      "source": "balbtopia",
+      "note": "Sakura Leaves = Leaf Block + Cherry Blossom (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "leaf_block",
+        "orange_block"
+      ],
+      "result": "autumn_leaves",
+      "source": "balbtopia",
+      "note": "Autumn Leaves = Leaf Block + Orange Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "checker_marble",
+        "red_block"
+      ],
+      "result": "diner_tiles",
+      "source": "balbtopia",
+      "note": "Diner Tiles = Marble Checker Floor + Red Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "chocolate_block",
+        "sugar_cane"
+      ],
+      "result": "caramel_block",
+      "source": "balbtopia",
+      "note": "Caramel Block = Chocolate Block + Sugar Cane (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "disco_ball",
+        "pastel_tiles"
+      ],
+      "result": "disco_floor",
+      "source": "balbtopia",
+      "note": "Disco Floor = Disco Ball + Pastel Tiles (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "fish_tank",
+        "glass_block"
+      ],
+      "result": "aquarium_glass",
+      "source": "balbtopia",
+      "note": "Aquarium Glass = Fish Tank + Glass Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sandstone_bricks",
+        "vine_wall"
+      ],
+      "result": "ruin_bricks",
+      "source": "balbtopia",
+      "note": "Ancient Ruins = Sandstone Bricks + Vine Wall (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "amethyst_block",
+        "carpet_block"
+      ],
+      "result": "royal_velvet",
+      "source": "balbtopia",
+      "note": "Royal Velvet = Amethyst Block + Red Carpet (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "leaf_block",
+        "dark_oak_planks"
+      ],
+      "result": "camo_block",
+      "source": "balbtopia",
+      "note": "Camouflage Block = Leaf Block + Dark Oak Planks (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "circuit_block",
+        "glass_block"
+      ],
+      "result": "solar_panel",
+      "source": "balbtopia",
+      "note": "Solar Panel = Circuit Block + Glass Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ice_cream_block",
+        "baby_stroller"
+      ],
+      "result": "ice_cream_cart",
+      "source": "balbtopia",
+      "note": "Ice Cream Cart = Ice Cream Block + Baby Stroller (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "floor_lamp",
+        "steel_block"
+      ],
+      "result": "desk_lamp",
+      "source": "balbtopia",
+      "note": "Desk Lamp = Floor Lamp + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "potted_fern",
+        "leaf_block"
+      ],
+      "result": "potted_monstera",
+      "source": "balbtopia",
+      "note": "Monstera Plant = Potted Fern + Leaf Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "teddy_bear",
+        "rainbow_block"
+      ],
+      "result": "unicorn_plush",
+      "source": "balbtopia",
+      "note": "Unicorn Plush = Teddy Bear + Rainbow Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "drum_note",
+        "steel_block"
+      ],
+      "result": "drum_set",
+      "source": "balbtopia",
+      "note": "Drum Set = Drum Note + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "karaoke_machine",
+        "steel_block"
+      ],
+      "result": "mic_stand",
+      "source": "balbtopia",
+      "note": "Microphone Stand = Karaoke Machine + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "orange_block",
+        "white_bricks"
+      ],
+      "result": "traffic_cone",
+      "source": "balbtopia",
+      "note": "Traffic Cone = Orange Block + White Bricks (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "water_dispenser"
+      ],
+      "result": "fire_hydrant",
+      "source": "balbtopia",
+      "note": "Fire Hydrant = Red Block + Water Dispenser (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "skeleton",
+        "wooden_platform"
+      ],
+      "result": "pirate_flag",
+      "source": "balbtopia",
+      "note": "Pirate Flag = Skeleton + Wooden Platform (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "stone_wall",
+        "water_bucket"
+      ],
+      "result": "wishing_well",
+      "source": "balbtopia",
+      "note": "Wishing Well = Stone Wall + Water Bucket (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sword",
+        "steel_block"
+      ],
+      "result": "katana",
+      "source": "balbtopia",
+      "note": "Katana = Sword + Steel Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sword",
+        "lava"
+      ],
+      "result": "fire_sword",
+      "source": "balbtopia",
+      "note": "Fire Sword = Sword + Lava (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sword",
+        "ice"
+      ],
+      "result": "ice_sword",
+      "source": "balbtopia",
+      "note": "Ice Sword = Sword + Ice (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sword",
+        "golden_block"
+      ],
+      "result": "golden_sword",
+      "source": "balbtopia",
+      "note": "Golden Sword = Sword + Golden Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sword",
+        "neon_lights"
+      ],
+      "result": "plasma_sword",
+      "source": "balbtopia",
+      "note": "Plasma Sword = Sword + Neon Lights (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "wood_block"
+      ],
+      "result": "battle_axe",
+      "source": "balbtopia",
+      "note": "Battle Axe = Steel Block + Wood Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "steel_block",
+        "barrel"
+      ],
+      "result": "war_hammer",
+      "source": "balbtopia",
+      "note": "War Hammer = Steel Block + Barrel (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "wooden_platform",
+        "death_spikes"
+      ],
+      "result": "spear",
+      "source": "balbtopia",
+      "note": "Spear = Wooden Platform + Death Spikes (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "sword",
+        "bamboo_block"
+      ],
+      "result": "bolo",
+      "source": "balbtopia",
+      "note": "Bolo = Sword + Bamboo Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bamboo_block",
+        "red_block"
+      ],
+      "result": "arnis_stick",
+      "source": "balbtopia",
+      "note": "Arnis Stick = Bamboo Block + Red Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "bolo",
+        "grass"
+      ],
+      "result": "hand_scythe",
+      "source": "balbtopia",
+      "note": "Hand Scythe = Bolo + Grass (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "electric_fan",
+        "leaf_block"
+      ],
+      "result": "leaf_blower",
+      "source": "balbtopia",
+      "note": "Leaf Blower = Electric Fan + Leaf Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "beach_umbrella",
+        "bamboo_block"
+      ],
+      "result": "paper_umbrella",
+      "source": "balbtopia",
+      "note": "Oil-paper Umbrella = Beach Umbrella + Bamboo Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "campfire",
+        "cookie_block"
+      ],
+      "result": "smores_staff",
+      "source": "balbtopia",
+      "note": "Staff of S = Campfire + Cookie Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "hand_scythe",
+        "skeleton"
+      ],
+      "result": "death_scythe",
+      "source": "balbtopia",
+      "note": "Death Scythe = Hand Scythe + Skeleton (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "rose",
+        "spear"
+      ],
+      "result": "heart_bow",
+      "source": "balbtopia",
+      "note": "Heartbow = Rose + Spear (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "torch",
+        "crystal_block"
+      ],
+      "result": "fire_wand",
+      "source": "balbtopia",
+      "note": "Fire Wand = Torch + Crystal Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "ice",
+        "crystal_cluster"
+      ],
+      "result": "ice_wand",
+      "source": "balbtopia",
+      "note": "Ice Wand = Ice + Crystal Cluster (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "battle_axe",
+        "circuit_block"
+      ],
+      "result": "chainsaw",
+      "source": "balbtopia",
+      "note": "Chainsaw = Battle Axe + Circuit Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "toy_car"
+      ],
+      "result": "water_gun",
+      "source": "balbtopia",
+      "note": "Water Gun = Water Bucket + Toy Car (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "fire_sword",
+        "obsidian_block"
+      ],
+      "result": "dragon_hand",
+      "source": "balbtopia",
+      "note": "Dragon Hand = Fire Sword + Obsidian (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "war_hammer",
+        "glow_block"
+      ],
+      "result": "thunder_hammer",
+      "source": "balbtopia",
+      "note": "Thunder Hammer = War Hammer + Glow Block (Balbtopia recipe)"
     }
   ],
   "growtopiaNotInGameYet": [

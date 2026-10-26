@@ -205,7 +205,7 @@ function act() {
       }
       // Disco Ball / Boombox (owner, Oct 25 2026): only players a lock gives access (Gold Lock, or the Red / Blue
       // Lock it stands in) can switch it on / off or break it; outside every lock nobody can
-      if ((b.id === 'disco_ball' || b.id === 'boombox') && !realAccess(playerName, i)) {
+      if ((b.id === 'disco_ball' || b.id === 'boombox' || b.id === 'spike_gate' || b.id === 'storage_chest' || b.id === 'stove') && !realAccess(playerName, i)) {
         shake = Math.max(shake, 2);
         if (now - farWrenchT > 1500) {
           farWrenchT = now;
@@ -217,6 +217,10 @@ function act() {
       if (isWeatherT(fg[i])) toggleWeather(i);
       // a Disco Ball: every punch stops / starts its animation (blocks.js)
       if (canStopAnim(fg[i])) toggleAnim(i);
+      // a Spike Gate: every punch opens / shuts it (blocks64b.js)
+      if (fg[i] === SPIKE_GATE_T) toggleSpikeGate(i);
+      // a Chest / Stove: every punch shuts / opens it; shut, the drops on it are kept inside (blocks64c.js)
+      if (isStoreT(fg[i])) toggleStore(i);
       // a Signal Jammer / Punch Blocker: every punch switches it off / on (shop.js)
       if (isJamT(fg[i])) toggleJam(i);
       dmg[i]++;

@@ -351,6 +351,7 @@ declare
   ti jsonb;
   t integer;
   ofg bytea; nfg bytea; obg bytea; nbg bytea; ova bytea; nva bytea;
+  ofx bytea; nfx bytea; -- fgx: blocks above 254 (fg byte 255 = look here; Oct 26 2026)
   touched boolean := false;
   outd jsonb := p_new;
 begin
@@ -372,9 +373,12 @@ begin
     ofg := decode(p_old ->> 'fg', 'base64'); nfg := decode(p_new ->> 'fg', 'base64');
     obg := decode(p_old ->> 'bg', 'base64'); nbg := decode(p_new ->> 'bg', 'base64');
     ova := decode(p_old ->> 'vari', 'base64'); nva := decode(p_new ->> 'vari', 'base64');
+    ofx := decode(p_old ->> 'fgx', 'base64'); nfx := decode(p_new ->> 'fgx', 'base64');
   exception when others then
     return outd; -- not readable: leave the tiles (the world's own checks still apply)
   end;
+  if nfx is not null and octet_length(nfx) <> octet_length(nfg) then nfx := null; end if;
+  if ofx is not null and octet_length(ofx) <> octet_length(ofg) then ofx := null; end if;
   if ofg is null or nfg is null or obg is null or nbg is null or octet_length(ofg) <> octet_length(nfg)
      or octet_length(obg) <> octet_length(nbg) then
     return outd;
@@ -396,12 +400,16 @@ begin
          and get_byte(nva, t) <> get_byte(ova, t) then
         nva := set_byte(nva, t, get_byte(ova, t)); touched := true;
       end if;
+      if nfx is not null and get_byte(nfx, t) <> coalesce(case when ofx is null then 0 else get_byte(ofx, t) end, 0) then
+        nfx := set_byte(nfx, t, case when ofx is null then 0 else get_byte(ofx, t) end); touched := true;
+      end if;
     end loop;
   end loop;
   if touched then
     outd := jsonb_set(outd, '{fg}', to_jsonb(translate(encode(nfg, 'base64'), E'\n', '')));
     outd := jsonb_set(outd, '{bg}', to_jsonb(translate(encode(nbg, 'base64'), E'\n', '')));
     if nva is not null then outd := jsonb_set(outd, '{vari}', to_jsonb(translate(encode(nva, 'base64'), E'\n', ''))); end if;
+    if nfx is not null then outd := jsonb_set(outd, '{fgx}', to_jsonb(translate(encode(nfx, 'base64'), E'\n', ''))); end if;
   end if;
   return outd;
 end $$;
@@ -429,6 +437,7 @@ declare
   locks integer[] := '{}';
   e jsonb; o jsonb; ti jsonb; t integer; k text;
   ofg bytea; nfg bytea; obg bytea; nbg bytea; ova bytea; nva bytea;
+  ofx bytea; nfx bytea; -- fgx: blocks above 254 (see alock_guard)
   mine boolean;
 begin
   -- floating drops, as for any visitor
@@ -440,9 +449,12 @@ begin
     ofg := decode(p_old ->> 'fg', 'base64'); nfg := decode(p_new ->> 'fg', 'base64');
     obg := decode(p_old ->> 'bg', 'base64'); nbg := decode(p_new ->> 'bg', 'base64');
     ova := decode(p_old ->> 'vari', 'base64'); nva := decode(p_new ->> 'vari', 'base64');
+    ofx := decode(p_old ->> 'fgx', 'base64'); nfx := decode(p_new ->> 'fgx', 'base64');
   exception when others then
     return outd;
   end;
+  if nfx is not null and octet_length(nfx) <> octet_length(nfg) then nfx := null; end if;
+  if ofx is null or octet_length(ofx) <> octet_length(ofg) then ofx := decode(repeat('00', octet_length(ofg)), 'hex'); end if;
   if ofg is null or nfg is null or obg is null or nbg is null or octet_length(ofg) <> octet_length(nfg)
      or octet_length(obg) <> octet_length(nbg) then
     return outd;
@@ -470,10 +482,12 @@ begin
     if ova is not null and nva is not null and t < octet_length(ova) and t < octet_length(nva) then
       ova := set_byte(ova, t, get_byte(nva, t));
     end if;
+    ofx := set_byte(ofx, t, case when nfx is null then 0 else get_byte(nfx, t) end);
   end loop;
   outd := jsonb_set(outd, '{fg}', to_jsonb(translate(encode(ofg, 'base64'), E'\n', '')));
   outd := jsonb_set(outd, '{bg}', to_jsonb(translate(encode(obg, 'base64'), E'\n', '')));
   if ova is not null then outd := jsonb_set(outd, '{vari}', to_jsonb(translate(encode(ova, 'base64'), E'\n', ''))); end if;
+  outd := jsonb_set(outd, '{fgx}', to_jsonb(translate(encode(ofx, 'base64'), E'\n', '')));
   foreach k in array array['trees', 'signs', 'disp', 'mann', 'songs', 'atm'] loop
     outd := jsonb_set(outd, array[k], public.alock_merge_tiles(p_old -> k, p_new -> k, tiles));
   end loop;
@@ -967,6 +981,8 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('red_fire_eyes', 1, 0, true, 200),
   ('faceless_head', 1, 20000, true, 0),
   ('blue_pacifier', 1, 5000, true, 0),
+  ('golden_diaper', 1, 50000, true, 0), -- diaper.js: Wisdom Diaper (Oct 26 2026, the owner's own pictures)
+  ('diamond_diaper', 1, 0, true, 100), -- Angel Diaper
   ('red_aura', 1, 0, true, 200),
   ('dark_diamond_aura', 1, 0, true, 200),
   ('diamond_aura', 1, 0, true, 200),
@@ -1030,7 +1046,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_raptor', 1, 80000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('blue_pacifier', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_cosmic_dragon', 1), ('pet_fire_dragon', 1), ('pet_trex', 1), ('pet_raptor', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
