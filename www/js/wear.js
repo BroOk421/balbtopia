@@ -5,8 +5,9 @@
 //   the fancy pickaxes give off sparkles. Laser Eyes shoot a laser when you punch.
 // Everything is drawn in the body sprite's own pixels (118x215, facing right).
 // ===== wear =====
-const WEAR_SLOTS = ['back', 'shirt', 'pants', 'feet', 'face', 'hair', 'hat', 'aura'];
-const SLOT_NAME = { back: 'Back', shirt: 'Shirt', pants: 'Pants', feet: 'Feet', face: 'Face', hair: 'Hair', hat: 'Hat', aura: 'Aura', hand: 'Hand' };
+// mask (Oct 26 2026): things that change the head itself (Faceless Head), so hair, hats and face items still show
+const WEAR_SLOTS = ['back', 'shirt', 'pants', 'feet', 'face', 'mask', 'hair', 'hat', 'aura'];
+const SLOT_NAME = { back: 'Back', shirt: 'Shirt', pants: 'Pants', feet: 'Feet', face: 'Face', mask: 'Mask', hair: 'Hair', hat: 'Hat', aura: 'Aura', hand: 'Hand' };
 // the Wearing row under the bag: every clothing slot, plus Hand (the tool you hold: pickaxes, shovel, sword...)
 const EQ_SLOTS = [...WEAR_SLOTS, 'hand'];
 for (const s of EQ_SLOTS) if (!(s in equipped)) equipped[s] = null;
@@ -47,6 +48,9 @@ const WEAR = [
   { id: 'clown_pants', name: 'Clown Pants', slot: 'pants', col: '#ffd23f', pat: 'dots', col2: '#e8302a', desc: 'Yellow with big red dots.' },
   { id: 'sexy_boxers', name: 'Heart Boxers', slot: 'pants', col: '#ff8ac0', pat: 'dots', col2: '#d01a3a', desc: 'Pink boxers with little hearts.' },
   { id: 'purple_thong', name: 'Purple Thong', slot: 'pants', col: '#8a3fc9', desc: 'Bold. Very purple.' },
+  // the old default clothes, now from recipes
+  { id: 'blue_jeans', name: 'Blue Jeans', slot: 'pants', col: '#2f5aa8', desc: 'Classic blue jeans.' },
+  { id: 'white_sneakers', name: 'White Sneakers', slot: 'feet', col: '#ececf0', desc: 'Clean white sneakers.' },
   // feet
   { id: 'stinky_socks', name: 'Yellow Socks', slot: 'feet', col: '#c8c060', desc: 'Nobody wants to stand next to you.' },
   { id: 'boots', name: 'Boots', slot: 'feet', col: '#4a2c18', desc: 'Sturdy brown boots.' },
@@ -120,6 +124,14 @@ const WEAR = [
   { id: 'leaf_wings', name: 'Leaf Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_leaf', frames: 8, ms: 140, x: -61, y: -23, w: 240, h: 237, icon: [0, 0, 240, 237] }, desc: 'Wings of green leaves and white flowers, with drifting leaves. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'galaxy_wings', name: 'Galaxy Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_galaxy', frames: 8, ms: 140, x: -61, y: -25, w: 240, h: 241, icon: [0, 0, 240, 241] }, desc: 'Starry night-sky wings with halos and twinkling stars. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'laser_eyes', name: 'Laser Eyes', slot: 'face', art: 'laser_eyes', rarity: 'Epic', desc: 'Glowing red eyes. Every punch fires a laser from your eyes, and you reach one tile further.' },
+  // a blank face with two burning blue eyes (fire_eyes.js); `blank`: the normal brows, eyes and mouth are wiped
+  // the fire eyes are only the eyes (face slot); the blank face is its own item in the hair slot (owner)
+  { id: 'red_fire_eyes', name: 'Red Fire Eyes', slot: 'face', art: 'red_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [34, 128, 76, 76], desc: 'Your eyes burn with red-hot fire, flames licking up over your head.' },
+  { id: 'blue_fire_eyes', name: 'Blue Fire Eyes', slot: 'face', art: 'blue_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [34, 128, 76, 76], desc: 'Your eyes burn with blue fire, flames licking up over your head.' },
+  // a baby-blue pacifier over the mouth (baby.js)
+  { id: 'blue_pacifier', name: 'Blue Pacifier', slot: 'face', art: 'blue_pacifier', rarity: 'Uncommon', shop: true, iconBox: [60, 186, 32, 32], desc: 'A little teal-blue pacifier. Shh.' },
+  // a bald head with no face at all (no brows, eyes or mouth): `blank` (render.js blankFace); icon from fire_eyes.js
+  { id: 'faceless_head', name: 'Faceless Head', slot: 'mask', blank: true, rarity: 'Rare', shop: true, desc: 'A smooth bald head with no face at all: no brows, no eyes, no mouth. Put any eyes on it.' },
 ];
 const WEAR_BY_ID = {};
 for (const w of WEAR) {
@@ -182,16 +194,44 @@ function paintPixel(w, x, y, f) {
   }
   return c.map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
 }
-const OUTFIT = new Map();
-// the body image with these clothes on (cached per frame and outfit)
-// bands: the rows of the shirt, pants and shoes on this picture (the standing frames by default)
-const BODY_BANDS = { shirt: [98, 156], pants: [138, 202], feet: 178 };
-function outfitBody(im, key, eq, bands = BODY_BANDS) {
-  const shirt = WEAR_BY_ID[eq.shirt],
-    pants = WEAR_BY_ID[eq.pants] || (shirt && (shirt.pat === 'dress' || shirt.pat === 'pj') ? shirt : null),
-    feet = WEAR_BY_ID[eq.feet];
-  if (!shirt && !pants && !feet) return im;
-  const k = key + '|' + (shirt ? shirt.id : '') + '|' + (pants ? pants.id : '') + '|' + (feet ? feet.id : '');
+// the jeans' left / right edge on every row of a body picture: { row: [l, r] }
+function jeansSpans(p, W, H, bands) {
+  const s = {};
+  for (let y = bands.pants[0]; y <= Math.min(H - 1, bands.pants[1]); y++)
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      if (p[i + 3] < 120 || !(p[i + 2] > p[i] + 18 && p[i + 2] > p[i + 1])) continue;
+      const v = s[y] || (s[y] = [x, x]);
+      if (x < v[0]) v[0] = x;
+      if (x > v[1]) v[1] = x;
+    }
+  return s;
+}
+// the standing frames' masks (R legs + briefs, G feet), as pixel arrays: idle (also blinks, sleeping, the arm-less
+// body, Mannequin, icons), punch, walk 0-11; null when the mask image isn't loaded or the picture isn't 118 x 215
+const MASKS = {};
+function bodyMask(key, im) {
+  if (!im || im.width !== FR.w || im.height !== FR.h) return null;
+  const k = String(key),
+    wm = k.match(/^walk_[a-z]+_(\d+)/),
+    name = wm ? 'mask_walk_' + wm[1] : k.startsWith('punch_') ? 'mask_punch' : 'mask_idle';
+  if (MASKS[name]) return MASKS[name];
+  const m = IMG[name];
+  if (!m || !m.width) return null;
+  const c = document.createElement('canvas');
+  c.width = FR.w;
+  c.height = FR.h;
+  const x = c.getContext('2d');
+  x.drawImage(m, 0, 0);
+  try {
+    return (MASKS[name] = x.getImageData(0, 0, FR.w, FR.h).data);
+  } catch (e) {
+    return null;
+  }
+}
+// pants / shoes / shirt on a standing frame by its mask (dark outline pixels stay, so legs and feet keep their shape)
+function outfitMasked(im, key, shirt, pants, feet, mask, bands) {
+  const k = 'm|' + key + '|' + (shirt ? shirt.id : '') + '|' + (pants ? pants.id : '') + '|' + (feet ? feet.id : '');
   if (OUTFIT.has(k)) return OUTFIT.get(k);
   const c = document.createElement('canvas');
   c.width = im.width;
@@ -200,7 +240,11 @@ function outfitBody(im, key, eq, bands = BODY_BANDS) {
   x.drawImage(im, 0, 0);
   try {
     const d = x.getImageData(0, 0, c.width, c.height),
-      p = d.data;
+      p = d.data,
+      // light and shade come from the picture, measured against what that pixel is (skin or the white briefs), so
+      // the clothes are the same colour on every skin and over the briefs
+      sk = legSkin(key),
+      skinL = (sk[0] + sk[1] + sk[2]) / 3;
     for (let i = 0; i < p.length; i += 4) {
       if (p[i + 3] < 120) continue;
       const r = p[i],
@@ -209,17 +253,173 @@ function outfitBody(im, key, eq, bands = BODY_BANDS) {
         px = (i / 4) % c.width,
         py = (i / 4 / c.width) | 0,
         L = (r + gg + b) / 3,
-        sat = Math.max(r, gg, b) - Math.min(r, gg, b);
-      let w = null,
-        f = 1;
-      if (shirt && py >= bands.shirt[0] && py <= bands.shirt[1] && sat < 28 && L > 110) (w = shirt), (f = Math.min(1.08, Math.max(0.5, L / 238)));
-      else if (pants && py >= bands.pants[0] && py <= bands.pants[1] && b > r + 18 && b > gg) (w = pants), (f = Math.min(1.45, Math.max(0.45, L / 95)));
-      else if (feet && py >= bands.feet && sat < 30 && L > 105) (w = feet), (f = Math.min(1.08, Math.max(0.5, L / 238)));
-      if (!w) continue;
-      const [nr, ng, nb] = paintPixel(w, px, py, f);
-      p[i] = nr;
-      p[i + 1] = ng;
-      p[i + 2] = nb;
+        sat = Math.max(r, gg, b) - Math.min(r, gg, b),
+        legs = mask[i] > 127,
+        foot = mask[i + 1] > 127,
+        dark = L < 60 * (skinL / 200) + 8, // outlines stay
+        shadeK = Math.min(1.1, Math.max(0.55, sat > 30 ? L / skinL : L / 240));
+      let rgb = null;
+      if (pants && legs && !dark) rgb = paintPixel(pants, px, py, shadeK);
+      else if (feet && foot && !dark) rgb = paintPixel(feet, px, py, shadeK);
+      else if (shirt && !legs && !foot && py >= bands.shirt[0] && py <= bands.shirt[1] && sat < 28 && L > 110)
+        rgb = paintPixel(shirt, px, py, Math.min(1.08, Math.max(0.5, L / 238)));
+      if (!rgb) continue;
+      p[i] = rgb[0];
+      p[i + 1] = rgb[1];
+      p[i + 2] = rgb[2];
+    }
+    x.putImageData(d, 0, 0);
+  } catch (e) {
+    return im;
+  }
+  if (OUTFIT.size > 600) OUTFIT.clear();
+  OUTFIT.set(k, c);
+  return c;
+}
+// White briefs (no pants worn, sitting / swimming pictures): is this jeans pixel inside them? 2 inside, 1 their grey edge, 0 bare leg.
+// Standing / walking: full width over the hips down to BRIEF_TOP, then a curve in to BRIEF_CROTCH of the width at
+// BRIEF_BOTTOM (the leg holes). Sitting (front view, legs towards you): a patch at the top middle. Swimming (lying
+// flat): right of bands.shortX (the hips).
+const BRIEF_TOP = 156,
+  BRIEF_BOTTOM = 174,
+  BRIEF_CROTCH = 0.3,
+  BRIEF_COL = [244, 244, 240],
+  BRIEF_EDGE = [150, 150, 154];
+function briefsIn(spans, x, y, bands) {
+  if (bands.pose === 'swim') return x < bands.shortX ? 0 : x < bands.shortX + 2 ? 1 : 2;
+  const s = spans && spans[y];
+  if (!s) return 0;
+  const cx = (s[0] + s[1]) / 2,
+    half = (s[1] - s[0]) / 2 + 0.5,
+    d = Math.abs(x - cx);
+  if (bands.pose === 'sit') {
+    const top = bands.pants[0],
+      w = 20 - Math.max(0, y - top - 6) * 1.6;
+    if (y > top + 14 || d > w) return 0;
+    return w - d < 2 || y > top + 12 ? 1 : 2;
+  }
+  if (y > BRIEF_BOTTOM) return 0;
+  const u = Math.max(0, Math.min(1, (y - BRIEF_TOP) / (BRIEF_BOTTOM - BRIEF_TOP))),
+    w = half * (1 - (1 - BRIEF_CROTCH) * Math.sqrt(u));
+  if (d > w) return 0;
+  return w - d < 2 || y > BRIEF_BOTTOM - 2 ? 1 : 2;
+}
+// the shoes' top and bottom row in every column, and the runs of columns (one per foot)
+function shoeCols(p, W, H, bands) {
+  const top = new Int16Array(W).fill(-1),
+    bot = new Int16Array(W).fill(-1);
+  for (let y = bands.feet; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      if (x > bands.feetX) continue;
+      const i = (y * W + x) * 4,
+        r = p[i],
+        g2 = p[i + 1],
+        b = p[i + 2];
+      if (p[i + 3] < 120 || Math.max(r, g2, b) - Math.min(r, g2, b) >= 30 || (r + g2 + b) / 3 <= 55) continue;
+      if (top[x] < 0) top[x] = y;
+      bot[x] = y;
+    }
+  const runs = [];
+  for (let x = 0; x < W; x++) if (top[x] >= 0 && (x === 0 || top[x - 1] < 0)) runs.push([x, x]);
+  else if (top[x] >= 0) runs[runs.length - 1][1] = x;
+  return { top, bot, runs };
+}
+// a flip-flop pixel: sole along the bottom of each foot, a thong strap over the top, bare foot elsewhere;
+// sitting (soles towards you): all sole
+const FLIP_SOLE = [42, 42, 48],
+  FLIP_EDGE = [110, 110, 118],
+  FLIP_STRAP = [30, 30, 34];
+function flipFlop(sh, x, y, L, pose, skinAt) {
+  if (pose === 'sit') return FLIP_SOLE.map((v) => v * (0.8 + 0.5 * Math.min(1, L / 230)));
+  const t = sh.top[x],
+    bt = sh.bot[x];
+  if (bt - y <= 0) return FLIP_EDGE; // the sole's lit bottom edge
+  if (bt - y <= 3) return FLIP_SOLE;
+  const run = sh.runs.find(([a, b]) => x >= a && x <= b);
+  if (run && y - t >= 1 && y - t <= 3) {
+    const u = (x - run[0]) / Math.max(1, run[1] - run[0]);
+    if (u > 0.3 && u < 0.72) return FLIP_STRAP;
+  }
+  return skinAt(L * 0.9);
+}
+// the skin colour of the body picture named by an outfitBody key ('walk_peach_3', 'skin_deep_open', ...)
+function legSkin(key) {
+  const s = SKINS.find((n) => String(key).includes(n)) || 'porcelain';
+  return rgbOf((FACE_COLOR[s] || FACE_COLOR.porcelain)[0]);
+}
+const OUTFIT = new Map();
+// the body image with these clothes on (cached per frame and outfit)
+// bands: the rows of the shirt, pants and shoes on this picture (the standing frames by default)
+const BODY_BANDS = { shirt: [98, 156], pants: [138, 202], feet: 178 };
+// Default look (owner, Oct 26 2026): the standing frames (idle, walk, punch) ARE the owner's picture now: white
+// tank top, white briefs, bare legs, black flip-flops (art-source/character/base_cut.py). Pants and shoes are
+// painted on with the frame's mask (`bodyMask`: R legs + briefs, G feet), shirts on the white top as before.
+// The sitting and swimming pictures are the old ones (jeans, sneakers): there, no pants = white briefs + bare legs
+// and no shoes = black flip-flops are painted over them (bands.pose 'sit' / 'swim').
+function outfitBody(im, key, eq, bands = BODY_BANDS) {
+  const shirt = WEAR_BY_ID[eq.shirt],
+    pants = WEAR_BY_ID[eq.pants] || (shirt && (shirt.pat === 'dress' || shirt.pat === 'pj') ? shirt : null),
+    feet = WEAR_BY_ID[eq.feet],
+    pantsMode = pants ? 'wear' : 'under',
+    feetMode = feet ? 'wear' : 'flip',
+    mask = bands.pose ? null : bodyMask(key, im);
+  if (mask && !shirt && !pants && !feet) return im;
+  if (mask) return outfitMasked(im, key, shirt, pants, feet, mask, bands);
+  const k = key + '|' + (shirt ? shirt.id : '') + '|' + (pants ? pants.id : '') + '|' + (feet ? feet.id : '');
+  if (OUTFIT.has(k)) return OUTFIT.get(k);
+  const c = document.createElement('canvas');
+  c.width = im.width;
+  c.height = im.height;
+  const x = c.getContext('2d');
+  x.drawImage(im, 0, 0);
+  try {
+    const W = c.width,
+      d = x.getImageData(0, 0, W, c.height),
+      p = d.data,
+      pose = bands.pose,
+      sk = legSkin(key),
+      put = (i, rgb) => {
+        p[i] = Math.max(0, Math.min(255, rgb[0]));
+        p[i + 1] = Math.max(0, Math.min(255, rgb[1]));
+        p[i + 2] = Math.max(0, Math.min(255, rgb[2]));
+      },
+      skinAt = (L) => {
+        const kk = 0.78 + 0.26 * Math.min(1.2, L / 95);
+        return sk.map((v) => v * kk);
+      };
+    // briefs need the jeans' width per row; flip-flops the shoes' top / bottom per column
+    const spans = pantsMode === 'under' ? jeansSpans(p, W, c.height, bands) : null,
+      shoes = feetMode === 'flip' ? shoeCols(p, W, c.height, bands) : null;
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i + 3] < 120) continue;
+      const r = p[i],
+        gg = p[i + 1],
+        b = p[i + 2],
+        px = (i / 4) % W,
+        py = (i / 4 / W) | 0,
+        L = (r + gg + b) / 3,
+        sat = Math.max(r, gg, b) - Math.min(r, gg, b),
+        blue = b > r + 18 && b > gg;
+      // (bands.shirtX / feetX: only right / left of that column, for the swimming frames that lie flat)
+      if (shirt && py >= bands.shirt[0] && py <= bands.shirt[1] && !(px < bands.shirtX) && sat < 28 && L > 110) {
+        put(i, paintPixel(shirt, px, py, Math.min(1.08, Math.max(0.5, L / 238))));
+        continue;
+      }
+      const inPants = py >= bands.pants[0] && py <= bands.pants[1];
+      if (pantsMode === 'under' && inPants) {
+        // the jeans' dark seam / leg-gap lines inside the briefs would show as a black line: painted over
+        const at = blue ? briefsIn(spans, px, py, bands) : !pose && L < 70 && py < BRIEF_BOTTOM - 2 && briefsIn(spans, px, py, bands) === 2 ? 2 : -1;
+        if (at === 2) put(i, BRIEF_COL.map((v) => v * (0.94 + 0.08 * Math.min(1.3, L / 95))));
+        else if (at === 1) put(i, BRIEF_EDGE);
+        else if (at === 0) put(i, skinAt(L));
+        if (at >= 0) continue;
+      } else if (pantsMode === 'wear' && inPants && blue) {
+        put(i, paintPixel(pants, px, py, Math.min(1.45, Math.max(0.45, L / 95))));
+        continue;
+      }
+      if (py < bands.feet || px > bands.feetX || sat >= 30) continue;
+      if (feetMode === 'wear' && L > 105) put(i, paintPixel(feet, px, py, Math.min(1.08, Math.max(0.5, L / 238))));
+      else if (feetMode === 'flip' && L > 55) put(i, flipFlop(shoes, px, py, L, pose, skinAt));
     }
     x.putImageData(d, 0, 0);
   } catch (e) {
@@ -570,6 +770,8 @@ function longHairBack({ L }, col, hi) {
 const ARTS = {};
 // animated drawings: ms per frame (2 frames)
 const ANIM = { hot_head: 120, cyclopean_visor: 300 };
+// longer animations: id -> [ms per frame, frames] (fire_eyes.js)
+const ANIM_N = {};
 // an animated picture strip worn on the body (e.g. Golden Spike Hair); call inside the character transform
 // sx: squeeze sideways round the strip's middle (wings flapping in the air)
 // part: 'front' only draws above the strip's `split` line (body px), 'back' only below it (long hair: the part
@@ -607,7 +809,7 @@ function drawWearStrip(w, top, sc, dy, sx = 1, part) {
   g.restore();
 }
 function wearArt(id, f) {
-  if (f === undefined) f = ANIM[id] ? Math.floor(now / ANIM[id]) % 2 : 0;
+  if (f === undefined) f = ANIM_N[id] ? Math.floor(now / ANIM_N[id][0]) % ANIM_N[id][1] : ANIM[id] ? Math.floor(now / ANIM[id]) % 2 : 0;
   const k = id + ':' + f;
   return (ARTS[k] ||= artCanvas(WEAR_ART[id], f));
 }

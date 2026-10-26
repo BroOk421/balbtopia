@@ -137,6 +137,70 @@ HD_DECO.rain_weather_machine = (x, { P, R, E }) => {
   R(15, 0, 2, 1, '#ffd23f');
 };
 
+// ---------- the Desert Machine ----------
+// the owner's desert (red rocks, an arch, lavender mountains far away) under the sunset's own sky, sun and clouds,
+// with fine sand blowing across the screen (owner, Oct 26 2026)
+const WEATHER_DESERT = 210; // block number (permanent)
+BLOCK[WEATHER_DESERT] = { id: 'desert_weather_machine', name: 'Desert Machine', hits: 8, art: 'deco', solid: false, fx: ['#e0703a', '#ffc070', '#fff0c8'] };
+ITEMS.desert_weather_machine = {
+  name: 'Desert Machine',
+  kind: 'block',
+  block: WEATHER_DESERT,
+  desc: 'Place it in a world for a desert at sunset: red rocks, a stone arch, far lavender mountains and sand blowing in the wind. Punch it once to switch it off (the hills come back), again to switch it on.',
+  rarity: 'Epic',
+};
+DECO.desert_weather_machine = () => {};
+// the same glass-dome machine: a sunset sky, the sun going down behind a red mesa, sand dunes
+HD_DECO.desert_weather_machine = (x, { P, R, E }) => {
+  // stand
+  R(3, 25, 26, 7, '#14101c');
+  R(4, 25, 24, 6, '#b8642c');
+  R(4, 25, 24, 1, '#e8924a');
+  R(4, 30, 24, 1, '#7a3c18');
+  R(14, 26, 4, 3, '#14101c');
+  R(15, 26, 2, 2, '#ffd23f');
+  P(15, 26, '#fff4b8');
+  // glass dome with the sunset inside, top to bottom
+  E(16, 14, 12.5, 12.5, '#14101c');
+  const SKY = ['#4a2c9a', '#6a2ea0', '#9a3496', '#d0466e', '#f0643e', '#f88a34', '#fbb02c'];
+  for (let j = 2; j < 26; j++)
+    for (let i = 4; i < 28; i++) {
+      const d = Math.hypot(i + 0.5 - 16, j + 0.5 - 14);
+      if (d > 11.5) continue;
+      P(i, j, SKY[Math.min(SKY.length - 1, Math.max(0, Math.floor((j - 3) / 2.4)))]);
+    }
+  // the sun, half behind the rocks
+  E(19.5, 15, 3.6, 3.6, '#ffd23f');
+  E(19.5, 15, 2.4, 2.4, '#fff0a0');
+  // a lavender ridge far away, then the red mesa with its flat top
+  for (let i = 5; i < 27; i++) {
+    const h = 17 + Math.round(Math.abs(Math.sin(i * 0.55)) * 2);
+    R(i, h, 1, 20 - h, '#a88cc8');
+  }
+  R(8, 13, 7, 7, '#a8402a');
+  R(9, 12, 5, 1, '#a8402a');
+  R(9, 12, 5, 1, '#d8643a');
+  R(8, 13, 2, 7, '#c85a34');
+  R(14, 13, 1, 7, '#7a2c1e');
+  R(15, 17, 2, 3, '#a8402a');
+  // sand dunes
+  for (let j = 19; j < 26; j++)
+    for (let i = 4; i < 28; i++) {
+      const d = Math.hypot(i + 0.5 - 16, j + 0.5 - 14);
+      if (d > 11.3) continue;
+      const crest = 20 + Math.round(Math.sin(i * 0.4) * 1.2);
+      if (j >= crest) P(i, j, j === crest ? '#ffd890' : j < crest + 3 ? '#f4b25a' : '#e09048');
+    }
+  // glass shine, gold light on top
+  P(8, 7, '#ffe0f0');
+  P(9, 6, '#ffe0f0');
+  P(10, 5, '#fff4fa');
+  R(14, 0, 4, 2, '#14101c');
+  R(15, 0, 2, 1, '#ffd23f');
+};
+// the desert's layers in place of the hills (null = that layer isn't drawn); the sky, sun and clouds stay the sunset's
+const DESERT_LAY = { bg_far: 'desert_far', bg_big: 'desert_big', bg_mid: 'desert_front', bg_front: null };
+
 // ---------- which weather is it here? ----------
 // a Snow Machine anywhere in the world: snow; else a Sunny one: sunny; else the sunset
 const FLASH_MS = 450; // the white flash when the weather changes
@@ -146,7 +210,7 @@ let weatherNow = null,
 // A machine is switched off by a punch and on again by the next one (bit WEATHER_OFF of its tile's `vari`,
 // which is saved with the world and sent to everyone like the tile itself).
 const WEATHER_OFF = 4;
-const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN;
+const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN || t === WEATHER_DESERT;
 const machineOn = (t) => {
   for (let i = 0; i < fg.length; i++) if (fg[i] === t && !(vari[i] & WEATHER_OFF)) return true;
   return false;
@@ -163,8 +227,18 @@ function toggleWeather(i) {
   saveWorld();
 }
 function currentWeather() {
-  // snow wins over rain, rain over sun
-  const w = !inWorld ? null : machineOn(WEATHER_SNOW) ? 'snow' : machineOn(WEATHER_RAIN) ? 'rain' : machineOn(WEATHER_SUNNY) ? 'sunny' : null;
+  // snow wins over rain, rain over sun, sun over desert (only one machine is on at a time anyway: weatherSolo)
+  const w = !inWorld
+    ? null
+    : machineOn(WEATHER_SNOW)
+      ? 'snow'
+      : machineOn(WEATHER_RAIN)
+        ? 'rain'
+        : machineOn(WEATHER_SUNNY)
+          ? 'sunny'
+          : machineOn(WEATHER_DESERT)
+            ? 'desert'
+            : null;
   if (worldName !== weatherWorld) {
     // just came into this world: no flash, the loading screen covers it
     weatherWorld = worldName;
@@ -417,5 +491,56 @@ function drawRain() {
   }
   // a dim grey veil so the whole world looks wet and overcast
   g.fillStyle = 'rgba(30,40,60,.12)';
+  g.fillRect(0, 0, W, H);
+}
+
+// ---------- desert sand (screen space, behind the world like the snow) ----------
+// fine warm grains blowing sideways in gusts, nearer ones bigger and faster; a few long wisps of blown sand
+const GRAINS = [];
+for (let i = 0; i < 150; i++) GRAINS.push({ x: Math.random(), y: Math.random(), d: 0.3 + Math.random() * 0.7, ph: Math.random() * 6.28 });
+const WISPS = [];
+for (let i = 0; i < 9; i++) WISPS.push({ x: Math.random(), y: 0.35 + Math.random() * 0.6, d: 0.4 + Math.random() * 0.6, ph: Math.random() * 6.28 });
+let sandLast = 0;
+function drawSand() {
+  const dt = Math.min(0.05, Math.max(0, (now - sandLast) / 1000));
+  sandLast = now;
+  const W = cv.width,
+    H = cv.height,
+    u = Math.max(1, H / 600),
+    gust = 0.75 + 0.45 * Math.sin(now / 2300) + 0.2 * Math.sin(now / 610); // the wind comes and goes
+  for (const s of GRAINS) {
+    s.x -= dt * (0.05 + s.d * 0.16) * gust;
+    s.y += dt * (0.008 + Math.sin(now / 700 + s.ph) * 0.02);
+    if (s.x < -0.02) {
+      s.x = 1.02;
+      s.y = Math.random();
+    }
+    // pinned to the world like the snow
+    const sx = (((s.x * W - cam.x * Z) % W) + W) % W,
+      sy = (((s.y * H - cam.y * Z) % H) + H) % H,
+      sz = (0.8 + s.d * 1.6) * u;
+    const low = Math.min(1, 0.25 + sy / H); // thicker near the ground, thin up in the sky
+    g.fillStyle = (s.d > 0.7 ? 'rgba(255,214,150,' : 'rgba(232,160,96,') + (0.3 + s.d * 0.4) * low + ')';
+    g.fillRect(Math.round(sx), Math.round(sy), Math.ceil(sz * 1.6), Math.ceil(sz));
+  }
+  g.lineCap = 'round';
+  for (const w of WISPS) {
+    w.x -= dt * (0.09 + w.d * 0.12) * gust;
+    if (w.x < -0.3) {
+      w.x = 1.1;
+      w.y = 0.35 + Math.random() * 0.6;
+    }
+    const sx = (((w.x * W - cam.x * Z) % (W * 1.4)) + W * 1.4) % (W * 1.4) - W * 0.2,
+      sy = (((w.y * H - cam.y * Z) % H) + H) % H,
+      len = (60 + w.d * 120) * u;
+    g.strokeStyle = 'rgba(255,200,140,' + 0.1 * w.d * gust + ')';
+    g.lineWidth = (1.5 + w.d * 2.5) * u;
+    g.beginPath();
+    g.moveTo(sx, sy);
+    g.quadraticCurveTo(sx + len * 0.5, sy - 6 * u * Math.sin(now / 500 + w.ph), sx + len, sy + 3 * u);
+    g.stroke();
+  }
+  // a faint warm haze over the backdrop
+  g.fillStyle = 'rgba(255,150,80,.06)';
   g.fillRect(0, 0, W, H);
 }

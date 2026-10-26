@@ -779,6 +779,7 @@ function charPortrait(c) {
     equipped: c.equipped || {},
     hand: 'fist',
     name: '', // no name tag
+    portrait: true, // always standing (never the swimming pose)
     blink,
   };
   const saveZ = Z,

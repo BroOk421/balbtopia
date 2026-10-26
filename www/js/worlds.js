@@ -146,8 +146,14 @@ function playerData() {
 // those are only worn if still in the bag, and one of each is taken out of it.
 function setWorn(saved, outOfBag) {
   for (const k in equipped) equipped[k] = null;
-  for (const [sl, id] of Object.entries(saved || {})) {
-    if (!id || !(sl in SLOT_NAME) || slotOf(id) !== sl) continue;
+  for (const [sl0, id] of Object.entries(saved || {})) {
+    // an item saved in a slot it has since moved to another one (Faceless Head: hair -> mask) goes to its new slot
+    const sl = slotOf(id);
+    if (!id || !sl || !(sl in SLOT_NAME)) continue;
+    if (equipped[sl]) {
+      if (outOfBag && sl0 !== sl) addItem(id, 1); // that slot is taken: back into the bag, never lost
+      continue;
+    }
     if (outOfBag) {
       equipped[sl] = id;
       continue;

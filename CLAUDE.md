@@ -1380,3 +1380,167 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   - Log in: "Forgot password?" link under LOG IN (`#aForgot`, hidden on Register); for now it only toasts "coming
     soon" (owner: decide later how it resets; accounts have no real e-mail). The "Online: your account works on any
     device." note (`#aNote`) is gone.
+
+- Oct 26 2026 (build b, owner):
+  - Desert Machine (block 210, `weather.js`, Shop WORLD 10,000 gold, shop_prices tracked; HD art: glass dome with a
+    sunset, the sun behind a red mesa, sand dunes). Weather 'desert' (after sunny in `currentWeather`; only one
+    machine runs anyway): the owner's desert picture cut into layers by `art-source/background/desert_cut.py`
+    (source `desert_source.png`) -> `assets/background/desert_far|big|front.webp`. Its own blue sky, sun, clouds and
+    the ground strip (cacti, bushes, rocks, dirt) are gone; from row 722 the sand plain carries on (smooth sand with
+    soft ridges). The SUNSET's own sky, sun and clouds stay behind it (owner). `DESERT_LAY` maps the hills' slots:
+    bg_far -> desert_far, bg_big -> desert_big, bg_mid -> desert_front, bg_front not drawn (drawBg, render.js: `key`).
+    The far layer is warmed 35% toward the sunset haze and continues under the rocks in its own colours, so nothing
+    nearer shows when the layers slide. `drawSand()` (behind the world like snow / rain): warm grains blowing left in
+    gusts, thicker near the ground, a few long wisps, a faint warm veil.
+  - Swimming pose: in water (`inWater`) the player lies flat and paddles with the owner's 8 frames (sheet
+    `art-source/character/swim_sheet.png`, cut by `swim_cut.py`: keyed off the dark glow, lined up on the head, head
+    scaled to our head width 113 px, repainted per skin like sitBody: skin pixels x (standing face's common colour /
+    sheet's)) -> `assets/character/<skin>/swim_00..07.png` (218 x 171), `IMG['swim_<skin>_<n>']`. `swimPose(c)` /
+    `drawSwimming` at the end of gates.js, called from drawCharacter (not while dead / resting / punching / placing,
+    not in `charPortrait`: `portrait: true`). 90 ms a frame moving, 150 ms still. Clothes repainted with
+    `SWIM_BANDS` (outfitBody now takes `shirtX` / `feetX` columns); hats / hair / face items follow the head
+    (`SWIM_HEAD`: eye position per frame); back items, auras and picture shirts (`over`) are not drawn while swimming.
+  - Re-run schema.sql (desert_weather_machine price row). GAME_BUILD '2026-10-26 b'.
+
+- Oct 26 2026 (build c, owner):
+  - Sounds: `assets/sfx/laser.mp3` (owner's, art-source/sfx/laser-original.mp3; silence cut at -45 dB front / -62 dB
+    end so the zap's tail stays, 0.36 s, 60 ms fade out) plays for every punch while wearing Red Visor / Laser Eyes
+    (`startPunch`: laser over break / punch), and for other players' laser punches within 12 tiles (net.js punch
+    event, 0.55). `assets/sfx/swim.mp3` (owner's, swim-original.mp3, 1.0 s) on every swim stroke (replaces the quiet
+    jump) and about every 0.85 s while paddling sideways in water (`P.swimSfx`, physics.js). VOL laser 0.6, swim 1.
+  - /facejoke (chat; anyone, anywhere; never sent, not in the chat list, no spam count; `chatCommand`): a prank face
+    for `JOKE_MS` (5 s): `P.jokeUntil`, `jokeOn()`, sent as `jk` in the position message -> `r.joke`. The owner showed
+    a well-known meme face as the reference; it was NOT copied (it is someone's copyrighted drawing): `jokePaint` /
+    `jokeFace(skin)` (render.js, cached per skin, FACE_COLOR) is an ORIGINAL doodle on the face only: wink with laugh
+    lines, one wide eye glancing back under a raised brow, a hooked nose, a lopsided grin with the tongue out, dimple,
+    rosy cheek. Drawn over the face when standing / walking (wins over angry and talking), sitting (rest.js) and
+    swimming (gates.js, moved by SWIM_HEAD). GAME_BUILD '2026-10-26 c'.
+
+- Oct 26 2026 (build d, owner): /facejoke now shows the OWNER'S OWN face drawing (his picture on our head, kept as
+  `art-source/character/face_joke_owner.png`): brows, round eyes glancing right, two nostrils, a big grin with teeth
+  and a red tongue. `face_joke_cut.py` sorts its pixels into its colours (ink, white, mouth grey, red), shrinks each
+  separately (ink thickened first so the lines survive) onto frame box x 38-108, y 42-99 ->
+  `assets/character/face_joke.png` (118 x 215, `IMG.face_joke`). `jokeFace(skin)` fills ellipse (73, 70, 37 x 30)
+  with the skin colour (hides the calm face, keeps the chin outline), then draws it. The earlier doodle `jokePaint`
+  is gone. Still never copy the well-known meme face he first showed (someone else's drawing). GAME_BUILD '2026-10-26 d'.
+
+- Oct 26 2026 (build e, owner):
+  - Face covers: `coverFace(x, skin)` (render.js) paints the skin colour over x 34-106 / y 38-96 (+ x 37-101 to y 100),
+    inside the head's outline, used by `jokeFace` and `blankFace`, so no piece of the old brows / eyes shows on any
+    frame (owner saw a small stray mark beside the /facejoke eye). `face_joke_cut.py` also drops loose specks
+    (< 8 px) from face_joke.png.
+  - Blue Fire Eyes (`fire_eyes.js`, loaded after hd/wear_face_back.js; WEAR entry in wear.js, face slot, `blank: true`,
+    Shop WEAR 200 Balb Coins, price picked by Claude; shop_prices row tracked, re-run schema.sql): the face is wiped
+    (`blankFace(skin)`, `blankFaceOn(c)`: no brows, eyes, mouth, no talking mouth or angry face; standing, walking,
+    sitting (rest.js), swimming (gates.js)) and two glowing blue eyes the size of the normal ones (`FE_EYES` boxes in
+    3 px cells, `FE_CELL`) burn with blue flames (3 swaying, flickering tongues per eye, tips bending back, embers,
+    dark pixel outline, soft glow). 6 frames x 90 ms: `ANIM_N` (wear.js, id -> [ms, frames]) is read by `wearArt`.
+    The /facejoke face wins over it while it shows (drawWorn skips a blank face item when `c.joke`).
+  - GAME_BUILD '2026-10-26 e'.
+
+- Oct 26 2026 (build f, owner):
+  - Two chat faces now (`chatCommand`, social.js; never sent, not in the chat list): `/facejoke` = 'wacky' (the
+    original doodle `jokePaint`, back in render.js: wink with laugh lines, wide eye under a raised brow, hooked nose,
+    lopsided grin with the tongue out) and `/troll` = 'troll' (the owner's own drawing, face_joke.png). `P.jokeKind`,
+    `jokeOn()` returns the kind or false, `jokeFace(skin, kind)`, `c.joke` = kind; position message `jk` 1 wacky /
+    2 troll. The name "/troll" is only the command; the picture stays the owner's own drawing.
+  - Blue Fire Eyes redrawn in the style of the owner's reference (a fire-eyes picture he showed): each eye is a blob of
+    fire with no dark outline, white-hot core, light ring, blue ring, a crown of short jagged tips with indigo tips
+    (the reference's red-on-orange, in blue), hand-drawn cell maps `FE_MAPS` (near eye 9 x 9 cells at (36, 46), far
+    eye 6 x 9 at (82, 46), `FE_CELL` 4 px), 3 flame shapes played 0-1-2-1 (`FE_ORDER`, 110 ms, the eyes out of step),
+    core cells flicker, a spark floats off now and then; soft glow behind. ANIM_N 8 frames.
+  - GAME_BUILD '2026-10-26 f'.
+
+- Oct 26 2026 (build g, owner: flames a little higher): Blue Fire Eyes' tallest tips are one cell (4 px) taller (a loop
+  after FE_MAPS copies each frame's top row up one cell and turns the old tip cells into flame; the eyes themselves
+  stay where they were). GAME_BUILD '2026-10-26 g'.
+
+- Oct 26 2026 (build h, owner): Red Fire Eyes (`red_fire_eyes`, face slot, `blank`, Shop WEAR 200 Balb Coins like the
+  blue ones; shop_prices row, re-run schema.sql): the same FE_MAPS drawing in the reference's own colours
+  (`FE_COL_RED`: white-hot, yellow, orange, red tips) with a warm glow (`FE_GLOW.red`); `paintFireEye(x, m, f, k,
+  col, glow)`. GAME_BUILD '2026-10-26 h'.
+
+- Oct 26 2026 (build i, owner):
+  - Faceless Head (`faceless_head`, HAIR slot, `blank: true`, Shop WEAR 20,000 gold, price picked by Claude;
+    shop_prices row, re-run schema.sql): the bald head with no brows / eyes / mouth (`blankFaceOn(c)` now looks at the
+    hair item, then the face item). No art; its icon is the peach head with the face wiped (`wearIcon` wrapped at the
+    end of fire_eyes.js, cached once the image is loaded).
+  - Blue / Red Fire Eyes are ONLY the eyes now (no `blank`); wear them with the Faceless Head for the blank look.
+    Icons are just the fire (iconBox [34, 128, 76, 76]).
+  - Face items always stay on top: `drawWorn` draws the face item over a /facejoke or /troll face too (the joke
+    face's nose / mouth show, the worn eyes / glasses overlap it).
+  - GAME_BUILD '2026-10-26 i'.
+
+- Oct 26 2026 (build j, owner: "angle diaper at pacifier na kulay blue, short yung diaper"; read as a baby diaper):
+  - Blue Diaper (`blue_diaper`, pants slot, Shop WEAR 5,000 gold): `short: 176` on a WEAR pants entry = below that body
+    row the jeans' legs become bare legs in the player's own skin colour (`legSkin(key)` reads the skin from the
+    outfitBody key, FACE_COLOR; jeans' light / shade kept), so it is short; swimming uses `SWIM_BANDS.shortX` (92:
+    left of it = legs). pat 'diaper': light waistband (y < 145) and leg cuffs (last 3 rows), soft middle line.
+  - Blue Pacifier (`blue_pacifier`, face slot, Shop WEAR 5,000 gold; `baby.js`, after fire_eyes.js): `PACIFIER` cell
+    map (2 px cells, top-left (68, 84)) over the mouth: blue shield with shine and outline, white ring handle forward.
+  - Prices picked by Claude; shop_prices rows (re-run schema.sql). GAME_BUILD '2026-10-26 j'.
+
+- Oct 26 2026 (build k, owner):
+  - New wear slot MASK (`WEAR_SLOTS` ... 'face', 'mask', 'hair' ...; `SLOT_NAME.mask`): for things that change the head
+    itself, so hair / hats / face items still show. Faceless Head moved there (`slot: 'mask'`); `blankFaceOn` checks
+    mask, hair, face. `setWorn` (worlds.js) now puts a saved item into the slot it belongs to today (old saves had the
+    Faceless Head under hair); if that slot is taken it goes back into the bag. The Wearing column and the Mannequin
+    get the Mask box automatically (EQ_SLOTS).
+  - Golden Diaper (pat 'gold': diagonal shine bands, bright waistband / cuffs; Shop WEAR 50,000 gold) and Diamond
+    Diaper (pat 'diamond': triangle facets in 3 icy tones with white glints; Shop WEAR 100 Balb Coins; little blue
+    four-point sparkles twinkle round the hips: `drawCharacter` wrapped in baby.js, also when swimming). Both `short:
+    176` like the Blue Diaper (bare legs). The owner pointed at the wiki pages of these items: only the idea (gold /
+    diamond pants-slot diaper, blue sparkles) was used; the pictures are our own pixel patterns. Prices picked by Claude;
+    shop_prices rows (re-run schema.sql).
+  - Blue Pacifier redrawn to the owner's reference picture: small flat teal pacifier, no outline, darker middle, two
+    light glints, nub forward, soft shadow (`PACIFIER` map at (62, 88), 2 px cells).
+  - GAME_BUILD '2026-10-26 k'.
+
+- Oct 26 2026 (build l, owner: "the diaper still looks like shorts"): diapers are a SHAPE now, like his reference
+  pictures (a wide puffy crescent): `diaper: true` on the WEAR entry (replaces `short`). outfitBody measures the
+  jeans' width per row (`jeansSpans`) and `diaperIn(spans, x, y)` keeps the jeans full width over the hips down to
+  `DIAPER_BODY` (156), then curves in (u^2) to `DIAPER_CROTCH` (0.42) of the width at `DIAPER_BOTTOM` (178): 3 light
+  puffy front, 2 inside, 1 darker edge (x 0.6), 0 bare leg (skin, smooth shade). Diaper shading is smoothed so the
+  jeans' seams don't show; dark seam / leg-gap pixels inside the shape are painted over. Swimming still uses
+  `SWIM_BANDS.shortX`. Patterns: gold = plain gold + square glints, diamond = 8 px triangle facets (white / ice /
+  light blue), blue = plain. GAME_BUILD '2026-10-26 l'.
+
+- Oct 26 2026 (build m, owner: "pangit, alisin muna"): Blue / Golden / Diamond Diaper TAKEN OUT of the game (WEAR
+  entries, Shop, shop_prices rows, the diamond sparkle wrapper in baby.js). A save that still has one: `setWorn`
+  skips it, `cleanInv` drops it from the bag. outfitBody still supports `diaper: true` pants (jeansSpans /
+  diaperIn) and the 'gold' / 'diamond' / 'diaper' pixel patterns, unused for now. The Blue Pacifier stays.
+  Re-run schema.sql (its shop_prices delete removes the diaper rows). GAME_BUILD '2026-10-26 m'.
+
+- Oct 26 2026 (build n, owner): NEW DEFAULT LOOK. The body pictures still have blue jeans and white shoes, but
+  `outfitBody` now repaints them when nothing is worn there: no pants = WHITE BRIEFS + bare legs (`briefsIn`: full
+  width over the hips to `BRIEF_TOP` 156, curving in to `BRIEF_CROTCH` 0.3 at `BRIEF_BOTTOM` 174, grey edge; the jeans'
+  dark seams inside painted over; legs in the player's skin with the jeans' light/shade, `legSkin(key)`), no shoes =
+  BLACK FLIP-FLOPS (`shoeCols` + `flipFlop`: dark sole on each foot's bottom rows with a lit edge, a thong strap across
+  the top middle, bare foot elsewhere). Poses via `bands.pose`: standing / walking / punching (BODY_BANDS), 'sit'
+  (SIT_BANDS: briefs patch at the top middle, shoes = soles towards you), 'swim' (SWIM_BANDS: briefs right of
+  shortX). So outfitBody now ALWAYS repaints (cached per frame + outfit) unless the shirt is empty and both pants and
+  feet are `keep` items.
+  - The old default clothes are recipe wearables with `keep: true` (the picture's own jeans / shoes, no repaint):
+    Blue Jeans (`blue_jeans`) = Blue Block + Wood Block, White Sneakers (`white_sneakers`) = Dirt + White Block
+    (Balbtopia recipes, 240 s trees; farming.json + SPLICE). Every other pants / feet item recolours as before.
+  - The diaper code (jeansSpans is kept for the briefs) and its gold / diamond / diaper patterns are gone.
+  - Existing players now show the new default look too (they own no Blue Jeans yet).
+  - GAME_BUILD '2026-10-26 n'.
+
+- Oct 26 2026 (build o, owner: "use my picture itself, just animate it"): the STANDING FRAMES of every skin are now the
+  owner's own picture (`art-source/character/base_owner.png`: white tank top, white briefs, bare legs, black
+  flip-flops), cut by `base_cut.py` -> `<skin>/idle_open|half|closed.png`, `punch_body.png`,
+  `walk_stride_00..11.png` (the old jeans frames are kept in `art-source/character/old_frames/`). Fit: its head onto
+  our head (x 2-116, rows 2-108), the body below to the feet at row 213 (lines up with the old frames, so hats / hair /
+  face items / talking / arm cut-outs still fit). Walk: legs sheared from the hips (LEG_TOP 170), 8 px stride, the
+  forward foot lifts 3 px, body bob = old WALK_BOB.stride / 2, arms swing 3 px the other way; thin gaps the cuts open
+  are filled. Blinks = eyelids drawn over the open eyes. Punch body = idle minus the front arm. Skins recoloured like
+  sit / swim. The walk_step_* files are still the old ones (unused: everyone walks with strides).
+  - Clothes on the standing frames go by MASKS (`assets/character/mask_idle|punch|walk_00..11.png`: R legs + briefs,
+    G feet): `bodyMask(key, im)` picks the mask from the outfitBody key (walk_<skin>_<n>, punch_..., else idle),
+    `outfitMasked` paints pants over legs + briefs and shoes over the feet (outlines kept), shading measured against
+    the skin (`legSkin`) or the white briefs so every skin gets the same colour; shirts as before. With nothing worn
+    the frame is drawn as it is. Sitting / swimming still use the old pictures with the briefs / flip-flop repaint
+    (`bands.pose`).
+  - Blue Jeans / White Sneakers are ordinary recolouring items now (no `keep`).
+  - GAME_BUILD '2026-10-26 o'.

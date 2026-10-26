@@ -479,6 +479,8 @@ const Net = (() => {
           r.punch = { t: 0, x: payload.x, y: payload.y };
           r.place = null;
           r.angry = ANGRY_TIME;
+          // a Red Visor / Laser Eyes punch nearby: hear the laser (quieter than your own)
+          if (laserFace(r.equipped) && Math.hypot(r.tx - P.x, r.ty - P.y) < TS * 12) Sfx.play('laser', 0.55);
         }
       })
       .on('broadcast', { event: 'hit' }, ({ payload }) => {
@@ -697,6 +699,7 @@ const Net = (() => {
       hurt: p.hu ? 0.3 : 0,
       rest: restFromNet(p.rs),
       typing: !!p.ty,
+      joke: p.jk === 1 ? 'wacky' : p.jk === 2 ? 'troll' : false,
       seen: now,
     });
     if (!r.walking) r.walkPh = 0;
@@ -728,6 +731,7 @@ const Net = (() => {
       hu: P.hurt > 0 || P.hitT > 0 ? 1 : 0,
       rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
       ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)
+      jk: { wacky: 1, troll: 2 }[jokeOn()] || undefined, // /facejoke or /troll face (render.js)
     };
     const j = JSON.stringify(p);
     if (!force && j === lastPos && now - beatT < 1500) return;

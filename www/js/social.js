@@ -826,7 +826,7 @@ let chatBusy = false;
 async function sendChat(raw) {
   const text = String(raw || '').trim().slice(0, CHAT_MAX);
   if (!text || chatBusy) return false;
-  if (text[0] === '/') return chatCommand(text); // /pull, /kick, /ban: never sent as chat
+  if (text[0] === '/') return chatCommand(text); // /pull, /kick, /ban, /facejoke, /troll: never sent as chat
   if (chatWait()) return toast('Too fast! Wait ' + chatWait() + 's before chatting again'), false;
   const t = Date.now();
   chatTimes = chatTimes.filter((s) => t - s < CHAT_WINDOW * 1000);
@@ -871,8 +871,14 @@ function chatCommand(text) {
   const [cmd0, ...rest] = text.slice(1).trim().split(/\s+/),
     cmd = lc(cmd0 || ''),
     arg = rest.join(' ');
+  // /facejoke and /troll: a face for a few seconds (render.js jokeFace); anyone, anywhere, not in the chat list
+  if (cmd === 'facejoke' || cmd === 'troll') {
+    P.jokeKind = cmd === 'troll' ? 'troll' : 'wacky';
+    P.jokeUntil = now + JOKE_MS;
+    return true;
+  }
   if (!CHAT_CMDS[cmd]) {
-    toast((cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') + 'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', '));
+    toast((cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') + 'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll');
     return false;
   }
   if (!arg) return toast('Type /' + cmd + ' and the player\'s name (' + CHAT_CMDS[cmd] + ')'), false;

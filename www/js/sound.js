@@ -6,9 +6,9 @@
 // Menu -> Settings -> Sound turns them off (settings.sound).
 // ===== sound =====
 const Sfx = (() => {
-  const NAMES = ['punch', 'break', 'jump', 'pickup', 'door', 'rain', 'ouch', 'fire', 'fireplace', 'portcullis', 'water'],
+  const NAMES = ['punch', 'break', 'jump', 'pickup', 'door', 'rain', 'ouch', 'fire', 'fireplace', 'portcullis', 'water', 'laser', 'swim'],
     // ouch / fire files are normalised so that with these volumes they are as loud as break / jump / door
-    VOL = { punch: 0.55, break: 0.7, jump: 0.45, pickup: 0.6, door: 0.75, ouch: 0.5, fire: 0.6, portcullis: 0.7, water: 0.7 },
+    VOL = { punch: 0.55, break: 0.7, jump: 0.45, pickup: 0.6, door: 0.75, ouch: 0.5, fire: 0.6, portcullis: 0.7, water: 0.7, laser: 0.6, swim: 1 },
     GAP = 45; // ms: the same sound never starts twice closer than this (picking up a pile, holding the punch)
   let ctx = null;
   const bufs = {},

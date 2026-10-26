@@ -32,7 +32,7 @@ function sitWithHead(skinName, fr) {
 }
 const SIT_PAD = 40,
   SIT_SEAT_ROW = 183,
-  SIT_BANDS = { shirt: [100, 139], pants: [140, 200], feet: 145 };
+  SIT_BANDS = { shirt: [100, 139], pants: [140, 200], feet: 145, pose: 'sit' };
 // the sitting picture in a skin tone: skin pixels scaled from the picture's (porcelain) skin to that tone
 const SITS = {};
 function sitBody(skinName) {
@@ -189,7 +189,9 @@ function drawResting(c, ox, oy) {
     drawBehind(c, top, sc, 0);
     if (body) g.drawImage(body, (-FR.w / 2 - SIT_PAD) * k, top, body.width * k, body.height * k);
     // the head on the sitting picture is the standing head, so the angry face fits it the same way
-    if (angry) g.drawImage(angryFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    else if (angry) g.drawImage(angryFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
     else drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
     drawWorn(c, top, sc, 0);
     drawAuraFront(c, top, sc, 0);

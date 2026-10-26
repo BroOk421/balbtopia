@@ -160,6 +160,7 @@ const SHOP = [
   { id: 'snow_weather_machine', gold: 10000, cat: 'world' },
   { id: 'sunny_weather_machine', gold: 10000, cat: 'world' },
   { id: 'rain_weather_machine', gold: 10000, cat: 'world' },
+  { id: 'desert_weather_machine', gold: 10000, cat: 'world' },
   { id: 'clear_world', gold: 10000, cat: 'world' },
   { id: 'vending_machine', gold: 5000, cat: 'world' },
   // (Display Box / Mannequin: no longer sold, they grow from recipes now: display.js; owner Oct 25 2026)
@@ -186,6 +187,10 @@ const SHOP = [
   { id: 'dragon_wings', gold: 20000, cat: 'wear' },
   { id: 'leaf_wings', gold: 20000, cat: 'wear' },
   { id: 'galaxy_wings', gold: 20000, cat: 'wear' },
+  { id: 'blue_fire_eyes', bc: 200, cat: 'wear' }, // fire_eyes.js (Oct 26 2026; price picked by Claude)
+  { id: 'red_fire_eyes', bc: 200, cat: 'wear' }, // same price as the blue ones
+  { id: 'faceless_head', gold: 20000, cat: 'wear' }, // price picked by Claude
+  { id: 'blue_pacifier', gold: 5000, cat: 'wear' }, // price picked by Claude
 ];
 
 // ---------- art ----------

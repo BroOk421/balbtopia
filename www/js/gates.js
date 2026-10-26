@@ -175,3 +175,65 @@ function drawWater(ox, oy, T) {
       g.fillRect(px + T * s, py + T * 0.55, T * 0.18, Z);
     }
 }
+
+// ---------- swimming pose (owner, Oct 26 2026) ----------
+// In water the body lies flat and paddles: the owner's 8 swimming frames (assets/character/<skin>/swim_0N.png, one set
+// per skin, cut by art-source/character/swim_cut.py). Shirts / pants / shoes are repainted like the standing frames
+// (SWIM_BANDS: rows, and columns because the body lies sideways); face items, hair and hats move with the head
+// (SWIM_HEAD: where the standing head's eyes are on each frame, in frame px). Back items, auras and picture
+// shirts aren't drawn while swimming. Punching / placing uses the normal standing pose for that moment.
+const SWIM_W = 218,
+  SWIM_H = 171,
+  SWIM_FRAMES = 8;
+const SWIM_HEAD = [
+  [92, 0],
+  [92, 0],
+  [93, 1],
+  [94, 0],
+  [93, 0],
+  [92, -2],
+  [93, -1],
+  [93, -1],
+];
+const SWIM_BANDS = { shirt: [88, 171], shirtX: 75, pants: [90, 171], feet: 0, feetX: 70, shortX: 92, pose: 'swim' };
+function swimPose(c) {
+  if (c.dead || c.rest || c.portrait || c.punch || c.place) return false;
+  const im = IMG['swim_' + c.skin + '_0'];
+  return !!(im && im.width) && inWater(c);
+}
+function drawSwimming(c, ox, oy) {
+  const sc = CHAR_H / FR.h,
+    moving = c.walking || !c.ground,
+    f = Math.floor((now + (c.blink || 0)) / (moving ? 90 : 150)) % SWIM_FRAMES,
+    im = IMG['swim_' + c.skin + '_' + f],
+    W = SWIM_W * sc * Z,
+    H = SWIM_H * sc * Z;
+  const cx = Math.round(ox + (c.x + c.w / 2) * Z),
+    cy = oy + (c.y + c.h * 0.55) * Z,
+    top = Math.round(cy - H / 2 + Math.sin(now / 260) * 0.6 * Z); // bobbing a little in the water
+  const [hx, hy] = SWIM_HEAD[f],
+    headDx = (hx - SWIM_W / 2 + FR.w / 2) * sc * Z; // the head's shift from where it sits when standing
+  const eq = c.equipped || {};
+  g.save();
+  g.translate(cx, 0);
+  g.scale(c.face, 1);
+  if (c.hurt > 0 && Math.floor(now / 80) % 2) g.globalAlpha = 0.55;
+  if (c.spawnT > 0) g.globalAlpha *= 1 - c.spawnT / SPAWN_FADE;
+  g.imageSmoothingEnabled = true;
+  g.drawImage(outfitBody(im, 'swim_' + c.skin + '_' + f, eq, SWIM_BANDS), -W / 2, top, W, H);
+  // /facejoke: the same face drawing, moved onto the swimming head
+  if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), -(FR.w * sc * Z) / 2 + headDx, top + hy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), -(FR.w * sc * Z) / 2 + headDx, top + hy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  // hats, hair and face items on the head (a picture shirt like the hoodie lies upright, so not while swimming)
+  const c2 = Object.create(c);
+  c2.equipped = { ...eq, shirt: null };
+  g.translate(headDx, 0);
+  drawWorn(c2, top + hy * sc * Z, sc, 0);
+  g.restore();
+  g.imageSmoothingEnabled = false;
+  const tagX = cx + c.face * headDx,
+    headTop = top + (NAME_TOP + hy) * sc * Z;
+  const tagW = drawNameTag(c.name, tagX, headTop - 4 * Z, c.flag);
+  if (c.say) drawBubble(c.say.text, tagX, headTop - 11 * Z, Math.min(1, c.say.t * 2));
+  return { cx: tagX, headTop, tagW, bald: top + (4 + hy) * sc * Z };
+}

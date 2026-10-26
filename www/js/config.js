@@ -228,6 +228,8 @@ const TREE_FRUIT = [1, 4]; // blocks a ripe tree gives (min, max)
 // built-in recipes; data/farming.json replaces them when the game is served (npm run serve, the app, GitHub Pages)
 // (the same list as data/farming.json; Growtopia recipes first, then Balbtopia's own)
 const SPLICE = {
+  "blue_block+wood_block": "blue_jeans", // the old default clothes (Oct 26 2026)
+  "dirt+white_block": "white_sneakers",
   "dirt+rock": "grass",
   "cave+dirt": "door",
   "cave+rock": "sign",

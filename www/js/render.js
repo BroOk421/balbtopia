@@ -76,7 +76,8 @@ function drawBg() {
     top = bottom - h;
   // a Weather Machine in the world: its own sky and the same pictures recoloured (weather.js)
   const wx = currentWeather(),
-    snow = !!wx;
+    desert = wx === 'desert', // the desert swaps the hills for its own pictures (weather.js DESERT_LAY)
+    snow = !!wx && !desert;
   g.fillStyle = 'rgb(78,44,169)';
   if (snow) drawWeatherSky(wx, top, h);
   else if (IMG.bg_sky && IMG.bg_sky.width && top > 0) {
@@ -88,8 +89,10 @@ function drawBg() {
   for (const [k, f] of LAY) {
     if (snow && (k === 'bg_sky' || (k === 'bg_sun' && (wx === 'snow' || wx === 'rain')))) continue;
     // (the sun's glow fades out before the edges of its picture, so no box shows round it)
-    const im = snow ? weatherLayer(wx, k) : k === 'bg_sun' ? softEdges(IMG[k]) : IMG[k];
-    if (!im) continue;
+    const key = desert && k in DESERT_LAY ? DESERT_LAY[k] : k;
+    if (!key) continue;
+    const im = snow ? weatherLayer(wx, k) : key === 'bg_sun' ? softEdges(IMG[key]) : IMG[key];
+    if (!im || !im.width) continue;
     if (f === 0) {
       g.drawImage(im, 0, top, cv.width, h);
       continue;
@@ -103,7 +106,7 @@ function drawBg() {
     for (let i = start; i < start + Math.ceil(cv.width / w) + 2; i++) {
       const x = off + i * w;
       if (x > cv.width || x + w < 0) continue;
-      g.drawImage(((i % 2) + 2) % 2 ? (snow ? weatherFlipped(wx, k) : flipped(k)) : im, Math.floor(x), top, Math.ceil(w) + 1, h);
+      g.drawImage(((i % 2) + 2) % 2 ? (snow ? weatherFlipped(wx, k) : flipped(key)) : im, Math.floor(x), top, Math.ceil(w) + 1, h);
     }
   }
   g.imageSmoothingEnabled = false;
@@ -198,6 +201,144 @@ function angryFace(skin) {
   x.fillRect(80, 93, 4, 4);
   return (ANGRY[skin] = c);
 }
+// ---------- /facejoke and /troll (owner, Oct 26 2026) ----------
+// Typed in the chat (never shown as chat), each pulls a face for JOKE_MS, drawn over the face only (the skin under it
+// is filled in the player's own colour first, so every skin works):
+//   /facejoke -> 'wacky': an original doodle (wink with laugh lines, wide eye under a raised brow, tongue out)
+//   /troll    -> 'troll': the owner's own face drawing (assets/character/face_joke.png, cut by
+//                art-source/character/face_joke_cut.py: brows, eyes, nostrils, big grin)
+// Others see it (`jk` in the position message: 1 wacky, 2 troll). It wins over the angry face and the talking mouth.
+const JOKE_MS = 5000;
+const jokeOn = () => ((P.jokeUntil || 0) > now ? P.jokeKind || 'troll' : false);
+// a face with nothing on it (Blue Fire Eyes: `blank` face items): the brows, eyes and mouth painted over in the skin
+// colour, inside the head (the head's outline and the ear stay)
+const BLANKS = {};
+function blankFace(skin) {
+  if (BLANKS[skin]) return BLANKS[skin];
+  const c = document.createElement('canvas');
+  c.width = FR.w;
+  c.height = FR.h;
+  coverFace(c.getContext('2d'), skin);
+  return (BLANKS[skin] = c);
+}
+// paints the skin colour over everything of the face (brows, eyes, mouth) with room to spare, so no bit of the
+// old face peeks out on any frame (the walking frames move the head a pixel or two); stays inside the head's
+// outline (x 107+ on the right, the chin from row 96) and leaves the ear and cheek shade on the left alone
+function coverFace(x, skin) {
+  x.fillStyle = (FACE_COLOR[skin] || FACE_COLOR.tan)[0];
+  x.fillRect(34, 38, 72, 58);
+  x.fillRect(37, 96, 64, 4);
+}
+// a `blank` item worn (Faceless Head, hair slot) wipes the face
+const blankFaceOn = (c) => {
+  const eq = c.equipped || {};
+  return [eq.mask, eq.hair, eq.face].some((id) => WEAR_BY_ID[id] && WEAR_BY_ID[id].blank);
+};
+// the /facejoke face (an original doodle): a wink with laugh lines, one wide eye under a raised brow, a hooked nose, a lopsided grin with the tongue out
+function jokePaint(x, face, ink, mouth) {
+  // clear the calm face (brows, eyes, mouth) inside the head
+  x.fillStyle = face;
+  x.beginPath();
+  x.ellipse(74, 72, 35, 33, 0, 0, Math.PI * 2);
+  x.fill();
+  x.lineCap = 'round';
+  x.lineJoin = 'round';
+  const line = (w, col, f) => {
+    x.strokeStyle = col;
+    x.lineWidth = w;
+    x.beginPath();
+    f();
+    x.stroke();
+  };
+  // left eye: squeezed shut in a wink (a "^"), with two laugh lines at its outer corner
+  line(4.5, ink, () => {
+    x.moveTo(44, 70);
+    x.quadraticCurveTo(55, 56, 67, 69);
+  });
+  line(3, ink, () => {
+    x.moveTo(42, 63);
+    x.lineTo(36, 60);
+    x.moveTo(42, 74);
+    x.lineTo(36, 77);
+  });
+  // its brow pulled down a little
+  line(4, ink, () => {
+    x.moveTo(45, 52);
+    x.quadraticCurveTo(56, 49, 66, 55);
+  });
+  // right eye: wide open, the pupil glancing back at you (to the left)
+  x.fillStyle = '#ffffff';
+  x.beginPath();
+  x.ellipse(93, 68, 9.5, 11.5, 0, 0, Math.PI * 2);
+  x.fill();
+  line(3.5, ink, () => x.ellipse(93, 68, 9.5, 11.5, 0, 0, Math.PI * 2));
+  x.fillStyle = ink;
+  x.beginPath();
+  x.ellipse(88.5, 70, 4.2, 5.2, 0, 0, Math.PI * 2);
+  x.fill();
+  x.fillStyle = '#ffffff';
+  x.fillRect(87, 67, 2, 2);
+  // high arched brow over it
+  line(4, ink, () => {
+    x.moveTo(82, 49);
+    x.quadraticCurveTo(93, 39, 105, 47);
+  });
+  // nose: a little hook
+  line(3, ink, () => {
+    x.moveTo(78, 74);
+    x.quadraticCurveTo(84, 82, 77, 85);
+  });
+  // lopsided grin, higher on the right, open a crack, the tongue out on the right
+  x.fillStyle = '#3a1410';
+  x.beginPath();
+  x.moveTo(56, 92);
+  x.quadraticCurveTo(76, 101, 101, 85);
+  x.quadraticCurveTo(80, 96, 56, 92);
+  x.fill();
+  x.fillStyle = '#e8546a';
+  x.beginPath();
+  x.ellipse(90, 95, 6, 5.5, -0.5, 0, Math.PI * 2);
+  x.fill();
+  line(2.5, ink, () => x.ellipse(90, 95, 6, 5.5, -0.5, 0.15, Math.PI - 0.3));
+  line(1.6, '#b02c44', () => {
+    x.moveTo(88, 93);
+    x.lineTo(91, 98);
+  });
+  line(3.5, ink, () => {
+    x.moveTo(56, 92);
+    x.quadraticCurveTo(77, 102, 101, 85);
+  });
+  // dimple at the high corner, a smile crease at the low one
+  line(2.5, ink, () => {
+    x.moveTo(104, 81);
+    x.quadraticCurveTo(106, 85, 103, 89);
+    x.moveTo(53, 88);
+    x.quadraticCurveTo(51, 92, 54, 95);
+  });
+  // a rosy cheek under the wink
+  x.fillStyle = 'rgba(240,90,90,.35)';
+  x.beginPath();
+  x.ellipse(52, 82, 7, 3.5, 0, 0, Math.PI * 2);
+  x.fill();
+}
+const JOKES = {};
+function jokeFace(skin, kind) {
+  const key = skin + ':' + kind;
+  if (JOKES[key]) return JOKES[key];
+  const art = IMG.face_joke;
+  if (kind !== 'wacky' && (!art || !art.width)) return angryFace(skin); // not loaded yet
+  const c = document.createElement('canvas');
+  c.width = FR.w;
+  c.height = FR.h;
+  const x = c.getContext('2d');
+  // hide the calm brows, eyes and mouth (inside the head, above the chin's outline), then the drawing
+  coverFace(x, skin);
+  if (kind === 'wacky') {
+    const [face, ink, mouth] = FACE_COLOR[skin] || FACE_COLOR.tan;
+    jokePaint(x, face, ink, mouth);
+  } else x.drawImage(art, 0, 0);
+  return (JOKES[key] = c);
+}
 // dead and weak: eyes shut (the closed frame), worried brows, a wobbly mouth and a drop of sweat
 const WEAK = {};
 function weakFace(skin) {
@@ -278,6 +419,7 @@ function wingSprite() {
 // face items, hair and hats on a body drawn at (0, top) facing right, after the transform is set
 function drawWorn(c, top, sc, dy = 0) {
   const eq = c.equipped || {};
+  // face items (glasses, fire eyes...) always stay on top, also over a /facejoke or /troll face
   if (eq.face) drawWearArt(eq.face, top, sc, dy);
   const hid = eq.hair;
   if (hid && ITEMS[hid]) {
@@ -363,6 +505,7 @@ function drawDead(c, ox, oy) {
 function drawCharacter(c, ox, oy) {
   if (c.dead) return drawDead(c, ox, oy);
   if (c.rest) return drawResting(c, ox, oy); // sitting or sleeping (rest.js)
+  if (swimPose(c)) return drawSwimming(c, ox, oy); // lying flat and paddling in water (gates.js)
   const style = 'stride'; // everyone walks with strides, also players on an older build that still send 'step'
   const angry = c.angry > 0;
   // no blinking while angry: the eyes stay open under the angry lids
@@ -402,7 +545,9 @@ function drawCharacter(c, ox, oy) {
   const body = swinging ? noBackArm(c.skin) : im,
     frameKey = swinging ? 'noarm_' + c.skin : punching ? 'punch_' + c.skin : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
   g.drawImage(outfitBody(body, frameKey, eq), (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
-  if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else drawTalk(c, top, sc, dy, MOUTH_Y);
   drawWorn(c, top, sc, dy);
   drawAuraFront(c, top, sc, dy); // the aura's lightning, in front of everything else on the body
@@ -606,6 +751,7 @@ function render() {
   // weather (snow / rain) sits behind the world, over the backdrop only (weather.js)
   if (weatherNow === 'snow') drawSnow();
   else if (weatherNow === 'rain') drawRain();
+  else if (weatherNow === 'desert') drawSand();
   const sx = (Math.random() - 0.5) * shake,
     sy = (Math.random() - 0.5) * shake;
   const ox = Math.round(-cam.x * Z + sx),
@@ -760,6 +906,7 @@ function render() {
       place: P.place,
       say: P.say,
       rest: P.rest,
+      joke: jokeOn(), // /facejoke
     },
     ox,
     oy,

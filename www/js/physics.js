@@ -55,6 +55,13 @@ function step(dt) {
   if (P.healT > 0 && (P.healT -= dt) <= 0) P.hp = LAVA_HP;
   const dir = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
   const swim = inWater(P); // gates.js: in water you move slower, sink slowly and can always paddle up
+  // paddling sideways in water: the owner's swim sound about once a stroke
+  if (swim && dir) {
+    if ((P.swimSfx = (P.swimSfx || 0) - dt) <= 0) {
+      Sfx.play('swim', 0.8);
+      P.swimSfx = 0.85;
+    }
+  } else if (!swim) P.swimSfx = 0;
   const target = dir * 160 * feetSpeed() * (swim ? 0.6 : 1),
     acc = P.ground ? 14 : 8;
   // knocked back: you can't steer for a moment, you just slide out
@@ -86,7 +93,10 @@ function step(dt) {
   if (P.buf > 0 && (P.coyote > 0 || swim)) {
     P.vy = swim && P.coyote <= 0 ? -300 : -JUMP_V; // a swim stroke, or a normal jump off the ground
     P.rise = !swim;
-    Sfx.play('jump', swim && P.coyote <= 0 ? 0.6 : 1);
+    if (swim && P.coyote <= 0) {
+      Sfx.play('swim'); // a swim stroke up
+      P.swimSfx = 0.85;
+    } else Sfx.play('jump');
     P.buf = 0;
     P.coyote = 0;
     P.ground = false;

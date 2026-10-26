@@ -753,6 +753,12 @@
     },
     "question_door": {
       "growSeconds": 300
+    },
+    "blue_jeans": {
+      "growSeconds": 240
+    },
+    "white_sneakers": {
+      "growSeconds": 240
     }
   },
   "splices": [
@@ -2978,6 +2984,24 @@
       "result": "question_door",
       "source": "balbtopia",
       "note": "Question Door = Door + Steel Block (Balbtopia recipe, owner Oct 25 2026)"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "wood_block"
+      ],
+      "result": "blue_jeans",
+      "source": "balbtopia",
+      "note": "Blue Jeans = Blue Block + Wood Block"
+    },
+    {
+      "seeds": [
+        "dirt",
+        "white_block"
+      ],
+      "result": "white_sneakers",
+      "source": "balbtopia",
+      "note": "White Sneakers = Dirt + White Block"
     }
   ],
   "growtopiaNotInGameYet": [

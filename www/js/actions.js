@@ -34,7 +34,8 @@ function startPunch(wx, wy) {
   P.punch = { t: 0, x: wx, y: wy };
   P.angry = ANGRY_TIME; // punching and breaking make an angry face
   Net.sendPunch(wx, wy);
-  Sfx.play(heldTool(hand) ? 'break' : 'punch'); // swinging a tool (pickaxe, shovel...) sounds like breaking
+  // Red Visor / Laser Eyes: every punch is a laser (owner's laser sound); a tool swing sounds like breaking
+  Sfx.play(laserFace(equipped) ? 'laser' : heldTool(hand) ? 'break' : 'punch');
 }
 // placing (Growtopia style): the arm is out at once, the hand gives a little shake,
 // and the pose stays for PLACE_POSE seconds (or until you walk)

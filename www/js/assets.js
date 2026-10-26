@@ -337,3 +337,18 @@ const DATA = {
     h: 215,
   },
 };
+
+// Desert Machine backdrop (art-source/background/desert_cut.py): the owner's desert cut into layers, without its own
+// sky, sun, clouds and ground strip (the sunset's sky, sun and clouds show behind it)
+A.desert_far = 'assets/background/desert_far.webp';
+A.desert_big = 'assets/background/desert_big.webp';
+A.desert_front = 'assets/background/desert_front.webp';
+// swimming in water (art-source/character/swim_cut.py): 8 frames per skin, 218 x 171, head lined up per frame
+for (const s of ['porcelain', 'peach', 'tan', 'honey', 'brown', 'deep'])
+  for (let i = 0; i < 8; i++) A['swim_' + s + '_' + i] = 'assets/character/' + s + '/swim_0' + i + '.png';
+// the /facejoke face: the owner's drawing (art-source/character/face_joke_cut.py), laid over the face (render.js)
+A.face_joke = 'assets/character/face_joke.png';
+// the standing frames' masks for clothes (art-source/character/base_cut.py): R legs + briefs, G feet
+A.mask_idle = 'assets/character/mask_idle.png';
+A.mask_punch = 'assets/character/mask_punch.png';
+for (let i = 0; i < 12; i++) A['mask_walk_' + i] = 'assets/character/mask_walk_' + String(i).padStart(2, '0') + '.png';
