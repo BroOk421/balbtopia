@@ -588,9 +588,8 @@ begin
   -- a visitor: everything stays as saved except the floating drops and paid-for Vending Machine sales, and the
   -- tiles of Red / Blue Lock areas that let this player build (alock_area_only)
   outd := case when public.alock_grants(r.data, me) then public.alock_area_only(r.data, p_data, me) else r.data end;
-  if jsonb_typeof(p_data -> 'drops') = 'array' and jsonb_array_length(p_data -> 'drops') <= 400 then -- MAX_DROPS
-    outd := jsonb_set(outd, '{drops}', p_data -> 'drops');
-  end if;
+  -- (Oct 27 2026) not the visitor's whole list any more: visitor_drops keeps the saved drops they may not take
+  outd := jsonb_set(outd, '{drops}', public.visitor_drops(r.data -> 'drops', p_data -> 'drops', me));
   if jsonb_typeof(r.data -> 'vends') = 'array' and jsonb_typeof(p_data -> 'vends') = 'array' then
     for e in select * from jsonb_array_elements(r.data -> 'vends') loop
       ov := e -> 1;
@@ -2012,3 +2011,305 @@ begin
 end $$;
 revoke all on function public.lobby_send(text, uuid, jsonb) from public, anon;
 grant execute on function public.lobby_send(text, uuid, jsonb) to authenticated;
+
+-- =====================================================================================================
+-- SECURITY FIXES (Oct 27 2026, from the audit). Safe to run more than once.
+--   * visitor_drops: a visitor's save can't wipe or rewrite a locked world's floating drops any more
+--   * trade_settle: a trade's gold AND Shop-only items move on the server in one go, or nothing moves
+--   * mailbox_send / mailbox_claim: Shop-only items in a letter must really be owned, and move with it
+--   * my_owned: how many of a Shop-only item the server says you have (gifts check it)
+-- =====================================================================================================
+
+-- a drop in a world save: [uid, id, qty, x, y, born (ms), by (name or 0), ck?]
+create or replace function public.drop_ok(d jsonb)
+returns boolean language sql immutable as $$
+  select jsonb_typeof(d) = 'array' and jsonb_array_length(d) between 7 and 8
+    and jsonb_typeof(d -> 0) = 'string' and length(d ->> 0) between 1 and 40
+    and coalesce(d ->> 1, '') ~ '^[a-z0-9_]{1,40}$'
+    and jsonb_typeof(d -> 2) = 'number' and (d ->> 2)::numeric between 1 and 999999
+    and jsonb_typeof(d -> 3) = 'number' and jsonb_typeof(d -> 4) = 'number' and jsonb_typeof(d -> 5) = 'number'
+$$;
+-- A visitor (can't build in this locked world) saves the world: which floating drops are kept.
+--   * a saved drop the visitor's list no longer has (picked up) only goes if the visitor could take it:
+--     dropped by them, or older than the 15 s owner-only time (DROP_LOCK_MS); otherwise it stays
+--   * a saved drop that is still there keeps its SAVED item, amount and place (a visitor can't change it),
+--     except the visitor's own drops (more fell on their pile)
+--   * a new drop is always marked as the visitor's own (by = their name) and can't be dated in the past
+--   * at most 400 (MAX_DROPS), anything malformed is skipped
+create or replace function public.visitor_drops(p_old jsonb, p_new jsonb, p_me text)
+returns jsonb language plpgsql stable as $$
+declare
+  nowms numeric := floor(extract(epoch from clock_timestamp()) * 1000);
+  o jsonb; n jsonb; outl jsonb := '[]'::jsonb; seen text[] := '{}'; mine boolean;
+begin
+  if jsonb_typeof(p_old) is distinct from 'array' then p_old := '[]'; end if;
+  if jsonb_typeof(p_new) is distinct from 'array' then p_new := '[]'; end if;
+  for o in select * from jsonb_array_elements(p_old) loop
+    if jsonb_typeof(o) <> 'array' then continue; end if;
+    seen := seen || (o ->> 0);
+    select x into n from jsonb_array_elements(p_new) x where jsonb_typeof(x) = 'array' and x ->> 0 = o ->> 0 limit 1;
+    mine := jsonb_typeof(o -> 6) = 'string' and lower(o ->> 6) = lower(p_me);
+    if n is null then
+      -- taken: allowed only for a drop this visitor may pick up
+      if not (mine or nowms - public.jnum(o -> 5) >= 15000) then outl := outl || jsonb_build_array(o); end if;
+    elsif mine and public.drop_ok(n) then
+      outl := outl || jsonb_build_array(jsonb_set(n, '{6}', o -> 6));
+    else
+      outl := outl || jsonb_build_array(o);
+    end if;
+    n := null;
+  end loop;
+  for n in select * from jsonb_array_elements(p_new) loop
+    if jsonb_array_length(outl) >= 400 then exit; end if;
+    if not public.drop_ok(n) or (n ->> 0) = any (seen) then continue; end if;
+    seen := seen || (n ->> 0);
+    n := jsonb_set(n, '{6}', to_jsonb(p_me));
+    n := jsonb_set(n, '{5}', to_jsonb(least(public.jnum(n -> 5), nowms::bigint)));
+    outl := outl || jsonb_build_array(n);
+  end loop;
+  return outl;
+end $$;
+revoke execute on function public.visitor_drops(jsonb, jsonb, text) from public, anon, authenticated;
+
+-- ---------- trades: one server call settles both sides ----------
+-- Both games call trade_settle(other player, what I give, what I get) with the offers they both accepted
+-- ([{id, qty}], up to 6). Answers r = 'waiting', 'done' or 'failed' (+ why). The first call waits; the matching second call checks that both sides really have the
+-- gold (wallets) and Shop-only items (owned_items) and moves all of it in ONE transaction, or nothing. The first
+-- game keeps calling with the same offers until it hears 'done' (or 'failed'). Other items live in the saves and
+-- are moved by the games once the server says 'done'. Offers older than 2 minutes are dropped.
+create table if not exists public.trade_offers (
+  from_id uuid not null references auth.users (id) on delete cascade,
+  to_id uuid not null references auth.users (id) on delete cascade,
+  give jsonb not null,
+  get jsonb not null,
+  status text not null default 'waiting',
+  why text,
+  created_at timestamptz not null default now(),
+  primary key (from_id, to_id)
+);
+alter table public.trade_offers enable row level security;
+revoke all on public.trade_offers from anon, authenticated;
+-- [{id, qty}, ...] -> {"id": total, ...} (bad lists raise)
+create or replace function public.trade_norm(p jsonb)
+returns jsonb language plpgsql immutable as $$
+declare e jsonb; outo jsonb := '{}'::jsonb; q numeric;
+begin
+  if p is null or jsonb_typeof(p) = 'null' then return outo; end if;
+  if jsonb_typeof(p) <> 'array' or jsonb_array_length(p) > 6 then raise exception 'Bad trade offer'; end if;
+  for e in select * from jsonb_array_elements(p) loop
+    if jsonb_typeof(e) <> 'object' or coalesce(e ->> 'id', '') !~ '^[a-z0-9_]{1,40}$' or jsonb_typeof(e -> 'qty') <> 'number' then
+      raise exception 'Bad trade offer';
+    end if;
+    q := floor((e ->> 'qty')::numeric);
+    if q < 1 or q > 1000000000 then raise exception 'Bad trade offer'; end if;
+    outo := jsonb_set(outo, array[e ->> 'id'], to_jsonb(public.jnum(outo -> (e ->> 'id')) + q::bigint));
+  end loop;
+  return outo;
+end $$;
+-- can this player give this side of a trade? (null = yes, else the reason)
+create or replace function public.trade_lack(p_id uuid, p_give jsonb)
+returns text language plpgsql stable security definer set search_path = public as $$
+declare k text; q bigint; have bigint;
+begin
+  for k, q in select key, public.jnum(value) from jsonb_each(p_give) loop
+    if k = 'gold' then
+      select gold into have from public.wallets where id = p_id;
+      if coalesce(have, 0) < q then return 'Not enough gold for this trade'; end if;
+    elsif public.is_tracked(k) then
+      select qty into have from public.owned_items where player_id = p_id and item = k;
+      if coalesce(have, 0) < q then return 'Not enough ' || k || ' for this trade'; end if;
+    end if;
+    have := null;
+  end loop;
+  return null;
+end $$;
+-- move one side's gold / Shop-only items from a to b (checked before)
+create or replace function public.trade_move(a uuid, b uuid, p_give jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare k text; q bigint;
+begin
+  for k, q in select key, public.jnum(value) from jsonb_each(p_give) loop
+    if k = 'gold' then
+      update public.wallets set gold = gold - q where id = a;
+      update public.wallets set gold = gold + q where id = b;
+    elsif public.is_tracked(k) then
+      perform public.add_owned(a, k, -q);
+      perform public.add_owned(b, k, q);
+    end if;
+  end loop;
+end $$;
+revoke execute on function public.trade_lack(uuid, jsonb), public.trade_move(uuid, uuid, jsonb) from public, anon, authenticated;
+create or replace function public.trade_settle(p_with uuid, p_give jsonb, p_get jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare me uuid := auth.uid(); g jsonb; t jsonb; o public.trade_offers; mine public.trade_offers; v_why text; w public.wallets;
+begin
+  if me is null or public.is_banned() or p_with = me or not exists (select 1 from public.usernames where id = p_with) then
+    raise exception 'Can''t trade with that player';
+  end if;
+  g := public.trade_norm(p_give);
+  t := public.trade_norm(p_get);
+  delete from public.trade_offers where created_at < now() - interval '2 minutes';
+  -- already settled by the other side (we were waiting)?
+  select * into mine from public.trade_offers where from_id = me and to_id = p_with;
+  if found and mine.give = g and mine.get = t and mine.status <> 'waiting' then
+    delete from public.trade_offers where from_id = me and to_id = p_with;
+    if mine.status = 'failed' then return jsonb_build_object('r', 'failed', 'why', coalesce(mine.why, 'The trade didn''t go through')); end if;
+    select * into w from public.wallets where id = me;
+    return jsonb_build_object('r', 'done', 'gold', w.gold, 'held', w.held, 'bc', w.bc);
+  end if;
+  select * into o from public.trade_offers where from_id = p_with and to_id = me and status = 'waiting' for update;
+  if not found or o.give <> t or o.get <> g then
+    insert into public.trade_offers (from_id, to_id, give, get) values (me, p_with, g, t)
+    on conflict (from_id, to_id) do update set give = excluded.give, get = excluded.get, status = 'waiting', why = null, created_at = now();
+    return jsonb_build_object('r', 'waiting');
+  end if;
+  -- both agree: lock both wallets in id order, check both sides, move everything
+  insert into public.wallets (id) values (me), (p_with) on conflict do nothing;
+  perform 1 from public.wallets where id in (me, p_with) order by id for update;
+  perform 1 from public.owned_items where player_id in (me, p_with) order by player_id, item for update;
+  v_why := coalesce(public.trade_lack(me, g), public.trade_lack(p_with, t));
+  if v_why is not null and not public.is_gm() then
+    -- (returned, not raised: the other game has to see 'failed' when it asks again)
+    update public.trade_offers set status = 'failed', why = v_why where from_id = p_with and to_id = me;
+    return jsonb_build_object('r', 'failed', 'why', v_why);
+  end if;
+  perform public.trade_move(me, p_with, g);
+  perform public.trade_move(p_with, me, t);
+  update public.trade_offers set status = 'done' where from_id = p_with and to_id = me;
+  select * into w from public.wallets where id = me;
+  return jsonb_build_object('r', 'done', 'gold', w.gold, 'held', w.held, 'bc', w.bc);
+end $$;
+grant execute on function public.trade_settle(uuid, jsonb, jsonb) to authenticated;
+
+-- how many of a Shop-only item the server counts for the caller (-1: not a counted item)
+create or replace function public.my_owned(p_item text)
+returns bigint language sql stable security definer set search_path = public as $$
+  select case when not public.is_tracked(p_item) then -1
+    else coalesce((select qty from public.owned_items where player_id = auth.uid() and item = p_item), 0) end
+$$;
+grant execute on function public.my_owned(text) to authenticated;
+
+-- ---------- Mailbox: Shop-only items in a letter must be owned, and move with it ----------
+create or replace function public.mailbox_send(p_world text, p_tile integer, p_subject text, p_body text, p_items jsonb)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); w public.worlds; t integer; s text; b text; e jsonb; clean jsonb := '[]'::jsonb;
+  n integer; nid bigint; have bigint; gm boolean := public.is_gm();
+begin
+  if me is null or public.is_banned() then raise exception 'You can''t send mail' using errcode = '42501'; end if;
+  select * into w from public.worlds where name = p_world;
+  if not found then raise exception 'This world isn''t saved yet' using errcode = 'P0001'; end if;
+  if w.owner is null then raise exception 'Nobody gets mail here: the world isn''t locked' using errcode = 'P0001'; end if;
+  begin
+    t := get_byte(decode(w.data ->> 'fg', 'base64'), p_tile);
+  exception when others then t := -1;
+  end;
+  if t <> 208 then raise exception 'There is no Mailbox there' using errcode = 'P0001'; end if;
+  s := left(btrim(regexp_replace(coalesce(p_subject, ''), '[[:cntrl:]]', ' ', 'g')), 40);
+  b := left(btrim(coalesce(p_body, '')), 300);
+  if s = '' then raise exception 'Write a subject first' using errcode = 'P0001'; end if;
+  if jsonb_typeof(p_items) = 'array' then
+    if jsonb_array_length(p_items) > 5 then raise exception 'At most 5 items' using errcode = 'P0001'; end if;
+    for e in select * from jsonb_array_elements(p_items) loop
+      if jsonb_typeof(e) <> 'array' or coalesce(e ->> 0, '') !~ '^[a-z0-9_]{1,40}$'
+        or jsonb_typeof(e -> 1) <> 'number' or (e ->> 1)::numeric < 1 or (e ->> 1)::numeric > 200 then
+        raise exception 'Bad item' using errcode = 'P0001';
+      end if;
+      clean := clean || jsonb_build_array(jsonb_build_array(e ->> 0, floor((e ->> 1)::numeric)::integer));
+    end loop;
+  end if;
+  select count(*) into n from public.mailbox_letters where from_id = auth.uid() and created_at > now() - interval '5 seconds';
+  if n > 0 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
+  select count(*) into n from public.mailbox_letters where world = p_world and tile = p_tile;
+  if n >= 50 then raise exception 'This Mailbox is full' using errcode = 'P0001'; end if;
+  -- Shop-only items: out of the sender's server count (the letter holds them now)
+  for e in select * from jsonb_array_elements(clean) loop
+    if public.is_tracked(e ->> 0) and not gm then
+      select qty into have from public.owned_items where player_id = auth.uid() and item = e ->> 0 for update;
+      if coalesce(have, 0) < (e ->> 1)::bigint then raise exception 'You don''t have that many %', e ->> 0 using errcode = 'P0001'; end if;
+      perform public.add_owned(auth.uid(), e ->> 0, -((e ->> 1)::bigint));
+      have := null;
+    end if;
+  end loop;
+  insert into public.mailbox_letters (world, tile, from_id, from_name, subject, body, items)
+    values (p_world, p_tile, auth.uid(), me, s, b, clean) returning id into nid;
+  return nid;
+end $$;
+create or replace function public.mailbox_claim(p_id bigint)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare l public.mailbox_letters; e jsonb;
+begin
+  select * into l from public.mailbox_letters where id = p_id for update;
+  if not found then raise exception 'That letter is gone' using errcode = 'P0001'; end if;
+  if not public.mailbox_mine(l.world) then raise exception 'This mail isn''t yours' using errcode = '42501'; end if;
+  update public.mailbox_letters set items = '[]'::jsonb, is_read = true where id = p_id;
+  for e in select * from jsonb_array_elements(l.items) loop
+    if public.is_tracked(e ->> 0) then perform public.add_owned(auth.uid(), e ->> 0, (e ->> 1)::bigint); end if;
+  end loop;
+  return l.items;
+end $$;
+-- stop waiting for a trade (cancelled, or the other side never came): 'gone' = nothing will move any more,
+-- 'done' / 'failed' = the other side already settled it just before (the game then finishes / drops it)
+create or replace function public.trade_unsettle(p_with uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare mine public.trade_offers; w public.wallets;
+begin
+  if auth.uid() is null then raise exception 'Not signed in' using errcode = '42501'; end if;
+  delete from public.trade_offers where from_id = auth.uid() and to_id = p_with returning * into mine;
+  if not found or mine.status = 'waiting' then return jsonb_build_object('r', 'gone'); end if;
+  if mine.status = 'failed' then return jsonb_build_object('r', 'failed', 'why', mine.why); end if;
+  select * into w from public.wallets where id = auth.uid();
+  return jsonb_build_object('r', 'done', 'gold', w.gold, 'held', w.held, 'bc', w.bc);
+end $$;
+grant execute on function public.trade_unsettle(uuid) to authenticated;
+
+-- ---------- gifts of Shop-only items: held by the server on the way ----------
+-- gift_send takes them out of the sender's count (must really own them); the receiver's game gets them only through
+-- gift_take (the server says what and how many); a refused / lost gift goes back with gift_back. Whoever is first
+-- wins, so a gift is never both taken and given back.
+create table if not exists public.gift_escrow (
+  id bigint generated always as identity primary key,
+  from_id uuid not null references auth.users (id) on delete cascade,
+  to_id uuid not null references auth.users (id) on delete cascade,
+  item text not null,
+  qty bigint not null check (qty > 0),
+  created_at timestamptz not null default now()
+);
+alter table public.gift_escrow enable row level security;
+revoke all on public.gift_escrow from anon, authenticated;
+create or replace function public.gift_send(p_to uuid, p_item text, p_qty bigint)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare had bigint; nid bigint;
+begin
+  if auth.uid() is null or public.is_banned() or p_to = auth.uid() or not exists (select 1 from public.usernames where id = p_to) then
+    raise exception 'Can''t give that player items';
+  end if;
+  if not public.is_tracked(p_item) then return null; end if; -- an ordinary item: not held
+  if p_qty is null or p_qty < 1 or p_qty > 100000 then raise exception 'Bad amount'; end if;
+  if (select count(*) from public.gift_escrow where from_id = auth.uid() and created_at > now() - interval '10 seconds') >= 5 then
+    raise exception 'Too many gifts, wait a moment' using errcode = 'P0001';
+  end if;
+  select qty into had from public.owned_items where player_id = auth.uid() and item = p_item for update;
+  if coalesce(had, 0) < p_qty and not public.is_gm() then raise exception 'You don''t have that many' using errcode = 'P0001'; end if;
+  if not public.is_gm() then perform public.add_owned(auth.uid(), p_item, -p_qty); end if;
+  insert into public.gift_escrow (from_id, to_id, item, qty) values (auth.uid(), p_to, p_item, p_qty) returning id into nid;
+  return nid;
+end $$;
+create or replace function public.gift_take(p_id bigint)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare g public.gift_escrow;
+begin
+  delete from public.gift_escrow where id = p_id and to_id = auth.uid() returning * into g;
+  if not found then return null; end if;
+  perform public.add_owned(auth.uid(), g.item, g.qty);
+  return jsonb_build_object('item', g.item, 'qty', g.qty, 'from', g.from_id);
+end $$;
+create or replace function public.gift_back(p_id bigint)
+returns text language plpgsql security definer set search_path = public as $$
+declare g public.gift_escrow;
+begin
+  delete from public.gift_escrow where id = p_id and (to_id = auth.uid() or from_id = auth.uid()) returning * into g;
+  if not found then return 'gone'; end if; -- already taken (or never there)
+  perform public.add_owned(g.from_id, g.item, g.qty);
+  return 'back';
+end $$;
+grant execute on function public.gift_send(uuid, text, bigint), public.gift_take(bigint), public.gift_back(bigint) to authenticated;

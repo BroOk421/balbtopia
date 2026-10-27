@@ -748,7 +748,7 @@ const Net = (() => {
   // floating drops: everyone in the world sees the same ones
   N.sendDrop = (d) => {
     if (N.me)
-      send('drop', { u: d.uid, id: d.id, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined, k: d.ck || undefined });
+      send('drop', { s: N.me && N.me.id, u: d.uid, id: d.id, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined, k: d.ck || undefined });
   };
   N.sendMoved = () => {
     if (N.me) send('moved', {});

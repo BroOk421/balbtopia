@@ -38,8 +38,11 @@ Deno.serve(async (req) => {
   if (!/^[A-Za-z0-9]{3,16}$/.test(user)) return reply(400, { error: 'Username: 3 to 16 letters or numbers (no symbols)' });
   if (pass.length < 6) return reply(400, { error: 'Password needs at least 6 characters' });
 
-  // the caller's IP: the first address in x-forwarded-for (set by Supabase's gateway)
-  const ip = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',')[0].trim();
+  // the caller's IP. (Oct 27 2026, security) cf-connecting-ip first: Cloudflare (in front of Supabase) sets it and a
+  // player can't. The FIRST x-forwarded-for entry can be typed by the caller, so it is only the last resort; the last
+  // entry is the one the gateway itself added.
+  const xff = (req.headers.get('x-forwarded-for') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || xff[xff.length - 1] || '';
   if (!ip) return reply(400, { error: "Can't tell where you are connecting from" });
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false },

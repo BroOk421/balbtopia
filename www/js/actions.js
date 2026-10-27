@@ -65,6 +65,10 @@ function punchPlayer(r) {
 // another player punched you: fly back a bit (away from them) with a small hop
 function gotHit(p) {
   if (jammed(PUNCH_JAMMER)) return;
+  // (Oct 27 2026, security) only a punch from a player who is here and next to you (a faked 'hit' from across
+  // the map knocked players into lava)
+  const from = p && Net.remotes.get(p.from);
+  if (!from || !nearMe(from, 3)) return;
   const d = p.d || (Math.random() < 0.5 ? -1 : 1);
   P.vx = d * KNOCKBACK;
   if (P.ground) P.vy = -180;
@@ -518,9 +522,21 @@ function dropHint(d) {
   if (worldName === LOBBY_WORLD) return toast("Items in the lobby can't be picked up");
   toast('This belongs to ' + worldOwner + "'s world. You can take it in " + dropWait(d) + 's');
 }
+// is remote player r within n tiles of (x, y)? (their position on our screen lags a little: either spot counts)
+function remoteNear(r, x, y, n) {
+  const near = (rx, ry) => Math.abs(x - (rx + r.w / 2)) < n * TS && Math.abs(y - (ry + r.h / 2)) < n * TS;
+  return near(r.x, r.y) || near(r.tx ?? r.x, r.ty ?? r.y);
+}
+const nearMe = (r, n) => remoteNear(r, P.x + P.w / 2, P.y + P.h / 2, n);
 // another player dropped something (or a drop got bigger); a: how many ms ago it was dropped
+// (Oct 27 2026, security) s = the sender's id: only a player who is here, near the drop, may make or change one
+const DROP_REACH = 8; // tiles (blocks break up to a few tiles away; drops spread a little)
 function netDrop(p) {
   if (!p || typeof p.u !== 'string' || !(p.id === 'gold' || ITEMS[p.id])) return;
+  const from = Net.remotes.get(p.s);
+  // (the coin boss, the lowest id here, also fixes up coins from anywhere: coins.js)
+  const boss = from && [...Net.remotes.keys(), Net.me && Net.me.id].every((id) => !id || String(p.s) <= String(id));
+  if (!from || !(boss || remoteNear(from, +p.x || 0, +p.y || 0, DROP_REACH))) return;
   const qty = Math.max(1, Math.min(999999, p.q | 0)),
     born = Date.now() - Math.max(0, +p.a || 0),
     d = drops.find((d) => d.uid === p.u);
@@ -535,11 +551,21 @@ function netDrop(p) {
   }
 }
 // another player picked a drop up: it flies to them
+// (Oct 27 2026, security) only from a player who is here, near the drop, and allowed to take it: a faked 'take'
+// used to make the owner's game delete drops (and the next world save made that for good)
+const TAKE_REACH = 4; // tiles
+function takeOk(d, r) {
+  if (!r || !r.name || !remoteNear(r, d.x, d.y, TAKE_REACH)) return false;
+  if (worldName === LOBBY_WORLD || !worldOwner) return true;
+  // a locked world: the owner, the one who dropped it, or after the owner-only time (a little early, for lag)
+  return lc(r.name) === lc(worldOwner) || (!!d.by && lc(d.by) === lc(r.name)) || Date.now() - d.born >= DROP_LOCK_MS - 1500;
+}
 function netTake(u, by) {
   const k = drops.findIndex((d) => d.uid === u);
   if (k < 0) return;
-  const d = drops.splice(k, 1)[0],
-    r = Net.remotes.get(by);
+  const r = Net.remotes.get(by);
+  if (!takeOk(drops[k], r)) return;
+  const d = drops.splice(k, 1)[0];
   if (r) vacs.push({ id: d.id, qty: d.qty, ck: d.ck, x: d.x, y: d.y, t: 0, to: r });
 }
 // drops being sucked up: they fly into whoever took them, shrinking (drawn by render.js)

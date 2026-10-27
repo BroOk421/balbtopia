@@ -495,36 +495,92 @@ Net.onLobby('people', () => refreshMenu('friends'));
 // ---------- gifts ----------
 // the items leave your bag at once and come back if the gift doesn't arrive
 const pendingGifts = new Map();
-function sendGift(o, id, qty) {
+// (Oct 27 2026, security) online, Shop-only items go through the server (gift_send / gift_take / gift_back,
+// schema.sql): the sender must really own them, and the receiver gets only what the server hands over
+const giftHeld = (id) => Wallet.on() && SHOP.some((s) => s.id === id);
+// is there room in the bag for n of id? (like addItem, without adding or a toast)
+const giftRoom = (id, n) =>
+  isGM() || n <= inv.filter((s) => s.id === id).reduce((r, s) => r + Math.max(0, MAXSTACK - s.qty), 0) + Math.max(0, bagSize() - bagCount()) * MAXSTACK;
+async function sendGift(o, id, qty) {
   if (!Net.people.has(o.id)) return toast(o.name + ' is offline');
   if (have(id) < qty) return toast('You only have ' + have(id));
+  let eid = null;
+  if (giftHeld(id))
+    try {
+      eid = await Wallet.rpc('gift_send', { p_to: o.id, p_item: id, p_qty: qty });
+    } catch (e) {
+      return toast("Can't send that: " + e.message);
+    }
+  if (have(id) < qty) {
+    if (eid) Wallet.rpc('gift_back', { p_id: eid }).catch(() => {});
+    return toast('You only have ' + have(id));
+  }
   const gid = Math.random().toString(36).slice(2, 10);
   takeN(id, qty);
   pendingGifts.set(gid, {
     id,
     qty,
+    eid,
     to: o.id,
     name: o.name,
     t: setTimeout(() => giftBack(gid, "The gift didn't arrive, it's back in your bag"), 10000),
   });
-  Net.lsend('gift', o.id, { gid, item: id, qty });
+  Net.lsend('gift', o.id, { gid, item: id, qty, eid: eid || undefined });
   toast('Sending ' + qty + ' ' + itemName(id) + ' to ' + o.name + '…');
 }
-function giftBack(gid, msg) {
+async function giftBack(gid, msg) {
   const g = pendingGifts.get(gid);
   if (!g) return;
   clearTimeout(g.t);
   pendingGifts.delete(gid);
+  if (g.eid) {
+    // held by the server: only comes back if it wasn't taken
+    let r = 'gone';
+    try {
+      r = await Wallet.rpc('gift_back', { p_id: g.eid });
+    } catch (e) {
+      r = 'error';
+    }
+    if (r !== 'back') {
+      savePlayer();
+      return toast(r === 'gone' ? g.name + ' got your gift' : "Couldn't check the gift. Ask a GM if it's missing");
+    }
+  }
   giveN(g.id, g.qty);
   savePlayer();
   toast(msg);
 }
-Net.onLobby('gift', (p) => {
-  const id = String(p.item),
-    qty = Math.floor(Number(p.qty)),
-    name = String(p.fn || 'Someone').slice(0, 16);
+Net.onLobby('gift', async (p) => {
+  let id = String(p.item),
+    qty = Math.floor(Number(p.qty));
+  const name = String(p.fn || 'Someone').slice(0, 16);
   if (!tradable(id) || !(qty >= 1 && qty <= 100000)) return Net.lsend('gift_no', p.from, { gid: p.gid });
-  if (!giveN(id, qty)) return Net.lsend('gift_no', p.from, { gid: p.gid, full: 1 });
+  if (Wallet.on() && SHOP.some((s) => s.id === id)) {
+    if (p.eid) {
+      // a Shop-only item: what the server hands over, nothing else (room checked first: once taken it is ours)
+      if (!giftRoom(id, qty)) return Net.lsend('gift_no', p.from, { gid: p.gid, full: 1 });
+      let r = null;
+      try {
+        r = await Wallet.rpc('gift_take', { p_id: Number(p.eid) });
+      } catch (e) {}
+      if (!r) return Net.lsend('gift_no', p.from, { gid: p.gid });
+      id = r.item;
+      qty = r.qty;
+      if (!giveN(id, qty)) {
+        // (only if the server's amount was more than the message said) pass the server's count back
+        Wallet.rpc('give_item', { p_to: p.from, p_item: id, p_qty: qty }).catch(() => {});
+        return toast("A gift didn't fit in your bag and went back");
+      }
+    } else {
+      // a Shop item without the server: only if the server doesn't count that item
+      let n = 0;
+      try {
+        n = await Wallet.rpc('my_owned', { p_item: id });
+      } catch (e) {}
+      if (n >= 0) return Net.lsend('gift_no', p.from, { gid: p.gid });
+      if (!giveN(id, qty)) return Net.lsend('gift_no', p.from, { gid: p.gid, full: 1 });
+    }
+  } else if (!giveN(id, qty)) return Net.lsend('gift_no', p.from, { gid: p.gid, full: 1 });
   savePlayer();
   Net.lsend('gift_ok', p.from, { gid: p.gid });
   flyItems(p.from, 'me', [{ id, qty }], false);
@@ -572,7 +628,7 @@ const cleanOffer = (items) =>
     .map((x) => ({ id: String(x.id), qty: Math.floor(Number(x.qty)) }))
     .filter((x) => tradable(x.id) && x.qty >= 1);
 Net.onLobby('trade_offer', (p) => {
-  if (!T || T.with !== p.from) return;
+  if (!T || T.with !== p.from || T.settling) return;
   T.theirs = cleanOffer(p.items);
   T.myOk = T.theirOk = false;
   renderTrade();
@@ -585,7 +641,7 @@ Net.onLobby('trade_accept', (p) => {
   renderTrade();
 });
 Net.onLobby('trade_cancel', (p) => {
-  if (T && T.with === p.from) endTrade(T.name + ' cancelled the trade');
+  if (T && T.with === p.from && !T.settling) endTrade(T.name + ' cancelled the trade');
 });
 function openTrade(id, name) {
   T = { with: id, name, mine: [], theirs: [], myOk: false, theirOk: false, theirSig: '' };
@@ -619,13 +675,14 @@ function renderTrade() {
     .forEach(
       (b) =>
         (b.onclick = () => {
+          if (T.settling) return;
           T.mine.splice(Number(b.dataset.k), 1);
           offerChanged();
         }),
     );
   $('tMyOk').hidden = !T.myOk;
   $('tTheirOk').hidden = !T.theirOk;
-  $('tAccept').textContent = T.myOk ? 'Waiting…' : 'Accept';
+  $('tAccept').textContent = T.settling ? 'Finishing…' : T.myOk ? 'Waiting…' : 'Accept';
   $('tNote').textContent = T.myOk && !T.theirOk ? 'Waiting for ' + T.name + ' to accept.' : 'Add items, then both press Accept. Changing an offer un-accepts both.';
 }
 function offerChanged() {
@@ -634,7 +691,7 @@ function offerChanged() {
   renderTrade();
 }
 $('tAdd').onclick = () => {
-  if (!T) return;
+  if (!T || T.settling) return;
   if (T.mine.length >= 6) return toast('Up to 6 different items');
   pickItem('Add to trade', (id, qty) => {
     const x = T.mine.find((m) => m.id === id),
@@ -646,37 +703,62 @@ $('tAdd').onclick = () => {
   });
 };
 $('tAccept').onclick = () => {
-  if (!T) return;
+  if (!T || T.settling) return;
   T.myOk = !T.myOk;
   Net.lsend('trade_accept', T.with, { ok: T.myOk, sig: sigOf(T.mine, T.theirs) });
   tryFinishTrade();
   renderTrade();
 };
 $('tCancel').onclick = () => {
+  if (T && T.settling) return toast('The server is finishing the trade…');
   if (T) Net.lsend('trade_cancel', T.with, {});
   endTrade('Trade cancelled');
 };
-function tryFinishTrade() {
-  if (!T || !T.myOk || !T.theirOk || T.theirSig !== sigOf(T.theirs, T.mine)) return;
+// (Oct 27 2026, security) online, the server settles the trade's gold and Shop-only items for BOTH sides in one
+// go (trade_settle, schema.sql); only when it says 'done' do the bags change. Before, each game moved its own side
+// and a changed game could take the other's items without paying.
+const TRADE_WAIT_MS = 20000;
+async function tryFinishTrade() {
+  if (!T || T.settling || !T.myOk || !T.theirOk || T.theirSig !== sigOf(T.theirs, T.mine)) return;
   for (const x of T.mine)
     if (have(x.id) < x.qty) {
       Net.lsend('trade_cancel', T.with, {});
       return endTrade("You don't have the items anymore. Trade cancelled");
     }
-  for (const x of T.mine) takeN(x.id, x.qty);
-  // what we give moves on the server too: World Keys, gold, Shop-only items (keys.js, economy.js)
-  for (const x of T.mine)
-    if (isKeyId(x.id)) giveKeyTo(keyWorld(x.id), T.with);
-    else if (SHOP.some((s) => s.id === x.id)) Wallet.giveItem(T.with, x.id, x.qty);
-  for (const x of T.theirs) giveN(x.id, x.qty);
-  // the gold of both sides is settled by the server at once (economy.js); our screen follows its answer
-  const goldOf = (list) => list.filter((x) => x.id === 'gold').reduce((n, x) => n + x.qty, 0);
-  Wallet.tradeGold(T.with, goldOf(T.mine), goldOf(T.theirs));
+  const t = T;
+  if (!Wallet.on()) return applyTrade(t, null); // offline / old server: as before
+  t.settling = true;
+  renderTrade();
+  let r;
+  try {
+    await Wallet.flush();
+    const start = Date.now();
+    for (;;) {
+      r = await Wallet.rpc('trade_settle', { p_with: t.with, p_give: t.mine, p_get: t.theirs });
+      if (r.r !== 'waiting' || Date.now() - start > TRADE_WAIT_MS) break;
+      await new Promise((ok) => setTimeout(ok, 800));
+    }
+    // still waiting: stop; the other side may have settled it in the meantime
+    if (r.r === 'waiting') r = await Wallet.rpc('trade_unsettle', { p_with: t.with });
+  } catch (e) {
+    r = { r: 'failed', why: e.message };
+  }
+  if (r.r === 'done') return applyTrade(t, r);
+  t.settling = false;
+  if (T === t) endTrade(r.r === 'gone' ? T.name + " didn't finish the trade. Nothing moved" : "The trade didn't go through: " + (r.why || 'error') + '. Nothing moved');
+}
+// the bags change (the server already moved gold and Shop-only items when w is given)
+function applyTrade(t, w) {
+  for (const x of t.mine) if (!(w && x.id === 'gold')) takeN(x.id, x.qty);
+  for (const x of t.mine) if (isKeyId(x.id)) giveKeyTo(keyWorld(x.id), t.with); // World Keys move on the server too
+  for (const x of t.theirs) if (!(w && x.id === 'gold')) giveN(x.id, x.qty);
+  if (w) Wallet.show(w);
   savePlayer();
-  flyItems('me', T.with, T.mine, true); // each side tells the world about its own items
-  flyItems(T.with, 'me', T.theirs, false);
+  flyItems('me', t.with, t.mine, true); // each side tells the world about its own items
+  flyItems(t.with, 'me', t.theirs, false);
   Native.haptic('medium');
-  endTrade('Trade done with ' + T.name + '!');
+  if (T === t) endTrade('Trade done with ' + t.name + '!');
+  else toast('Trade done with ' + t.name + '!');
 }
 
 // ---------- menu tabs (Friends and Email) ----------
