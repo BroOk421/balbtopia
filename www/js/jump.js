@@ -215,6 +215,15 @@ drawLiveFx = ((prev) =>
     return prev();
   })(drawLiveFx);
 
+// the worn pet, in front of the character, in every pose (pets.js drawPetOf). The name tag / chat bubble still go
+// over it: shadow.js (the outermost wrapper) draws them after the character and the pet.
+drawCharacter = ((prev) =>
+  function (c, ox, oy) {
+    const r = prev(c, ox, oy);
+    drawPetOf(c, ox, oy);
+    return r;
+  })(drawCharacter);
+
 // moving old saves' mustaches / pacifier out of the eyes slot (worlds.js fixSideSlots)
 applyPlayer = ((prev) =>
   function (p) {

@@ -148,13 +148,124 @@ function stripFrames(im, n) {
     return c;
   });
 }
+// The big pets' feet were cut flat at the bottom of the owner's sheet (owner: "putol yung paa"). Each foot (a run of
+// columns whose lowest pixel is in the bottom rows, in the leg part of the picture) gets a sole: one row under it
+// in a darker shade of the foot (not under the heel pixel, so it looks round) and light claws: at the toe, 3 px
+// behind it, and one poking forward (the pictures face right). Runs once per frame picture.
+const CLAW = [240, 232, 212],
+  CLAW_DARK = [90, 70, 60];
+function bigClaws(cnv) {
+  const w = cnv.width,
+    h = cnv.height,
+    x = cnv.getContext('2d'),
+    im = x.getImageData(0, 0, w, h),
+    d = im.data,
+    A = (i, j) => d[(j * w + i) * 4 + 3],
+    yb = new Array(w).fill(-1),
+    put = [];
+  for (let i = Math.floor(w * 0.28); i < Math.floor(w * 0.82); i++)
+    for (let j = h - 1; j >= 0; j--)
+      if (A(i, j) > 100) {
+        yb[i] = j;
+        break;
+      }
+  const low = (i) => yb[i] >= h - 9 && yb[i] < h - 1;
+  for (let i = 0; i < w; i++) {
+    if (!low(i)) continue;
+    const s = i;
+    while (i + 1 < w && low(i + 1) && Math.abs(yb[i + 1] - yb[s]) <= 1) i++;
+    const e = i,
+      n = e - s + 1;
+    if (n < 3 || n > 16) continue;
+    for (let c = s + 1; c <= e; c++) {
+      const k = (yb[c] * w + c) * 4;
+      put.push([c, yb[c] + 1, [d[k] * 0.45, d[k + 1] * 0.4, d[k + 2] * 0.45], false]);
+    }
+    for (const c of [e, e - 3]) if (c > s) put.push([c, yb[c] + 1, CLAW, true]);
+    put.push([e + 1, yb[e], CLAW, false]);
+    put.push([e + 1, yb[e] + 1, CLAW_DARK, false]);
+  }
+  for (const [i, j, c, over] of put) {
+    if (i < 0 || i >= w || j < 0 || j >= h || (!over && A(i, j) > 100)) continue;
+    const k = (j * w + i) * 4;
+    d[k] = c[0];
+    d[k + 1] = c[1];
+    d[k + 2] = c[2];
+    d[k + 3] = 255;
+  }
+  x.putImageData(im, 0, 0);
+  return cnv;
+}
+// T-Rex / Raptor (owner: the automatic claws looked bad on them): their feet are placed by hand per frame, as
+// [first x, toe x, bottom row] in the frame picture (walking 0-5, then the 4 breathing frames). Each foot gets a
+// sole row in its own shade (not under the heel), the toe pushed 1 px forward, and ivory claws only at the front:
+// two forward off the toe, one under it, one a little behind it.
+const DINO_FEET = {
+  trex: [
+    [[37, 41, 64], [48, 56, 64]],
+    [[36, 40, 62], [49, 57, 64]],
+    [[34, 38, 62], [51, 59, 64]],
+    [[33, 37, 64], [52, 60, 64]],
+    [[34, 38, 64], [51, 59, 62]],
+    [[36, 40, 64], [49, 57, 62]],
+    ...Array(4).fill([[35, 39, 64], [50, 58, 64]]),
+  ],
+  raptor: [
+    [[51, 62, 56], [65, 69, 56]],
+    [[50, 62, 54], [66, 70, 56]],
+    [[48, 60, 54], [68, 72, 56]],
+    [[47, 59, 56], [69, 73, 56]],
+    [[48, 60, 56], [68, 72, 54]],
+    [[50, 62, 56], [66, 70, 54]],
+    ...Array(4).fill([[49, 61, 56], [67, 71, 56]]),
+  ],
+};
+const DINO_CLAW = [246, 238, 220],
+  DINO_CLAW_D = [190, 176, 150];
+function dinoFeet(cnv, spec) {
+  const w = cnv.width,
+    h = cnv.height,
+    x = cnv.getContext('2d'),
+    im = x.getImageData(0, 0, w, h),
+    d = im.data,
+    ix = (i, j) => (j * w + i) * 4,
+    put = (i, j, c, force = true) => {
+      if (i < 0 || i >= w || j < 0 || j >= h || (!force && d[ix(i, j) + 3] > 100)) return;
+      const k = ix(i, j);
+      d[k] = c[0];
+      d[k + 1] = c[1];
+      d[k + 2] = c[2];
+      d[k + 3] = 255;
+    };
+  for (const [s, e, y] of spec || []) {
+    // the foot's colours: middle and darkest of its bottom 4 rows
+    const cols = [];
+    for (let i = s; i <= e; i++)
+      for (let j = y - 3; j <= y; j++) if (d[ix(i, j) + 3] > 100) cols.push([d[ix(i, j)], d[ix(i, j) + 1], d[ix(i, j) + 2]]);
+    if (!cols.length) continue;
+    cols.sort((a, b) => a[0] + a[1] + a[2] - (b[0] + b[1] + b[2]));
+    const dark = cols[0],
+      mid = cols[cols.length >> 1],
+      shade = mid.map((v, n) => v + (dark[n] - v) * 0.55);
+    for (let i = s + 1; i <= e; i++) put(i, y + 1, shade);
+    put(e + 1, y - 1, mid, false);
+    put(e + 1, y, mid);
+    put(e + 2, y - 1, DINO_CLAW);
+    put(e + 2, y, DINO_CLAW_D);
+    put(e + 1, y + 1, DINO_CLAW);
+    put(e - 2, y + 1, DINO_CLAW);
+  }
+  x.putImageData(im, 0, 0);
+  return cnv;
+}
 function petFrames(id) {
   if (PET_FRAMES[id]) return PET_FRAMES[id];
   if (PET_BY_ID[id].img) {
     // a drawn animation (the big pets): its frames from the picture; nothing until the picture has loaded
     const im = IMG[PET_BY_ID[id].img];
     if (!im || !im.complete || !im.naturalWidth) return null;
-    return (PET_FRAMES[id] = stripFrames(im, BIG_FRAMES));
+    const feet = DINO_FEET[PET_BY_ID[id].id];
+    return (PET_FRAMES[id] = stripFrames(im, BIG_FRAMES).map((c, k) => (feet ? dinoFeet(c, feet[k]) : bigClaws(c))));
   }
   const p = PET_BY_ID[id],
     px = petPixels(p),
@@ -319,15 +430,14 @@ function drawPet(key, c, ox, oy) {
   g.drawImage(frames[k], -w / 2, -h, w, h);
   g.restore();
 }
-drawCharacter = ((prev) =>
-  function (c, ox, oy) {
-    // the pet goes behind the character: drawn first
-    if (c && c.name && c.equipped && c.equipped.pet) {
-      const key = c.id ? c.id : c.name === playerName ? 'me' : null;
-      if (key) drawPet(key, c, ox, oy);
-    }
-    return prev(c, ox, oy);
-  })(drawCharacter);
+// the pet is drawn IN FRONT of its character (owner, Oct 27 2026: it used to be drawn first, behind you). The
+// drawCharacter wrapper that does it is at the end of jump.js, so it is the outermost one: the jumping pose
+// (drawJumping) doesn't call the older drawCharacter, which made the pet vanish while you were in the air.
+function drawPetOf(c, ox, oy) {
+  if (!c || !c.name || !c.equipped || !c.equipped.pet || c.portrait) return;
+  const key = c.id ? c.id : c.name === playerName ? 'me' : null;
+  if (key) drawPet(key, c, ox, oy);
+}
 
 // ---------- the big pets (Cosmic Dragon, Fire Dragon, T-Rex, Raptor) ----------
 // They walk on the ground behind you: the 6 walking frames follow the distance they cover (feet step in turn, body
@@ -360,14 +470,16 @@ function drawBig(key, c, ox, oy, id) {
   }
   const atk = s.attack && now - s.attack.t0 < 380 ? s.attack : null;
   const moving = s.mv > 0.5,
-    k = moving ? Math.floor(s.ph / 1.6) % 6 : 6 + (Math.floor(now / 300) % 4);
+    // the walking frames run backwards on the sheet (the foot on the ground slid forward = walking backwards), so
+    // they are played 5 -> 0 (owner, Oct 27 2026)
+    k = moving ? 5 - (Math.floor(s.ph / 1.6) % 6) : 6 + (Math.floor(now / 300) % 4);
   // facing: towards the target while shooting, else the way you face (delayed, petFor), with a quick flip
   const face = atk ? (atk.x >= s.x ? 1 : -1) : s.face,
     tu = Math.min(1, (now - s.turnT) / 200),
     flip = atk ? 1 : tu < 1 ? Math.max(0.08, Math.abs(Math.cos(tu * Math.PI))) : 1,
     shown = atk || tu >= 0.5 ? face : -face;
   const bx = s.x,
-    by = s.y + BIG_FOOT * BIG_SCALE; // the picture's bottom, so the feet stand where yours do
+    by = s.y + (BIG_FOOT - 1) * BIG_SCALE + 1; // the picture's bottom: the soles (bigClaws, one row under the old feet) sink 1 px into the ground like your feet
   if (atk && !atk.fired && now - atk.t0 > 60) {
     atk.fired = true;
     const mx = bx + shown * (p.mouth[0] * BIG_SCALE - w / 2),

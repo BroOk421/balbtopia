@@ -47,19 +47,26 @@ function pwEq(c) {
     sh = WEAR_BY_ID[eq.shirt];
   return { eq, hat, sh: sh && sh.over ? sh : null, hide: !!((hat && hat.hideHair) || (sh && sh.hideHair)) };
 }
+// The eyes (face slot: fire eyes, glasses, visor...) are drawn LAST, over the hair, the hood's bangs and the hat,
+// so nothing covers them (owner, Oct 27 2026: long bangs hid the worn eyes).
 drawWorn = ((prev) =>
   function (c, top, sc, dy = 0) {
-    const w = pwEq(c);
-    if (!w.hide && !w.sh && !(w.hat && w.hat.strip)) return prev(c, top, sc, dy);
-    const c2 = Object.create(c);
-    c2.equipped = { ...w.eq, hat: null };
-    if (w.hide) c2.equipped.hair = null;
-    prev(c2, top, sc, dy); // face item (and the hair, if not hidden)
-    if (w.sh) drawWearStrip({ strip: w.sh.over }, top, sc, dy + (c.rest && c.rest.k === 'sit' ? PW_SIT_DY : 0));
-    if (w.hat) {
-      if (w.hat.strip) drawWearStrip(w.hat, top, sc, dy);
-      else drawWearArt(w.eq.hat, top, sc, dy);
+    const w = pwEq(c),
+      face = w.eq.face,
+      c2 = Object.create(c);
+    c2.equipped = { ...w.eq, face: null };
+    if (!w.hide && !w.sh && !(w.hat && w.hat.strip)) prev(c2, top, sc, dy);
+    else {
+      c2.equipped.hat = null;
+      if (w.hide) c2.equipped.hair = null;
+      prev(c2, top, sc, dy); // the hair (if not hidden), mustache, mouth...
+      if (w.sh) drawWearStrip({ strip: w.sh.over }, top, sc, dy + (c.rest && c.rest.k === 'sit' ? PW_SIT_DY : 0));
+      if (w.hat) {
+        if (w.hat.strip) drawWearStrip(w.hat, top, sc, dy);
+        else drawWearArt(w.eq.hat, top, sc, dy);
+      }
     }
+    if (face && WEAR_BY_ID[face]) drawWearArt(face, top, sc, dy);
   })(drawWorn);
 drawBehind = ((prev) =>
   function (c, top, sc, dy) {

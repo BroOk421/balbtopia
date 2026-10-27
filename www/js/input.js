@@ -27,8 +27,9 @@ function dragPlace(a, b) {
   actTile = b;
 }
 const $ = (id) => document.getElementById(id);
-const cv = $('c'),
-  g = cv.getContext('2d');
+const cv = $('c');
+// `let`: shadow.js points it at an off-screen canvas for a moment while a character is drawn
+let g = cv.getContext('2d');
 addEventListener('keydown', (e) => {
   if (!$('start').hidden) return;
   if (!$('wload').hidden) return e.preventDefault(); // a world is loading

@@ -1,3 +1,15 @@
+// Snap Plant / Hanging Snap Plant idle (owner, Oct 27 2026): SNAP_FRAMES frames of SNAP_MS. a = how open the jaws
+// are (1 open .. 0 shut): they breathe, then snap shut and open again; sw = sideways sway (px), bob = head up / down.
+const SNAP_FRAMES = 16,
+  SNAP_MS = 110,
+  SNAP_OPEN = [1, 0.95, 0.85, 0.72, 0.65, 0.72, 0.85, 0.95, 1, 1, 0.9, 0.35, 0, 0, 0.5, 0.9];
+function snapPose(f) {
+  const k = ((f % SNAP_FRAMES) + SNAP_FRAMES) % SNAP_FRAMES,
+    t = (k / SNAP_FRAMES) * Math.PI * 2;
+  return { a: SNAP_OPEN[k], sw: Math.sin(t) * 1.4, bob: k >= 11 && k <= 13 ? 1 : Math.round(Math.sin(t * 2) * 0.6) };
+}
+NEW_ANIM.venus_guytrap = [SNAP_MS, SNAP_FRAMES];
+NEW_ANIM.hanging_guytrap = [SNAP_MS, SNAP_FRAMES];
 // Hand-drawn 1 px art (see HD_TEX / HD_DECO in blocks.js)
 // Batch D: signs, doors, fences, traps and the world machines. Each painter draws on a 32x32 canvas at 1 px,
 // light from the top left, dark outline. f is the frame from decoFrame.
@@ -219,11 +231,13 @@
       R(12, 13, 8, 2, '#1e2028');
       P(12, 6, '#ffffff');
     },
-    // carnivorous plant hanging from the ceiling, jaws open downwards
-    hanging_guytrap(x, { P, R, E }) {
-      // vine with leaves
+    // carnivorous plant hanging from the ceiling, jaws open downwards. Animated (owner, Oct 27 2026): f = 0..15,
+    // the head swings on its vine and the jaws breathe open / shut with a quick snap (snapPose); f 0 = the icon.
+    hanging_guytrap(x, { P, R, E }, f = 0) {
+      const { a, sw, bob } = snapPose(f);
+      // vine with leaves: the lower end swings most
       for (let j = 0; j < 12; j++) {
-        const o = Math.round(Math.sin(j * 0.6));
+        const o = Math.round(Math.sin(j * 0.6) + sw * (j / 11));
         P(15 + o, j, '#1a4a16');
         P(16 + o, j, '#4caf3a');
         P(17 + o, j, '#2a6e22');
@@ -233,55 +247,69 @@
         E(cx, cy, 3, 1.2, '#4caf3a');
         P(cx - s, cy, '#8fe06a');
       }
-      // head
-      E(16, 20, 12, 10, '#0e2a0c');
-      E(16, 20, 11, 9, '#3f9a30');
-      E(14, 17, 7, 5, '#5cbf4a');
-      for (const [i, j] of [[9, 15], [21, 14], [12, 26], [22, 24]]) P(i, j, '#8fe06a');
-      // mouth with teeth
-      R(6, 21, 20, 6, '#4a0614');
-      R(7, 22, 18, 4, '#d01a3a');
-      R(7, 22, 18, 1, '#ff5a72');
-      for (let i = 7; i < 25; i += 3) {
-        P(i, 21, '#ffffff');
-        P(i + 1, 21, '#ffffff');
-        P(i + 1, 22, '#ffffff');
-        P(i + 1, 26, '#ffffff');
-        P(i + 2, 26, '#ffffff');
-        P(i + 1, 25, '#e0e0e8');
+      // head (a little shorter while the jaws are shut)
+      const hx = Math.round(sw),
+        hy = 20 + bob,
+        ry = 8.5 + 1.5 * a;
+      E(16 + hx, hy, 12, ry + 1, '#0e2a0c');
+      E(16 + hx, hy, 11, ry, '#3f9a30');
+      E(14 + hx, hy - 3, 7, 5, '#5cbf4a');
+      for (const [i, j] of [[9, 15], [21, 14], [12, 26], [22, 24]]) P(i + hx, j + bob, '#8fe06a');
+      // mouth with teeth: inner height 1 (shut) .. 4 (open)
+      const mh = 1 + Math.round(a * 3),
+        my = hy + 4 - Math.ceil(mh / 2);
+      R(6 + hx, my - 1, 20, mh + 2, '#4a0614');
+      R(7 + hx, my, 18, mh, '#d01a3a');
+      R(7 + hx, my, 18, 1, '#ff5a72');
+      for (let i = 7 + hx; i < 25 + hx; i += 3) {
+        P(i, my - 1, '#ffffff');
+        P(i + 1, my - 1, '#ffffff');
+        P(i + 1, my, '#ffffff');
+        P(i + 1, my + mh, '#ffffff');
+        P(i + 2, my + mh, '#ffffff');
+        if (mh > 1) P(i + 1, my + mh - 1, '#e0e0e8');
       }
     },
-    // carnivorous plant growing from the ground, jaws open upwards
-    venus_guytrap(x, { P, R, E }) {
-      // stem with leaves
+    // carnivorous plant growing from the ground, jaws open upwards. Animated like the hanging one: the stem
+    // sways, the head bobs, the jaws breathe and now and then snap shut.
+    venus_guytrap(x, { P, R, E }, f = 0) {
+      const { a, sw, bob } = snapPose(f);
+      // stem with leaves: the top sways most
       for (let j = 17; j < 32; j++) {
-        const o = Math.round(Math.sin(j * 0.5) * 0.8);
+        const o = Math.round(Math.sin(j * 0.5) * 0.8 + sw * ((31 - j) / 14));
         P(15 + o, j, '#1a4a16');
         P(16 + o, j, '#4caf3a');
         P(17 + o, j, '#2a6e22');
       }
+      // the leaves flutter a little
+      const lf = Math.sin((f / SNAP_FRAMES) * Math.PI * 4) * 0.35;
       for (const [cx, cy, s] of [[9, 26, -1], [23, 24, 1]]) {
-        E(cx, cy, 5, 2.2, '#1a4a16');
-        E(cx, cy, 4, 1.4, '#4caf3a');
-        P(cx - 2 * s, cy, '#8fe06a');
+        E(cx, cy + (s > 0 ? lf : -lf), 5, 2.2, '#1a4a16');
+        E(cx, cy + (s > 0 ? lf : -lf), 4, 1.4, '#4caf3a');
+        P(cx - 2 * s, Math.round(cy + (s > 0 ? lf : -lf)), '#8fe06a');
       }
-      // head
-      E(16, 11, 13, 10, '#0e2a0c');
-      E(16, 11, 12, 9, '#3f9a30');
-      E(14, 7, 8, 4, '#5cbf4a');
-      for (const [i, j] of [[8, 6], [23, 5], [10, 17], [22, 16]]) P(i, j, '#8fe06a');
-      // pink mouth with teeth top and bottom
-      R(5, 9, 22, 7, '#4a0624');
-      R(6, 10, 20, 5, '#ff6ab0');
-      R(6, 12, 20, 1, '#7a0a3a');
-      R(6, 10, 20, 1, '#ffa8d4');
-      for (let i = 6; i < 26; i += 3) {
-        P(i, 9, '#ffffff');
-        P(i + 1, 9, '#ffffff');
-        P(i + 1, 10, '#ffffff');
-        P(i + 1, 15, '#ffffff');
-        P(i + 2, 15, '#ffffff');
-        P(i + 1, 14, '#e0e0e8');
+      // head (a little shorter while the jaws are shut)
+      const hx = Math.round(sw),
+        hy = 11 + bob,
+        ry = 7.5 + 1.5 * a;
+      E(16 + hx, hy, 13, ry + 1, '#0e2a0c');
+      E(16 + hx, hy, 12, ry, '#3f9a30');
+      E(14 + hx, hy - Math.round(ry * 0.45), 8, Math.min(4, ry - 4), '#5cbf4a'); // shine, kept inside the outline
+      for (const [i, j] of [[8, 6], [23, 5], [10, 17], [22, 16]]) P(i + hx, j + bob + (j > 11 ? -Math.round(2 * (1 - a)) : Math.round(2 * (1 - a))), '#8fe06a');
+      // pink mouth with teeth top and bottom: inner height 1 (shut) .. 5 (open)
+      const mh = 1 + Math.round(a * 4),
+        my = hy + 1 - Math.floor(mh / 2);
+      R(5 + hx, my - 1, 22, mh + 2, '#4a0624');
+      R(6 + hx, my, 20, mh, '#ff6ab0');
+      if (mh > 2) R(6 + hx, my + Math.floor(mh / 2), 20, 1, '#7a0a3a');
+      R(6 + hx, my, 20, 1, '#ffa8d4');
+      for (let i = 6 + hx; i < 26 + hx; i += 3) {
+        P(i, my - 1, '#ffffff');
+        P(i + 1, my - 1, '#ffffff');
+        P(i + 1, my, '#ffffff');
+        P(i + 1, my + mh, '#ffffff');
+        P(i + 2, my + mh, '#ffffff');
+        if (mh > 1) P(i + 1, my + mh - 1, '#e0e0e8');
       }
     },
     // wooden screen door: mesh on top, panel below, brass handle

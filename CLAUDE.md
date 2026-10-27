@@ -1826,3 +1826,39 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   - GM watch (`gmwatch.js`, before main.js): every 45 s a GM's game reads new cheat_log rows (RLS: GMs only) and
     toasts the newest; `/cheats` (GM only) lists the newest 50 with a BAN button each (`gmBanCommand`). Last id seen in
     localStorage `balbtopia.gmwatch`. Note: social.js already has a global `itemName`.
+- Oct 27 2026 (build x, owner):
+  - Pets are drawn IN FRONT of their character and also while jumping: the drawCharacter wrapper is now the outermost
+    one (end of jump.js; `drawPetOf` in pets.js). Before, pets.js wrapped drawCharacter and drew the pet first (behind),
+    and the jumping pose (`drawJumping`) never called that older wrapper, so the pet vanished in the air. The name tag and
+    chat bubble are noted while the character is drawn and drawn after the pet (`petTagW` gives the tag width meanwhile).
+  - Eyes / face-slot items are drawn LAST in `drawWorn` (photo_wear.js wrapper): over the hair, the hood's bangs and the
+    hat, so long bangs no longer hide them (render.js still has the old face line, but the wrapper passes face: null).
+  - Snap Plant and Hanging Snap Plant have an idle animation: 16 frames of 110 ms (`snapPose` / `SNAP_OPEN` in
+    hd/deco_d.js: jaws breathe open / shut then snap, head bobs, stem / vine sways); every placed one runs on its own beat
+    and pops in when placed (liven.js `drawSnap`, `LIVE_DRAW`; the hanging one grows down). Frame 0 = the bag icon.
+  - GAME_BUILD '2026-10-27 x'.
+- Oct 27 2026 (build y, owner's sketch): Red / Blue Fire Eyes are BIGGER (near eye 11 x 14 cells, far eye 7 x 14,
+  FE_CELL 4, top-left (32, 30) / (81, 30)) and shaped like his drawing: round bottom, a tall point in the middle of the
+  top, a small bump on the left, small points on the right. Built from per-column tops / bottoms by `feShape`
+  (fire_eyes.js; rings by distance from the edge, top cells in the flame part are the tips); 3 flame shapes as before.
+  Sparks rise from the top of their column. iconBox [26, 126, 88, 88]. GAME_BUILD '2026-10-27 y'.
+- Oct 27 2026 (build z, owner): character shadows (`shadow.js`, loaded right after jump.js = the OUTERMOST
+  drawCharacter wrapper). Every character (you, other players, with clothes, wings, held tool and pet) has its own
+  shape behind it in black at `SHADOW_ALPHA` 0.2, offset `SHADOW_DX` -2 / `SHADOW_DY` +2 world px (down-left). The
+  character is drawn on a small off-screen canvas the size of its box (`SHADOW_BOX`; wider with a big pet), turned black
+  with source-in for the shadow, then both are put on the screen. For that `g` is a `let` now (input.js) and points at the
+  off-screen canvas while the character is drawn. Name tags / chat bubbles are noted and drawn after (no shadow, over
+  the pet); the pet wrapper at the end of jump.js no longer does that itself. Not for the portrait or while dead (the
+  ghost floats out of the box). Don't use a canvas `filter` (drop-shadow) here: ~3 ms per character in tests, the
+  black copy is ~0.4 ms. GAME_BUILD '2026-10-27 z'.
+- Oct 27 2026 (build z2, owner): big pets (Cosmic / Fire Dragon, T-Rex, Raptor). The walking frames 0-5 of the sheets
+  move the planted foot FORWARD (moonwalk), so `drawBig` plays them 5 -> 0. Their feet were cut flat in the sheet:
+  `bigClaws` (pets.js, run on each frame picture in petFrames) finds every foot (run of columns whose lowest pixel is
+  in the bottom 8 rows, x 28-82% of the picture, 3-16 px wide) and adds a darker sole row under it plus light claws
+  (toe, 3 px back, one poking forward). The soles take the first of the 2 empty rows, so the picture's bottom is
+  `(BIG_FOOT - 1) * BIG_SCALE + 1` under your feet (sinks 1 px like the player). GAME_BUILD '2026-10-27 z2'.
+- Oct 27 2026 (build z3, owner: the automatic claws looked bad on the dinosaurs): T-Rex and Raptor feet are placed by
+  hand per frame (`DINO_FEET` in pets.js: [first x, toe x, bottom row] per foot, walking 0-5 + 4 breathing frames) and
+  drawn by `dinoFeet`: a sole row in the foot's own shade (not under the heel), the toe 1 px further forward, ivory claws
+  only at the front (two off the toe, one under it, one 3 px behind). The two dragons keep `bigClaws`.
+  GAME_BUILD '2026-10-27 z3'.

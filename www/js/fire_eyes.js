@@ -15,35 +15,54 @@ const FE_COL = { W: '#f0fcff', Y: '#90e2ff', O: '#2b95ff', R: '#3528cc' };
 const FE_COL_RED = { W: '#fffbe6', Y: '#ffd83a', O: '#ff8a1a', R: '#e01e1e' };
 // glow behind the eyes: [inner, outer]
 const FE_GLOW = { blue: ['rgba(110,210,255,.42)', 'rgba(40,130,255,0)'], red: ['rgba(255,190,80,.42)', 'rgba(255,90,20,0)'] };
-const FE_BODY_L = ['OYWWYWWYO', 'OYWWWWWYO', 'OYWWWWWYO', 'OYYWWWYYO', '.OYYYYYO.', '..OOOOO..'],
-  FE_BODY_R = ['OYWWYO', 'OYWWYO', 'OYWWYO', 'OYWWYO', '.OYYO.', '..OO..'];
+// The flame shape (owner's sketch, Oct 27 2026: bigger, a round bottom and a TALL point in the middle of the top, a
+// small bump on the left, two small points on the right). Each eye is made from per-column tops / bottoms in cells
+// (`feShape`): the outer cells are the blue / orange ring (O), then the light ring (Y), then the white-hot core (W);
+// the top cell of a column in the flame part is a tip (R). Three flame shapes, played 0-1-2-1.
+function feShape(tops, bots) {
+  const W = tops.length,
+    H = Math.max(...bots) + 1,
+    inside = (i, j) => i >= 0 && i < W && j >= tops[i] && j <= bots[i],
+    flameRow = Math.min(...bots) - 5; // rows above this belong to the flames
+  const rows = [];
+  for (let j = 0; j < H; j++) {
+    let r = '';
+    for (let i = 0; i < W; i++) {
+      if (!inside(i, j)) {
+        r += '.';
+        continue;
+      }
+      // how far (in cells) from the outside
+      let d = 0;
+      while (d < 3 && [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]].every(([a, b]) => inside(i + a * (d + 1), j + b * (d + 1)))) d++;
+      r += j === tops[i] && j < flameRow ? 'R' : d === 0 ? 'O' : d === 1 ? 'Y' : 'W';
+    }
+    rows.push(r);
+  }
+  return rows;
+}
 const FE_MAPS = [
-  // the near eye (left on screen): 9 cells wide, top-left at body px (36, 46)
+  // the near eye (left on screen): 11 cells wide
   {
-    x: 36,
-    y: 46,
+    x: 32,
+    y: 30,
     frames: [
-      ['.R....R..', 'RO.R.ROR.', 'OYROROYOR', ...FE_BODY_L],
-      ['...R...R.', '.R.OR.ROR', 'RORYORYYO', ...FE_BODY_L],
-      ['R....R...', 'OR.RORR.R', 'OYROYOROR', ...FE_BODY_L],
+      feShape([8, 5, 4, 5, 3, 0, 3, 2, 4, 3, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
+      feShape([8, 6, 3, 5, 4, 1, 2, 3, 3, 4, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
+      feShape([7, 5, 4, 4, 3, 0, 4, 2, 4, 2, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
     ],
   },
-  // the far eye: 6 cells wide (the face is turned), top-left at (82, 46)
+  // the far eye: 7 cells wide (the face is turned)
   {
-    x: 82,
-    y: 46,
+    x: 81,
+    y: 30,
     frames: [
-      ['..R...', '.ROR.R', 'ROYORO', ...FE_BODY_R],
-      ['R...R.', 'OR.ROR', 'OYROYO', ...FE_BODY_R],
-      ['...R..', '.R.ORR', 'RORYYO', ...FE_BODY_R],
+      feShape([7, 4, 5, 0, 3, 2, 5], [11, 12, 13, 13, 13, 12, 11]),
+      feShape([7, 5, 4, 1, 2, 3, 5], [11, 12, 13, 13, 13, 12, 11]),
+      feShape([6, 4, 5, 0, 4, 2, 5], [11, 12, 13, 13, 13, 12, 11]),
     ],
   },
 ];
-// taller flames (owner: "a little higher"): the tallest tips grow one more cell; the old tip cell becomes flame
-for (const m of FE_MAPS) {
-  m.y -= FE_CELL;
-  m.frames = m.frames.map((rows) => [rows[0], rows[0].replace(/R/g, 'O'), ...rows.slice(1)]);
-}
 const feHash = (a, b) => {
   const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
   return s - Math.floor(s);
@@ -65,7 +84,7 @@ function paintFireEye(x, m, f, k, col = FE_COL, glow = FE_GLOW.blue) {
     [...row].forEach((ch, i) => {
       if (!col[ch]) return;
       // the core flickers: a few light-ring cells go white-hot for a frame
-      x.fillStyle = ch === 'Y' && j > 3 && feHash(i + k * 13, j + f * 7) < 0.2 ? col.W : col[ch];
+      x.fillStyle = ch === 'Y' && j > rows.length * 0.5 && feHash(i + k * 13, j + f * 7) < 0.2 ? col.W : col[ch];
       x.fillRect(m.x + i * C, m.y + j * C, C, C);
     }),
   );
@@ -73,8 +92,10 @@ function paintFireEye(x, m, f, k, col = FE_COL, glow = FE_GLOW.blue) {
   const sp = (f + k * 4) % 8;
   if (sp < 3) {
     const si = 1 + Math.floor(feHash(k * 9 + 1, Math.floor((f + k * 4) / 8)) * (w - 2));
+    let top = 0;
+    while (top < rows.length && rows[top][si] === '.') top++;
     x.fillStyle = sp < 2 ? col.O : col.R;
-    x.fillRect(m.x + si * C, m.y - (2 + sp) * C, C, C);
+    x.fillRect(m.x + si * C, m.y + (top - 2 - sp) * C, C, C);
   }
 }
 WEAR_ART.blue_fire_eyes = ({ x, f }) => {

@@ -129,8 +129,8 @@ const WEAR = [
   { id: 'laser_eyes', name: 'Laser Eyes', slot: 'face', art: 'laser_eyes', rarity: 'Epic', desc: 'Glowing red eyes. Every punch fires a laser from your eyes, and you reach one tile further.' },
   // a blank face with two burning blue eyes (fire_eyes.js); `blank`: the normal brows, eyes and mouth are wiped
   // the fire eyes are only the eyes (face slot); the blank face is its own item in the hair slot (owner)
-  { id: 'red_fire_eyes', name: 'Red Fire Eyes', slot: 'face', art: 'red_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [34, 128, 76, 76], desc: 'Your eyes burn with red-hot fire, flames licking up over your head.' },
-  { id: 'blue_fire_eyes', name: 'Blue Fire Eyes', slot: 'face', art: 'blue_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [34, 128, 76, 76], desc: 'Your eyes burn with blue fire, flames licking up over your head.' },
+  { id: 'red_fire_eyes', name: 'Red Fire Eyes', slot: 'face', art: 'red_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [26, 126, 88, 88], desc: 'Your eyes burn with red-hot fire, flames licking up over your head.' },
+  { id: 'blue_fire_eyes', name: 'Blue Fire Eyes', slot: 'face', art: 'blue_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [26, 126, 88, 88], desc: 'Your eyes burn with blue fire, flames licking up over your head.' },
   // a baby-blue pacifier over the mouth (baby.js)
   { id: 'blue_pacifier', name: 'Blue Pacifier', slot: 'mouth', art: 'blue_pacifier', rarity: 'Uncommon', shop: true, iconBox: [60, 186, 32, 32], desc: 'A little teal-blue pacifier. Shh.' },
   // a bald head with no face at all (no brows, eyes or mouth): `blank` (render.js blankFace); icon from fire_eyes.js

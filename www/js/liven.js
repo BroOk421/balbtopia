@@ -347,7 +347,33 @@ function drawBoombox(x, y, px, py, T, i) {
   }
 }
 const boomNotes = new Map();
-const LIVE_DRAW = { torch: drawTorch, seaweed: drawSeaweed, boombox: drawBoombox };
+// Snap Plant / Hanging Snap Plant (owner, Oct 27 2026): their idle animation (hd/deco_d.js snapPose) runs on every
+// placed one, each tile on its own beat; a new one pops out of the ground (the hanging one drops down from above).
+function drawSnap(x, y, px, py, T, i, id) {
+  const f = (Math.floor(now / SNAP_MS) + Math.floor(liveHash(i, 7) * SNAP_FRAMES)) % SNAP_FRAMES,
+    c = decoCanvas(id, f),
+    age = bornAge(i);
+  if (age < 520) {
+    const u = age / 520,
+      k = Math.max(0.05, easeOutBack(u)),
+      sx = 0.6 + 0.4 * Math.min(1, u * 1.6);
+    if (id === 'hanging_guytrap') {
+      // grows down from the ceiling
+      g.save();
+      g.translate(px + T / 2, py);
+      g.scale(sx, k);
+      g.drawImage(c, -T / 2, 0, T, T);
+      g.restore();
+    } else drawScaled(c, px, py, T, sx, k);
+  } else g.drawImage(c, px, py, T, T);
+}
+const LIVE_DRAW = {
+  torch: drawTorch,
+  seaweed: drawSeaweed,
+  boombox: drawBoombox,
+  venus_guytrap: (x, y, px, py, T, i) => drawSnap(x, y, px, py, T, i, 'venus_guytrap'),
+  hanging_guytrap: (x, y, px, py, T, i) => drawSnap(x, y, px, py, T, i, 'hanging_guytrap'),
+};
 drawNewBlock = ((prev) =>
   function (b, x, y, px, py, T) {
     const d = b.art === 'deco' && LIVE_DRAW[b.id];
@@ -358,6 +384,7 @@ drawNewBlock = ((prev) =>
 BLOCK[TORCH_T].t0 = TORCH_T;
 BLOCK[SEAWEED_T].t0 = SEAWEED_T;
 BLOCK[BOOMBOX_T].t0 = BOOMBOX_T;
+for (const id of ['venus_guytrap', 'hanging_guytrap']) if (ITEMS[id] && ITEMS[id].block) BLOCK[ITEMS[id].block].t0 = ITEMS[id].block;
 
 // light and sound waves, drawn after the players and the water
 function drawLiveFx() {
