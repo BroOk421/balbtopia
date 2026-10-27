@@ -268,9 +268,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Rarity (farming.js `rarityOf`): Dirt 1, Cave 2, Rock 3, Lava 5; a spliced item = its two seeds' rarities added
   (cheapest recipe), so 1 to about 130; tiers by `rarityTier` (Common <=5, Uncommon <=15, Rare <=40, Epic <=80,
   Legendary). Shown in item info as "N · Tier". Items that don't grow from a seed have none.
-- Breaking a block or background (`act` in actions.js): the block drops with `DROP_BLOCK / (1 + r/15)`, its seed with
-  `DROP_SEED / (1 + r/20)`, gold with `GOLD_CHANCE + min(0.35, r/250)` (amount 1 + r/10 + 0-2): sometimes something,
-  sometimes nothing; rarer = fewer blocks and seeds back, more gold. No rarity (Shop items, locks): always drops back.
+- Breaking a block or background (`act` in actions.js): REPLACED Oct 28 2026 (build a) by one roll `breakDrop`, see
+  the Oct 28 entry at the end. No rarity (Shop items, locks): always drops back.
   `BLOCK_DROP_CHANCE` / `SEED_CHANCE` in config.js are no longer used for breaking.
 - GM bag (`isGM()`): `gmFillBag` gives every item in `ITEMS` (a stack of 200, or 1 of things you wear or hold),
   topped up when PLAY is pressed and whenever the bag opens; the bag has room for all (`bagSize`), and category tabs
@@ -1862,3 +1861,19 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   drawn by `dinoFeet`: a sole row in the foot's own shade (not under the heel), the toe 1 px further forward, ivory claws
   only at the front (two off the toe, one under it, one 3 px behind). The two dragons keep `bigClaws`.
   GAME_BUILD '2026-10-27 z3'.
+- Oct 28 2026 (build a, owner: "balance the drops"):
+  - Breaking a block / background is ONE roll (`breakDrop`, farming.js): the block, OR its seed, OR coins, OR nothing.
+    Chances slide with rarity on `rarityStep` = (ln r / ln 130)^2 (0 at Dirt, 1 at 130+): block `DROP_BLOCK` 35% -> 12%,
+    seed `DROP_SEED` 30% -> 10% (owner's "10-30%"). Coins ONLY from Rare / Epic / Legendary blocks
+    (`DROP_COIN_CHANCE` 15 / 20 / 25%); amount `goldDropAmount` = 1 + floor(u^2 x top), top Rare 4 + r/10, Epic r/4,
+    Legendary r/3 (r capped at 130): mostly 1-3, sometimes a lot (avg ~2.5-3 Rare, 4-7 Epic, 9-15 Legendary).
+    Common / Uncommon blocks never drop coins.
+  - A RIPE TREE GIVES NO SEED any more (punchTree): only its 1-4 blocks (+ treeGold, unchanged). Seeds come from
+    breaking those blocks. Simulated (10 seeds planted, every block broken, returned blocks broken again): back on
+    average ~11.5 Dirt, ~10-10.5 other Common, 8-10 Uncommon, 6-8 Rare, 4-6 Epic, ~3 Legendary (10th-90th percentile
+    e.g. Dirt 8-15), so Common / Uncommon are sometimes a loss, sometimes extra. A young tree broken still gives its
+    seeds back.
+  - Pet vanished while jumping (since build z): the pet trails PET_DELAY behind, so in the air it is ~50 px under your
+    feet, outside the shadow off-screen box (only 10 px under the feet), and was clipped. `petBox(c)` (shadow.js) grows
+    the box round the pet's last spot (petState) + a margin.
+  - GAME_BUILD '2026-10-28 a'.

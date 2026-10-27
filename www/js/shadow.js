@@ -27,6 +27,19 @@ function tagWidthOnly(name, flag) {
   const fh = Math.round(3.4 * Z);
   return w + Math.round((fh * FLAG_W) / FLAG_H) + Math.round(1.6 * Z);
 }
+// The worn pet trails behind (pets.js petFor: where you were PET_DELAY ago, eased): right after a jump it is still
+// down on the ground, ~50 px under your feet, and on the way down it is still up in the air. The box must hold it
+// too, or it is cut off (owner, Oct 28 2026: the pet vanished while jumping). Last frame's spot + a margin for the
+// little it moves this frame.
+function petBox(c) {
+  const id = c.equipped && c.equipped.pet;
+  if (!id || !PET_BY_ID[id] || typeof petState === 'undefined') return null;
+  const s = petState.get(c.id ? c.id : c.name === playerName ? 'me' : null);
+  if (!s || s.id !== id) return null;
+  const half = petWorldW(id) / 2 + 24,
+    up = PET_BY_ID[id].img ? 90 : 60; // its height, plus a flyer's hover over the ground
+  return { l: s.x - half, r: s.x + half, t: s.y - up, b: s.y + 14 };
+}
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
     if (!c || c.portrait || c.dead || shadowBusy || !(c.w > 0)) return prev(c, ox, oy); // (the ghost floats out of the box)
@@ -36,9 +49,10 @@ drawCharacter = ((prev) =>
     // the box on the screen (device px), clipped to the canvas
     const big = c.equipped && PET_BY_ID[c.equipped.pet] && PET_BY_ID[c.equipped.pet].img,
       side = big ? SHADOW_BOX.l : 46,
+      pb = petBox(c),
       m = main.getTransform(),
-      p0 = m.transformPoint(new DOMPoint(ox + (c.x - side) * Z, oy + (c.y - SHADOW_BOX.t) * Z)),
-      p1 = m.transformPoint(new DOMPoint(ox + (c.x + c.w + side) * Z, oy + (c.y + c.h + SHADOW_BOX.b) * Z)),
+      p0 = m.transformPoint(new DOMPoint(ox + Math.min(c.x - side, pb ? pb.l : Infinity) * Z, oy + Math.min(c.y - SHADOW_BOX.t, pb ? pb.t : Infinity) * Z)),
+      p1 = m.transformPoint(new DOMPoint(ox + Math.max(c.x + c.w + side, pb ? pb.r : -Infinity) * Z, oy + Math.max(c.y + c.h + SHADOW_BOX.b, pb ? pb.b : -Infinity) * Z)),
       x0 = Math.max(0, Math.floor(Math.min(p0.x, p1.x))),
       y0 = Math.max(0, Math.floor(Math.min(p0.y, p1.y))),
       x1 = Math.min(W, Math.ceil(Math.max(p0.x, p1.x))),

@@ -47,21 +47,48 @@ function rarityOf(id) {
   return (RARITY[id] = best);
 }
 const rarityTier = (r) => (r <= 5 ? 'Common' : r <= 15 ? 'Uncommon' : r <= 40 ? 'Rare' : r <= 80 ? 'Epic' : 'Legendary');
-// What a broken block or background gives, by its rarity: sometimes the block, sometimes its seed, sometimes gold,
-// sometimes nothing. Rarer blocks give the block and seed back less often but more gold.
+// What a broken block or background gives (owner, Oct 28 2026): ONE roll per break, so it is the block, OR its seed,
+// OR coins, OR nothing (`breakDrop`). Chances slide with the rarity (`rarityStep`: Dirt 0 .. 130 = 1):
+//   seed  DROP_SEED  30% -> 10%  (the owner's "10-30%": ripe trees give NO seed, breaking the blocks is the way)
+//   block DROP_BLOCK 35% -> 12%
+//   coins only Rare, Epic and Legendary blocks (`DROP_COIN_CHANCE`); Common / Uncommon never drop coins.
+// 10 seeds planted, every block broken (and the ones that come back broken again) give back on average about
+// 10-11 seeds for Common, 8-10 Uncommon, 6-8 Rare, 4-6 Epic, ~3 Legendary: sometimes a loss, sometimes a few extra.
 // Things that don't grow from a seed (Shop items, locks) always come back whole.
+// (squared, so Common / Uncommon stay near break-even and the drop-off comes at Rare and up)
+const rarityStep = (r) => Math.min(1, Math.max(0, Math.log(r) / Math.log(130))) ** 2;
+const lerpR = (a, r) => a[0] + (a[1] - a[0]) * rarityStep(r);
 function blockDropChance(id) {
   const r = rarityOf(id);
-  return r ? DROP_BLOCK / (1 + r / 15) : 1;
+  return r ? lerpR(DROP_BLOCK, r) : 1;
 }
 function seedDropChance(id) {
   const r = rarityOf(id);
-  return r && ITEMS[id + '_seed'] ? DROP_SEED / (1 + r / 20) : 0;
+  return r && ITEMS[id + '_seed'] ? lerpR(DROP_SEED, r) : 0;
 }
-function goldDropAmount(id) {
+function coinDropChance(id) {
   const r = rarityOf(id);
-  if (!r || Math.random() >= GOLD_CHANCE + Math.min(0.35, r / 250)) return 0;
-  return 1 + Math.floor(r / 10) + Math.floor(Math.random() * 3);
+  return r ? DROP_COIN_CHANCE[rarityTier(r)] || 0 : 0;
+}
+// how many coins: skewed low, so most coin drops are 1-2 and now and then a big one; the top grows with the tier
+// (Rare up to ~8, Epic ~10-20, Legendary ~27-43)
+function goldDropAmount(id) {
+  const r = Math.min(130, rarityOf(id) || 1), // (a few splices go past 130; the coins stop growing there)
+    t = rarityTier(r),
+    top = t === 'Legendary' ? r / 3 : t === 'Epic' ? r / 4 : 4 + r / 10,
+    u = Math.random();
+  return 1 + Math.floor(u * u * top);
+}
+// the single roll: { block, seed, gold } (at most one of them)
+function breakDrop(id) {
+  const out = { block: false, seed: false, gold: 0 },
+    pb = blockDropChance(id);
+  if (pb >= 1) return ((out.block = true), out); // no rarity: always back
+  let u = Math.random();
+  if ((u -= pb) < 0) out.block = true;
+  else if ((u -= seedDropChance(id)) < 0) out.seed = true;
+  else if ((u -= coinDropChance(id)) < 0) out.gold = goldDropAmount(id);
+  return out;
 }
 function canPlant(x, y) {
   const i = at(x, y);
@@ -145,7 +172,7 @@ function punchTree(x, y) {
   burst(x, y, -2, 10);
   for (let k = 0; k < t.fruit; k++)
     spawnDrop(t.seed, x * TS + 8 + Math.random() * 16, y * TS + 10 + Math.random() * 10);
-  dropSeed(t.seed, x, y);
+  // no seed from a ripe tree (owner, Oct 28 2026): seeds only come from breaking the blocks it gave
   const gold = treeGold(t.seed);
   if (gold) spawnCoins(x, y, gold);
 }

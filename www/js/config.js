@@ -756,10 +756,11 @@ const TREE_HITS = 3; // punches that break a tree that is still growing (gives i
 const TREE_HIT_FORGET = 5; // seconds before those punches are forgotten
 // harvesting a ripe tree of rarity r: gold with TREE_GOLD_CHANCE + min(0.5, r / 120), 1 + r/5 + a bit (treeGold)
 const TREE_GOLD_CHANCE = 0.35;
-const GOLD_CHANCE = 0.05; // chance that breaking a block also drops gold (rarer blocks: more, see goldDropAmount)
-// breaking a block of rarity r: the block drops with DROP_BLOCK / (1 + r / 15), its seed with DROP_SEED / (1 + r / 20)
-const DROP_BLOCK = 0.4,
-  DROP_SEED = 0.55;
+// breaking a block of rarity r (one roll, farming.js breakDrop): the block with DROP_BLOCK, its seed with DROP_SEED
+// ([Dirt, rarity 130], sliding on a log scale), coins only from Rare / Epic / Legendary blocks with DROP_COIN_CHANCE
+const DROP_BLOCK = [0.35, 0.12],
+  DROP_SEED = [0.3, 0.1],
+  DROP_COIN_CHANCE = { Rare: 0.15, Epic: 0.2, Legendary: 0.25 };
 const GOLD_AMOUNT = [1, 3]; // how much gold one drop gives (min, max)
 // game masters: everything in the Shop is free for them (lower-case usernames)
 const GM_USERS = ["anTz"]; // (renamed from tae123, Oct 27 2026: supabase/rename_gm.sql)

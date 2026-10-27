@@ -254,7 +254,8 @@ function act() {
         questTick('break', id); // daily quest (quests.js)
         // a Red / Blue Lock goes back into its owner's bag and its area is free again (alocks.js)
         if (b.alock) return alockBroken(i, id);
-        const gotBlock = Math.random() < blockDropChance(id);
+        const got = breakDrop(id), // one roll: the block, its seed, coins or nothing (farming.js)
+          gotBlock = got.block;
         if (gotBlock) spawnDrop(id, x * TS + 16, y * TS + 16);
         if (b.lock) {
           worldOwner = null;
@@ -265,11 +266,10 @@ function act() {
           saveWorld();
           return;
         }
-        const gotSeed = dropSeed(id, x, y);
+        const gotSeed = got.seed && dropSeed(id, x, y);
         // a Wet Sponge always gives something back: its Sponge or, failing that, a Sponge seed (sponge.js)
         if (b.dropAs && !gotBlock && !gotSeed) spawnDrop(id + '_seed', x * TS + 16, y * TS + 20);
-        const gold = goldDropAmount(id);
-        if (gold) spawnCoins(x, y, gold);
+        if (got.gold) spawnCoins(x, y, got.gold);
       }
     } else if (bg[i]) {
       bgDmg[i]++;
@@ -286,10 +286,10 @@ function act() {
         bg[i] = 0;
         bgDmg[i] = 0;
         smoke(x, y, 9, 1.4);
-        if (Math.random() < blockDropChance(bk.id)) spawnDrop(bk.id, x * TS + 16, y * TS + 16);
-        dropSeed(bk.id, x, y);
-        const gold = goldDropAmount(bk.id);
-        if (gold) spawnCoins(x, y, gold);
+        const got = breakDrop(bk.id);
+        if (got.block) spawnDrop(bk.id, x * TS + 16, y * TS + 16);
+        if (got.seed) dropSeed(bk.id, x, y);
+        if (got.gold) spawnCoins(x, y, got.gold);
       }
     }
     return;
@@ -423,9 +423,9 @@ function smoke(x, y, n, power) {
   }
 }
 // an item floating in the world; joins a nearby drop of the same kind
-// seeds fall out of broken blocks (and harvested trees), less often the rarer the item (seedDropChance)
+// a seed falls out of a broken block (the chance is rolled in breakDrop, farming.js; ripe trees give none)
 function dropSeed(id, x, y) {
-  if (Math.random() >= seedDropChance(id)) return false;
+  if (!ITEMS[id + '_seed']) return false;
   spawnDrop(id + '_seed', x * TS + 16 + (Math.random() < 0.5 ? -6 : 6), y * TS + 20);
   return true;
 }
