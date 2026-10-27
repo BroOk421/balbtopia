@@ -75,9 +75,9 @@ const Net = (() => {
   const userOf = (u) => u && { id: u.id, name: (u.user_metadata && u.user_metadata.username) || u.email.split('@')[0] };
   // New accounts go through the "signup" Edge Function (supabase/functions/signup): at most 3 accounts per IP address.
   // If that function isn't deployed yet, the old direct sign-up is used (no limit then).
-  N.signUp = async (user, pass) => {
+  N.signUp = async (user, pass, email) => {
     try {
-      const { error } = await sb.functions.invoke('signup', { body: { username: user, password: pass } });
+      const { error } = await sb.functions.invoke(typeof SUPABASE_FN_SIGNUP === 'string' && SUPABASE_FN_SIGNUP ? SUPABASE_FN_SIGNUP : 'signup', { body: { username: user, password: pass, email } });
       if (!error) return N.signIn(user, pass);
       const res = error.context;
       const status = res && res.status;
@@ -92,7 +92,43 @@ const Net = (() => {
     } catch (e) {
       // network trouble reaching the function: fall back below
     }
-    return N.signUpDirect(user, pass);
+    const e = await N.signUpDirect(user, pass);
+    if (!e && email) await N.setEmail(email); // no signup function: keep the e-mail straight after
+    return e;
+  };
+  // Forgot password (password-reset Edge Function): { action, username, code?, password? } -> { error } or { ok, to }
+  N.resetPassword = async (body) => {
+    try {
+      const { data, error } = await sb.functions.invoke(typeof SUPABASE_FN_RESET === 'string' && SUPABASE_FN_RESET ? SUPABASE_FN_RESET : 'password-reset', { body });
+      if (!error) return data || { ok: true };
+      const res = error.context;
+      try {
+        const j = await res.json();
+        if (j && j.error) return { error: j.error };
+      } catch (e) {}
+      if (res && res.status === 404) return { error: 'Forgot password is not set up on the server yet' };
+      return { error: 'Something went wrong (' + ((res && res.status) || 'no connection') + ')' };
+    } catch (e) {
+      return { error: 'No connection. Try again' };
+    }
+  };
+  // recovery e-mail (schema.sql set_my_email / my_email): null = saved, else why not
+  N.setEmail = async (email) => {
+    try {
+      const { error } = await sb.rpc('set_my_email', { p_email: email });
+      if (!error) return null;
+      return /set_my_email|PGRST202|42883/.test(error.message + error.code) ? 'Not set up on the server yet' : error.message;
+    } catch (e) {
+      return 'No connection. Try again';
+    }
+  };
+  N.myEmail = async () => {
+    try {
+      const { data, error } = await sb.rpc('my_email');
+      return error ? null : data || null;
+    } catch (e) {
+      return null;
+    }
   };
   N.signUpDirect = async (user, pass) => {
     try {
@@ -232,8 +268,12 @@ const Net = (() => {
   const lastWorld = {};
   // returns { ...world } or null when the world doesn't exist yet; throws when offline
   const lockV = {}; // world -> its lock version on the server (null: not saved yet)
+  // (Oct 27 2026) worlds are read through server functions (schema.sql WORLD READS); an older server without them:
+  // the table, as before
+  const noFn = (error) => !!error && (error.code === 'PGRST202' || error.code === '42883');
   N.loadWorld = async (name) => {
-    const { data, error } = await sb.from('worlds').select(N.secure ? 'data,owner,lockv' : 'data,owner').eq('name', name).maybeSingle();
+    let { data, error } = await sb.rpc('load_world', { p_name: name });
+    if (noFn(error)) ({ data, error } = await sb.from('worlds').select(N.secure ? 'data,owner,lockv' : 'data,owner').eq('name', name).maybeSingle());
     if (error) throw error;
     lockV[name] = data ? data.lockv | 0 : null;
     if (!data) return null;
@@ -267,12 +307,9 @@ const Net = (() => {
   N.ownWorlds = [];
   N.refreshOwnWorlds = async () => {
     try {
-      const { data, error } = await sb
-        .from('worlds')
-        .select('name,owner,updated_at')
-        .ilike('owner', playerName)
-        .order('updated_at', { ascending: false })
-        .limit(100);
+      let { data, error } = await sb.rpc('my_worlds');
+      if (noFn(error))
+        ({ data, error } = await sb.from('worlds').select('name,owner,updated_at').ilike('owner', playerName).order('updated_at', { ascending: false }).limit(100));
       if (error) throw error;
       const list = data.map((r) => ({ name: r.name, owner: r.owner, visited: Date.parse(r.updated_at) || 0 }));
       const changed = JSON.stringify(list) !== JSON.stringify(N.ownWorlds);
@@ -286,10 +323,14 @@ const Net = (() => {
   // the list at the main door and in the menu; returns true when it changed
   N.refreshWorlds = async () => {
     try {
-      // jam: the world's jammers, read out of its saved data (older servers: without it)
-      const q = (cols) => sb.from('worlds').select(cols).order('updated_at', { ascending: false }).limit(100);
-      let { data, error } = await q('name,owner,updated_at,jam:data->jam');
-      if (error) ({ data, error } = await q('name,owner,updated_at'));
+      // only the worlds in OUR list (the ones we've been to), never the whole table; jam = their jammers
+      const names = (typeof seenWorlds !== 'undefined' ? seenWorlds.map((s) => s.n) : []).slice(0, 60);
+      let { data, error } = await sb.rpc('world_infos', { p_names: names });
+      if (noFn(error)) {
+        const q = (cols) => sb.from('worlds').select(cols).in('name', names.length ? names : ['-']);
+        ({ data, error } = await q('name,owner,updated_at,jam:data->jam'));
+        if (error) ({ data, error } = await q('name,owner,updated_at'));
+      }
       if (error) throw error;
       const list = data.map((r) => ({ name: r.name, owner: r.owner, visited: Date.parse(r.updated_at) || 0, jam: r.jam || null }));
       const changed = JSON.stringify(list) !== JSON.stringify(N.worldList);
@@ -391,7 +432,8 @@ const Net = (() => {
     if (checkingV || name !== joinedName) return;
     checkingV = true;
     try {
-      const { data } = await sb.from('worlds').select('lockv,owner,lock:data->lock').eq('name', name).maybeSingle();
+      let { data, error } = await sb.rpc('world_lock_info', { p_name: name });
+      if (noFn(error)) ({ data } = await sb.from('worlds').select('lockv,owner,lock:data->lock').eq('name', name).maybeSingle());
       if (data && name === joinedName && (data.lockv | 0) !== lockV[name]) {
         // the owner or the lock changed on the server (e.g. a World Key was used): take the server's
         if ((data.owner || null) !== worldOwner) {
@@ -1099,7 +1141,7 @@ const Net = (() => {
       const k = r.dead ? 0 : Math.min(1, dt * 12);
       r.x += (r.tx - r.x) * k;
       r.y += (r.ty - r.y) * k;
-      if (r.walking) r.walkPh += dt * 10; // strides for everyone
+      if (r.walking) r.walkPh += dt * (typeof walkRate === 'function' ? walkRate(r.vx || 160) : 10); // strides for everyone, as fast as they walk
       if (r.punch && (r.punch.t += dt) >= PUNCH_TIME) r.punch = null;
       if (r.angry > 0) r.angry -= dt;
       if (r.place && ((r.place.t += dt) >= PLACE_POSE || r.walking || Math.abs(r.tx - r.place.sx) > 1.5 || Math.abs(r.ty - r.place.sy) > 1.5)) r.place = null;
@@ -1209,9 +1251,33 @@ const Net = (() => {
     if (!peopleTimer) peopleTimer = setTimeout(() => ((peopleTimer = null), refreshPeople()), 2000);
   }
   // say hello every 20 s wherever we are (a world, or '' in our own lobby / on the PLAY screen), then refresh the list
+  // GM bans (/gban, schema.sql gm_ban): a player banned while playing is signed out at the next hello (~20 s)
+  async function banCheck() {
+    if (!N.secure || !N.me) return;
+    try {
+      const { data, error } = await sb.rpc('am_i_banned');
+      if (error || data === null || data === undefined) return;
+      clearInterval(helloTimer);
+      alert('This account is banned' + (data ? ': ' + data : ''));
+      await N.signOut();
+      try {
+        if (typeof setSession === 'function') setSession(null);
+      } catch (e) {}
+      location.reload();
+    } catch (e) {}
+  }
+  N.gmBan = async (name, on, reason) => {
+    try {
+      const { data, error } = await sb.rpc('gm_ban', { p_name: name, p_on: on, p_reason: reason || '' });
+      if (error) return /No player/i.test(error.message) ? 'No player called "' + name + '"' : error.message;
+      return data ? null : 'Something went wrong';
+    } catch (e) {
+      return 'No connection. Try again';
+    }
+  };
   function startHello() {
     if (helloTimer) return;
-    const beat = () => worldHello(inWorld && joinedName ? joinedName : '').then(refreshPeople); // (not in a world: '')
+    const beat = () => (banCheck(), worldHello(inWorld && joinedName ? joinedName : '').then(refreshPeople)); // (not in a world: '')
     beat();
     helloTimer = setInterval(() => N.me && beat(), HELLO_EVERY);
   }
@@ -1388,6 +1454,18 @@ const Net = (() => {
     if (!sb || !N.me) return null;
     const { data, error } = await sb.from('worlds').select('data').eq('name', name).maybeSingle();
     return error || !data ? null : data.data;
+  };
+  // Mystery Door: is there a world called w / a door #id in it? (server functions; older servers: peekWorld)
+  // returns null (yes), 'world' (no such world), 'door' (no such door) or undefined (old server: use peekWorld)
+  N.doorCheck = async (w, id) => {
+    if (!sb || !N.me) return undefined;
+    const a = await sb.rpc('world_exists', { p_name: w });
+    if (noFn(a.error)) return undefined;
+    if (a.error) throw a.error;
+    if (!a.data) return 'world';
+    const b = await sb.rpc('world_door_exists', { p_world: w, p_id: id });
+    if (b.error) throw b.error;
+    return b.data ? null : 'door';
   };
   // ---------- letters in a Mailbox (schema.sql mailbox_letters; mailbox.js) ----------
   // the letters in this world's Mailboxes: everyone gets who sent it and the subject; the world's owner also gets the

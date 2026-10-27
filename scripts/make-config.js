@@ -49,6 +49,11 @@ if (found) {
 // real environment variables win (CI secrets)
 const url = (process.env.SUPABASE_URL || env.SUPABASE_URL || '').trim();
 const key = (process.env.SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '').trim();
+// Edge Function addresses (the dashboard editor may give them random ones like "rapid-endpoint"): the last part of
+// the function's URL, or the whole URL. Empty = the default names "signup" / "password-reset".
+const slug = (v, d) => (String(v || '').trim().replace(/\/+$/, '').split('/').pop() || d);
+const fnSignup = slug(process.env.SUPABASE_FN_SIGNUP || env.SUPABASE_FN_SIGNUP, 'signup');
+const fnReset = slug(process.env.SUPABASE_FN_RESET || env.SUPABASE_FN_RESET, 'password-reset');
 
 function looksSecret(k) {
   if (k.startsWith('sb_secret_')) return true;
@@ -68,10 +73,13 @@ fs.writeFileSync(
   `// Made by scripts/make-config.js from .env. Don't edit by hand: change .env and run "npm run config".
 const SUPABASE_URL = ${JSON.stringify(url)};
 const SUPABASE_ANON_KEY = ${JSON.stringify(key)};
+const SUPABASE_FN_SIGNUP = ${JSON.stringify(fnSignup)};
+const SUPABASE_FN_RESET = ${JSON.stringify(fnReset)};
 `,
 );
 if (url && !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url))
   console.warn('! SUPABASE_URL should look like https://xxxx.supabase.co (got "' + url + '")');
 if (url && !key) console.warn('! SUPABASE_ANON_KEY is empty');
 console.log(url && key ? `✓ online-config.js: online (${url})` : '✓ online-config.js: offline (no SUPABASE_URL / SUPABASE_ANON_KEY)');
+console.log('  functions: signup -> ' + fnSignup + ', forgot password -> ' + fnReset);
 console.log('  written to ' + out);

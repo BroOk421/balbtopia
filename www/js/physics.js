@@ -231,12 +231,18 @@ function respawn() {
   P.face = 1;
   smoke(sx, sy, 10, 1.2);
 }
+// stride frames a second for a walking speed (px/s): WALK_FPS at the normal 160 px/s, in step with the speed, so
+// faster shoes move the feet faster too (12 frames make one full two-step stride)
+const WALK_FPS = 15;
+function walkRate(vx) {
+  return WALK_FPS * Math.min(2, Math.max(0.5, Math.abs(vx || 0) / 160));
+}
 // drops, arm poses, smoke, particles and floating text (also while dead)
 function stepFx(dt) {
   stepToolFx(dt);
   if (Math.abs(P.vx) > 20 && P.ground) {
     P.walkT += dt;
-    P.walkPh += dt * (walkStyle === 'step' ? 13 : 10) * Math.min(1.2, Math.abs(P.vx) / 160);
+    P.walkPh += dt * walkRate(P.vx); // (owner, Oct 27 2026: faster, and the feet keep up with faster shoes)
   } else {
     P.walkT = 0;
     P.walkPh = 0;

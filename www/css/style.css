@@ -174,7 +174,8 @@ kbd {
   gap: 6px;
 }
 .wsearch input,
-.pname input {
+.pname input,
+.fpin {
   flex: 1;
   min-width: 0;
   font-family: var(--pixel);
@@ -188,7 +189,8 @@ kbd {
   box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35);
 }
 .wsearch input:focus,
-.pname input:focus {
+.pname input:focus,
+.fpin:focus {
   outline: 2px solid var(--sun);
   outline-offset: 1px;
 }
@@ -4403,4 +4405,62 @@ body.mannmode.mailmode {
   .eslots .ecol {
     gap: 3px;
   }
+}
+
+/* Forgot password / e-mail pop-ups (auth.js, Oct 27 2026) */
+.fpin {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0;
+}
+.dlg .werr:empty {
+  display: none;
+}
+.sqbtn.pemail {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+#aEmail,
+.fpin {
+  text-transform: none;
+}
+
+.fpin.fpup {
+  text-transform: uppercase;
+}
+
+/* GM cheat log (gmwatch.js) */
+.cheatlist {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: min(46vh, 300px);
+  overflow: auto;
+}
+.cheatrow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+}
+.cheatrow .cwho {
+  font-weight: 700;
+}
+.cheatrow .cwhat,
+.cheatrow .cwhen {
+  grid-column: 1;
+  opacity: 0.85;
+}
+.cheatrow .cwhen {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.cheatrow .cban {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
 }

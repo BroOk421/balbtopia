@@ -252,6 +252,16 @@ async function qdAdd(i) {
 // does door #id exist in world w? null = yes, else why not
 async function qdCheck(w, id) {
   if (w === worldName) return doorById(id) >= 0 ? null : 'There is no door #' + id + ' in this world';
+  if (Net.online && Net.me) {
+    try {
+      const r = await Net.doorCheck(w, id);
+      if (r === 'world') return 'There is no world called ' + w;
+      if (r === 'door') return w + ' has no door #' + id;
+      if (r === null) return null;
+    } catch (e) {
+      return "Couldn't check " + w + '. Try again';
+    }
+  }
   let data = null;
   try {
     data = Net.online && Net.me ? await Net.peekWorld(w) : (store().worlds || {})[w] || null;

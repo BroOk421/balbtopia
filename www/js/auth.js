@@ -68,11 +68,13 @@ async function hashPass(pass, salt, algo) {
   return { algo: 'fnv', hash: h.toString(16) };
 }
 
-async function register(user, pass, pass2) {
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+async function register(user, pass, pass2, email) {
   if (!USER_RE.test(user)) return 'Username: 3 to 16 letters or numbers (no symbols)';
+  if (Net.online && !EMAIL_RE.test(email || '')) return 'Type your e-mail (for when you forget your password)';
   if (pass.length < PASS_MIN) return 'Password needs at least ' + PASS_MIN + ' characters';
   if (pass !== pass2) return 'Passwords do not match';
-  if (Net.online) return Net.signUp(user, pass);
+  if (Net.online) return Net.signUp(user, pass, email);
   const all = accounts(),
     id = user.toLowerCase();
   if (all[id]) return 'That username is taken';
@@ -183,6 +185,7 @@ function setAuthMode(m) {
     .querySelectorAll('.atabs button')
     .forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
   $('aPass2L').hidden = m !== 'register';
+  $('aEmailL').hidden = m !== 'register' || !Net.online; // offline accounts live on this device only
   $('aPwRow').classList.toggle('two', m === 'register'); // password + confirm on one row
   $('aRememberL').hidden = m === 'register'; // (owner, Oct 25 2026: no "Stay logged in" on Register; a new account stays logged in)
   $('aRemember').checked = true;
@@ -210,7 +213,7 @@ function initAuth() {
     $('aGo').disabled = true;
     try {
       const err =
-        authMode === 'register' ? await register(user, pass, $('aPass2').value) : await login(user, pass);
+        authMode === 'register' ? await register(user, pass, $('aPass2').value, $('aEmail').value.trim()) : await login(user, pass);
       if (err) {
         $('aErr').textContent = err;
         return;
@@ -234,8 +237,8 @@ function initAuth() {
     }
   };
   $('logout2').onclick = logout;
-  // Forgot password: only the button for now (owner, Oct 26 2026: how it resets is decided later)
-  $('aForgot').onclick = () => toast('Forgot password is coming soon');
+  // Forgot password (owner, Oct 27 2026): a 6-digit code to the account's e-mail (Brevo, password-reset Edge Function)
+  $('aForgot').onclick = () => forgotPassword($('aUser').value.trim());
   if (Net.online) return initOnline();
   setAuthMode(Object.keys(accounts()).length ? 'login' : 'register');
   // still logged in from last time
@@ -257,4 +260,97 @@ async function initOnline() {
     renderBars();
     updateGold();
   } else setTimeout(() => $('aUser').focus(), 50);
+}
+
+// ---------- Forgot password (owner, Oct 27 2026) ----------
+// Step 1: username -> the server e-mails a code to the account's recovery e-mail. Step 2: code + new password.
+function forgotPassword(user0) {
+  if (!Net.online) return toast('Forgot password works when playing online');
+  // the username is shown and sent in capitals (owner, Oct 27 2026; names are matched ignoring case)
+  setTimeout(() => {
+    const u = document.getElementById('fpUser');
+    if (u) u.addEventListener('input', () => {
+      const v = u.value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+      if (v !== u.value) u.value = v;
+    });
+  }, 0);
+  const err = (body, t) => (body.querySelector('.werr').textContent = t || '');
+  dialog(
+    'FORGOT PASSWORD',
+    `<p class="dtext">Type your username. We will send a code to the e-mail of that account.</p>
+     <p class="werr"></p>
+     <input id="fpUser" class="fpin fpup" maxlength="16" spellcheck="false" autocomplete="username" placeholder="USERNAME" value="${esc((user0 || '').toUpperCase())}" />`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => true },
+      {
+        label: 'Send code',
+        run: async (body) => {
+          const user = body.querySelector('#fpUser').value.trim().toUpperCase();
+          if (!USER_RE.test(user) && !/^[A-Za-z0-9_]{3,16}$/.test(user)) return err(body, 'Type your username'), false;
+          err(body, 'Sending...');
+          const r = await Net.resetPassword({ action: 'request', username: user });
+          if (r.error) return err(body, r.error), false;
+          setTimeout(() => forgotCode(user, r.to), 0);
+          return true;
+        },
+      },
+    ],
+  );
+}
+function forgotCode(user, to) {
+  const err = (body, t) => (body.querySelector('.werr').textContent = t || '');
+  dialog(
+    'NEW PASSWORD',
+    `<p class="dtext">We sent a 6-number code to ${esc(to || 'your e-mail')}. Check spam too.</p>
+     <p class="werr"></p>
+     <input id="fpCode" class="fpin" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Code" />
+     <input id="fpPass" class="fpin" type="password" maxlength="64" autocomplete="new-password" placeholder="New password" />
+     <input id="fpPass2" class="fpin" type="password" maxlength="64" autocomplete="new-password" placeholder="Confirm new password" />`,
+    [
+      { label: 'Resend', cls: 'ghost', run: () => (forgotPassword(user), false) },
+      {
+        label: 'Change',
+        run: async (body) => {
+          const code = body.querySelector('#fpCode').value.replace(/\D/g, ''),
+            pass = body.querySelector('#fpPass').value;
+          if (code.length !== 6) return err(body, 'The code is 6 numbers'), false;
+          if (pass.length < PASS_MIN) return err(body, 'Password needs at least ' + PASS_MIN + ' characters'), false;
+          if (pass !== body.querySelector('#fpPass2').value) return err(body, 'Passwords do not match'), false;
+          err(body, 'Changing...');
+          const r = await Net.resetPassword({ action: 'confirm', username: user, code, password: pass });
+          if (r.error) return err(body, r.error), false;
+          setAuthMode('login');
+          $('aUser').value = user;
+          $('aPass').value = '';
+          toast('Password changed. Log in with your new password');
+          return true;
+        },
+      },
+    ],
+  );
+}
+// Menu -> Profile -> E-MAIL: add or change the recovery e-mail (accounts made before Oct 27 2026 have none)
+async function editEmail() {
+  if (!Net.online) return toast('E-mail works when playing online');
+  const cur = (await Net.myEmail()) || '';
+  dialog(
+    'E-MAIL',
+    `<p class="dtext">${cur ? 'Your e-mail for Forgot password:' : 'Add an e-mail so you can reset your password if you forget it.'}</p>
+     <p class="werr"></p>
+     <input id="emIn" class="fpin" type="email" maxlength="120" spellcheck="false" placeholder="you@example.com" value="${esc(cur)}" />`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => true },
+      {
+        label: 'Save',
+        run: async (body) => {
+          const e = body.querySelector('#emIn').value.trim();
+          if (!EMAIL_RE.test(e)) return (body.querySelector('.werr').textContent = "That e-mail doesn't look right"), false;
+          const r = await Net.setEmail(e);
+          if (r) return (body.querySelector('.werr').textContent = r), false;
+          toast('E-mail saved');
+          return true;
+        },
+      },
+    ],
+  );
 }

@@ -56,7 +56,7 @@ const isGM = () => {
   try {
     if (Net.online && Net.secure) return Net.gm;
   } catch (e) {}
-  return GM_USERS.includes(String(playerName).toLowerCase());
+  return GM_USERS.some((g) => g.toLowerCase() === String(playerName).toLowerCase());
 };
 // adds n of an item: tops up stacks that aren't full, then fills new slots, MAXSTACK per slot.
 // Adds nothing (and returns false) when it all doesn't fit.

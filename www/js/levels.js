@@ -149,12 +149,16 @@ profile = function (el) {
   const waiting = rewardsWaiting();
   row.innerHTML = `<button class="sqbtn" type="button" id="lvRewards" title="Level rewards" aria-label="Level rewards">${TROPHY_SVG}${
     waiting ? `<i class="dot">${waiting}</i>` : ''
-  }</button><button class="sqbtn" type="button" id="pFlag" title="Your flag" aria-label="Your flag"></button>`;
+  }</button><button class="sqbtn" type="button" id="pFlag" title="Your flag" aria-label="Your flag"></button>${
+    Net.online ? '<button class="sqbtn pemail" type="button" id="pEmail" title="E-mail for Forgot password" aria-label="E-mail">@</button>' : ''
+  }`;
   const fb = row.querySelector('#pFlag');
   if (myFlag && flagCanvas(myFlag)) fb.appendChild(picCopy(flagCanvas(myFlag)));
   else fb.textContent = 'FLAG';
   row.querySelector('#lvRewards').onclick = openRewards;
   fb.onclick = openFlagPicker;
+  const eb = row.querySelector('#pEmail');
+  if (eb) eb.onclick = editEmail;
   h.after(row);
 };
 function openFlagPicker() {

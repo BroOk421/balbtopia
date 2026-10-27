@@ -21,7 +21,9 @@ create index if not exists worlds_updated_at on public.worlds (updated_at desc);
 -- let logged-in players use the tables through the API (newer projects don't do this by default)
 grant usage on schema public to authenticated;
 grant select, insert, update on public.players to authenticated;
-grant select on public.worlds to authenticated; -- writes only through save_world (SECURITY, below)
+-- worlds: NO direct reads or writes (Oct 27 2026): reads go through load_world / world_infos / my_worlds /
+-- world_lock_info / world_door_exists, writes through save_world (both below)
+revoke select on public.worlds from anon, authenticated;
 
 alter table public.players enable row level security;
 alter table public.worlds enable row level security;
@@ -34,11 +36,10 @@ create policy "own save: read" on public.players for select to authenticated usi
 create policy "own save: insert" on public.players for insert to authenticated with check (auth.uid() = id);
 create policy "own save: update" on public.players for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
--- worlds: any logged-in player can read them; changes go through save_world (SECURITY, at the end)
+-- worlds: read through the functions in "WORLD READS" (end of file); changes go through save_world
 drop policy if exists "worlds: read" on public.worlds;
 drop policy if exists "worlds: insert" on public.worlds; -- (old: anyone could write any world)
 drop policy if exists "worlds: update" on public.worlds;
-create policy "worlds: read" on public.worlds for select to authenticated using (true);
 
 -- email between players: you can send to anyone, and only read / change / delete your own inbox
 create table if not exists public.mail (
@@ -138,7 +139,8 @@ $$;
 create table if not exists public.gms (name text primary key);
 alter table public.gms enable row level security;
 revoke all on public.gms from anon, authenticated;
-insert into public.gms (name) values ('tae123') on conflict do nothing;
+-- (the GM was tae123 until Oct 27 2026, renamed with supabase/rename_gm.sql)
+insert into public.gms (name) select 'anTz' where not exists (select 1 from public.usernames where lower(name) = 'tae123') on conflict do nothing;
 
 create or replace function public.is_gm()
 returns boolean language sql stable security definer set search_path = public as $$
@@ -182,6 +184,10 @@ begin
   if not public.is_gm() then raise exception 'Only a GM can ban' using errcode = '42501'; end if;
   select id into uid from public.usernames where lower(name) = lower(p_name);
   if uid is null then raise exception 'No player called %', p_name; end if;
+  if p_on and uid = auth.uid() then raise exception 'You can''t ban yourself' using errcode = 'P0001'; end if;
+  if p_on and exists (select 1 from public.gms g where lower(g.name) = lower(p_name)) then
+    raise exception 'A GM can''t be banned' using errcode = 'P0001';
+  end if;
   if p_on then
     insert into public.bans (id, reason, by_name) values (uid, left(coalesce(p_reason, ''), 200), public.my_name())
     on conflict (id) do update set reason = excluded.reason, by_name = excluded.by_name, created_at = now();
@@ -2313,3 +2319,125 @@ begin
   return 'back';
 end $$;
 grant execute on function public.gift_send(uuid, text, bigint), public.gift_take(bigint), public.gift_back(bigint) to authenticated;
+
+-- =====================================================================================================
+-- RECOVERY E-MAIL + FORGOT PASSWORD (Oct 27 2026, owner). Logins still use the made-up
+-- name@players.balbtopia.app address; the player's REAL e-mail is kept here, only for password resets.
+-- The "signup" Edge Function saves it at sign-up; players add / change theirs with set_my_email (Menu -> Profile).
+-- The "password-reset" Edge Function (service role) sends a 6-digit code through Brevo and sets the new password.
+-- Players can't read these tables directly.
+-- =====================================================================================================
+create table if not exists public.account_emails (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  email text not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.account_emails enable row level security;
+revoke all on public.account_emails from anon, authenticated;
+
+create table if not exists public.password_resets (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  code_hash text not null,
+  expires_at timestamptz not null,
+  tries int not null default 0,
+  sent_at timestamptz not null default now()
+);
+alter table public.password_resets enable row level security;
+revoke all on public.password_resets from anon, authenticated;
+
+-- every code request, for the per-connection limit (hash of the IP only)
+create table if not exists public.password_reset_log (
+  ip_hash text not null,
+  at timestamptz not null default now()
+);
+create index if not exists password_reset_log_ip on public.password_reset_log (ip_hash, at);
+alter table public.password_reset_log enable row level security;
+revoke all on public.password_reset_log from anon, authenticated;
+
+create or replace function public.set_my_email(p_email text)
+returns void language plpgsql security definer set search_path = public as $$
+declare e text := lower(trim(coalesce(p_email, '')));
+begin
+  if auth.uid() is null then raise exception 'Log in first' using errcode = 'P0001'; end if;
+  if length(e) > 120 or e !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
+    raise exception 'That e-mail doesn''t look right' using errcode = 'P0001';
+  end if;
+  if e like '%@players.balbtopia.app' then raise exception 'Use your real e-mail' using errcode = 'P0001'; end if;
+  insert into public.account_emails (user_id, email) values (auth.uid(), e)
+    on conflict (user_id) do update set email = excluded.email, updated_at = now();
+end $$;
+revoke execute on function public.set_my_email(text) from public, anon;
+grant execute on function public.set_my_email(text) to authenticated;
+
+-- your own recovery e-mail (null = none yet)
+create or replace function public.my_email()
+returns text language sql stable security definer set search_path = public as $$
+  select email from public.account_emails where user_id = auth.uid()
+$$;
+revoke execute on function public.my_email() from public, anon;
+grant execute on function public.my_email() to authenticated;
+
+
+-- =====================================================================================================
+-- WORLD READS (Oct 27 2026, owner): the worlds table can't be read directly any more (before, any signed-in player
+-- could download every world with the API). Only these, one world (or a short named list) at a time:
+--   load_world(name)          the world you are entering: { data, owner, lockv } or null (refused if banned there)
+--   world_lock_info(name)     { lockv, owner, lock } of a world (lock version checks while you are in it)
+--   world_infos(names[])      owner / last change / jammers of up to 60 NAMED worlds (your own world list)
+--   my_worlds()               the worlds you own (Menu -> Worlds)
+--   world_door_exists(w, id)  does world w have door #id (Mystery Door destinations)
+-- =====================================================================================================
+create or replace function public.load_world(p_name text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare r record;
+begin
+  if auth.uid() is null then raise exception 'Not signed in' using errcode = '42501'; end if;
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  if public.world_banned(p_name) then raise exception 'You are banned from this world' using errcode = '42501'; end if;
+  select data, owner, lockv into r from public.worlds where name = p_name;
+  if not found then return null; end if;
+  return jsonb_build_object('data', r.data, 'owner', r.owner, 'lockv', r.lockv);
+end $$;
+
+create or replace function public.world_lock_info(p_name text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select case when auth.uid() is null then null else
+    (select jsonb_build_object('lockv', w.lockv, 'owner', w.owner, 'lock', w.data -> 'lock') from public.worlds w where w.name = p_name)
+  end
+$$;
+
+create or replace function public.world_infos(p_names text[])
+returns table (name text, owner text, updated_at timestamptz, jam jsonb)
+language sql stable security definer set search_path = public as $$
+  select w.name, w.owner, w.updated_at, w.data -> 'jam'
+  from public.worlds w
+  where auth.uid() is not null
+    and w.name = any (p_names[1:60])
+$$;
+
+create or replace function public.my_worlds()
+returns table (name text, owner text, updated_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select w.name, w.owner, w.updated_at from public.worlds w
+  where public.my_name() is not null and lower(w.owner) = lower(public.my_name())
+  order by w.updated_at desc limit 100
+$$;
+
+-- door texts look like "#12 /WORLD#3 |label" (signs.js doorInfo)
+create or replace function public.world_door_exists(p_world text, p_id integer)
+returns boolean language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null and exists (
+    select 1 from public.worlds w, jsonb_array_elements(case when jsonb_typeof(w.data -> 'signs') = 'array' then w.data -> 'signs' else '[]'::jsonb end) e
+    where w.name = p_world and jsonb_typeof(e) = 'array' and (e ->> 1) ~ ('^#' || p_id::text || '([^0-9]|$)')
+  )
+$$;
+-- (anyone can still ask whether a world NAME exists by trying to enter it, as before)
+create or replace function public.world_exists(p_name text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null and exists (select 1 from public.worlds where name = p_name)
+$$;
+
+revoke execute on function public.load_world(text), public.world_lock_info(text), public.world_infos(text[]),
+  public.my_worlds(), public.world_door_exists(text, integer), public.world_exists(text) from public, anon;
+grant execute on function public.load_world(text), public.world_lock_info(text), public.world_infos(text[]),
+  public.my_worlds(), public.world_door_exists(text, integer), public.world_exists(text) to authenticated;

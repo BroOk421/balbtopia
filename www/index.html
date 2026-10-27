@@ -110,7 +110,7 @@
         <form id="wform" autocomplete="off">
           <label for="wq">Go to a world, or type a new name to create one</label>
           <div class="wsearch">
-            <input id="wq" name="wq" maxlength="16" placeholder="WORLD NAME" spellcheck="false" />
+            <input id="wq" maxlength="16" placeholder="WORLD NAME" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="characters" />
             <button class="btn" id="wgo" type="submit">GO</button>
           </div>
           <p class="werr" id="werr" role="alert"></p>
@@ -168,6 +168,11 @@
               <label class="pname" for="aUser"
                 >Username
                 <input id="aUser" maxlength="16" spellcheck="false" autocomplete="username" />
+              </label>
+              <!-- Register only: a real e-mail for Forgot password (owner, Oct 27 2026) -->
+              <label class="pname" for="aEmail" id="aEmailL" hidden
+                >E-mail
+                <input id="aEmail" type="email" maxlength="120" spellcheck="false" autocomplete="email" />
               </label>
               <!-- Register: password and confirm side by side on one row -->
               <div class="pwrow" id="aPwRow">
@@ -341,6 +346,7 @@
     <script src="js/uisize.js"></script>
     <script src="js/worldfix.js"></script>
     <script src="js/rename.js"></script>
+    <script src="js/gmwatch.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

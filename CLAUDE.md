@@ -1787,3 +1787,42 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Items with no rarity keep their TREE_TIME. TREE_TIME is still the "has a tree" check everywhere; treeProgress, the
   tree bubble and the item info ("Grows in", now as 1h 02m 05s) use treeTime. Counts in Oct 2026: 15 Common, 67
   Uncommon, 150 Rare, 73 Epic, 123 Legendary. Trees already planted follow the new times (planted time is kept).
+
+- Oct 27 2026 (build q, owner): Register asks a real E-MAIL when online (`#aEmailL`, `EMAIL_RE`; hidden on Log in /
+  offline), sent to the `signup` function which saves it in `account_emails` (logins still use
+  name@players.balbtopia.app). "Forgot password?" works: `forgotPassword` / `forgotCode` (auth.js) -> `Net.resetPassword`
+  -> Edge Function `password-reset` (request: 6-digit code e-mailed with Brevo's API, secrets BREVO_API_KEY /
+  BREVO_SENDER_EMAIL / BREVO_SENDER_NAME, only the code's hash stored in `password_resets`, 15 min, 5 tries, 1 a minute
+  per account, 6 an hour per IP in `password_reset_log`; confirm: sets the password with the admin API). Older accounts
+  add / change theirs in Menu -> Profile -> @ (`editEmail`, rpc `set_my_email` / `my_email`). Re-run schema.sql, deploy
+  password-reset (Verify JWT off) and redeploy signup. Also this day: the owner's 8 dance pictures were tried for /dance and REMOVED again (owner didn't like
+  them): /dance is the lean left / right tilt again (build r); swimming shows no wings / aura.
+- Oct 27 2026 (build s): Edge Function names are configurable: `.env` / GitHub secrets `SUPABASE_FN_SIGNUP` /
+  `SUPABASE_FN_RESET` (the function's URL or its last part; the dashboard editor gave the owner random slugs like
+  rapid-endpoint) -> make-config.js writes `SUPABASE_FN_SIGNUP` / `SUPABASE_FN_RESET` into online-config.js; net.js
+  invokes those (defaults signup / password-reset).
+- Oct 27 2026 (build t, owner): walking frames go faster and follow the speed: `walkRate(vx)` (physics.js) =
+  `WALK_FPS` 15 frames/s at 160 px/s, x speed/160 (0.5-2), used for you and for other players (net.js, their glide
+  `vx`). World name box `#wq`: no `name`, autocomplete off, so the browser doesn't suggest world names typed by other
+  accounts on the same device (the world LIST was already per account: `seenWorlds`).
+- Oct 27 2026 (build u, owner): GM chat commands `/gban NAME reason` (confirm pop-up, default reason "Cheating") and
+  `/gunban NAME` (`gmBanCommand`, social.js -> `Net.gmBan` -> schema.sql `gm_ban`, which now refuses banning yourself or
+  another GM). Only `isGM()` players can run them; for others they are "Unknown command" and the /help list never
+  shows them. A player banned while playing is signed out within ~20 s (`banCheck` in net.js, `am_i_banned` on every
+  hello). Forgot password username is shown / sent in capitals. `supabase/delete_non_gm_accounts.sql`: preview, then
+  delete every auth user except the names in `gms` (refuses if no GM would be left), then their worlds (not
+  LOBBY / RECIPES). Re-run schema.sql (gm_ban change).
+- Oct 27 2026 (build v, owner): the GM account is renamed tae123 -> anTz. `supabase/rename_gm.sql` (run once): gms,
+  usernames, players, world owners / lock lists / area locks, keys, bans, mail. Login e-mail stays
+  tae123@players.balbtopia.app (login_email finds it by the new name). `GM_USERS = ["anTz"]`; `isGM` compares
+  ignoring case. schema.sql seeds gms with anTz only when no tae123 account exists.
+- Oct 27 2026 (build w, owner, security):
+  - WORLD READS: the worlds table can't be read directly any more (the "worlds: read" policy and the select grant are
+    gone). Server functions instead (end of schema.sql): load_world(name) (refused when banned there),
+    world_lock_info(name), world_infos(names[], max 60: only the worlds in your own list), my_worlds(),
+    world_exists(name), world_door_exists(world, id). net.js uses them (`noFn` falls back to the table on an older
+    server); qdoor.js checks Mystery Door destinations with `Net.doorCheck`. OLD BUILDS (APK) CAN'T LOAD WORLDS once
+    schema.sql runs: update the game first. 7 PGlite checks.
+  - GM watch (`gmwatch.js`, before main.js): every 45 s a GM's game reads new cheat_log rows (RLS: GMs only) and
+    toasts the newest; `/cheats` (GM only) lists the newest 50 with a BAN button each (`gmBanCommand`). Last id seen in
+    localStorage `balbtopia.gmwatch`. Note: social.js already has a global `itemName`.

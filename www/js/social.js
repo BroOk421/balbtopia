@@ -965,8 +965,16 @@ function chatCommand(text) {
     P.jokeUntil = now + JOKE_MS;
     return true;
   }
+  // GM only (owner, Oct 27 2026): /gban NAME [reason] bans the account everywhere (it is thrown out within ~20 s),
+  // /gunban NAME lifts it. For everyone else these are unknown commands and never shown in the list.
+  if ((cmd === 'gban' || cmd === 'gunban') && isGM()) return gmBanCommand(cmd, rest);
+  if (cmd === 'cheats' && isGM()) return openCheats(), 'keep';
   if (!CHAT_CMDS[cmd]) {
-    toast((cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') + 'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll, /dance');
+    toast(
+      (cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') +
+        'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll, /dance' +
+        (isGM() ? '. GM: /gban NAME reason, /gunban NAME, /cheats' : ''),
+    );
     return false;
   }
   if (!arg) return toast('Type /' + cmd + ' and the player\'s name (' + CHAT_CMDS[cmd] + ')'), false;
@@ -986,6 +994,20 @@ function chatCommand(text) {
   // ban: the same pop-up as the wrench menu, to pick how long
   if (!Net.secure || worldName === LOBBY_WORLD) return toast(worldName === LOBBY_WORLD ? "Nobody can be banned from the LOBBY" : 'Bans need the new server setup (supabase/schema.sql)'), false;
   askBan(o);
+  return 'keep';
+}
+function gmBanCommand(cmd, rest) {
+  const name = String(rest[0] || '').replace(/^@/, '').trim(),
+    reason = rest.slice(1).join(' ').trim().slice(0, 200) || 'Cheating';
+  if (!name) return toast(cmd === 'gban' ? 'Type /gban NAME reason' : 'Type /gunban NAME'), false;
+  if (!Net.online || !Net.secure) return toast('/' + cmd + ' works when playing online'), false;
+  if (cmd === 'gunban') {
+    Net.gmBan(name, false, '').then((err) => toast(err || name + ' can play again'));
+    return true;
+  }
+  ask('BAN ' + name.toUpperCase() + '?', 'Ban ' + name + ' from the whole game? Reason: ' + reason, 'Ban', 'Cancel').then((yes) => {
+    if (yes) Net.gmBan(name, true, reason).then((err) => toast(err || name + ' is banned'));
+  });
   return 'keep';
 }
 // other players get the same limit here too, so a changed game can't flood everyone's screen

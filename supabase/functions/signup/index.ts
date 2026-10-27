@@ -25,11 +25,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return reply(200, { ok: true });
   if (req.method !== 'POST') return reply(405, { error: 'POST only' });
   let user = '',
-    pass = '';
+    pass = '',
+    email = '';
   try {
     const b = await req.json();
     user = String(b.username || '').trim();
     pass = String(b.password || '');
+    email = String(b.email || '').trim().toLowerCase(); // recovery e-mail (Oct 27 2026; old game builds send none)
   } catch {
     return reply(400, { error: 'Bad request' });
   }
@@ -37,6 +39,8 @@ Deno.serve(async (req) => {
   // letters and numbers only, no symbols (owner, Oct 24 2026)
   if (!/^[A-Za-z0-9]{3,16}$/.test(user)) return reply(400, { error: 'Username: 3 to 16 letters or numbers (no symbols)' });
   if (pass.length < 6) return reply(400, { error: 'Password needs at least 6 characters' });
+  if (email && (email.length > 120 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.endsWith('@players.balbtopia.app')))
+    return reply(400, { error: "That e-mail doesn't look right" });
 
   // the caller's IP. (Oct 27 2026, security) cf-connecting-ip first: Cloudflare (in front of Supabase) sets it and a
   // player can't. The FIRST x-forwarded-for entry can be typed by the caller, so it is only the last resort; the last
@@ -68,5 +72,6 @@ Deno.serve(async (req) => {
     return reply(400, { error: m });
   }
   await db.from('signup_ips').insert({ ip_hash: ipHash, user_id: data.user?.id });
+  if (email && data.user) await db.from('account_emails').upsert({ user_id: data.user.id, email });
   return reply(200, { ok: true });
 });

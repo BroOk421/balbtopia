@@ -762,7 +762,7 @@ const DROP_BLOCK = 0.4,
   DROP_SEED = 0.55;
 const GOLD_AMOUNT = [1, 3]; // how much gold one drop gives (min, max)
 // game masters: everything in the Shop is free for them (lower-case usernames)
-const GM_USERS = ["tae123"];
+const GM_USERS = ["anTz"]; // (renamed from tae123, Oct 27 2026: supabase/rename_gm.sql)
 // the bag: BAG_FREE slots from the start; from level BAG_LEVEL on, every level opens BAG_STEP more, up to BAG_MAX
 const BAG_MAX = 80,
   BAG_FREE = 24,
