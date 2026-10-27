@@ -187,6 +187,15 @@ function setWorn(saved, outOfBag) {
     equipped[sl] = id;
   }
 }
+// (Oct 27 2026) mustaches / beards and the pacifier moved out of the face (now eyes) slot into their own
+function fixSideSlots() {
+  const id = equipped.face,
+    w = id && WEAR_BY_ID[id];
+  if (w && w.slot !== 'face' && SIDE_SLOTS.includes(w.slot) && !equipped[w.slot]) {
+    equipped[w.slot] = id;
+    equipped.face = null;
+  }
+}
 function applyPlayer(p) {
   playerName = p.name || playerName;
   seenWorlds = (Array.isArray(p.seen) ? p.seen : [])

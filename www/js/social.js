@@ -872,13 +872,19 @@ function chatCommand(text) {
     cmd = lc(cmd0 || ''),
     arg = rest.join(' ');
   // /facejoke and /troll: a face for a few seconds (render.js jokeFace); anyone, anywhere, not in the chat list
+  // /dance: dance on the spot (jump.js) until you move; with the Leaf Blower you play it like a guitar
+  if (cmd === 'dance') {
+    P.dance = !P.dance;
+    if (P.dance) P.danceT = now;
+    return true;
+  }
   if (cmd === 'facejoke' || cmd === 'troll') {
     P.jokeKind = cmd === 'troll' ? 'troll' : 'wacky';
     P.jokeUntil = now + JOKE_MS;
     return true;
   }
   if (!CHAT_CMDS[cmd]) {
-    toast((cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') + 'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll');
+    toast((cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') + 'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll, /dance');
     return false;
   }
   if (!arg) return toast('Type /' + cmd + ' and the player\'s name (' + CHAT_CMDS[cmd] + ')'), false;

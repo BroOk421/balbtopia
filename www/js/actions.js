@@ -439,7 +439,7 @@ function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
   const tx = Math.floor(x / TS),
     ty = Math.floor(y / TS),
     sameSpot = (d) => (Math.floor(d.x / TS) === tx && Math.floor(d.y / TS) === ty) || Math.hypot(d.x - x, d.y - y) < 10,
-    here = drops.filter((d) => d.id === id && !d.ck && (d.by || null) === by && sameSpot(d)); // (ATM coins `ck` stay single)
+    here = drops.filter((d) => d.id === id && !d.ck && !d.stored && (d.by || null) === by && sameSpot(d)); // (ATM coins `ck` stay single)
   // gold has no cap: one pile per tile, shown as coins (5 of a kind join into the next kind, see coinParts)
   const cap = id === 'gold' ? Infinity : DROP_STACK;
   for (const d of here) {

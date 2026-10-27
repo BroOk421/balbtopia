@@ -22,8 +22,10 @@ for (let i = 0; i < DIAPER_N; i++) {
   A['golden_diaper_' + i] = 'assets/items/golden_diaper_' + i + '.png';
   for (const s of SKINS) A['dwalk_' + s + '_' + i] = 'assets/character/' + s + '/diaper_walk_' + i + '.png';
 }
-for (const k of ['diamond', 'golden'])
+for (const k of ['diamond', 'golden']) {
   for (const p of ['idle', 'sit']) A[k + '_diaper_' + p] = 'assets/items/' + k + '_diaper_' + p + '.png';
+  for (let f = 0; f < 3; f++) A[k + '_diaper_jump_' + f] = 'assets/items/' + k + '_diaper_jump_' + f + '.png'; // jump.js (diaper_jump_cut.py)
+}
 
 const DIAPER_WEAR = [
   { id: 'golden_diaper', name: 'Wisdom Diaper', slot: 'pants', diaper: 'golden', rarity: 'Epic', shop: true,
@@ -57,6 +59,8 @@ function diaperPart(key) {
     m = k.match(/^dwalk_[a-z]+_(\d+)/);
   if (m) return m[1];
   if (k.startsWith('sit_')) return 'sit';
+  const jm = k.match(/^jump_[a-z]+_(\d)/);
+  if (jm) return 'jump_' + jm[1];
   if (/^(skin_|punch_|noarm_|mann_)/.test(k)) return 'idle';
   return null;
 }

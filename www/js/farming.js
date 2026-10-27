@@ -5,7 +5,24 @@ const trees = new Map(); // tile index -> { seed, planted (ms since 1970), fruit
 
 const treeName = (seed) => ITEMS[seed].name + ' Tree';
 function treeProgress(t) {
-  return Math.min(1, (Date.now() - t.planted) / (TREE_TIME[t.seed] * 1000));
+  return Math.min(1, (Date.now() - t.planted) / (treeTime(t.seed) * 1000));
+}
+// How long a tree takes to ripen, in seconds, by its rarity (owner, Oct 27 2026). Common: 1-20 min, Uncommon:
+// 20-45 min, Rare: 45-60 min; the rare ones that drop a lot of gold (Epic): 12-24 h, Legendary: 24-48 h. Items with
+// no rarity (no recipe) keep their own TREE_TIME. Linear inside each tier, capped at the top.
+const GROW_TIERS = [
+  [1, 5, 1, 20], // rarity from, to, minutes from, to
+  [6, 15, 20, 45],
+  [16, 40, 45, 60],
+  [41, 80, 12 * 60, 24 * 60],
+  [81, 130, 24 * 60, 48 * 60],
+];
+function treeTime(seed) {
+  const r = typeof rarityOf === 'function' ? rarityOf(seed) : null;
+  if (!r) return TREE_TIME[seed] || 60;
+  for (const [a, b, m0, m1] of GROW_TIERS)
+    if (r <= b) return Math.round(60 * (m0 + ((m1 - m0) * (Math.max(a, r) - a)) / Math.max(1, b - a)));
+  return 48 * 3600;
 }
 // a seed goes on an empty tile with ground under it: a solid block, or a platform (Wooden Platform, Staircase)
 // ---------- rarity ----------
@@ -237,7 +254,7 @@ function drawTreeBubble(ox, oy) {
   if (i < 0) return;
   const t = trees.get(i),
     p = treeProgress(t),
-    left = Math.max(0, Math.ceil((1 - p) * TREE_TIME[t.seed])),
+    left = Math.max(0, Math.ceil((1 - p) * treeTime(t.seed))),
     x = i % WW,
     y = (i / WW) | 0,
     // above the tree's top, which grows from a sapling to a full tile

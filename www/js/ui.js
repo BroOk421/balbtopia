@@ -383,6 +383,12 @@ function renderInvNow() {
   // what you wear and hold: one box per slot (these items are out of the bag); click one to unequip it
   const box = $('eqSlots');
   box.innerHTML = '';
+  // two columns: mouth / mustache / necklace / earring on the left (SIDE_SLOTS), the other slots beside them
+  const colSide = document.createElement('div'),
+    colMain = document.createElement('div');
+  colSide.className = 'ecol eside';
+  colMain.className = 'ecol';
+  box.append(colSide, colMain);
   for (const sl of EQ_SLOTS) {
     const id = equipped[sl],
       b = document.createElement('button');
@@ -400,7 +406,7 @@ function renderInvNow() {
         askUnequip(sl);
       };
     } else b.innerHTML = `<small>${SLOT_NAME[sl]}</small>`;
-    box.appendChild(b);
+    (SIDE_SLOTS.includes(sl) ? colSide : colMain).appendChild(b);
   }
 }
 // ---------- press and hold an item in the bag: put it on the hotbar (owner, Oct 23 2026) ----------
@@ -680,7 +686,7 @@ $('aInfo').onclick = () => {
     it.kind === 'block'
       ? `<dt>Punches to break</dt><dd>${BLOCK[it.block].hits + rarityHits(BLOCK[it.block].id)}</dd>`
       : it.kind === 'seed'
-        ? `<dt>Grows in</dt><dd>${TREE_TIME[it.from]}s</dd>` +
+        ? `<dt>Grows in</dt><dd>${fmtLeft(treeTime(it.from))}</dd>` +
           (combos.length
             ? `<dt>Combines</dt><dd>${combos
                 .map(

@@ -9,13 +9,13 @@ const WEAPONS2 = {
   paper_umbrella: { name: 'Oil-paper Umbrella', rarity: 'Rare', head: ['#e8303e', '#ffd040', '#8a1a14'], desc: 'A red oil-paper umbrella with a bamboo frame and painted flowers.', rec: ['beach_umbrella', 'bamboo_block'] },
   smores_staff: { name: "Staff of S'mores", rarity: 'Rare', head: ['#f4ead6', '#ffffff', '#8a5a2a'], sparkle: ['#ffa030', '#ffd040', '#f4ead6'], desc: "A roasting stick with a toasty s'more on the end.", rec: ['campfire', 'cookie_block'] },
   death_scythe: { name: 'Death Scythe', rarity: 'Legendary', head: ['#3a3a48', '#9a9ab0', '#0a0a10'], sparkle: ['#7a3ac8', '#2a2a34', '#b088ff'], desc: 'A huge black scythe with a long curved blade. Dark wisps trail off it.', rec: ['hand_scythe', 'skeleton'] },
-  heart_bow: { name: 'Heartbow', rarity: 'Epic', head: ['#ff6a9a', '#ffd0e0', '#a8204a'], sparkle: ['#ff6a9a', '#ffffff', '#ffb0c8'], desc: 'A pink bow shaped like a heart, with a heart-tipped arrow. Little hearts fly when you hit with it.', rec: ['rose', 'spear'] },
+  heart_bow: { name: 'Feather Bow', rarity: 'Epic', head: ['#4e6b62', '#86ad9c', '#1c2424'], sparkle: ['#ffffff', '#e8e0d0', '#86ad9c'], desc: 'A dark wooden bow with a steel-tipped, feathered arrow. Click to shoot where you aim.', rec: ['rose', 'spear'] },
   fire_wand: { name: 'Fire Wand', rarity: 'Epic', head: ['#ff6a1a', '#ffe070', '#8a2a08'], sparkle: ['#ff6a1a', '#ffd040', '#ff3a10'], desc: 'A wooden wand with a burning crystal at its tip.', rec: ['torch', 'crystal_block'] },
   ice_wand: { name: 'Ice Wand', rarity: 'Epic', head: ['#8fd0f2', '#ffffff', '#3f7fb8'], sparkle: ['#bfe9fb', '#ffffff', '#8fd0f2'], desc: 'A silver wand topped with a snowflake crystal.', rec: ['ice', 'crystal_cluster'] },
   chainsaw: { name: 'Chainsaw', rarity: 'Rare', head: ['#f0b020', '#fff0a0', '#3a3a44'], sparkle: ['#c8a060', '#8a5a2a', '#e0c890'], desc: 'A loud yellow chainsaw. Wood chips fly when you hit with it.', rec: ['battle_axe', 'circuit_block'] },
   water_gun: { name: 'Water Gun', rarity: 'Uncommon', head: ['#4a8af0', '#ffd23f', '#1e3a8a'], sparkle: ['#8ad0f8', '#ffffff', '#4aa0d8'], desc: 'A big toy water gun. Splash!', rec: ['water_bucket', 'toy_car'] },
   dragon_hand: { name: 'Dragon Hand', rarity: 'Legendary', head: ['#c81e2c', '#ff6a72', '#5a0a10'], sparkle: ['#ff6a1a', '#ffd040', '#ff3a10'], desc: 'A little red dragon perched on your hand, breathing fire when you punch.', rec: ['fire_sword', 'obsidian_block'] },
-  thunder_hammer: { name: 'Thunder Hammer', rarity: 'Legendary', head: ['#9aa0ad', '#ffe680', '#3a3f4a'], sparkle: ['#ffe680', '#ffffff', '#4ae0ff'], desc: 'A heavy hammer crackling with lightning.', rec: ['war_hammer', 'glow_block'] },
+  thunder_hammer: { name: 'Hammer', rarity: 'Legendary', head: ['#9aa0ad', '#e0e4ea', '#3a3f4a'], desc: 'A heavy steel hammer.', rec: ['war_hammer', 'glow_block'] },
 };
 for (const [id, w] of Object.entries(WEAPONS2)) {
   TOOLS[id] = { name: w.name, bonus: 0, rarity: w.rarity, blade: true, weapon: true, head: w.head, sparkle: w.sparkle, desc: w.desc };
@@ -155,9 +155,7 @@ Object.assign(HDT_ART, {
   thunder_hammer: () =>
     hdtSprite((set) => {
       hdtSeg(set, [3, 29], [20, 12], 1.4, (t, s) => (Math.floor(t * 8) % 2 && t < 0.4 ? '#3a2414' : s < 0 ? '#a86c3c' : '#6b4424'));
-      hdtSeg(set, [14, 6], [26, 18], 4.6, (t, s) => (Math.abs(t - 0.5) < 0.07 ? '#ffd040' : s < -0.45 ? '#e0e4ea' : s > 0.5 ? '#3a3f4a' : '#9aa0ad'));
-      // lightning bolts crackling off it
-      for (const [x, y] of [[27, 3], [28, 4], [27, 5], [28, 6], [9, 3], [10, 4], [9, 5], [29, 21], [30, 22]]) set(x, y, '#ffe680');
+      hdtSeg(set, [14, 6], [26, 18], 4.6, (t, s) => (Math.abs(t - 0.5) < 0.07 ? '#6a707c' : s < -0.45 ? '#e0e4ea' : s > 0.5 ? '#3a3f4a' : '#9aa0ad'));
       set(16, 8, '#ffffff');
     }),
 });

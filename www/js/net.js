@@ -701,6 +701,7 @@ const Net = (() => {
       rest: restFromNet(p.rs),
       typing: !!p.ty,
       joke: p.jk === 1 ? 'wacky' : p.jk === 2 ? 'troll' : false,
+      dance: !!p.dn, // /dance (jump.js)
       seen: now,
     });
     if (!r.walking) r.walkPh = 0;
@@ -733,6 +734,7 @@ const Net = (() => {
       rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
       ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)
       jk: { wacky: 1, troll: 2 }[jokeOn()] || undefined, // /facejoke or /troll face (render.js)
+      dn: P.dance ? 1 : undefined, // dancing (/dance, jump.js)
     };
     const j = JSON.stringify(p);
     if (!force && j === lastPos && now - beatT < 1500) return;

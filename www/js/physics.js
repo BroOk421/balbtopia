@@ -42,6 +42,8 @@ function collide(axis, prevBottom) {
     }
   return lava;
 }
+const SWIM_UP = -105, // px/s, the fastest you rise holding jump in water
+  SWIM_ACC = 380; // how quickly you get there
 function step(dt) {
   // dead: lie still while the ghost flies up, then come back at the main door
   if (P.dead) {
@@ -85,22 +87,19 @@ function step(dt) {
     P.vy = -WING_JUMP_V;
     P.rise = true;
     Sfx.play('jump');
-    // a puff of feathers
-    for (let k = 0; k < 10; k++)
-      parts.push({ x: P.x + P.w / 2 + (Math.random() - 0.5) * 16, y: P.y + P.h * 0.6, vx: (Math.random() - 0.5) * 120, vy: 40 + Math.random() * 80, life: 0.5, c: k % 2 ? '#ffffff' : '#e4ecf8', s: 2 });
+    jumpLines(); // straight lines down from the feet (jump.js; owner, Oct 27 2026: was a puff of feathers)
     Native.haptic('light');
   }
   if (P.buf > 0 && (P.coyote > 0 || swim)) {
-    P.vy = swim && P.coyote <= 0 ? -300 : -JUMP_V; // a swim stroke, or a normal jump off the ground
+    if (!swim) P.vy = -JUMP_V; // a normal jump off the ground (in water, even on the bottom: the smooth swim up below)
     P.rise = !swim;
-    if (swim && P.coyote <= 0) {
+    if (swim) {
       Sfx.play('swim'); // a swim stroke up
       P.swimSfx = 0.85;
     } else Sfx.play('jump');
     P.buf = 0;
     P.coyote = 0;
     P.ground = false;
-    if (swim) splash(Math.floor((P.x + P.w / 2) / TS), Math.floor((P.y + P.h / 2) / TS), 3);
   }
   // Jump control (owner, Oct 24 2026): the jump goes as high as it can while the button is held and falls once it
   // is let go. Letting go on the way up cuts the rise; hitting a block (or the top of the world) with the button held
@@ -115,7 +114,17 @@ function step(dt) {
     P.ceilT -= dt;
     P.vy = 0;
   } else P.vy = swim ? Math.min(140, P.vy + 520 * dt) : Math.min(MAX_FALL, P.vy + fallGravity() * dt);
+  // swimming up (owner, Oct 27 2026): no sudden stroke; holding jump in water speeds you up gently to SWIM_UP
+  if (swim && jumpHeld) P.vy = Math.max(SWIM_UP, P.vy - (520 + SWIM_ACC) * dt);
   let hot = false;
+  // a Spike Gate that shut on you (owner, Oct 27 2026): touching a shut one doesn't hurt, being in it when it shuts
+  // kills; open, nothing. Checked before moving (the collision would push you out of it). 2 px margin.
+  if (!P.dead)
+    for (let ty = Math.floor((P.y + 2) / TS); ty <= Math.floor((P.y + P.h - 3) / TS); ty++)
+      for (let tx = Math.floor((P.x + 2) / TS); tx <= Math.floor((P.x + P.w - 3) / TS); tx++) {
+        const b = inW(tx, ty) && BLOCK[fg[at(tx, ty)]];
+        if (b && b.shut && b.shut(at(tx, ty))) return die('spikes');
+      }
   P.x += P.vx * dt;
   hot = collide('x') || hot;
   P.ground = false;
@@ -153,8 +162,6 @@ function step(dt) {
     const tx = Math.floor(px / TS),
       ty = Math.floor(py / TS);
     if (inW(tx, ty) && fg[at(tx, ty)] === LAVA) hot = true;
-    const sb = k < 2 && inW(tx, ty) && BLOCK[fg[at(tx, ty)]];
-    if (sb && sb.shut && sb.shut(at(tx, ty))) spiky = true;
   });
   // Cactus hurts like lava when you're inside its tile; Death Spikes and Stalactite kill at once (gates.js)
   for (let ty = Math.floor(P.y / TS); ty <= Math.floor((P.y + P.h - 1) / TS); ty++)
@@ -241,7 +248,7 @@ function stepFx(dt) {
     const d = drops[k];
     d.age += dt;
     if (d.mg) continue; // joining 4 others into a bigger coin (coins.js): not up for grabs
-    if (dropHidden(d)) continue; // kept inside a shut Chest / Stove (blocks64c.js)
+    if (dropHidden(d) || dropShutIn(d)) continue; // inside / on a shut Chest, Stove or Spike Gate (blocks64c.js)
     const touching = d.x + r > P.x && d.x - r < P.x + P.w && d.y + r > P.y && d.y - r < P.y + P.h && (d.id !== 'gold' || inDropTile(d, P)); // coins: only from inside their tile
     if (d.age > d.minAge && touching && !P.dead) {
       // visitors in a locked world have to wait (see canTakeDrop)

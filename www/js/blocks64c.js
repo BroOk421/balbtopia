@@ -8,8 +8,8 @@
 //   `dropHidden(d)` is asked by render.js (drawing drops) and physics.js (picking them up).
 // ===== blocks64c =====
 const B64C = [
-  [247, 'storage_chest', 'Chest', 'deco', 4, 300, 'Uncommon', ['#a86e38', '#4a2a10', '#b8bcc6'], ['#a86e38', '#c88a4a', '#4a2a10'], 'A wooden chest. Drop items on it, then punch it to shut it: the items go inside. Punch it again to open it and they come back out (you need access).', ['wooden_crate', 'steel_block']],
-  [248, 'stove', 'Stove', 'deco', 5, 360, 'Rare', ['#e8e8ee', '#3a3a44', '#ff6a1a'], ['#e8e8ee', '#ff6a1a', '#3a3a44'], 'A kitchen stove with an oven. Drop items on it and punch it to shut the oven: the items go inside. Punch it again to open it and they come back out (you need access).', ['steel_block', 'fireplace']],
+  [247, 'storage_chest', 'Chest', 'deco', 4, 300, 'Uncommon', ['#a86e38', '#4a2a10', '#b8bcc6'], ['#a86e38', '#c88a4a', '#4a2a10'], 'A wooden chest. Drop items on it while it is open, then punch it to shut it: the items go inside. Punch it again to open it and they come back out (you need access). Items on a shut chest can\'t be taken.', ['wooden_crate', 'steel_block']],
+  [248, 'stove', 'Stove', 'deco', 5, 360, 'Rare', ['#e8e8ee', '#3a3a44', '#ff6a1a'], ['#e8e8ee', '#ff6a1a', '#3a3a44'], 'A kitchen stove with an oven. Drop items on it while it is open and punch it to shut the oven: the items go inside. Punch it again to open it and they come back out (you need access). Items on a shut oven can\'t be taken.', ['steel_block', 'fireplace']],
   [249, 'rose_quartz_block', 'Rose Quartz Block', 'block', 6, 420, 'Rare', ['#f4a0c0', '#a84a78', '#ffe0ee'], ['#f4a0c0', '#ffe0ee', '#a84a78'], 'A soft pink rose quartz, cut into a big gleaming gem.', ['crystal_block', 'rose']],
   [250, 'onyx_block', 'Onyx Block', 'block', 6, 420, 'Rare', ['#2a2a34', '#08080c', '#9a9ab0'], ['#2a2a34', '#9a9ab0', '#08080c'], 'A polished black onyx, cut into a big gleaming gem.', ['black_block', 'crystal_block']],
   [251, 'terracotta_block', 'Terracotta Tiles', 'block', 4, 240, 'Common', ['#c8683a', '#7a3418', '#f0a070'], ['#c8683a', '#f0a070', '#7a3418'], 'Warm orange clay floor tiles.', ['bricks', 'sand']],
@@ -56,11 +56,33 @@ const STORE_SHUT = 64; // vari bit
 const STORE_T = new Set([247, 248]);
 const isStoreT = (t) => STORE_T.has(t);
 const storeShut = (i) => isStoreT(fg[i]) && !!(vari[i] & STORE_SHUT);
-// is this floating drop inside a shut Chest / Stove?
-function dropHidden(d) {
+// (owner, Oct 27 2026) A drop that lands on a SHUT Chest / Stove just floats there (seen, but nobody can take it).
+// Only drops that were on it when it was shut (open -> shut) go inside (`d.stored`, hidden); opening it brings
+// them out again. Every game watches the tile itself (`d.ss` = the shut state last seen for that drop), so it
+// works for everyone's chests; drops loaded with a world (minAge 0) that sit in a shut one count as inside.
+function dropTile(d) {
   const x = Math.floor(d.x / TS),
     y = Math.floor(d.y / TS);
-  return inW(x, y) && storeShut(at(x, y));
+  return inW(x, y) ? at(x, y) : -1;
+}
+function storeWatch(d) {
+  const i = dropTile(d),
+    s = i >= 0 && storeShut(i);
+  if (d.ss === undefined) d.stored = s && d.minAge === 0;
+  else if (d.ss !== s) d.stored = s;
+  d.ss = s;
+}
+// is this floating drop inside a shut Chest / Stove?
+function dropHidden(d) {
+  storeWatch(d);
+  return !!d.stored;
+}
+// on a shut Chest / Stove / Spike Gate: seen but can't be taken until it opens
+function dropShutIn(d) {
+  const i = dropTile(d);
+  if (i < 0) return false;
+  const b = BLOCK[fg[i]];
+  return storeShut(i) || !!(b && b.shut && b.shut(i));
 }
 function storeCount(i) {
   let n = 0;

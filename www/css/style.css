@@ -4382,3 +4382,25 @@ body.mannmode.mailmode {
     height: 34px;
   }
 }
+
+/* Wearing: two columns (owner, Oct 27 2026): mouth / mustache / necklace / earring left of the other slots */
+#inv .eslots {
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+.eslots .ecol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.wearing:not(#inv .wearing) .eslots .ecol {
+  display: contents;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #inv .eslots,
+  .eslots .ecol {
+    gap: 3px;
+  }
+}

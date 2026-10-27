@@ -421,6 +421,8 @@ function drawWorn(c, top, sc, dy = 0) {
   const eq = c.equipped || {};
   // face items (glasses, fire eyes...) always stay on top, also over a /facejoke or /troll face
   if (eq.face) drawWearArt(eq.face, top, sc, dy);
+  // mustache / beard, mouth, necklace, earring (their own slots since Oct 27 2026)
+  for (const s of ['neck', 'stache', 'mouth', 'ear']) if (eq[s] && WEAR_BY_ID[eq[s]]) drawWearArt(eq[s], top, sc, dy);
   const hid = eq.hair;
   if (hid && ITEMS[hid]) {
     const it = ITEMS[hid];
@@ -836,8 +838,7 @@ function render() {
     if (d.outT && now - d.outT < OUT_MS) continue; // still flying out of whoever dropped it (unvacs, below)
     if (dropHidden(d)) continue; // inside a shut Chest / Stove (blocks64c.js)
     if (d.id === 'gold') drawGoldPile(d, x, y, s);
-    else drawIcon(d.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
-    // floating drops show no number, only the item
+    else drawDropBox(d.id, d.qty, x, y, s);
   }
   // drops flying into whoever picked them up
   for (const v of vacs) {
@@ -872,7 +873,7 @@ function render() {
       s = DROP_SIZE * (0.4 + 0.6 * u),
       x = ox + (fx + (v.d.x - fx) * e) * Z,
       y = oy + (fy + (v.d.y + bob - fy) * e - Math.sin(u * Math.PI) * 8) * Z;
-    drawIcon(v.id, x - (s / 2) * Z, y - (s / 2) * Z, s * Z);
+    drawDropBox(v.id, v.d.qty, x, y, s);
   }
   // other players in this world (online), then you on top
   // holding the wrench: a small wrench shows next to each other player's name; click it (or them) for their menu
@@ -1795,4 +1796,46 @@ function fireplaceVol() {
       best = Math.min(best, Math.hypot(x + 0.5 - px, y + 0.5 - py));
     }
   return 1 - best / FIRE_HEAR;
+}
+
+// A floating item drop (owner, Oct 27 2026, his picture): the item inside a small bevelled light frame; with more than
+// one, the amount in the bottom-right corner (one drop holds at most DROP_STACK, 200; more makes a new drop).
+function drawDropBox(id, qty, x, y, s) {
+  const B = Math.round((s + 3) * Z), // the box, in screen px
+    p = Math.max(1, Math.round(Z)),
+    x0 = Math.round(x - B / 2),
+    y0 = Math.round(y - B / 2);
+  g.fillStyle = 'rgba(20,16,28,.38)';
+  g.fillRect(x0, y0, B, B);
+  // frame: dark outline, white / light grey bevel (lit top-left, grey bottom-right)
+  g.fillStyle = '#2a2632';
+  g.fillRect(x0 - p, y0 - p, B + 2 * p, p);
+  g.fillRect(x0 - p, y0 + B, B + 2 * p, p);
+  g.fillRect(x0 - p, y0, p, B);
+  g.fillRect(x0 + B, y0, p, B);
+  g.fillStyle = '#ffffff';
+  g.fillRect(x0, y0, B, p);
+  g.fillRect(x0, y0, p, B);
+  g.fillStyle = '#a8a6b2';
+  g.fillRect(x0, y0 + B - p, B, p);
+  g.fillRect(x0 + B - p, y0, p, B);
+  g.fillStyle = '#d8d6e0';
+  g.fillRect(x0 + p, y0 + p, B - 2 * p, p);
+  g.fillRect(x0 + p, y0 + p, p, B - 2 * p);
+  const ins = (s - 2) * Z;
+  drawIcon(id, x - ins / 2, y - ins / 2, ins);
+  if (qty > 1) {
+    const fs = Math.max(7, Math.round(4.2 * Z));
+    g.font = 'bold ' + fs + 'px monospace';
+    g.textAlign = 'right';
+    g.textBaseline = 'alphabetic';
+    g.lineWidth = Math.max(2, fs / 4);
+    g.strokeStyle = '#1a1420';
+    const tx = x0 + B + p,
+      ty = y0 + B + p;
+    g.strokeText(String(qty), tx, ty);
+    g.fillStyle = '#ffffff';
+    g.fillText(String(qty), tx, ty);
+    g.textAlign = 'left';
+  }
 }

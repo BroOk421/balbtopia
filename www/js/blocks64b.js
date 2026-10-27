@@ -11,7 +11,7 @@
 //   Walk-through: 241 Treasure Chest, 242 Baby Rattle, 243 Rainbow, 244 Golden Trophy, 245 Snowman, 246 Bonsai Tree.
 // ===== blocks64b =====
 const B64B = [
-  [231, 'spike_gate', 'Spike Gate', 'deco', 6, 420, 'Rare', ['#8f99a7', '#363d48', '#e0e4ea'], [ST64.m, ST64.l3, ST64.d2], 'A steel shutter with spiked teeth. Punch it to open or close it (you need access). Shut, nobody gets through and its spikes hurt.', ['steel_block', 'death_spikes']],
+  [231, 'spike_gate', 'Spike Gate', 'deco', 6, 420, 'Rare', ['#8f99a7', '#363d48', '#e0e4ea'], [ST64.m, ST64.l3, ST64.d2], 'A steel shutter with spiked teeth. Punch it to open or close it (you need access). Shut, nobody gets through; whoever is inside it when it shuts is spiked.', ['steel_block', 'death_spikes']],
   [232, 'sapphire_block', 'Sapphire Block', 'block', 6, 420, 'Rare', ['#2a6ad8', '#123a8a', '#a8c8ff'], ['#2a6ad8', '#a8c8ff', '#123a8a'], 'A deep blue sapphire, cut into a big gleaming gem.', ['blue_block', 'crystal_block']],
   [233, 'topaz_block', 'Topaz Block', 'block', 6, 420, 'Rare', ['#f0a020', '#8a4a08', '#ffe0a0'], ['#f0a020', '#ffe0a0', '#8a4a08'], 'A golden-orange topaz, cut into a big gleaming gem.', ['orange_block', 'crystal_block']],
   [234, 'obsidian_block', 'Obsidian', 'block', 9, 480, 'Rare', ['#2a1a3a', '#0c0812', '#8a6ac0'], ['#2a1a3a', '#8a6ac0', '#0c0812'], 'Glassy black volcanic rock with a purple sheen. Very hard to break.', ['lava', 'dark_cave']],
@@ -361,61 +361,81 @@ B64B_PIC.bonsai_tree = pix64Canvas(64, (a) => {
   a.outline(OL);
 });
 
-// Spike Gate: a steel frame (always there) and the spiked shutter that slides up into it
+// Spike Gate (owner, Oct 27 2026, second look): a dark riveted iron frame with two red warning lamps on its top
+// beam; inside it is always BLACK. Shut: two rows of white fangs, one from the top and one from the bottom, that fill
+// the whole mouth in a sharp zigzag from side to side; opening pulls them apart into the beam and the sill.
+const SPG_IN = [14, 56], // the mouth's rows (between the beam and the sill)
+  SPG_X = [7, 57], // and columns
+  SPG_TOOTH = 25, // a fang's length (a bit over half the mouth, so the two rows bite into each other)
+  SPG_OPEN = 22; // how far each row of fangs moves away when open
 const SPG_FRAME = pix64Canvas(64, (a) => {
-  const S = ST64;
-  // side rails
-  for (const x0 of [0, 58]) {
-    a.rect(x0, 0, 6, 64, (i) => (i === x0 ? S.l3 : i === x0 + 5 ? S.d3 : ramp([S.d1, S.m, S.l1], 1 - (i - x0) / 5)));
-    for (const y of [16, 32, 48]) bolt64(a, x0 + 3, y, 1.5);
-  }
-  // the housing on top (the shutter hides in it)
-  a.rect(0, 0, 64, 9, (i, j) => (j === 0 ? S.l3 : j === 8 ? S.d3 : j === 7 ? S.d2 : ramp([S.m, S.l1, S.l2], 1 - j / 7)));
-  for (const x of [10, 22, 42, 54]) bolt64(a, x, 4, 1.6);
-  a.rect(26, 2, 12, 4, (i, j) => (j === 2 ? S.d3 : '#e8b020'));
-  a.rect(27, 3, 2, 2, '#1a1a22'), a.rect(31, 3, 2, 2, '#1a1a22'), a.rect(35, 3, 2, 2, '#1a1a22'); // warning stripes
+  const iron = (t) => ramp(['#1e2028', '#3a3e4a', '#5e6472', '#8a909e'], t);
+  // posts
+  for (const x0 of [0, SPG_X[1]]) a.rect(x0, SPG_IN[0], 7, SPG_IN[1] - SPG_IN[0], (i) => (i === x0 ? '#8a909e' : i === x0 + 6 ? '#14161c' : iron(0.85 - (i - x0) / 8)));
+  for (const x of [3, 60]) for (const y of [22, 35, 48]) bolt64(a, x, y, 1.3);
+  // top beam with hazard stripes and two red lamps
+  a.rect(0, 0, 64, SPG_IN[0], (i, j) => (j === 0 ? '#9aa0ad' : j === SPG_IN[0] - 1 ? '#14161c' : iron(0.9 - j / 16)));
+  a.rect(14, 3, 36, 5, (i, j) => (((i - j) >> 2) % 2 ? '#e8b020' : '#1a1a22'));
+  for (const cx of [7, 57])
+    a.disc(cx, 6.5, 3.6, (i, j) => {
+      const d = Math.hypot(i + 0.5 - cx + 1, j + 0.5 - 5.5);
+      return d < 1.2 ? '#ffe0d0' : d < 2.6 ? '#ff3a2a' : '#8a0a10';
+    });
+  // the sill
+  a.rect(0, SPG_IN[1], 64, 64 - SPG_IN[1], (i, j) => (j === SPG_IN[1] ? '#9aa0ad' : j === 63 ? '#14161c' : iron(0.8 - (j - SPG_IN[1]) / 10)));
+  for (const x of [10, 32, 54]) bolt64(a, x, 60, 1.3);
+  a.outline('#0a0a10');
 });
-const SPG_SHUTTER = pix64Canvas(64, (a) => {
-  const S = ST64;
-  // the plate: slats with grooves, a row of pyramid studs (spikes facing you) on each slat
-  a.rect(6, 0, 52, 54, (i, j) => {
-    const y = j % 9;
-    if (y === 8) return S.d3;
-    if (y === 0) return S.l2;
-    return ramp([S.d1, S.m, S.l1], 0.8 - y / 9 - (i - 6) / 160);
-  });
-  for (let r = 0; r < 6; r++)
-    for (let c = 0; c < 5; c++) {
-      const cx = 12 + c * 10 + (r % 2 ? 5 : 0),
-        cy = 4.5 + r * 9;
-      if (cx > 54) continue;
-      // a 4-sided pyramid: lit top / left faces, dark bottom / right, a bright tip
-      a.fill((i, j) => {
-        const dx = i + 0.5 - cx,
-          dy = j + 0.5 - cy;
-        if (Math.abs(dx) + Math.abs(dy) > 3.6) return null;
-        if (Math.abs(dx) < 0.6 && Math.abs(dy) < 0.6) return S.w;
-        return Math.abs(dy) > Math.abs(dx) ? (dy < 0 ? S.l3 : S.d3) : dx < 0 ? S.l2 : S.d2;
-      });
+// one row of fangs on a 64 x 64 canvas, the bases on row `base`, pointing down (top row) or up (bottom row);
+// the bottom row is shifted half a fang so the two rows interlock, with half fangs at the ends so the zigzag
+// runs from post to post
+function spgFangs(down) {
+  return pix64Canvas(64, (a) => {
+    const n = 5,
+      w = (SPG_X[1] - SPG_X[0]) / n,
+      base = down ? SPG_IN[0] : SPG_IN[1] - 1,
+      tip = down ? base + SPG_TOOTH : base - SPG_TOOTH,
+      shift = down ? 0 : w / 2;
+    for (let k = -1; k <= n; k++) {
+      const x0 = SPG_X[0] + k * w + shift,
+        cx = x0 + w / 2;
+      a.poly(
+        [
+          [x0, base + (down ? 0 : 1)],
+          [x0 + w, base + (down ? 0 : 1)],
+          [cx, tip],
+        ],
+        (i, j) => (i < SPG_X[0] || i >= SPG_X[1] ? null : i + 0.5 < cx - 0.6 ? '#ffffff' : i + 0.5 > cx + 0.6 ? '#b8bcc8' : '#e4e6ee'),
+      );
     }
-  // the bottom edge: a row of long teeth pointing down
-  for (let k = 0; k < 6; k++) {
-    const x0 = 7 + k * 8.4;
-    a.poly([[x0, 54], [x0 + 8.4, 54], [x0 + 4.2, 64]], (i, j) => (i + 0.5 < x0 + 4.2 ? S.l2 : S.d1));
-    a.tline(x0 + 4.2, 55, x0 + 4.2, 62, 1, S.l3);
-  }
-  a.rect(6, 53, 52, 1, S.d3);
-});
+    a.outline('#0a0a10');
+  });
+}
+const SPG_TOP = spgFangs(true),
+  SPG_BOT = spgFangs(false);
+function spgDraw(x, px, py, T, e) {
+  const k = T / 64;
+  x.save();
+  x.fillStyle = '#000000';
+  x.fillRect(px + SPG_X[0] * k, py + SPG_IN[0] * k, (SPG_X[1] - SPG_X[0]) * k, (SPG_IN[1] - SPG_IN[0]) * k);
+  x.beginPath();
+  x.rect(px, py + SPG_IN[0] * k, T, (SPG_IN[1] - SPG_IN[0]) * k);
+  x.clip();
+  x.drawImage(SPG_TOP, px, py - e * SPG_OPEN * k, T, T);
+  x.drawImage(SPG_BOT, px, py + e * SPG_OPEN * k, T, T);
+  x.restore();
+  x.drawImage(SPG_FRAME, px, py, T, T);
+}
 // the closed gate, for the icon and the shop
 B64B_PIC.spike_gate = (() => {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
   const x = c.getContext('2d');
-  x.drawImage(SPG_SHUTTER, 0, 0);
-  x.drawImage(SPG_FRAME, 0, 0);
+  x.imageSmoothingEnabled = false;
+  spgDraw(x, 0, 0, 64, 0);
   return c;
 })();
-// drawn every frame: the shutter eases towards open / shut, cut off under the housing
+// drawn every frame: the fangs ease apart / together
 drawNewBlock = ((prev) =>
   function (b, x, y, px, py, T) {
     if (b.id !== 'spike_gate') return prev(b, x, y, px, py, T);
@@ -426,18 +446,10 @@ drawNewBlock = ((prev) =>
       spikeDt = Math.min(0.1, Math.max(0, (now - spikeLastT) / 1000));
       spikeLastT = spikeFrame = now;
     }
-    const dt = spikeDt;
     let u = spikeSlide.has(i) ? spikeSlide.get(i) : tgt;
-    u = tgt > u ? Math.min(tgt, u + dt * 3) : Math.max(tgt, u - dt * 3);
+    u = tgt > u ? Math.min(tgt, u + spikeDt * 3) : Math.max(tgt, u - spikeDt * 3);
     spikeSlide.set(i, u);
-    const e = u * u * (3 - 2 * u);
-    g.save();
-    g.beginPath();
-    g.rect(px, py + (T * 8) / 64, T, (T * 56) / 64);
-    g.clip();
-    g.drawImage(SPG_SHUTTER, px, py - e * T * (54 / 64), T, T);
-    g.restore();
-    g.drawImage(SPG_FRAME, px, py, T, T);
+    spgDraw(g, px, py, T, u * u * (3 - 2 * u));
   })(drawNewBlock);
 
 // hook the pictures up

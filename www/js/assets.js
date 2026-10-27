@@ -344,8 +344,10 @@ A.desert_far = 'assets/background/desert_far.webp';
 A.desert_big = 'assets/background/desert_big.webp';
 A.desert_front = 'assets/background/desert_front.webp';
 // swimming in water (art-source/character/swim_cut.py): 8 frames per skin, 218 x 171, head lined up per frame
-for (const s of ['porcelain', 'peach', 'tan', 'honey', 'brown', 'deep'])
+for (const s of ['porcelain', 'peach', 'tan', 'honey', 'brown', 'deep']) {
   for (let i = 0; i < 8; i++) A['swim_' + s + '_' + i] = 'assets/character/' + s + '/swim_0' + i + '.png';
+  for (let i = 0; i < 3; i++) A['jump_' + s + '_' + i] = 'assets/character/' + s + '/jump_0' + i + '.png'; // jumping (jump.js)
+}
 // the /facejoke face: the owner's drawing (art-source/character/face_joke_cut.py), laid over the face (render.js)
 A.face_joke = 'assets/character/face_joke.png';
 // the standing frames' masks for clothes (art-source/character/base_cut.py): R legs + briefs, G feet

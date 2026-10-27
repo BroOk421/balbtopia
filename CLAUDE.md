@@ -1726,3 +1726,64 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     usual (the Water Gun sprays whoever is at the door). Tested: water gun / heartbow / chainsaw / katana on the main
     door open it with no shot; off the door the water gun sprays it.
   - GAME_BUILD '2026-10-26 z3'.
+
+- Oct 27 2026 (build '2026-10-27 a', owner, handfx.js):
+  - Water Gun / Heartbow shots fly STRAIGHT (no gravity) to the clicked point and stop there (`left` = distance);
+    the point is kept inside the break / place square (`clampAim`: REACH round your tile, +1 with Red Visor / Laser
+    Eyes). The Heartbow only punches a block when the click wasn't moved by the limit and no player is there.
+  - Aiming pose (`aim` = { t, x, y }, `AIM_MS` 520): after a shot the arm is held straight out with the gun / bow
+    pointed at the target (drawPunch with a fake `place` at `AIM_ARM` px; the swing / hold are hidden). Others get it
+    from the 'shot' event. The local player is drawn from a NEW object each frame (render.js), so its `aim` / `bowT`
+    (and the guitar timers) are copied from / kept on `P` in the drawCharacter wrapper; before this the bow's
+    draw / twang animation never showed for yourself.
+  - Heartbow art redone to the owner's picture (`bowPic`): steel blade tip, heart (red / orange / yellow) at the back,
+    dark green-grey limbs crossing at the grip; idle / draw / shot frames; flying arrow matches. Icon from the same.
+  - Leaf Blower: held (hand or Hand slot) and standing still on the ground for `LB_WAIT` (2 s) -> played like a guitar
+    across the body with a strumming hand (`drawGuitar`), coloured music notes float up (`NOTES`, `NOTE_COLS`).
+- Oct 27 2026 (build b, owner): the aiming pose is GONE again: Water Gun and Heartbow both swing in the BACK hand
+  like before (P.punch + sendPunch); shots still stop at the clicked point inside the reach. The bow's draw / twang
+  frames show on the swing. Leaf Blower guitar: the normal hold (the real hand over the blower), the arm rocking a
+  little (strum), the mouth moving with the chat mouth shapes (drawTalk wrapper, `guitarC`); notes as before.
+  Floating item drops: `drawDropBox` (end of render.js): the item in a small bevelled light frame, the amount
+  bottom-right only when more than 1 (one drop still holds at most DROP_STACK 200; more spills into new drops).
+- Oct 27 2026 (build c, owner): Heartbow drawn x1.4 (`BOW_BIG`) and held by its grip (`BOW_GRIP` 12.5, 19.5, the
+  middle of the arc), the arm over it (drawArmWithTool wrapper, handfx.js). Leaf Blower guitar is horizontal
+  (toolTurn 0.785). Thunder Hammer is now just "Hammer" (id `thunder_hammer` kept): no lightning, no sparkle.
+- Oct 27 2026 (build d, owner's sketch): the Heartbow while just held is turned further right (`BOW_HOLD_TURN` 1.9
+  instead of TOOL_TURN): string on top, arc below, arrow pointing down-right. Swing unchanged.
+- Oct 27 2026 (build e, owner):
+  - Heartbow is now FEATHER BOW (id `heart_bow` kept): white feathers (fletching) at the arrow's back instead of the
+    fire heart, on the bow picture and the flying arrow; held a little up and right (`BOW_NUDGE` 5, -6 body px) so
+    the hand is on the arc.
+  - Spike Gate: touching a shut one no longer hurts (side probes removed). Being inside its tile when it shuts =
+    death (`step`, physics.js, checked BEFORE moving since the collision would push you out). Open: harmless.
+  - Chest / Stove (blocks64c.js `storeWatch`): a drop landing on a SHUT one floats in sight; only drops on it at the
+    moment it goes open -> shut are kept inside (`d.stored`, hidden); opening shows them. Drops on a shut Chest /
+    Stove / Spike Gate can't be picked up (`dropShutIn`, physics.js). Each game watches the tile per drop (`d.ss`);
+    world-loaded drops (minAge 0) in a shut one count as inside. `spawnDrop` never tops up a stored drop.
+- Oct 27 2026 (build f, owner):
+  - Spike Gate redrawn after his picture (changed a little): pale steel frame, frowning brow with two glowing red
+    slanted eyes, a sill; shut = dark mouth of interlocking white fangs (`SPG_TOP` down, `SPG_BOT` up, rows
+    `SPG_IN` 16-54); opening pulls the jaws 15 px apart (fang tips still show at top and bottom).
+  - Jumping pose (`jump.js`, after handfx.js): the owner's jump sheet (`art-source/character/jump_sheet.png`, his 4th
+    figure unused) cut by `jump_cut.py` -> `<skin>/jump_00..02.png` (198 x 295 = standing frame + 40 px on the sides
+    and top, 80 below; head on the standing head, crouch 12 px lower: `JUMP_INFO.hdy`). 0 crouch (first 110 ms in the
+    air, 100 ms after landing when not walking), 1 going up (vy < -140), 2 top / falling. Clothes via outfitBody with
+    per-frame bands (pose 'jump'; briefsIn takes `bands.bt` / `bb`). Not while punching / placing / resting /
+    swimming; a held tool isn't drawn mid-jump.
+  - Jetpack flies: hold jump in the air (vy > -160) -> climbs at `JET_UP` with flame + smoke particles; `JET_FUEL` 5 s
+    in all, refilled after `JET_REFILL` 5 s without flying; fuel bar over your head while not full (local only).
+- Oct 27 2026 (build i, owner): swimming up is smooth: no stroke impulse in water any more (also not from the
+  bottom); holding jump in water accelerates you up (`SWIM_ACC` 380) to at most `SWIM_UP` (-105 px/s), physics.js.
+  The swim sound / splash still play on the press.
+- Oct 27 2026 (build j, owner):
+  - Diapers show while jumping: `art-source/character/diaper_jump_cut.py` makes `items/<kind>_diaper_jump_0..2.png`
+    (the idle diaper scaled to each jump picture's hips); diaper.js `diaperPart` maps 'jump_<skin>_<f>' to them.
+  - No splash particles when pressing jump in water any more. The wings' air jump: straight white lines down from
+    the feet (`jumpLines`, jump.js) instead of the feather puff.
+- Oct 27 2026 (build l, owner): flying arrow smaller, about the arrow on the bow (`ARROW_PX` 0.55, was 1.15).
+- Oct 27 2026 (build n, owner): tree grow time comes from RARITY (`treeTime(seed)`, farming.js `GROW_TIERS`, linear in
+  each tier): Common 1-20 min, Uncommon 20-45 min, Rare 45-60 min, Epic (lots of gold) 12-24 h, Legendary 24-48 h.
+  Items with no rarity keep their TREE_TIME. TREE_TIME is still the "has a tree" check everywhere; treeProgress, the
+  tree bubble and the item info ("Grows in", now as 1h 02m 05s) use treeTime. Counts in Oct 2026: 15 Common, 67
+  Uncommon, 150 Rare, 73 Epic, 123 Legendary. Trees already planted follow the new times (planted time is kept).
