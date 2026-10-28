@@ -37,7 +37,7 @@ function petBox(c) {
   const s = petState.get(c.id ? c.id : c.name === playerName ? 'me' : null);
   if (!s || s.id !== id) return null;
   const half = petWorldW(id) / 2 + 24,
-    up = PET_BY_ID[id].img ? 90 : 60; // its height, plus a flyer's hover over the ground
+    up = PET_BY_ID[id].img ? (PET_BY_ID[id].robot ? 80 : 90) : 60; // its height (Tyapa 64 px), plus a flyer's hover over the ground
   return { l: s.x - half, r: s.x + half, t: s.y - up, b: s.y + 14 };
 }
 drawCharacter = ((prev) =>

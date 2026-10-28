@@ -38,6 +38,10 @@ const PETS = [
   { id: 'fire_dragon', name: 'Fire Dragon', move: 'big', img: 'pet_fire_dragon', ball: 'pet_flame_ball', ballFile: 'flame_ball', mouth: [124, 37], head: [30.2, 30.7], dir: 41.3, gold: 100000, rarity: 'Legendary', desc: 'A dragon wrapped in flames. It walks behind you, and every time you hit a block or a seed it shoots a fireball at it: one hit less to break it.' },
   { id: 'trex', name: 'T-Rex', move: 'big', img: 'pet_trex', gold: 80000, rarity: 'Legendary', desc: 'A big orange T-Rex that stomps along behind you.' },
   { id: 'raptor', name: 'Raptor', move: 'big', img: 'pet_raptor', gold: 80000, rarity: 'Legendary', desc: 'A blue raptor with golden spots that runs along behind you.' },
+  // Tyapa (owner, Oct 28 2026): the owner's cyborg robot, 2 tiles tall. Its own strip (art-source/pets/
+  // cyborg_cut.py): 20 frames of 60 x 61, idle / walk drawn facing right AND left (left frames are not mirrored at
+  // draw time, see drawBig). Same price as the Legendary dragons (Cosmic / Fire Dragon).
+  { id: 'cyborg', name: 'Tyapa', move: 'big', img: 'pet_cyborg', robot: true, gold: 100000, rarity: 'Legendary', desc: 'Tyapa, a heavy cyborg robot with a cannon on its shoulder, two tiles tall. It stomps along behind you.' },
 ];
 for (const p of PETS) {
   if (p.img) A[p.img] = 'assets/pets/' + p.id + '.png';
@@ -138,6 +142,12 @@ const PET_FRAMES = {};
 const BIG_FRAMES = 10,
   BIG_SCALE = 96 / 131, // world px per picture px
   BIG_FOOT = 2; // empty picture rows under the feet
+// Tyapa the cyborg: its own strip and size (2 tiles = 64 world px for its 60 picture px from head to feet; owner
+// found 3 tiles too big). plant = picture rows from the bottom of the strip up to the bottom of its HIGHER sole (its
+// feet end at rows 58 and 56 of 61): that sole touches the ground and the other one sinks into the grass a little, so
+// both feet stand on the floor (owner: no gap under the feet). sink = px under the ground's top, like your feet.
+const CYBORG = { frames: 20, idle: [0, 4], walk: [4, 6], left: 10, scale: 64 / 60, plant: 4, sink: 1 };
+const petScale = (p) => (p.robot ? CYBORG.scale : BIG_SCALE);
 function stripFrames(im, n) {
   const w = Math.floor(im.width / n);
   return Array.from({ length: n }, (_, k) => {
@@ -150,10 +160,8 @@ function stripFrames(im, n) {
 }
 // The big pets' feet were cut flat at the bottom of the owner's sheet (owner: "putol yung paa"). Each foot (a run of
 // columns whose lowest pixel is in the bottom rows, in the leg part of the picture) gets a sole: one row under it
-// in a darker shade of the foot (not under the heel pixel, so it looks round) and light claws: at the toe, 3 px
-// behind it, and one poking forward (the pictures face right). Runs once per frame picture.
-const CLAW = [240, 232, 212],
-  CLAW_DARK = [90, 70, 60];
+// in a darker shade of the foot (not under the heel pixel, so it looks round). No claws (owner, Oct 28 2026: the
+// light claws on the dragons and dinosaurs are gone). Runs once per frame picture.
 function bigClaws(cnv) {
   const w = cnv.width,
     h = cnv.height,
@@ -181,9 +189,6 @@ function bigClaws(cnv) {
       const k = (yb[c] * w + c) * 4;
       put.push([c, yb[c] + 1, [d[k] * 0.45, d[k + 1] * 0.4, d[k + 2] * 0.45], false]);
     }
-    for (const c of [e, e - 3]) if (c > s) put.push([c, yb[c] + 1, CLAW, true]);
-    put.push([e + 1, yb[e], CLAW, false]);
-    put.push([e + 1, yb[e] + 1, CLAW_DARK, false]);
   }
   for (const [i, j, c, over] of put) {
     if (i < 0 || i >= w || j < 0 || j >= h || (!over && A(i, j) > 100)) continue;
@@ -198,8 +203,7 @@ function bigClaws(cnv) {
 }
 // T-Rex / Raptor (owner: the automatic claws looked bad on them): their feet are placed by hand per frame, as
 // [first x, toe x, bottom row] in the frame picture (walking 0-5, then the 4 breathing frames). Each foot gets a
-// sole row in its own shade (not under the heel), the toe pushed 1 px forward, and ivory claws only at the front:
-// two forward off the toe, one under it, one a little behind it.
+// sole row in its own shade (not under the heel) and the toe pushed 1 px forward (no claws: owner, Oct 28 2026).
 const DINO_FEET = {
   trex: [
     [[37, 41, 64], [48, 56, 64]],
@@ -220,8 +224,6 @@ const DINO_FEET = {
     ...Array(4).fill([[49, 61, 56], [67, 71, 56]]),
   ],
 };
-const DINO_CLAW = [246, 238, 220],
-  DINO_CLAW_D = [190, 176, 150];
 function dinoFeet(cnv, spec) {
   const w = cnv.width,
     h = cnv.height,
@@ -250,10 +252,6 @@ function dinoFeet(cnv, spec) {
     for (let i = s + 1; i <= e; i++) put(i, y + 1, shade);
     put(e + 1, y - 1, mid, false);
     put(e + 1, y, mid);
-    put(e + 2, y - 1, DINO_CLAW);
-    put(e + 2, y, DINO_CLAW_D);
-    put(e + 1, y + 1, DINO_CLAW);
-    put(e - 2, y + 1, DINO_CLAW);
   }
   x.putImageData(im, 0, 0);
   return cnv;
@@ -264,6 +262,7 @@ function petFrames(id) {
     // a drawn animation (the big pets): its frames from the picture; nothing until the picture has loaded
     const im = IMG[PET_BY_ID[id].img];
     if (!im || !im.complete || !im.naturalWidth) return null;
+    if (PET_BY_ID[id].robot) return (PET_FRAMES[id] = stripFrames(im, CYBORG.frames)); // its feet are drawn already
     const feet = DINO_FEET[PET_BY_ID[id].id];
     return (PET_FRAMES[id] = stripFrames(im, BIG_FRAMES).map((c, k) => (feet ? dinoFeet(c, feet[k]) : bigClaws(c))));
   }
@@ -328,11 +327,13 @@ function petIcon(id) {
 // how wide a pet is in world px
 function petWorldW(id) {
   const fr = petFrames(id);
-  if (PET_BY_ID[id].img) return fr ? fr[0].width * BIG_SCALE : 90;
+  if (PET_BY_ID[id].img) return fr ? fr[0].width * petScale(PET_BY_ID[id]) : 90;
   return fr ? fr[0].width : 30;
 }
 const PET_DELAY = 150, // ms: where you were this long ago is where the pet goes
-  PET_GAP = 3; // px between you and the pet
+  PET_GAP = 3, // px between you and the pet
+  PET_TURN_V = 25, // px/s: faster than this it faces the way it walks
+  PET_TURN_GAP = 6; // px: standing, it turns to you only when you are further than this from its middle
 const petState = new Map(); // 'me' or a player id -> { id, trail, x, y, face, turnT, ph, t }
 function petFor(key, c, id) {
   let s = petState.get(key);
@@ -364,11 +365,13 @@ function petFor(key, c, id) {
   const v = Math.abs(s.x - ox) / dt;
   s.mv += ((v > 14 ? 1 : 0) - s.mv) * Math.min(1, dt * 10); // moving, smoothed
   s.ph += Math.abs(s.x - ox) / 3.2; // legs: one frame every ~3 px walked
-  // it turns a moment after you do (the delayed position's facing), with a quick flip
-  if (past.f !== s.face) {
-    s.face = past.f;
-    s.turnT = now;
-  }
+  // Facing (owner, Oct 28 2026): a pet no longer turns when you turn. Walking, it faces the way it walks; standing,
+  // it faces you. So when you walk back past it, it keeps facing you until you have passed it (and it has walked
+  // round behind you), then it turns. The turn is instant (no squeeze-flip); turnT stays far in the past so the
+  // flip code in drawPet / drawBig always shows the full picture.
+  s.vx = (s.vx || 0) + ((s.x - ox) / dt - (s.vx || 0)) * Math.min(1, dt * 10); // its speed, signed and smoothed
+  const want = Math.abs(s.vx) > PET_TURN_V ? Math.sign(s.vx) : Math.abs(cx - s.x) > PET_TURN_GAP ? Math.sign(cx - s.x) : s.face;
+  if (want && want !== s.face) s.face = want;
   return s;
 }
 function drawPet(key, c, ox, oy) {
@@ -433,8 +436,11 @@ function drawPet(key, c, ox, oy) {
 // the pet is drawn IN FRONT of its character (owner, Oct 27 2026: it used to be drawn first, behind you). The
 // drawCharacter wrapper that does it is at the end of jump.js, so it is the outermost one: the jumping pose
 // (drawJumping) doesn't call the older drawCharacter, which made the pet vanish while you were in the air.
-function drawPetOf(c, ox, oy) {
+// which: 'big' = only a big pet (drawn before the character, behind it), 'small' = only a small one (after, in front)
+function drawPetOf(c, ox, oy, which) {
   if (!c || !c.name || !c.equipped || !c.equipped.pet || c.portrait) return;
+  const p = PET_BY_ID[c.equipped.pet];
+  if (which && p && (p.move === 'big') !== (which === 'big')) return;
   const key = c.id ? c.id : c.name === playerName ? 'me' : null;
   if (key) drawPet(key, c, ox, oy);
 }
@@ -459,8 +465,9 @@ function drawBig(key, c, ox, oy, id) {
   const p = PET_BY_ID[id],
     s = petFor(key, c, id),
     frames = petFrames(id),
-    w = frames[0].width * BIG_SCALE,
-    h = frames[0].height * BIG_SCALE;
+    S = petScale(p),
+    w = frames[0].width * S,
+    h = frames[0].height * S;
   // a dragon: a new punch at something solid -> shoot at it
   if (p.ball && c.punch && c.punch !== s.lastPunch) {
     s.lastPunch = c.punch;
@@ -472,26 +479,34 @@ function drawBig(key, c, ox, oy, id) {
   const moving = s.mv > 0.5,
     // the walking frames run backwards on the sheet (the foot on the ground slid forward = walking backwards), so
     // they are played 5 -> 0 (owner, Oct 27 2026)
-    k = moving ? 5 - (Math.floor(s.ph / 1.6) % 6) : 6 + (Math.floor(now / 300) % 4);
+    k = p.robot
+      ? moving
+        ? CYBORG.walk[0] + (Math.floor(s.ph / 2.2) % CYBORG.walk[1]) // its walk plays forwards, a frame every ~7 px
+        : CYBORG.idle[0] + (Math.floor(now / 200) % CYBORG.idle[1])
+      : moving
+        ? 5 - (Math.floor(s.ph / 1.6) % 6)
+        : 6 + (Math.floor(now / 300) % 4);
   // facing: towards the target while shooting, else the way you face (delayed, petFor), with a quick flip
   const face = atk ? (atk.x >= s.x ? 1 : -1) : s.face,
     tu = Math.min(1, (now - s.turnT) / 200),
     flip = atk ? 1 : tu < 1 ? Math.max(0.08, Math.abs(Math.cos(tu * Math.PI))) : 1,
     shown = atk || tu >= 0.5 ? face : -face;
   const bx = s.x,
-    by = s.y + (BIG_FOOT - 1) * BIG_SCALE + 1; // the picture's bottom: the soles (bigClaws, one row under the old feet) sink 1 px into the ground like your feet
+    by = p.robot ? s.y + CYBORG.plant * S + CYBORG.sink : s.y + (BIG_FOOT - 1) * S + 1; // Tyapa: see CYBORG (plant, sink). Others: the picture's bottom: the soles (bigClaws, one row under the old feet) sink 1 px into the ground like your feet
   if (atk && !atk.fired && now - atk.t0 > 60) {
     atk.fired = true;
-    const mx = bx + shown * (p.mouth[0] * BIG_SCALE - w / 2),
-      my = by - h + p.mouth[1] * BIG_SCALE;
+    const mx = bx + shown * (p.mouth[0] * S - w / 2),
+      my = by - h + p.mouth[1] * S;
     breaths.push({ x0: mx, y0: my, x1: atk.x, y1: atk.y, t0: now, ball: p.ball, head: p.head, dir: p.dir, tx: atk.tx, ty: atk.ty });
   }
   g.save();
   g.imageSmoothingEnabled = false;
   if (c.dead) g.globalAlpha = 0.5;
   g.translate(Math.round(ox + bx * Z), Math.round(oy + by * Z));
-  g.scale(shown * flip, 1);
-  g.drawImage(frames[k], Math.round((-w / 2) * Z), Math.round(-h * Z), Math.round(w * Z), Math.round(h * Z));
+  // Tyapa has its own left-facing frames: facing left it takes those (not mirrored); the turn still squeezes it
+  const left = p.robot && shown < 0;
+  g.scale(left ? flip : shown * flip, 1);
+  g.drawImage(frames[left ? k + CYBORG.left : k], Math.round((-w / 2) * Z), Math.round(-h * Z), Math.round(w * Z), Math.round(h * Z));
   g.restore();
 }
 // the fireballs, drawn over the world and the players (from the drawWater wrapper); smoke where they land

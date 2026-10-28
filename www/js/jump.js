@@ -215,12 +215,14 @@ drawLiveFx = ((prev) =>
     return prev();
   })(drawLiveFx);
 
-// the worn pet, in front of the character, in every pose (pets.js drawPetOf). The name tag / chat bubble still go
-// over it: shadow.js (the outermost wrapper) draws them after the character and the pet.
+// the worn pet, in every pose (pets.js drawPetOf): small pets IN FRONT of the character, the big ones (Cosmic / Fire
+// Dragon, T-Rex, Raptor, Tyapa) BEHIND it, so the character overlaps them (owner, Oct 28 2026). The name tag / chat
+// bubble still go over both: shadow.js (the outermost wrapper) draws them after the character and the pet.
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
+    drawPetOf(c, ox, oy, 'big');
     const r = prev(c, ox, oy);
-    drawPetOf(c, ox, oy);
+    drawPetOf(c, ox, oy, 'small');
     return r;
   })(drawCharacter);
 

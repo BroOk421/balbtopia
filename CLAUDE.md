@@ -1877,3 +1877,29 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     feet, outside the shadow off-screen box (only 10 px under the feet), and was clipped. `petBox(c)` (shadow.js) grows
     the box round the pet's last spot (petState) + a margin.
   - GAME_BUILD '2026-10-28 a'.
+- Oct 28 2026 (build c, owner): the Fire Dragon's roar / new idle (build b) was tried and REVERTED (same 10-frame
+  picture and drawBig as before). No light claws on the big pets any more: `bigClaws` (dragons) only adds the darker
+  sole row, `dinoFeet` (T-Rex, Raptor) only the sole row + the toe 1 px forward in the foot's own colour.
+  GAME_BUILD '2026-10-28 c'.
+- Oct 28 2026 (build d, owner): new pet TYAPA (`pet_cyborg`), the owner's cyborg robot (his 2 GIFs, 96 x 96 facing
+  right: idle 4 frames, walk 6; kept in `art-source/pets/cyborg_idle.gif` / `cyborg_walk.gif`). `cyborg_cut.py` makes
+  `www/assets/pets/cyborg.png`: 20 frames of 60 x 61 (0-3 idle right, 4-9 walk right, 10-13 idle LEFT, 14-19 walk LEFT;
+  left = mirrored, crop centred on the body so it stands on the same spot). A `move: 'big'` pet with `robot: true`:
+  `CYBORG` in pets.js (scale 96/60 = 3 tiles tall, 1 empty row under the feet), `petScale` / `petFoot` replace
+  BIG_SCALE / BIG_FOOT in drawBig and petWorldW; facing left drawBig takes the left frames instead of mirroring (the
+  turn still squeezes). Walk plays forwards, a frame every ~7 px walked; idle 200 ms a frame. No fireball, no hit bonus.
+  Shop PETS, 100,000 gold, Legendary (= Cosmic / Fire Dragon); schema.sql shop_prices row (re-run schema.sql). Shadow
+  box: `petBox` up 110 for it. GAME_BUILD '2026-10-28 d'.
+- Oct 28 2026 (build e, owner: Tyapa too big, feet floating): Tyapa is 2 tiles tall (`CYBORG.scale` 64/60) and stands
+  on the floor: the strip has 2 empty rows under the feet (not 1) and one foot ends 2 rows higher than the other, so
+  drawBig puts the bottom of the HIGHER sole on the ground (`CYBORG.plant` 4 rows from the strip's bottom) + `sink` 1 px,
+  the other foot sinking into the grass like the player's. Shadow box up 80. GAME_BUILD '2026-10-28 e'.
+- Oct 28 2026 (build f, owner): pets TURN differently (`petFor`, pets.js): not when you turn any more. Walking
+  (smoothed signed speed `s.vx` over `PET_TURN_V` 25 px/s) a pet faces the way it walks; standing it faces you (when
+  you are more than `PET_TURN_GAP` 6 px from its middle). So walking back past it, it keeps facing you until you have
+  passed it, then turns. Instant turn: the squeeze-flip is gone (`turnT` is never set, so drawPet / drawBig's flip
+  is always 1). Dragons still turn to their fireball target. Pets still draw over blocks (no collision; owner asked,
+  not decided yet). GAME_BUILD '2026-10-28 f'.
+- Oct 28 2026 (build g, owner): BIG pets (`move: 'big'`: Cosmic / Fire Dragon, T-Rex, Raptor, Tyapa) are drawn BEHIND
+  the character (the character overlaps them); small pets stay in front. jump.js wrapper: `drawPetOf(c, ox, oy, 'big')`
+  before the character, `drawPetOf(..., 'small')` after. Pets still draw over blocks. GAME_BUILD '2026-10-28 g'.
