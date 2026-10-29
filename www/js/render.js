@@ -1400,10 +1400,7 @@ function drawBubble(text, x, y, a) {
   g.strokeStyle = '#1c1033';
   g.lineWidth = Z;
   g.beginPath();
-  g.roundRect(x - w / 2, y - h, w, h, 3 * Z);
-  g.moveTo(x - 3 * Z, y);
-  g.lineTo(x, y + 3 * Z);
-  g.lineTo(x + 3 * Z, y);
+  g.roundRect(x - w / 2, y - h, w, h, 3 * Z); // just the rounded box, no arrow under it (owner, Oct 29 2026)
   g.fill();
   g.stroke();
   g.fillStyle = '#1c1033';

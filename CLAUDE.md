@@ -1931,3 +1931,56 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     white see-through crescent slash (`scySlash`, drawToolSwing wrapper; the owner's moon drawing: pointed both ends,
     thick middle; grows with the swing from aim-2.3 to aim+0.35 rad round the shoulder, then fades from its back;
     smoke layer + white core, `SCY_SLASH`). Only the Garden Scythe has the slash.
+
+- Oct 29 2026 (builds f-g, owner):
+  - Every scythe its OWN design (scythes.js `SCY_LOOK`: `handle`, `blade`, `bw` width, `deco`): Iron = wooden handle,
+    red cloth grip, plain blade, iron ring; Golden = gold shaft (spiral engraving, bulging rings), ivory grip with gold
+    thread, ruby pommel, engraved blade, crown + ruby; Dark = the Soul Scythe look (owner's picture): glossy deep-blue
+    shaft, silver bands, purple grip, silver spike at the end, slim blade with a violet streak, a big silver 4-point
+    star; Furious = black iron shaft with spiked red bands, red leather cross-strapped grip, spiked ball, saw-toothed
+    edge + spine spikes; Flame = charred shaft with glowing cracks, ember orb, flames licking off the blade's back; Garden =
+    green bamboo shaft (nodes) with the vine, twine grip, broad leaf blade with veins, pink flower. Handles are
+    `SCY_HANDLES` painters along the same line, so the grip / holding didn't change. `scyW(t, L)` uses `bw`.
+  - BACK blade (`scyBackBlade`, `SCY_BACK`): like the owner's Soul Scythe picture, a short curved horn out of the back
+    of the head sweeping back and UP to a point (round side under, sharp edge on top). The main blade's heel now starts
+    at the handle (`SCY_ARC.a0` -1.62, was -1.8).
+  - Glowing border on all but the Iron Scythe: `glow` -> `scyGlowRing` (pixel ring, icons too) + a breathing
+    shadowBlur halo in the world (`scyDraw`).
+  - Slash on EVERY scythe, in its colour (`slash` [core, colour]), shaped like the owner's MOON drawing
+    (`scyMoonPath`: outer circle minus a second circle through both points; fat in the middle, sharp ends, `tips`
+    1.85 rad), thin dark rim, bright band on the round side, glow, coloured trail; grows from small to big on the way
+    (`SCY_SLASH.from` 0.22 -> `to` 1.6, r 13, thick 6.6), alpha 0.92.
+  - Swimming shows the FULL hair, exactly as when standing (owner): `swimHairBack` (gates.js) draws a strip hair's
+    lower part (below `split`) OVER the swimming body (so nothing is cut at the neck) and a drawn `behind` picture
+    (Long Brown, Princess) behind the body, like standing (over it, that panel would cover the face).
+- Oct 29 2026 (build h, owner, his screenshot of a lightning beam): Dark, Furious and Flame Scythe shoot a pixel
+  LIGHTNING bolt instead of the moon slash (`scyBolt`, `SCY_BOLT`, `bolt` colours in `SCY_LOOK`: line / mid / core /
+  smoke / tint / glow): a thick jagged beam (dark outline, colour, bright core) from the scythe to the spot hit, shoots
+  out in 0.12 of the swing, new zigzag every 55 ms, then a dark grainy spiky smoke cloud bursts where it lands (lumps,
+  rays, loose puffs, tinted specks). Painted at 1 world px a pixel into a grid on `scyBoltCv` and scaled up unsmoothed.
+  Iron / Golden / Garden keep the moon slash. Both effects are drawn on the screen right AFTER the character
+  (`scyFxLater` + a drawCharacter wrapper in scythes.js): inside shadow.js's small box they were cut off past ~46 px.
+- Oct 29 2026 (build i, owner: "pangit yung lightning"): the long beam + smoke of build h is GONE. Dark / Furious /
+  Flame Scythe now throw a short cartoon LIGHTNING SIGN like his Flame Scythe picture (`scyBolt`, `SCY_BOLT`,
+  `SCY_BOLT_POLY`: a fat slanted piece, a notch back, a long point; ~32 world px from the scythe towards the spot hit,
+  flickers between the shape and its mirror every 70 ms, shoots out in 0.14 of the swing, fades after 0.62). Pixel
+  art: filled on a 1 world px grid, dark outline, then edge / colour / bright core by depth from the edge (`bolt`
+  colours line / edge / mid / core / glow). Moon slash (Iron / Golden / Garden) alpha 0.58 (was 0.92, owner: a bit
+  see-through). Jumping: the scythe is mirrored across its own handle line (`scyDraw(..., flipBlade)`), so the blade
+  points to the other side while the handle stays in the fist.
+- Oct 29 2026 (build j, owner: "sobrang taba, nipisan"): the scythe lightning is now a THIN zigzag bolt (`SCY_BOLT`:
+  width 3.4 world px at the root tapering to a sharp point, a corner every ~9 px pushed 3 px across, alternating; the
+  zigzag swaps sides every 70 ms) that runs from the scythe ALL THE WAY to the spot being hit, at most 3 tiles
+  (`reach` x TS, the breaking reach). Colours: dark outline, the scythe colour, bright core along the middle.
+- Oct 29 2026 (build k, owner): the lightning (builds h-j) is REMOVED; every scythe has the moon slash again, now PIXEL
+  ART: `scyPixMoon` fills the moon (`scyMoonTest`: outer disc minus a disc through both points) on a 1 world px grid,
+  dark pixel rim (`SCY_SLASH.line`), bright band on the round side, scaled up unsmoothed, small glow. More see-through:
+  `SCY_SLASH.alpha` 0.42 (trail 3 pixel moons at 35%). Still drawn after the character (`scyFxLater`).
+- Oct 29 2026 (build l, owner): longer scythe handles: `SCY_HANDLE_LEN` 54 px (was 40), carrying on past the hand on
+  the same line (`SCY_HANDLE_A` moved down), so the pictures are 72 x 72 (`SCY_N`); blade, hand (`SCY_GRIP`) and all
+  turns unchanged. Grip wraps are `SCY_GRIP_D` (26.5-40.1 px from the top), shaft (+ a band) below them. Iron, Dark and
+  Garden have a BENT handle (`curve` in SCY_LOOK: a gentle S through the top, the hand and the knob, `scyHandleGeo`),
+  Iron and Garden also two little side pegs (`nibs`, like a real scythe's hand grips, owner's picture); the others stay
+  straight. `scyHandle` paints along the (maybe bent) line by nearest point; the Garden vine follows it.
+- Oct 29 2026 (build m, owner): chat bubbles over heads (`drawBubble`, render.js) are just the rounded box now, the
+  little arrow under it is gone.

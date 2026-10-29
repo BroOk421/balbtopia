@@ -201,6 +201,23 @@ function swimPose(c) {
   const im = IMG['swim_' + c.skin + '_0'];
   return !!(im && im.width) && inWater(c);
 }
+// Long hair while swimming (owner, Oct 29 2026: "the full hair, like when I'm not in the water"): standing, the part of
+// a long hair below the shoulders (a strip's `split`, or a drawn hair's `behind` picture) goes behind the body, where
+// the lying-down swimmer would hide it. Here it is drawn OVER the swimming body, exactly as it hangs when standing,
+// so together with drawWorn's top part the whole hairstyle shows. Skipped under a hat / shirt that hides the hair.
+function swimHairBack(eq, top, sc, hx, behindBody) {
+  const w = WEAR_BY_ID[eq.hair],
+    hat = WEAR_BY_ID[eq.hat];
+  if (!w || (hat && hat.hideHair)) return;
+  g.save();
+  g.translate(hx, 0);
+  // a drawn `behind` picture (Long Brown, Princess) is a solid panel the size of the head: over the body it would
+  // cover the face, so it stays behind the body like when standing; a strip hair's lower part goes over it
+  if (behindBody) {
+    if (w.behind) drawWearArt(eq.hair, top, sc, 0, 0, w.behind);
+  } else if (w.strip && w.strip.split) drawWearStrip(w, top, sc, 0, 1, 'back');
+  g.restore();
+}
 function drawSwimming(c, ox, oy) {
   const sc = CHAR_H / FR.h,
     moving = c.walking || !c.ground,
@@ -220,7 +237,10 @@ function drawSwimming(c, ox, oy) {
   if (c.hurt > 0 && Math.floor(now / 80) % 2) g.globalAlpha = 0.55;
   if (c.spawnT > 0) g.globalAlpha *= 1 - c.spawnT / SPAWN_FADE;
   g.imageSmoothingEnabled = true;
+  swimHairBack(eq, top + hy * sc * Z, sc, headDx, true);
   g.drawImage(outfitBody(im, 'swim_' + c.skin + '_' + f, eq, SWIM_BANDS), -W / 2, top, W, H);
+  // long hair: the part below the shoulders too, over the body, so the whole hairstyle shows (owner, Oct 29 2026)
+  swimHairBack(eq, top + hy * sc * Z, sc, headDx, false);
   // /facejoke: the same face drawing, moved onto the swimming head
   if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), -(FR.w * sc * Z) / 2 + headDx, top + hy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), -(FR.w * sc * Z) / 2 + headDx, top + hy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
