@@ -1,14 +1,19 @@
-// More hand items (owner, Oct 26 2026): scythes, wands, a bow, tools and toys you hold. Like weapons.js: TOOLS
+// More hand items (owner, Oct 26 2026): scythes (art in scythes.js), wands, a bow, tools and toys you hold. Like weapons.js: TOOLS
 // entries (hold in the hotbar or the Hand slot, swung when you punch, just for show), 32 x 32 1 px pictures with
 // the hd/tools.js helpers (grip at the bottom left, the business end at the top right). Ones with `sparkle`
 // throw sparks when you hit with them. Balbtopia recipes (farming.json + SPLICE). Loaded after weapons.js.
 // ===== weapons2 =====
 const WEAPONS2 = {
-  hand_scythe: { name: 'Hand Scythe', rarity: 'Uncommon', head: ['#b8bcc6', '#eef1f6', '#5a606e'], desc: 'A small curved farm scythe.', rec: ['bolo', 'grass'] },
+  // scythes: art, holding and flames in scythes.js (hand_scythe / death_scythe ids kept for old saves)
+  hand_scythe: { name: 'Iron Scythe', rarity: 'Uncommon', head: ['#b4bac6', '#eef1f6', '#4e5562'], desc: 'An iron scythe with a long wooden handle.', rec: ['bolo', 'grass'] },
+  golden_scythe: { name: 'Golden Scythe', rarity: 'Epic', head: ['#f2b41e', '#fff4a8', '#8a5006'], sparkle: ['#ffd23f', '#fff4b8', '#ffffff'], desc: 'A shining gold scythe with a wooden handle and a red gem.', rec: ['hand_scythe', 'golden_block'] },
+  flame_scythe: { name: 'Flame Scythe', rarity: 'Epic', head: ['#e8641a', '#ffd27a', '#661606'], sparkle: ['#ff6a1a', '#ffd040', '#ff3a10'], desc: 'A red-hot scythe. Little flames rise off it.', rec: ['hand_scythe', 'lava'] },
+  garden_scythe: { name: 'Garden Scythe', rarity: 'Rare', head: ['#b2c8a4', '#eef6e4', '#4c6444'], desc: 'A garden scythe with a green vine winding round its handle and onto the blade. It leaves a white slash when you swing it.', rec: ['hand_scythe', 'viney_block'] },
   leaf_blower: { name: 'Leaf Blower', rarity: 'Rare', head: ['#f07a1e', '#ffd040', '#3a3a44'], sparkle: ['#6ab84a', '#ffa030', '#9ad86a'], desc: 'A noisy orange leaf blower. Leaves fly when you hit with it.', rec: ['electric_fan', 'leaf_block'] },
   paper_umbrella: { name: 'Oil-paper Umbrella', rarity: 'Rare', head: ['#e8303e', '#ffd040', '#8a1a14'], desc: 'A red oil-paper umbrella with a bamboo frame and painted flowers.', rec: ['beach_umbrella', 'bamboo_block'] },
   smores_staff: { name: "Staff of S'mores", rarity: 'Rare', head: ['#f4ead6', '#ffffff', '#8a5a2a'], sparkle: ['#ffa030', '#ffd040', '#f4ead6'], desc: "A roasting stick with a toasty s'more on the end.", rec: ['campfire', 'cookie_block'] },
-  death_scythe: { name: 'Death Scythe', rarity: 'Legendary', head: ['#3a3a48', '#9a9ab0', '#0a0a10'], sparkle: ['#7a3ac8', '#2a2a34', '#b088ff'], desc: 'A huge black scythe with a long curved blade. Dark wisps trail off it.', rec: ['hand_scythe', 'skeleton'] },
+  death_scythe: { name: 'Dark Scythe', rarity: 'Legendary', head: ['#3c3c4c', '#7a7a92', '#15151b'], sparkle: ['#7a3ac8', '#2a2a34', '#b088ff'], desc: 'A black scythe. Dark purple flames rise off it.', rec: ['hand_scythe', 'skeleton'] },
+  furious_scythe: { name: 'Furious Scythe', rarity: 'Legendary', head: ['#d0202e', '#ff9a8a', '#4c040a'], sparkle: ['#ff2a2a', '#ffe040', '#8e0c16'], desc: 'A blood-red spiked scythe. Its edge throbs with rage.', rec: ['death_scythe', 'flame_scythe'] },
   heart_bow: { name: 'Feather Bow', rarity: 'Epic', head: ['#4e6b62', '#86ad9c', '#1c2424'], sparkle: ['#ffffff', '#e8e0d0', '#86ad9c'], desc: 'A dark wooden bow with a steel-tipped, feathered arrow. Click to shoot where you aim.', rec: ['rose', 'spear'] },
   fire_wand: { name: 'Fire Wand', rarity: 'Epic', head: ['#ff6a1a', '#ffe070', '#8a2a08'], sparkle: ['#ff6a1a', '#ffd040', '#ff3a10'], desc: 'A wooden wand with a burning crystal at its tip.', rec: ['torch', 'crystal_block'] },
   ice_wand: { name: 'Ice Wand', rarity: 'Epic', head: ['#8fd0f2', '#ffffff', '#3f7fb8'], sparkle: ['#bfe9fb', '#ffffff', '#8fd0f2'], desc: 'A silver wand topped with a snowflake crystal.', rec: ['ice', 'crystal_cluster'] },
@@ -43,13 +48,6 @@ function hdtArc(set, cx, cy, r, a0, a1, w0, col) {
   }
 }
 Object.assign(HDT_ART, {
-  hand_scythe: () =>
-    hdtSprite((set) => {
-      hdtSeg(set, [4, 28], [16, 16], 1.4, (t, s) => (t < 0.35 ? (Math.floor(t * 20) % 2 ? '#3a2414' : '#6b4424') : woodShaft(t, s)));
-      // the blade curls from the top of the handle up and round to the right
-      hdtArc(set, 22, 16, 8, Math.PI * 1.05, Math.PI * 1.95, 2.4, (t, dx, dy) => (dy < -0.2 ? '#eef1f6' : dy > 0.4 ? '#5a606e' : '#b8bcc6'));
-      hdtDisc(set, 15, 17, 1.5, () => '#4a4f5c');
-    }),
   leaf_blower: () =>
     hdtSprite((set) => {
       // motor body (orange) with a handle, a long tube out to the top right
@@ -86,14 +84,6 @@ Object.assign(HDT_ART, {
         return t < 0.2 || t > 0.8 ? '#e8a050' : '#f8f0e0';
       });
       set(24, 6, '#ffffff');
-    }),
-  death_scythe: () =>
-    hdtSprite((set) => {
-      hdtSeg(set, [2, 30], [22, 6], 1.1, (t, s) => (s < 0 ? '#4a3a5a' : '#1e1a26'));
-      hdtDisc(set, 21, 7, 1.8, () => '#7a3ac8');
-      // a big curved blade sweeping back over to the left
-      hdtArc(set, 14, 10, 10, -Math.PI * 0.05, -Math.PI * 0.95, 3, (t, dx, dy) => (dy < -0.3 ? '#c8c8d8' : dy > 0.4 ? '#14141a' : '#5a5a6a'));
-      for (const [x, y] of [[8, 2], [26, 2], [12, 5]]) set(x, y, '#b088ff');
     }),
   heart_bow: () =>
     hdtSprite((set) => {

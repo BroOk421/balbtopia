@@ -381,6 +381,10 @@ const SPLICE = {
   "bamboo_block+beach_umbrella": "paper_umbrella",
   "campfire+cookie_block": "smores_staff",
   "hand_scythe+skeleton": "death_scythe",
+  "golden_block+hand_scythe": "golden_scythe", // scythes.js (Oct 29 2026)
+  "hand_scythe+lava": "flame_scythe",
+  "death_scythe+flame_scythe": "furious_scythe",
+  "hand_scythe+viney_block": "garden_scythe",
   "rose+spear": "heart_bow",
   "crystal_block+torch": "fire_wand",
   "crystal_cluster+ice": "ice_wand",

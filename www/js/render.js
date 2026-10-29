@@ -935,6 +935,10 @@ function render() {
   drawFlyers(ox, oy);
   // particles & floating text
   for (const p of parts) {
+    if (p.draw) {
+      p.draw(p, ox, oy); // particles with their own drawing (scythes.js flames)
+      continue;
+    }
     g.fillStyle = p.c;
     if (p.plus) {
       // a twinkling "+": grows in, then shrinks away

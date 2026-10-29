@@ -1903,3 +1903,31 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Oct 28 2026 (build g, owner): BIG pets (`move: 'big'`: Cosmic / Fire Dragon, T-Rex, Raptor, Tyapa) are drawn BEHIND
   the character (the character overlaps them); small pets stay in front. jump.js wrapper: `drawPetOf(c, ox, oy, 'big')`
   before the character, `drawPetOf(..., 'small')` after. Pets still draw over blocks. GAME_BUILD '2026-10-28 g'.
+- Oct 29 2026 (build '2026-10-29 a', owner: "remove the old scythe, make Iron / Golden / Dark / Furious / Flame Scythes with
+  a wooden handle like my picture; flames (his little cyan flame, recoloured) on the blade, animated; held like the pickaxe
+  but horizontal"): `scythes.js` (after shadow.js). The old Hand / Death Scythe art in weapons2.js is gone; ids kept:
+  `hand_scythe` = Iron Scythe, `death_scythe` = Dark Scythe; new `golden_scythe`, `flame_scythe`, `furious_scythe` (entries
+  in WEAPONS2). 48 x 48 pictures drawn UPRIGHT (`scythePic(kind, frame, flames)`: `scyHandle` dark wood + wraps + red cloth
+  grip + knob, `scyBlade` crescent along `SCY_ARC` with width `scyW`, `scyFerrule` collar + gem; colours `SCY_LOOK`).
+  Drawn at `SCY_SIZE` (17 x 1.2 world px), hand at `SCY_GRIP` (on the red grip). Holding: handle about horizontal
+  (`SCY_HOLD_TILT` 0.12 up), blade hanging down at the front like the pickaxe head (blade up covered the face; flat it
+  went deep into the floor). Swing / jump turns match other tools (`SCY_SWING_TURN`, `SCY_JUMP_TURN`). Flame Scythe
+  (orange) and Dark Scythe (dark purple): 4 flames on the blade (`SCY_FLAME` 7 x 11, 4 frames, `SCY_FLAME_AT`), drawn as
+  an overlay that always points UP (`scyFlamesOver`); baked into the icon / toolSprite. Golden: a shine runs along the
+  blade every ~2 s; Furious: blood-red with black spine spikes, edge and gem pulse. Wrapped: toolSprite, wearIcon (48 px
+  icon), drawArmWithTool, drawJumpTool. Recipes (Balbtopia, 360 s trees, farming.json + SPLICE): Iron = Bolo + Grass,
+  Dark = Iron + Skeleton (unchanged), Golden = Iron + Golden Block, Flame = Iron + Lava, Furious = Dark + Flame. Names /
+  recipes picked by Claude.
+- Oct 29 2026 (build '2026-10-29 b', owner): scythes.js changes.
+  - Blades FAT like his gold scythe picture (`scyW`: ~13 px near the handle, ~7 halfway, 2 at the tip).
+  - Flame / Dark Scythe: no flames on the blade any more. Their "+" sparkles are replaced by rising flames (his flame
+    picture recoloured, 4 flicker frames), randomly small / medium / full size (`SCY_FLAME_SIZES` world px per flame
+    pixel): `scyFlameFx` pushes particles with `draw: scyFlamePart` (render.js particle loop now calls `p.draw` when
+    set). Held: from the blade in front of the body every 0.06-0.16 s (stepToolFx wrapper, random gaps); hits
+    (toolSparkles from actions.js) burst flames. stepToolFx's own "+" trickle at the hand is skipped for them.
+  - Garden Scythe (`garden_scythe`, Rare; Iron Scythe + Vine Block, 360 s): steel blade, a vine winding round the
+    handle like a snake (`scyVineHandle`: turns behind the handle drawn before it, front turns after, leaves), carrying
+    on along the blade with leaves and a curled tendril (`scyVineBlade`), pink flower on the collar. Swinging it draws a
+    white see-through crescent slash (`scySlash`, drawToolSwing wrapper; the owner's moon drawing: pointed both ends,
+    thick middle; grows with the swing from aim-2.3 to aim+0.35 rad round the shoulder, then fades from its back;
+    smoke layer + white core, `SCY_SLASH`). Only the Garden Scythe has the slash.
