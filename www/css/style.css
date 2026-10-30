@@ -4464,3 +4464,18 @@ body.mannmode.mailmode {
   grid-row: 1 / span 3;
   align-self: center;
 }
+
+/* ---------- GM bag keeps ONE height (owner, Oct 30 2026): the height it has on ALL; switching a category tab (or
+   searching) no longer shrinks it. Only the GM bag has tabs; other players' bags always show every slot anyway. */
+#inv:has(#gmTabs:not([hidden])) .grid {
+  height: min(50vh, 300px);
+  align-content: start;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #inv.win:has(#gmTabs:not([hidden])) {
+    height: calc(100vh - 104px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+  #inv:has(#gmTabs:not([hidden])) .grid {
+    height: auto;
+  }
+}

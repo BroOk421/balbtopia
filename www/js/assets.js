@@ -233,6 +233,11 @@ const A = {
   wings_dragon: 'assets/items/wings_dragon.png',
   wings_leaf: 'assets/items/wings_leaf.png',
   wings_galaxy: 'assets/items/wings_galaxy.png',
+  wings_angel: 'assets/items/wings_angel.png',
+  wings_tiny_angel: 'assets/items/wings_tiny_angel.png',
+  wings_tiny_devil: 'assets/items/wings_tiny_devil.png',
+  wings_vampire: 'assets/items/wings_vampire.png',
+  wings_tiny_vampire: 'assets/items/wings_tiny_vampire.png',
 };
 // arm colours for the punch (skin + shade), sampled from each skin
 const ARM_COLOR = {

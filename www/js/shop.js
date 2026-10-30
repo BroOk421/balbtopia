@@ -170,6 +170,11 @@ const SHOP = [
   { id: 'black_diamond_pickaxe', bc: 300, cat: 'tools' },
   { id: 'angel_wings', bc: 30, cat: 'wear' },
   { id: 'tiny_angel_wings', bc: 16, cat: 'wear' },
+  // pixel wings and the Halo (Oct 30 2026; prices picked by Claude, owner gave none)
+  { id: 'tiny_devil_wings', gold: 10000, cat: 'wear' },
+  { id: 'vampire_wings', gold: 20000, cat: 'wear' },
+  { id: 'tiny_vampire_wings', gold: 10000, cat: 'wear' },
+  { id: 'halo', gold: 15000, cat: 'wear' },
   { id: 'golden_wings', bc: 120, cat: 'wear' },
   { id: 'golden_aura', bc: 200, cat: 'wear' },
   { id: 'red_aura', bc: 200, cat: 'wear' },

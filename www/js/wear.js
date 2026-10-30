@@ -69,7 +69,6 @@ const WEAR = [
   { id: 'unicorn_hair', name: 'Pastel Hair', slot: 'hair', tint: ['#6a2a9a', '#ffb0f0'], rarity: 'Rare', desc: 'Magical pastel hair.' },
   { id: 'purple_mohawk', name: 'Black Bob', slot: 'hair', col: '#2a2628', top: -22, iconImg: 'hair_black_bob_icon', strip: { img: 'hair_black_bob', frames: 1, ms: 1000, grow: HAIR_GROW, x: 4, y: -5, w: 119, h: 115, icon: [0, 0, 119, 115] }, desc: 'A short black bob with hair clips.' },
   { id: 'pigtails', name: 'Black Top Bun', slot: 'hair', col: '#2a2628', top: -25, iconImg: 'hair_black_bun_icon', strip: { img: 'hair_black_bun', frames: 1, ms: 1000, x: -11, y: -21, w: 122, h: 120, icon: [0, 0, 122, 120] }, desc: 'Black hair tied up in a bun.' },
-  { id: 'afro', name: 'Afro', slot: 'hair', art: 'afro', desc: 'A big round afro.' },
   // the owner's animated golden hair (the idle row of his sprite sheet: 9 frames, glow and sparks included),
   // cut out and fitted on our head: strip frames are w x h in body-sprite pixels, top left at (x, y) of the body
   { id: 'super_saiyan_hair', name: 'Golden Spike Hair', slot: 'hair', rarity: 'Legendary', shop: true, top: -112,
@@ -88,6 +87,7 @@ const WEAR = [
   { id: 'tv_head', name: 'TV Head', slot: 'hat', art: 'tv_head', rarity: 'Rare', desc: 'Your head is a television.' },
   { id: 'red_riding_hood', name: 'Red Riding Hood', slot: 'hat', art: 'red_riding_hood', desc: 'A red hood. Watch out for wolves.' },
   { id: 'bridal_veil', name: 'Bridal Veil', slot: 'hat', art: 'bridal_veil', desc: 'A long white veil.' },
+  { id: 'halo', name: 'Halo', slot: 'hat', art: 'halo', rarity: 'Epic', shop: true, iconBox: [10, 50, 100, 70], desc: 'A glowing yellow halo that floats over your head.' },
   // face
   { id: 'shades', name: 'Shades', slot: 'face', art: 'shades', desc: 'Cool black sunglasses.' },
   { id: 'big_glasses', name: 'Big Glasses', slot: 'face', art: 'big_glasses', desc: 'Huge round glasses.' },
@@ -101,13 +101,16 @@ const WEAR = [
   { id: 'backpack', name: 'Backpack', slot: 'back', art: 'backpack', desc: 'A brown backpack.' },
   { id: 'jetpack', name: 'Jetpack', slot: 'back', art: 'jetpack', rarity: 'Rare', desc: 'Twin rockets. Flames come out when you jump.' },
   // long hair (the back part is drawn behind the body)
-  { id: 'long_brown_hair', name: 'Long Brown Hair', slot: 'hair', art: 'long_brown', behind: 'long_brown_back', iconBox: [-10, -10, 150, 170], desc: 'Long, straight brown hair.' },
   { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', col: '#2a2628', top: -16, iconImg: 'hair_long_black_icon', strip: { img: 'hair_long_black', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: -3, y: 0, w: 137, h: 183, icon: [0, 0, 137, 137] }, desc: 'Long wavy black hair.' },
-  { id: 'princess_hair', name: 'Princess Hair', slot: 'hair', art: 'princess', behind: 'princess_back', iconBox: [-10, -30, 150, 190], desc: 'Long golden hair with a pink bow.' },
   // from the Shop
-  { id: 'angel_wings', name: 'Angel Wings', slot: 'back', art: 'angel_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-60, 110, 238, 150], desc: 'Soft white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
+  // pixel-art wings with their own flap frames (`flaps`: drawn as they are, never squeezed), flapping all the time
+  // (owner, Oct 30 2026: same flap standing and jumping). Made by art-source/items/wings_px/ (cherub.py, bats.py, vampire2.py)
+  { id: 'angel_wings', name: 'Angel Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, flaps: true, strip: { img: 'wings_angel', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [0, 90, 240, 105] }, desc: 'Soft white wings that curve down at the top and flap all the time. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'golden_wings', name: 'Golden Wings', slot: 'back', art: 'golden_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-100, 80, 318, 260], desc: 'Huge shining golden wings, with two small golden wings below them. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'tiny_angel_wings', name: 'Tiny Angel Wings', slot: 'back', art: 'tiny_angel_wings', rarity: 'Epic', shop: true, wings: true, iconBox: [0, 150, 118, 90], desc: 'Teeny little white wings. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'tiny_angel_wings', name: 'Tiny Angel Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_angel', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [30, 125, 180, 60] }, desc: 'Teeny little white wings at the shoulders, always flapping. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'tiny_devil_wings', name: 'Tiny Devil Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_devil', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [40, 90, 160, 80] }, desc: 'Small bat wings of dark purple skin on red bones. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'vampire_wings', name: 'Vampire Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, flaps: true, strip: { img: 'wings_vampire', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [15, 85, 210, 130] }, desc: 'Red vampire wings on black bones, hooked at the top and pointed at the bottom. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'tiny_vampire_wings', name: 'Tiny Vampire Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_vampire', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [45, 110, 150, 85] }, desc: 'Small red vampire wings on black bones. While you wear them you can jump once more in the air; land to get the jump back.' },
   // aura slot: a blazing power aura around the whole body (drawn by drawAura, colours in AURAS)
   { id: 'dark_diamond_aura', name: 'Dark Diamond Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing dark diamond aura of deep purple flames all around you, with violet lightning.' },
   { id: 'diamond_aura', name: 'Diamond Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing diamond aura of icy blue flames all around you, with diamond-blue lightning.' },
@@ -741,11 +744,6 @@ const WEAR_ART = {
     R(60, 60, 5, 6, '#ffd0c0');
     R(95, 60, 4, 6, '#ffd0c0');
   },
-  afro: ({ E }) => {
-    E(62, -8, 72, 52, K);
-    E(62, -8, 68, 48, '#2a1608');
-    for (let k = 0; k < 14; k++) E(18 + ((k * 37) % 92), -46 + ((k * 23) % 72), 9, 9, '#3a2010');
-  },
   pigtails: ({ E }) => {
     for (const cx of [4, 128]) {
       E(cx, 70, 18, 26, K);
@@ -753,21 +751,8 @@ const WEAR_ART = {
       E(cx, 50, 7, 5, '#d8241e');
     }
   },
-  long_brown: (h) => longHairFront(h, '#6b3a1a', '#a8622e'),
-  long_brown_back: (h) => longHairBack(h, '#5a2e12', '#8a4e22'),
   long_black: (h) => longHairFront(h, '#16141c', '#3a3448'),
   long_black_back: (h) => longHairBack(h, '#0e0c12', '#2a2634'),
-  princess: (h) => {
-    longHairFront(h, '#e8b830', '#ffe680');
-    const { E, L } = h;
-    // a pink bow on the side
-    L([[78, -12], [102, -26], [104, 4]], K);
-    L([[80, -12], [100, -22], [102, 0]], '#ff6ab0');
-    L([[78, -12], [56, -26], [54, 4]], K);
-    L([[76, -12], [58, -22], [56, 0]], '#ff6ab0');
-    E(78, -12, 7, 7, '#d03a80');
-  },
-  princess_back: (h) => longHairBack(h, '#c8941a', '#f2c840'),
   angel_wings: (h) => wingPair(h, WING_WHITE, 0.88, 110),
   // tiny white wings at the shoulder blades
   tiny_angel_wings: (h) => wingPair(h, WING_WHITE, 0.4, 112, 10),
@@ -957,7 +942,7 @@ function drawBehind(c, top, sc, dy) {
     // wings stay still (open) on the ground and only flap while jumping / in the air
     const bw = WEAR_BY_ID[eq.back] || {},
       flap = bw.wings ? (c.ground ? 0 : Math.floor(now / 90) % 2) : undefined;
-    if (bw.strip) drawWearStrip(bw, top, sc, dy, bw.wings && !c.ground ? 0.72 + 0.28 * Math.abs(Math.cos(now / 95)) : 1);
+    if (bw.strip) drawWearStrip(bw, top, sc, dy, bw.wings && !bw.flaps && !c.ground ? 0.72 + 0.28 * Math.abs(Math.cos(now / 95)) : 1);
     else drawWearArt(eq.back, top, sc, dy, flap);
     if (eq.back === 'jetpack' && !c.ground) drawJetFlame(top, sc, dy);
   }

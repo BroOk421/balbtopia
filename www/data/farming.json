@@ -466,9 +466,6 @@
     "referee_shirt": {
       "growSeconds": 240
     },
-    "afro": {
-      "growSeconds": 240
-    },
     "green_shirt": {
       "growSeconds": 240
     },
@@ -607,16 +604,10 @@
     "gamblers_visor": {
       "growSeconds": 240
     },
-    "long_brown_hair": {
-      "growSeconds": 240
-    },
     "long_black_hair": {
       "growSeconds": 240
     },
     "laser_eyes": {
-      "growSeconds": 300
-    },
-    "princess_hair": {
       "growSeconds": 300
     },
     "piano": {
@@ -2534,15 +2525,6 @@
     },
     {
       "seeds": [
-        "black_block",
-        "bush"
-      ],
-      "result": "afro",
-      "source": "growtopia",
-      "note": "Afro = Black Block + Bush"
-    },
-    {
-      "seeds": [
         "brown_block",
         "grass"
       ],
@@ -2750,15 +2732,6 @@
     },
     {
       "seeds": [
-        "grass",
-        "wooden_table"
-      ],
-      "result": "long_brown_hair",
-      "source": "growtopia",
-      "note": "Long Brown Hair = Grass + Wooden Table"
-    },
-    {
-      "seeds": [
         "dirt",
         "dirt"
       ],
@@ -2792,15 +2765,6 @@
       "result": "laser_eyes",
       "source": "balbtopia",
       "note": "Laser Eyes = Red Visor + Neon Lights (not in Growtopia)"
-    },
-    {
-      "seeds": [
-        "long_brown_hair",
-        "yellow_block"
-      ],
-      "result": "princess_hair",
-      "source": "balbtopia",
-      "note": "Princess Hair = Long Brown Hair + Yellow Block (not in Growtopia)"
     },
     {
       "seeds": [
@@ -5186,6 +5150,96 @@
       "result": "thunder_hammer",
       "source": "balbtopia",
       "note": "Thunder Hammer = War Hammer + Glow Block (Balbtopia recipe)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "iron_bars"
+      ],
+      "result": "guard_glass",
+      "source": "balbtopia",
+      "note": "Guard Glass = glass_pane + iron_bars (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "checkpoint",
+        "lantern"
+      ],
+      "result": "checkpoint_tower",
+      "source": "balbtopia",
+      "note": "Checkpoint Tower = checkpoint + lantern (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "wooden_platform",
+        "cloudstone_block"
+      ],
+      "result": "cloud_platform",
+      "source": "balbtopia",
+      "note": "Cloud Platform = wooden_platform + cloudstone_block (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "wooden_platform",
+        "crystal_block"
+      ],
+      "result": "crystal_platform",
+      "source": "balbtopia",
+      "note": "Crystal Platform = wooden_platform + crystal_block (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "skeleton",
+        "steel_beam"
+      ],
+      "result": "bone_platform",
+      "source": "balbtopia",
+      "note": "Bone Platform = skeleton + steel_beam (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "wooden_platform",
+        "neon_lights"
+      ],
+      "result": "neon_platform",
+      "source": "balbtopia",
+      "note": "Neon Platform = wooden_platform + neon_lights (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "wooden_platform",
+        "leaf_block"
+      ],
+      "result": "leaf_platform",
+      "source": "balbtopia",
+      "note": "Leafy Branch = wooden_platform + leaf_block (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "wooden_platform",
+        "candy_block"
+      ],
+      "result": "candy_platform",
+      "source": "balbtopia",
+      "note": "Candy Platform = wooden_platform + candy_block (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "wooden_platform",
+        "golden_block"
+      ],
+      "result": "golden_platform",
+      "source": "balbtopia",
+      "note": "Golden Platform = wooden_platform + golden_block (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "wooden_platform",
+        "ice"
+      ],
+      "result": "ice_platform",
+      "source": "balbtopia",
+      "note": "Ice Platform = wooden_platform + ice (Balbtopia recipe, Oct 30 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

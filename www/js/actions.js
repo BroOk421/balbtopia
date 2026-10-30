@@ -512,14 +512,19 @@ const inDropTile = (d, p) => {
 function canTakeDrop(d) {
   // everyone has their own copy of the LOBBY (nothing there is shared live), so only its builders take its drops
   if (worldName === LOBBY_WORLD) return canEdit(true);
+  // on a Guard Glass (blocks64h.js): nobody without access to that tile takes it, not even the one who dropped it
+  if (dropGuarded(d) && !isOwner() && !hasAccess(playerName, at(Math.floor(d.x / TS), Math.floor(d.y / TS)))) return false;
   return !worldOwner || isOwner() || (!!d.by && lc(d.by) === lc(playerName)) || Date.now() - d.born >= DROP_LOCK_MS;
 }
+// is drop d lying on a Guard Glass? (guardAt is in blocks64h.js)
+const dropGuarded = (d) => typeof guardAt === 'function' && guardAt(Math.floor(d.x / TS), Math.floor(d.y / TS));
 const dropWait = (d) => Math.max(1, Math.ceil((DROP_LOCK_MS - (Date.now() - d.born)) / 1000));
 let dropHintT = -1e9;
 function dropHint(d) {
   if (now - dropHintT < 2500) return;
   dropHintT = now;
   if (worldName === LOBBY_WORLD) return toast("Items in the lobby can't be picked up");
+  if (dropGuarded(d) && !isOwner() && !hasAccess(playerName, at(Math.floor(d.x / TS), Math.floor(d.y / TS)))) return toast('This is on a Guard Glass: only players with access here can take it');
   toast('This belongs to ' + worldOwner + "'s world. You can take it in " + dropWait(d) + 's');
 }
 // is remote player r within n tiles of (x, y)? (their position on our screen lags a little: either spot counts)

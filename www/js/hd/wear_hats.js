@@ -1,5 +1,5 @@
 // Hand-drawn 1 px / detailed art overrides, loaded after every game file and before main.js
-// Hats and the code-drawn hairs (WEAR_ART in wear.js), with more detail: every shape stays exactly where it was
+// Hats and the code-drawn hairs (WEAR_ART in wear.js; hats are now replaced again by the pixel art in wear_pixel_hats.js), with more detail: every shape stays exactly where it was
 // (they fit the head), and on top come shading (bottom right), highlights (top left), texture and trims.
 // Drawn in body pixels on the art canvas (helpers R, E, L, S, x, f from artCanvas).
 // Not here: Spiky Black Hair is the owner's picture, Red Hair and Pastel Hair are that picture recoloured.
@@ -432,26 +432,6 @@
       for (let k = 0; k < 5; k++) E(64 + Math.cos(k * 1.256) * 8, -6 + Math.sin(k * 1.256) * 7, 1.6, 1.6, '#dde2ee');
       E(64, -6, 3, 3, '#ffe9a0');
     },
-    afro: ({ x, E }) => {
-      E(62, -8, 72, 52, K);
-      E(62, -8, 68, 48, '#2a1608');
-      x.save();
-      x.beginPath();
-      x.ellipse(62, -8, 68, 48, 0, 0, Math.PI * 2);
-      x.clip();
-      // round clumps of curls, each lit on its top left, lighter towards the top left of the afro
-      for (let k = 0; k < 46; k++) {
-        const cx = -4 + ((k * 37) % 134),
-          cy = -54 + ((k * 23) % 92),
-          r = 7 + (k % 3) * 2,
-          lit = (62 - cx) * 0.5 + (-8 - cy) * 0.9;
-        E(cx + 1.5, cy + 1.5, r, r, '#1a0c03');
-        E(cx, cy, r, r, lit > 25 ? '#4a2a12' : lit > -15 ? '#3a200c' : '#2a1608');
-        E(cx - r * 0.3, cy - r * 0.35, r * 0.35, r * 0.25, lit > 0 ? '#6a4220' : '#4a2a12');
-      }
-      x.restore();
-      shadeBox(x, -10, -60, 144, 104, 0.35, 0.12);
-    },
     pigtails: ({ x, E }) => {
       for (const cx of [4, 128]) {
         E(cx, 70, 18, 26, K);
@@ -462,26 +442,7 @@
         E(cx - 2, 49, 3, 2, '#ff6a5a');
       }
     },
-    long_brown: (h) => hairFront(h, '#6b3a1a', '#a8622e', '#4e2810'),
-    long_brown_back: (h) => hairBack(h, '#5a2e12', '#8a4e22', '#3e1e0a'),
     long_black: (h) => hairFront(h, '#16141c', '#3a3448', '#060508'),
     long_black_back: (h) => hairBack(h, '#0e0c12', '#2a2634', '#040306'),
-    princess: (h) => {
-      hairFront(h, '#e8b830', '#ffe680', '#b88a18');
-      const { E, L } = h;
-      // a pink bow on the side, with folds
-      L([[78, -12], [102, -26], [104, 4]], K);
-      L([[80, -12], [100, -22], [102, 0]], '#ff6ab0');
-      L([[82, -12], [99, -20], [100, -8]], '#ff9ac8');
-      L([[84, -10], [101, -2], [102, 0], [80, -12]], '#d0408a');
-      L([[78, -12], [56, -26], [54, 4]], K);
-      L([[76, -12], [58, -22], [56, 0]], '#ff6ab0');
-      L([[74, -12], [59, -20], [58, -8]], '#ff9ac8');
-      L([[72, -10], [57, -2], [56, 0], [76, -12]], '#d0408a');
-      E(78, -12, 7, 7, K);
-      E(78, -12, 6, 6, '#d03a80');
-      E(76.5, -13.5, 2, 2, '#ff9ac8');
-    },
-    princess_back: (h) => hairBack(h, '#c8941a', '#f2c840', '#9a6c0e'),
   });
 })();

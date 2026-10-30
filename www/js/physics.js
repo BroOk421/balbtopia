@@ -205,13 +205,15 @@ function die(why) {
   toast(why === 'fell' ? 'You fell out of the world!' : why === 'spikes' ? 'Ouch! You got spiked!' : why === 'spawn' ? 'Going back to the door…' : 'You burned up in the lava!');
   Net.sendDie();
 }
-// walking past a Checkpoint: you'll come back there when you die
+// walking past a Checkpoint (the flag, or the Checkpoint Tower: blocks64h.js): you'll come back there when you die
+const CHECKPOINT_IDS = new Set(['checkpoint', 'checkpoint_tower']);
 function touchCheckpoint() {
   const x = Math.floor((P.x + P.w / 2) / TS),
     y = Math.floor((P.y + P.h / 2) / TS);
-  if (!inW(x, y) || (BLOCK[fg[at(x, y)]] || {}).id !== 'checkpoint') return;
+  if (!inW(x, y) || !CHECKPOINT_IDS.has((BLOCK[fg[at(x, y)]] || {}).id)) return;
   if (P.cp && P.cp.x === x && P.cp.y === y) return;
   P.cp = { x, y };
+  P.cpT = now; // the tower's lamp blinks 3 times from now
   smoke(x, y, 6, 0.8);
   burst(x, y, ['#7ccf5a', '#c8ffb0', '#ffffff'], 10);
   toast('Checkpoint!');
@@ -220,7 +222,7 @@ function touchCheckpoint() {
 function respawn() {
   P.dead = null;
   // back at your Checkpoint if it is still there, else at the main door
-  const cp = P.cp && inW(P.cp.x, P.cp.y) && (BLOCK[fg[at(P.cp.x, P.cp.y)]] || {}).id === 'checkpoint' ? P.cp : null;
+  const cp = P.cp && inW(P.cp.x, P.cp.y) && CHECKPOINT_IDS.has((BLOCK[fg[at(P.cp.x, P.cp.y)]] || {}).id) ? P.cp : null;
   if (!cp) P.cp = null;
   const sx = cp ? cp.x : door.x,
     sy = cp ? cp.y : door.y;

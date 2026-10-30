@@ -55,7 +55,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js), 209 Mystery Door (qdoor.js), 210 Desert Machine (weather.js), 211-230 64 px splice blocks (blocks64.js), 231-246 more (blocks64b.js; 231 Spike Gate), 247-276 (blocks64c.js; 247 Chest, 248 Stove), 277-306 (blocks64d.js), 307-326 (blocks64e.js), 327-346 (blocks64f.js), 347-366 (blocks64g.js). Since build s block numbers go up to 509 (fg is a Uint16Array; saved as the `fg` byte + `fgx`, see worlds.js fgBytes): next free 367. bg / vari are Uint8Arrays; fg is a Uint16Array since build s (blocks up to 509). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js), 209 Mystery Door (qdoor.js), 210 Desert Machine (weather.js), 211-230 64 px splice blocks (blocks64.js), 231-246 more (blocks64b.js; 231 Spike Gate), 247-276 (blocks64c.js; 247 Chest, 248 Stove), 277-306 (blocks64d.js), 307-326 (blocks64e.js), 327-346 (blocks64f.js), 347-366 (blocks64g.js). 367-376 (blocks64h.js: Guard Glass, Checkpoint Tower, 8 platforms). Since build s block numbers go up to 509 (fg is a Uint16Array; saved as the `fg` byte + `fgx`, see worlds.js fgBytes): next free 377. bg / vari are Uint8Arrays; fg is a Uint16Array since build s (blocks up to 509). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -67,7 +67,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   exact copy: one seed swapped for a similar item of about the same rarity, e.g. Fireplace = Golden Block + Red Bricks;
   they are marked source balbtopia in farming.json. Basic ones (result rarity <= 8) were left alone.
   Older Balbtopia ones: Sand = Dirt + Water Bucket (Growtopia Sand can't be spliced), dirt+dirt, rock+rock, cave+cave = Dark Cave,
-  Cyclopean Visor + Neon Lights = Laser Eyes, Long Brown Hair + Yellow Block = Princess Hair, and the 10 below).
+  Cyclopean Visor + Neon Lights = Laser Eyes, and the 10 below; Princess Hair = Long Brown Hair + Yellow Block was removed with those hairs on Oct 30 2026).
   Oct 2026 Balbtopia splices (blocks 122–131, art at the end of blocks.js): Marble Block = Rock + White Block,
   Honeycomb Block = Amber Glass + Yellow Block, Lantern = Glass Pane + Torch, Flower Pot = Brown Block + Daisy,
   Sunflower = Daisy + Yellow Block, Notice Board = Sign + Wood Block, Fish Tank = Blue Block + Glass Pane,
@@ -170,13 +170,14 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   on top so the real hand covers the handle. Swinging: body without that arm, and the cut-out arm turning round
   `SHOULDER` with the tool along it (`SWING_TURN`); layers front to back: arm, tool, body/head.
   The Shovel has its own pixel art in the same style (`shovelSprite`: egg-shaped blade). Tool sparkles are slow-rising twinkling "+" particles (`plus: true`, no gravity). Bare fists still stretch out (`drawPunch`).
-- Long hair (Long Brown Hair = Grass + Wooden Table, Long Black Hair = Black Block + Portcullis, Princess Hair in
-  the Shop): a `behind` drawing goes behind the body (`drawBehind`), the front part over the head.
+- Long hair (Long Black Hair = Black Block + Portcullis; Long Brown Hair and Princess Hair were removed Oct 30 2026):
+  a `behind` drawing goes behind the body (`drawBehind`), the front part over the head.
 - Wings (Shop, back slot, `wings: true` in `WEAR`): Angel Wings (25,000), Tiny Angel Wings (10,000, small white
   wings at the shoulder blades), Golden Wings (60,000, big gold wings with sparkles plus a pair of small gold wings
   lower down, pointing out). All drawn by `wingPair` (colours `WING_WHITE` / `WING_GOLD`, size, height, tilt).
   Every pair gives `WING_JUMPS` (1) extra jump in the air; it comes back only when you land.
-  Wings only flap in the air (jumping/falling); on the ground they stay still and open (frame 0). Prices were picked by Claude (owner gave none). Wear art canvases have `ART_PAD` (110 px) room around the body so wings are never cut off.
+  Wings only flap in the air (jumping/falling); on the ground they stay still and open (frame 0). (Since Oct 30 2026
+  Angel / Tiny Angel are pixel strips that flap all the time: see "Pixel wings, pixel hats, Halo" at the end.) Prices were picked by Claude (owner gave none). Wear art canvases have `ART_PAD` (110 px) room around the body so wings are never cut off.
 - Cyclopean Visor and Laser Eyes (`LASER_FACE`): punches become a laser and reach one tile further (in Growtopia
   the Cyclopean Visor changes the punch and adds a tile of reach). Neither is sold in the Shop any more; the long
   hairs aren't either (all recipes now).
@@ -354,7 +355,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `NEWART.vend` / `NEWART.disp` + `SHOP_ICON`, same glass areas; Mannequin icon stand; Door Mover / Clear World icons),
   `tools.js` (redeclares `wrenchSprite`, `toolSprite`: wrench, sword, flashlight, pencil, boxing glove; same 32x32 canvas
   and grip `GRIP` (7,25); pickaxes and shovel were already 1 px), `wear_hats.js` (`Object.assign(WEAR_ART, ...)`: every
-  hat, afro, long brown / princess hair with shading, sheen, stitching, same shapes and places), `wear_face_back.js`
+  hat (now replaced by the pixel hats in `wear_pixel_hats.js`), long black hair with shading, sheen, stitching, same shapes and places), `wear_face_back.js`
   (glasses, visor, laser eyes, beards, backpack, jetpack, and a redeclared `wingPair` with feather layers, same flap
   frames). Shirts/pants/feet recolour the body picture and were left as they are. A later `function x(){}` in these
   files replaces the global; consts can't be redeclared, so mutate objects instead.
@@ -1984,3 +1985,49 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   straight. `scyHandle` paints along the (maybe bent) line by nearest point; the Garden vine follows it.
 - Oct 29 2026 (build m, owner): chat bubbles over heads (`drawBubble`, render.js) are just the rounded box now, the
   little arrow under it is gone.
+
+## Pixel wings, pixel hats, Halo (Oct 30 2026, owner)
+
+- Owner wants worn things drawn as real pixel art on the BODY'S OWN GRID: 1 art pixel = 5 body px (the body sprite's
+  pixels are 5 px; its grid starts at body px 2, so cell (i, j) covers (2 + 5i, 2 + 5j)). No smooth canvas shapes.
+- Wings with their own flap frames (`flaps: true` + `strip` in `WEAR`; 6 frames of 240x230, x -61 y -19, 110 ms):
+  Angel Wings, Tiny Angel Wings (white cherub wings, curved top slanting down; tiny ones at the shoulders),
+  Tiny Devil Wings (bat wings: dark purple skin, red bones; the big Devil Wings were taken out again, owner), Vampire Wings / Tiny Vampire Wings (the
+  owner's own sample wing, `art-source/items/wings_px/vampire_sample.png`, recoloured: black bones, red skin).
+  They flap ALL the time, standing and jumping (owner's choice); `drawBehind` skips the in-air squeeze for `flaps`.
+  Angel / Tiny Angel are strips now (the old `wingPair` drawings for them are unused; Golden Wings still use it).
+  Sources: `art-source/items/wings_px/` (cherub.py, bats.py, vampire2.py). Shop: Vampire 20,000 gold,
+  Tiny Devil / Tiny Vampire 10,000 gold (prices picked by Claude), also in supabase/schema.sql `shop_prices`.
+  The owner turned down: rounded wing ends, wings folded down while standing, a separate idle animation.
+- Hats: `www/js/hd/wear_pixel_hats.js` (loaded after wear_face_back.js) replaces every hat's WEAR_ART with pixel
+  cells (palette + "i,j,colour" per frame) and sets each hat's `iconBox`. Made by `art-source/items/hats_px/hats.py`
+  (shapes rasterised on the cells, shaded from the top left, game outline). Caps sit 3 cells lower than before so
+  they cover the top of the head. Fire Head: 4 frames (ANIM_N 120 ms).
+- Halo (new, hat slot, Shop 15,000 gold, picked by Claude): bright yellow ring with a pulsing glow and a twinkle,
+  floats and bobs over the head (6 frames, ANIM_N 140 ms), kept below the fixed name tag.
+- Removed (owner: the code-drawn hairs were ugly): Afro, Long Brown Hair, Princess Hair, with their recipes
+  (farming.json, SPLICE). Players who had them lose them on load (ui.js drops unknown items and worn ids);
+  their trees in worlds are dropped on load (worlds.js keeps only trees with a TREE_TIME).
+
+## Guard Glass, Checkpoint Tower, more platforms, GM bag height (Oct 30 2026, owner; GAME_BUILD '2026-10-30 a')
+
+- Guard Glass (367 = Glass Pane + Iron Bars, `www/js/blocks64h.js`): walk-through glass pane with a 5 px RED border
+  (panes next to each other join, border only round the outside). A drop lying on its tile: `canTakeDrop`
+  (actions.js, `dropGuarded`) says no unless the player is the world owner or has access to THAT tile
+  (`hasAccess(name, i)`: the Gold Lock's list / open world, or a Red / Blue Lock's rules on its area). The one who
+  dropped it is NOT an exception. In a world with no lock everyone has access, so it guards nothing there. Players
+  with access still follow the usual drop rules.
+- Checkpoint Tower (368 = Checkpoint + Lantern): a white stone pedestal with green rings and a round ORB on top (the
+  owner's reference picture). `CHECKPOINT_IDS` (physics.js) = the flag and the tower; touching one sets `P.cp` and
+  `P.cpT`; the orb blinks 3 times (`CP_BLINK_MS` 200 on / off), then glows while it is your checkpoint (dull grey-green
+  otherwise). Entering a world clears `P.cp` (worlds.js), so after leaving you start at the main door again.
+- Platforms (Wooden Platform behaviour: `plat: true`, join left / right like the Steel Beam; open ends are ROUNDED,
+  `roundEnds` + the new `a.cut` in art64.js): Cloud Platform (369 = Wooden Platform + Cloudstone Block), Crystal
+  Platform (370, purple; + Crystal Block), Bone Platform (371 = Skeleton + Steel Beam), Neon Platform (372; + Neon
+  Lights), Leafy Branch (373; + Leaf Block), Candy Platform (374; + Candy Block), Golden Platform (375; + Golden
+  Block), Ice Platform (376; + Ice). Recipes in farming.json and SPLICE.
+- Devil Wings (the big ones) removed (WEAR, Shop, shop_prices, asset); Tiny Devil Wings stay.
+- GM bag keeps the height it has on ALL when switching category tabs or searching (end of style.css, `:has(#gmTabs:
+  not([hidden]))`: grid height min(50vh, 300px), phone landscape: the window takes the full available height).
+  Other players' bags are unchanged (they always show every slot).
+- actions.js is CRLF: edit it as bytes / with newline='' so its line endings stay.

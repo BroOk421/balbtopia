@@ -57,6 +57,10 @@ function pix64Canvas(N, paint) {
           px(i, j, typeof col === 'function' ? col(i, j, u) : col);
         }
     },
+    // clear pixels: fn(i, j) true -> empty (blocks64h.js: rounded platform ends)
+    cut: (fn) => {
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) if (fn(i, j)) grid[j * N + i] = null;
+    },
     fill: (fn) => {
       for (let j = 0; j < N; j++)
         for (let i = 0; i < N; i++) {
