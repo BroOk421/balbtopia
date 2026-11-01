@@ -45,6 +45,28 @@ jobs:
             echo "::warning::BALB_KEYSTORE_B64 secret missing: the APK gets a random key and won't update over the installed app"
           fi
 
+      # prints only sizes/fingerprints (no secrets) so a wrong secret is easy to spot
+      - name: Check signing key
+        if: env.BALB_KEYSTORE != ''
+        env:
+          P: ${{ secrets.BALB_KEYSTORE_PASSWORD }}
+          KP: ${{ secrets.BALB_KEY_PASSWORD }}
+          A: ${{ secrets.BALB_KEY_ALIAS }}
+        run: |
+          P="${P//[$'\t\r\n ']/}"; KP="${KP//[$'\t\r\n ']/}"; A="${A//[$'\t\r\n ']/}"
+          echo "keystore: $(stat -c %s "$BALB_KEYSTORE") bytes, sha256 starts $(sha256sum "$BALB_KEYSTORE" | cut -c1-12)"
+          echo "lengths: store password ${#P}, key password ${#KP}, alias ${#A}"
+          if ! keytool -list -keystore "$BALB_KEYSTORE" -storepass "$P" > /dev/null 2>&1; then
+            echo "::error::BALB_KEYSTORE_PASSWORD does not open the keystore in BALB_KEYSTORE_B64 (they come from different keys, or the password was pasted wrong)"
+            exit 1
+          fi
+          if ! keytool -list -keystore "$BALB_KEYSTORE" -storepass "$P" -alias "$A" > /dev/null 2>&1; then
+            echo "::error::BALB_KEY_ALIAS not found in the keystore"
+            keytool -list -keystore "$BALB_KEYSTORE" -storepass "$P" | grep -i entry
+            exit 1
+          fi
+          echo "signing key OK"
+
       - name: Build debug APK
         env:
           BALB_KEYSTORE_PASSWORD: ${{ secrets.BALB_KEYSTORE_PASSWORD }}
