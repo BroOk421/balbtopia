@@ -44,7 +44,8 @@
         <button id="pl" aria-label="Walk left">◀</button><button id="pr" aria-label="Walk right">▶</button>
       </div>
       <div class="pad r"><button id="pj" aria-label="Jump">▲</button></div>
-      <button class="bag" id="bag" aria-label="Open inventory">BAG</button>
+      <!-- moved into the hotbar, beside slot 0, by renderBars (ui.js); a pixel bag, no text (owner, Oct 31 2026) -->
+      <button class="bag" id="bag" aria-label="Open inventory" title="Bag"></button>
 
       <section class="win" id="inv" hidden aria-label="Inventory">
         <header>
@@ -307,6 +308,12 @@
     <script src="js/hd/wear_pixel_hats.js"></script>
     <script src="js/fire_eyes.js"></script>
     <script src="js/baby.js"></script>
+    <script src="js/scarves.js"></script>
+    <script src="js/goldwings.js"></script>
+    <script src="js/capes.js"></script>
+    <script src="js/vampire_face.js"></script>
+    <script src="js/clothes.js"></script>
+    <script src="js/hairstyles.js"></script>
     <script src="js/diaper.js"></script>
     <script src="js/keys.js"></script>
     <script src="js/economy.js"></script>
@@ -329,12 +336,15 @@
     <script src="js/blocks64f.js"></script>
     <script src="js/blocks64g.js"></script>
     <script src="js/blocks64h.js"></script>
+    <script src="js/beds.js"></script>
     <script src="js/weapons.js"></script>
     <script src="js/weapons2.js"></script>
     <script src="js/handfx.js"></script>
     <script src="js/jump.js"></script>
     <script src="js/shadow.js"></script>
     <script src="js/scythes.js"></script>
+    <script src="js/rides.js"></script>
+    <script src="js/dyes.js"></script>
     <script src="js/letters.js"></script>
     <script src="js/mailbox.js"></script>
     <script src="js/qdoor.js"></script>
@@ -351,6 +361,7 @@
     <script src="js/worldfix.js"></script>
     <script src="js/rename.js"></script>
     <script src="js/gmwatch.js"></script>
+    <script src="js/ground.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

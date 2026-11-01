@@ -772,7 +772,7 @@ const Net = (() => {
       eq: equipped, // everything worn
       hd: hand, // what's in the hand (tools show)
       fl: myFlag || undefined, // the player's flag (flags.js)
-      hu: P.hurt > 0 || P.hitT > 0 ? 1 : 0,
+      hu: P.hitT > 0 ? 1 : 0, // (no blinking for lava burns, owner Nov 1 2026)
       rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
       ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)
       jk: { wacky: 1, troll: 2 }[jokeOn()] || undefined, // /facejoke or /troll face (render.js)

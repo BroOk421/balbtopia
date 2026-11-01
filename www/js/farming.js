@@ -10,12 +10,13 @@ function treeProgress(t) {
 // How long a tree takes to ripen, in seconds, by its rarity (owner, Oct 27 2026). Common: 1-20 min, Uncommon:
 // 20-45 min, Rare: 45-60 min; the rare ones that drop a lot of gold (Epic): 12-24 h, Legendary: 24-48 h. Items with
 // no rarity (no recipe) keep their own TREE_TIME. Linear inside each tier, capped at the top.
+// (owner, Oct 31 2026: seeds took too long) Common 1-20 min, the longest 2 days; Epic was 12-24 h, Legendary 24-48 h
 const GROW_TIERS = [
   [1, 5, 1, 20], // rarity from, to, minutes from, to
   [6, 15, 20, 45],
   [16, 40, 45, 60],
-  [41, 80, 12 * 60, 24 * 60],
-  [81, 130, 24 * 60, 48 * 60],
+  [41, 80, 2 * 60, 12 * 60],
+  [81, 130, 12 * 60, 48 * 60],
 ];
 function treeTime(seed) {
   const r = typeof rarityOf === 'function' ? rarityOf(seed) : null;
@@ -66,18 +67,29 @@ function seedDropChance(id) {
   const r = rarityOf(id);
   return r && ITEMS[id + '_seed'] ? lerpR(DROP_SEED, r) : 0;
 }
+// a money block: one of the few Epic / Legendary blocks that drop lots of coins (picked by a hash of the id)
+function richBlock(id) {
+  const r = rarityOf(id),
+    t = r && rarityTier(r);
+  if (t !== 'Epic' && t !== 'Legendary') return false;
+  let h = 2166136261;
+  for (let k = 0; k < id.length; k++) h = Math.imul(h ^ id.charCodeAt(k), 16777619) >>> 0;
+  return (h % 1000) / 1000 < DROP_RICH_SHARE;
+}
 function coinDropChance(id) {
   const r = rarityOf(id);
-  return r ? DROP_COIN_CHANCE[rarityTier(r)] || 0 : 0;
+  if (!r) return 0;
+  return richBlock(id) ? DROP_RICH_CHANCE : DROP_COIN_CHANCE[rarityTier(r)] || 0;
 }
-// how many coins: skewed low, so most coin drops are 1-2 and now and then a big one; the top grows with the tier
-// (Rare up to ~8, Epic ~10-20, Legendary ~27-43)
+// how many coins: an ordinary block 1 to DROP_COIN_FEW; a money block skewed low with now and then a big one, the top
+// growing with the rarity (Epic ~10-20, Legendary ~27-43, never under 5)
 function goldDropAmount(id) {
   const r = Math.min(130, rarityOf(id) || 1), // (a few splices go past 130; the coins stop growing there)
     t = rarityTier(r),
-    top = t === 'Legendary' ? r / 3 : t === 'Epic' ? r / 4 : 4 + r / 10,
     u = Math.random();
-  return 1 + Math.floor(u * u * top);
+  if (!richBlock(id)) return 1 + Math.floor(u * (DROP_COIN_FEW[t] || 1));
+  const top = t === 'Legendary' ? r / 3 : r / 4;
+  return 5 + Math.floor(u * u * top);
 }
 // the single roll: { block, seed, gold } (at most one of them)
 function breakDrop(id) {
@@ -269,10 +281,13 @@ function treeUnderPlayer() {
 }
 // 3725 s -> "1h 02m 05s", 65 -> "1m 05s", 9 -> "9s"
 function fmtLeft(s) {
-  const h = Math.floor(s / 3600),
+  const d = Math.floor(s / 86400),
+    h = Math.floor((s % 86400) / 3600),
     m = Math.floor((s % 3600) / 60),
     ss = s % 60,
     p2 = (n) => String(n).padStart(2, '0');
+  // (owner, Oct 31 2026) 24 h and more is shown in days: "1 day 03h 12m", "2 days"
+  if (d) return d + (d === 1 ? ' day' : ' days') + (h || m ? ' ' + p2(h) + 'h ' + p2(m) + 'm' : '');
   return h ? h + 'h ' + p2(m) + 'm ' + p2(ss) + 's' : m ? m + 'm ' + p2(ss) + 's' : ss + 's';
 }
 function drawTreeBubble(ox, oy) {

@@ -7,8 +7,9 @@ android {
         applicationId "com.brook421.balbtopia"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // a higher number on every GitHub build (the run number), so a new APK installs over the old one
+        versionCode((System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger())
+        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +17,25 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // ONE fixed signing key for every build (GitHub Secrets, see README "APK updates"). Without it every GitHub
+    // build got a new random debug key, so Android refused to install the update over the old app.
+    def balbKs = System.getenv("BALB_KEYSTORE")
+    signingConfigs {
+        balb {
+            if (balbKs) {
+                storeFile file(balbKs)
+                storePassword System.getenv("BALB_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("BALB_KEY_ALIAS")
+                keyPassword System.getenv("BALB_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
+        debug {
+            if (balbKs) signingConfig signingConfigs.balb
+        }
         release {
+            if (balbKs) signingConfig signingConfigs.balb
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

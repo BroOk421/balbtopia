@@ -317,7 +317,9 @@ function R0(x, a, b, w, h, col) {
 // Wings drawn in code (Angel, Tiny Angel, Golden): same outline, shape and flap frames as wear.js, with
 // layered feathers: a lit leading edge, two rows of small covert feathers near the shoulder, the long
 // flight feathers split by darker lines, a soft shade under them, and sparkles on golden ones.
-function wingPair({ x, f }, col, sc, y, inset = 0, tilt = 0, shine = false) {
+function wingPair({ x, f }, col, sc, y, inset = 0, tilt = 0, shine = false, soft = false) {
+  // soft (Golden Wings, owner Oct 31 2026: the outline was too strong): no dark stroke round the wing here (goldwings.js
+  // adds a thin pixel outline itself) and the feather lines in the middle shade instead of the darkest one
   const wing = () => {
     x.beginPath();
     x.moveTo(0, 6);
@@ -339,9 +341,11 @@ function wingPair({ x, f }, col, sc, y, inset = 0, tilt = 0, shine = false) {
     if (f) x.scale(1, 0.85);
     wing();
     x.lineJoin = 'round';
-    x.strokeStyle = K;
-    x.lineWidth = Math.min(10, 6.2 / sc);
-    x.stroke();
+    if (!soft) {
+      x.strokeStyle = K;
+      x.lineWidth = Math.min(10, 6.2 / sc);
+      x.stroke();
+    }
     x.fillStyle = col[0];
     x.fill();
     x.save();
@@ -365,7 +369,7 @@ function wingPair({ x, f }, col, sc, y, inset = 0, tilt = 0, shine = false) {
     x.fill();
     x.globalAlpha = 1;
     // flight feathers: long lines from the shoulder out to each scallop of the edge
-    x.strokeStyle = col[2];
+    x.strokeStyle = soft ? col[1] : col[2];
     x.lineCap = 'round';
     x.lineWidth = lw(2.4);
     for (const [ex, ey] of [[106, -58], [96, -50], [86, -36], [80, -24], [66, -14], [58, -4], [44, 4], [34, 12], [22, 16]]) {
@@ -385,7 +389,7 @@ function wingPair({ x, f }, col, sc, y, inset = 0, tilt = 0, shine = false) {
         x.beginPath();
         x.arc(cx, cy, r, 0, Math.PI);
         x.fill();
-        x.strokeStyle = col[2];
+        x.strokeStyle = soft ? col[1] : col[2];
         x.lineWidth = lw(1.8);
         x.beginPath();
         x.arc(cx, cy, r, 0.15, Math.PI - 0.15);

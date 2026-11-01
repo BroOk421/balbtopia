@@ -954,7 +954,7 @@ function chatCommand(text) {
     cmd = lc(cmd0 || ''),
     arg = rest.join(' ');
   // /facejoke and /troll: a face for a few seconds (render.js jokeFace); anyone, anywhere, not in the chat list
-  // /dance: dance on the spot (jump.js) until you move; with the Leaf Blower you play it like a guitar
+  // /dance: dance on the spot (jump.js) until you move; with the Guitar (leaf_blower) in hand you play it, standing still
   if (cmd === 'dance') {
     P.dance = !P.dance;
     if (P.dance) P.danceT = now;

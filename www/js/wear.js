@@ -105,9 +105,9 @@ const WEAR = [
   // from the Shop
   // pixel-art wings with their own flap frames (`flaps`: drawn as they are, never squeezed), flapping all the time
   // (owner, Oct 30 2026: same flap standing and jumping). Made by art-source/items/wings_px/ (cherub.py, bats.py, vampire2.py)
-  { id: 'angel_wings', name: 'Angel Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, flaps: true, strip: { img: 'wings_angel', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [0, 90, 240, 105] }, desc: 'Soft white wings that curve down at the top and flap all the time. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'angel_wings', name: 'Angel Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, flaps: true, strip: { img: 'wings_angel', frames: 6, ms: 110, x: -101, y: -19, w: 320, h: 230, icon: [5, 80, 310, 125] }, desc: 'Soft white wings that curve down at the top and flap all the time. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'golden_wings', name: 'Golden Wings', slot: 'back', art: 'golden_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-100, 80, 318, 260], desc: 'Huge shining golden wings, with two small golden wings below them. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'tiny_angel_wings', name: 'Tiny Angel Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_angel', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [30, 125, 180, 60] }, desc: 'Teeny little white wings at the shoulders, always flapping. While you wear them you can jump once more in the air; land to get the jump back.' },
+  { id: 'tiny_angel_wings', name: 'Tiny Angel Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_angel', frames: 6, ms: 110, x: -101, y: -19, w: 320, h: 230, icon: [70, 115, 180, 75] }, desc: 'Teeny little white wings at the shoulders, always flapping. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'tiny_devil_wings', name: 'Tiny Devil Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_devil', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [40, 90, 160, 80] }, desc: 'Small bat wings of dark purple skin on red bones. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'vampire_wings', name: 'Vampire Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, flaps: true, strip: { img: 'wings_vampire', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [15, 85, 210, 130] }, desc: 'Red vampire wings on black bones, hooked at the top and pointed at the bottom. While you wear them you can jump once more in the air; land to get the jump back.' },
   { id: 'tiny_vampire_wings', name: 'Tiny Vampire Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_vampire', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [45, 110, 150, 85] }, desc: 'Small red vampire wings on black bones. While you wear them you can jump once more in the air; land to get the jump back.' },
@@ -136,6 +136,30 @@ const WEAR = [
   { id: 'blue_fire_eyes', name: 'Blue Fire Eyes', slot: 'face', art: 'blue_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [26, 126, 88, 88], desc: 'Your eyes burn with blue fire, flames licking up over your head.' },
   // a baby-blue pacifier over the mouth (baby.js)
   { id: 'blue_pacifier', name: 'Blue Pacifier', slot: 'mouth', art: 'blue_pacifier', rarity: 'Uncommon', shop: true, iconBox: [60, 186, 32, 32], desc: 'A little teal-blue pacifier. Shh.' },
+  // scarves round the neck (necklace slot; owner, Oct 31 2026): chunky pixel art in scarves.js, each its own style
+  { id: 'red_knit_scarf', name: 'Red Knit Scarf', slot: 'neck', art: 'red_knit_scarf', rarity: 'Common', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A cosy red knitted scarf with white stripes on the ends and a little gold star pin.' },
+  { id: 'blue_striped_scarf', name: 'Blue Striped Scarf', slot: 'neck', art: 'blue_striped_scarf', rarity: 'Common', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A long scarf with blue and white stripes, a fringe and a pearl pin.' },
+  { id: 'green_plaid_scarf', name: 'Plaid Scarf', slot: 'neck', art: 'green_plaid_scarf', rarity: 'Uncommon', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A warm green tartan scarf with red and yellow lines, held with a gold pin.' },
+  { id: 'snowflake_scarf', name: 'Snowflake Scarf', slot: 'neck', art: 'snowflake_scarf', rarity: 'Uncommon', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A navy winter scarf with little white snowflakes and a sapphire pin.' },
+  { id: 'pink_fluffy_scarf', name: 'Fluffy Pink Scarf', slot: 'neck', art: 'pink_fluffy_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A soft, fluffy pink scarf, like a feather boa, with a pearl pin.' },
+  { id: 'rainbow_scarf', name: 'Rainbow Scarf', slot: 'neck', art: 'rainbow_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 200, 92, 92], desc: 'Every colour of the rainbow, wrapped round your neck.' },
+  { id: 'royal_silk_scarf', name: 'Royal Silk Scarf', slot: 'neck', art: 'royal_silk_scarf', rarity: 'Epic', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A shiny black silk scarf with gold edges and a ruby pin, tied in a neat knot.' },
+  { id: 'big_orange_scarf', name: 'Big Orange Scarf', slot: 'neck', art: 'big_orange_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 190, 96, 96], desc: 'A big, thick orange scarf pulled up over your mouth, with yellow ends flying behind you.' },
+  { id: 'big_black_scarf', name: 'Big Black Scarf', slot: 'neck', art: 'big_black_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 190, 96, 96], desc: 'A big, thick black scarf pulled up over your mouth, with a gold pin and gold fringe.' },
+  { id: 'big_striped_scarf', name: 'Big Striped Scarf', slot: 'neck', art: 'big_striped_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 190, 96, 96], desc: 'A big scarf with red, white and black diagonal stripes, pulled up over your mouth.' },
+  { id: 'black_scarf', name: 'Black Scarf', slot: 'neck', art: 'black_scarf', rarity: 'Common', shop: true, iconBox: [-4, 200, 96, 96], desc: 'A black knitted scarf with an emerald pin and gold fringe. Goes with everything.' },
+  { id: 'candy_stripe_scarf', name: 'Candy Stripe Scarf', slot: 'neck', art: 'candy_stripe_scarf', rarity: 'Uncommon', shop: true, iconBox: [-4, 200, 96, 96], desc: 'A scarf with red and white diagonal stripes, like a candy cane.' },
+  { id: 'red_bandana', name: 'Red Bandana', slot: 'neck', art: 'red_bandana', rarity: 'Common', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A red bandana with white dots, tied round the neck like a cowboy.' },
+  // capes (back slot; owner, Oct 31 2026): pixel art in capes.js; the Vampire Face (face slot) in vampire_face.js
+  { id: 'hero_cape', name: 'Red Hero Cape', slot: 'back', cape: true, art: 'hero_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A bright red hero cape with a golden lining. It flies out behind you when you run or jump.' },
+  { id: 'blue_hero_cape', name: 'Blue Hero Cape', slot: 'back', cape: true, art: 'blue_hero_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A blue hero cape with a silver lining and a silver clasp. It flies out behind you when you run or jump.' },
+  { id: 'forest_cape', name: 'Forest Cape', slot: 'back', cape: true, art: 'forest_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A green ranger cape with a brown lining, for heroes of the woods.' },
+  { id: 'vampire_cape', name: 'Vampire Cape', slot: 'back', cape: true, art: 'vampire_cape', rarity: 'Epic', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A black cape with a blood-red lining and a tall pointed collar. Goes with the Vampire Face.' },
+  { id: 'royal_cape', name: 'Royal Cape', slot: 'back', cape: true, art: 'royal_cape', rarity: 'Epic', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A purple royal cape with gold edges and a white fur collar.' },
+  { id: 'galaxy_cape', name: 'Galaxy Cape', slot: 'back', cape: true, art: 'galaxy_cape', rarity: 'Legendary', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A deep blue cape full of twinkling stars, lined with purple.' },
+  { id: 'golden_cape', name: 'Golden Cape', slot: 'back', cape: true, art: 'golden_cape', rarity: 'Legendary', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A shining golden cape that sparkles as it moves.' },
+  { id: 'vampire_face', name: 'Vampire Fangs', slot: 'mouth', art: 'vampire_face', rarity: 'Epic', shop: true, iconBox: [52, 176, 48, 48], desc: 'A long vampire smile with two sharp fangs. Wear it with the Vampire Eyes.' },
+  { id: 'vampire_eyes', name: 'Vampire Eyes', slot: 'face', art: 'vampire_eyes', blank: true, rarity: 'Epic', shop: true, iconBox: [36, 145, 84, 84], desc: 'Tired, glowing red vampire eyes with angry brows. Wear them with the Vampire Fangs.' },
   // a bald head with no face at all (no brows, eyes or mouth): `blank` (render.js blankFace); icon from fire_eyes.js
   { id: 'faceless_head', name: 'Faceless Head', slot: 'mask', blank: true, rarity: 'Rare', shop: true, desc: 'A smooth bald head with no face at all: no brows, no eyes, no mouth. Put any eyes on it.' },
 ];
@@ -265,8 +289,13 @@ function outfitMasked(im, key, shirt, pants, feet, mask, bands) {
         dark = L < 60 * (skinL / 200) + 8, // outlines stay
         shadeK = Math.min(1.1, Math.max(0.55, sat > 30 ? L / skinL : L / 240));
       let rgb = null;
-      if (pants && legs && !dark) rgb = paintPixel(pants, px, py, shadeK);
-      else if (feet && foot && !dark) rgb = paintPixel(feet, px, py, shadeK);
+      // shorts (`short`: last covered row): bare legs below, a darker hem just above (owner, Oct 31 2026)
+      const bare = pants && pants.short && py > pants.short;
+      if (pants && legs && !dark && !bare) rgb = paintPixel(pants, px, py, shadeK * (pants.short && py > pants.short - 3 ? 0.76 : 1));
+      else if (feet && foot && feet.slip) rgb = slipPixel(feet.slip, p, i, c.width, sat, L);
+      else if (feet && foot && !dark)
+        // `pat: 'sole'`: the bottom rows of each foot are the sole colour (soleRow)
+        rgb = feet.pat === 'sole' && soleRow(p, mask, i, c.width, skinL) ? rgbOf(feet.col2).map((v) => Math.round(v * Math.min(1.05, shadeK + 0.1))) : paintPixel(feet, px, py, shadeK);
       else if (shirt && !legs && !foot && py >= bands.shirt[0] && py <= bands.shirt[1] && sat < 28 && L > 110)
         rgb = paintPixel(shirt, px, py, Math.min(1.08, Math.max(0.5, L / 238)));
       if (!rgb) continue;
@@ -332,21 +361,48 @@ function shoeCols(p, W, H, bands) {
   else if (top[x] >= 0) runs[runs.length - 1][1] = x;
   return { top, bot, runs };
 }
+// sneakers' sole: fewer than 3 light (not outline) foot pixels below this one in its column
+function soleRow(p, mask, i, W, skinL) {
+  let k = 0;
+  for (let n = 1; n <= 3; n++) {
+    const q = i + n * W * 4;
+    if (q >= p.length || !(mask[q + 1] > 127) || p[q + 3] < 120 || (p[q] + p[q + 1] + p[q + 2]) / 3 < 60 * (skinL / 200) + 8) break;
+    k++;
+  }
+  return k < 3;
+}
+// Slippers (`slip: { sole, strap }` on a feet item, owner Oct 31 2026): the standing frames already wear black
+// flip-flops, so only their pixels are recoloured: the grey sole edge and the dark sole line above it take the sole
+// colour, the dark strap the strap colour; skin and the outline (dark pixels next to see-through) stay.
+function slipPixel(sl, p, i, W, sat, L) {
+  const op = (q) => q >= 0 && q < p.length && p[q + 3] >= 120,
+    grey = (q) => op(q) && Math.max(p[q], p[q + 1], p[q + 2]) - Math.min(p[q], p[q + 1], p[q + 2]) < 30 && (p[q] + p[q + 1] + p[q + 2]) / 3 > 85;
+  if (sat >= 30) return null; // skin
+  if (L > 85 && L < 225) return rgbOf(sl.sole).map((v) => Math.min(255, Math.round(v * (0.9 + L / 600)))); // the sole's lit edge
+  if (L > 85) return null;
+  if (!(op(i - 4) && op(i + 4) && op(i - W * 4) && op(i + W * 4))) return null; // outline
+  const nearSole = [1, 2, 3].some((k) => grey(i + k * W * 4));
+  return nearSole ? rgbOf(sl.sole).map((v) => Math.round(v * 0.62)) : rgbOf(sl.strap).map((v) => Math.round(v * 0.9));
+}
 // a flip-flop pixel: sole along the bottom of each foot, a thong strap over the top, bare foot elsewhere;
 // sitting (soles towards you): all sole
 const FLIP_SOLE = [42, 42, 48],
   FLIP_EDGE = [110, 110, 118],
   FLIP_STRAP = [30, 30, 34];
-function flipFlop(sh, x, y, L, pose, skinAt) {
-  if (pose === 'sit') return FLIP_SOLE.map((v) => v * (0.8 + 0.5 * Math.min(1, L / 230)));
+function flipFlop(sh, x, y, L, pose, skinAt, sl) {
+  // (slippers: their own sole / strap colours)
+  const SOLE = sl ? rgbOf(sl.sole).map((v) => v * 0.7) : FLIP_SOLE,
+    EDGE = sl ? rgbOf(sl.sole) : FLIP_EDGE,
+    STRAP = sl ? rgbOf(sl.strap).map((v) => v * 0.9) : FLIP_STRAP;
+  if (pose === 'sit') return SOLE.map((v) => v * (0.8 + 0.5 * Math.min(1, L / 230)));
   const t = sh.top[x],
     bt = sh.bot[x];
-  if (bt - y <= 0) return FLIP_EDGE; // the sole's lit bottom edge
-  if (bt - y <= 3) return FLIP_SOLE;
+  if (bt - y <= 0) return EDGE; // the sole's lit bottom edge
+  if (bt - y <= 3) return SOLE;
   const run = sh.runs.find(([a, b]) => x >= a && x <= b);
   if (run && y - t >= 1 && y - t <= 3) {
     const u = (x - run[0]) / Math.max(1, run[1] - run[0]);
-    if (u > 0.3 && u < 0.72) return FLIP_STRAP;
+    if (u > 0.3 && u < 0.72) return STRAP;
   }
   return skinAt(L * 0.9);
 }
@@ -398,10 +454,10 @@ const BODY_BANDS = { shirt: [98, 156], pants: [138, 202], feet: 178 };
 // and no shoes = black flip-flops are painted over them (bands.pose 'sit' / 'swim').
 function outfitBody(im, key, eq, bands = BODY_BANDS) {
   const shirt = WEAR_BY_ID[eq.shirt],
-    pants = WEAR_BY_ID[eq.pants] || (shirt && (shirt.pat === 'dress' || shirt.pat === 'pj') ? shirt : null),
+    pants = WEAR_BY_ID[eq.pants] || (shirt && (shirt.pat === 'dress' || shirt.pat === 'pj' || shirt.dress) ? shirt : null), // (`dress`: a dress also covers the legs, down to its `short` row)
     feet = WEAR_BY_ID[eq.feet],
     pantsMode = pants ? 'wear' : 'under',
-    feetMode = feet ? 'wear' : 'flip',
+    feetMode = feet ? (feet.slip ? 'slip' : 'wear') : 'flip',
     mask = bands.pose ? null : bodyMask(key, im);
   if (mask && !shirt && !pants && !feet) return im;
   if (mask) return outfitMasked(im, key, shirt, pants, feet, mask, bands);
@@ -429,7 +485,7 @@ function outfitBody(im, key, eq, bands = BODY_BANDS) {
       };
     // briefs need the jeans' width per row; flip-flops the shoes' top / bottom per column
     const spans = pantsMode === 'under' ? jeansSpans(p, W, c.height, bands) : null,
-      shoes = feetMode === 'flip' ? shoeCols(p, W, c.height, bands) : null,
+      shoes = feetMode !== 'wear' ? shoeCols(p, W, c.height, bands) : null,
       specks = pose === 'jump' ? jumpSpecks(p, W, c.height, bands.bt) : null;
     for (let i = 0; i < p.length; i += 4) {
       if (p[i + 3] < 120) continue;
@@ -461,12 +517,14 @@ function outfitBody(im, key, eq, bands = BODY_BANDS) {
         else if (at === 0) put(i, skinAt(pose === 'jump' ? Math.max(L, 84) : L)); // (jump: the jeans' dark folds would be dirt on the legs)
         if (at >= 0) continue;
       } else if (pantsMode === 'wear' && inPants && blue) {
-        put(i, paintPixel(pants, px, py, Math.min(1.45, Math.max(0.45, L / 95))));
+        // shorts: bare legs past the hem (swimming: the legs lie left of the hips)
+        if (pants.short && (pose === 'swim' ? px < bands.shortX - 18 : pose !== 'sit' && py > pants.short)) put(i, skinAt(Math.max(L, 84)));
+        else put(i, paintPixel(pants, px, py, Math.min(1.45, Math.max(0.45, L / 95))));
         continue;
       }
       if (py < bands.feet || px > bands.feetX || sat >= 30) continue;
       if (feetMode === 'wear' && L > 105) put(i, paintPixel(feet, px, py, Math.min(1.08, Math.max(0.5, L / 238))));
-      else if (feetMode === 'flip' && L > 55) put(i, flipFlop(shoes, px, py, L, pose, skinAt));
+      else if (feetMode !== 'wear' && L > 55) put(i, flipFlop(shoes, px, py, L, pose, skinAt, feetMode === 'slip' ? feet.slip : null));
     }
     x.putImageData(d, 0, 0);
   } catch (e) {
@@ -868,12 +926,22 @@ function auraFrame(id, f) {
   const fw = im.width / a.frames;
   return { im, sx: (f % a.frames) * fw, fw, fh: im.height };
 }
+// (owner, Oct 31 2026) the aura is drawn WIDER than its picture so it isn't tight round the body; its see-through
+// stays each aura's own `alpha` (0.7). Wings go IN FRONT of the aura now (drawBehind), so they always show.
+const AURA_W = 1.5; // width x the picture's own shape (the height stays)
+// half the aura's width in world px (shadow.js keeps it inside the character's box)
+function auraHalfW(id) {
+  const a = AURAS[id],
+    fr = a && auraFrame(id, 0);
+  if (!fr) return 0;
+  return ((FR.h * a.h * fr.fw) / fr.fh) * AURA_W * (CHAR_H / FR.h) / 2 + 2;
+}
 function drawAura(id, top, sc, dy) {
   const a = AURAS[id],
     fr = a && auraFrame(id, Math.floor(now / a.ms));
   if (!fr) return;
   const h = FR.h * a.h,
-    w = (h * fr.fw) / fr.fh,
+    w = ((h * fr.fw) / fr.fh) * AURA_W,
     k = sc * Z;
   const al = g.globalAlpha;
   g.globalAlpha = al * (a.alpha ?? 1);
@@ -937,16 +1005,18 @@ function drawAuraFront(c, top, sc, dy) {
 function drawBehind(c, top, sc, dy) {
   const eq = c.equipped || {},
     hw = WEAR_BY_ID[eq.hair];
-  // back to front: the back item (wings), then the aura, then the back of long hair; the body goes on top
+  // back to front: the aura, then the back item (wings: over the aura, owner Oct 31 2026), then the back of long
+  // hair; the body goes on top
+  if (eq.aura && AURAS[eq.aura]) drawAura(eq.aura, top, sc, dy);
   if (eq.back) {
     // wings stay still (open) on the ground and only flap while jumping / in the air
     const bw = WEAR_BY_ID[eq.back] || {},
-      flap = bw.wings ? (c.ground ? 0 : Math.floor(now / 90) % 2) : undefined;
+      // (wings with their own flap frames, `flaps`, play them all the time through ANIM_N: goldwings.js)
+      flap = bw.wings && !bw.flaps ? (c.ground ? 0 : Math.floor(now / 90) % 2) : undefined;
     if (bw.strip) drawWearStrip(bw, top, sc, dy, bw.wings && !bw.flaps && !c.ground ? 0.72 + 0.28 * Math.abs(Math.cos(now / 95)) : 1);
     else drawWearArt(eq.back, top, sc, dy, flap);
     if (eq.back === 'jetpack' && !c.ground) drawJetFlame(top, sc, dy);
   }
-  if (eq.aura && AURAS[eq.aura]) drawAura(eq.aura, top, sc, dy);
   if (hw && hw.behind) drawWearArt(eq.hair, top, sc, dy, 0, hw.behind);
   if (hw && hw.strip && hw.strip.split) drawWearStrip(hw, top, sc, dy, 1, 'back'); // long hair below the shoulders
 }

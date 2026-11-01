@@ -30,22 +30,36 @@ const PETS = [
   { id: 'ice_dragon', name: 'Ice Dragon', move: 'walk', gold: 60000, rarity: 'Legendary', desc: 'A baby dragon of ice.' },
   { id: 'unicorn', name: 'Unicorn', move: 'walk', gold: 60000, rarity: 'Legendary', desc: 'A unicorn with a rainbow mane.' },
   { id: 'phoenix', name: 'Phoenix', move: 'fly', wing: 'sides', gold: 60000, rarity: 'Legendary', desc: 'A blazing phoenix chick.' },
+  // (owner, Nov 1 2026: Cosmic Dragon and Fire Dragon removed from the game; their pictures are still in
+  // www/assets/pets/, flame_ball.png too: the flying dragons' fireballs are made from it)
   // the big ones from the owner's "Legendary Pets" sheet (art-source/pets/legendary_sheet.png, cut and animated by
   // cut_legendary.py into www/assets/pets/<id>.png: frames 0-5 walk, 6-9 idle breathing). They walk on the ground
   // behind you. The two dragons breathe a fireball at the blocks and seeds you hit (one hit less to break them).
   // mouth: in the picture's pixels; ball: the fireball picture, its bright head and the way it points (degrees).
-  { id: 'cosmic_dragon', name: 'Cosmic Dragon', move: 'big', img: 'pet_cosmic_dragon', ball: 'pet_frost_ball', ballFile: 'frost_ball', mouth: [127, 36], head: [26.4, 29.2], dir: 50.2, gold: 100000, rarity: 'Legendary', desc: 'A dragon full of stars. It walks behind you, and every time you hit a block or a seed it shoots a fireball at it: one hit less to break it.' },
-  { id: 'fire_dragon', name: 'Fire Dragon', move: 'big', img: 'pet_fire_dragon', ball: 'pet_flame_ball', ballFile: 'flame_ball', mouth: [124, 37], head: [30.2, 30.7], dir: 41.3, gold: 100000, rarity: 'Legendary', desc: 'A dragon wrapped in flames. It walks behind you, and every time you hit a block or a seed it shoots a fireball at it: one hit less to break it.' },
   { id: 'trex', name: 'T-Rex', move: 'big', img: 'pet_trex', gold: 80000, rarity: 'Legendary', desc: 'A big orange T-Rex that stomps along behind you.' },
   { id: 'raptor', name: 'Raptor', move: 'big', img: 'pet_raptor', gold: 80000, rarity: 'Legendary', desc: 'A blue raptor with golden spots that runs along behind you.' },
   // Tyapa (owner, Oct 28 2026): the owner's cyborg robot, 2 tiles tall. Its own strip (art-source/pets/
   // cyborg_cut.py): 20 frames of 60 x 61, idle / walk drawn facing right AND left (left frames are not mirrored at
   // draw time, see drawBig). Same price as the Legendary dragons (Cosmic / Fire Dragon).
   { id: 'cyborg', name: 'Tyapa', move: 'big', img: 'pet_cyborg', robot: true, gold: 100000, rarity: 'Legendary', desc: 'Tyapa, a heavy cyborg robot with a cannon on its shoulder, two tiles tall. It stomps along behind you.' },
+  // Flying dragons (owner, Nov 1 2026): the owner's two sheets of flying dragons (3 wing beats each) and his Shadow
+  // Dragon roar picture, cut by art-source/pets/sky_dragons_cut.py into www/assets/pets/<id>.png: 12 frames, 0-8 the
+  // wing beat (each of his 3 frames 3 times), 9-11 breathing fire (the others: their mouth opening in 3 steps). They
+  // FLY behind you (`sky`, drawSky) and, like the Fire Dragon, breathe a fireball at what you hit: one hit less. Each
+  // has the Fire Dragon's fireball in its own colours (`flame_ball_<x>.png`, art-source/pets/dragon_balls.py). mouth / len: strip px (len = tail to snout). The Shadow Dragon's roar is the owner's picture at
+  // its own (finer) pixels, a separate 3-frame strip (`roarImg`), drawn as long as the dragon and lined up on the eye
+  // (`eye` in the strip, `roar.eye` / `roar.mouth` / `roar.len` in the roar). (They were rides for a while, build e-g;
+  // the owner wanted them back as pets.)
+  { id: 'shadow_dragon', name: 'Shadow Dragon', move: 'big', sky: true, img: 'pet_shadow_dragon', ball: 'pet_flame_ball_shadow', ballFile: 'flame_ball_shadow', head: [30.2, 30.7], dir: 41.3, eye: [87.3, 48.7], len: 93, roarImg: 'pet_shadow_dragon_roar', roar: { eye: [152, 77], mouth: [162, 85], len: 164 }, gold: 100000, rarity: 'Legendary', desc: 'A black dragon with purple wings and red eyes. It flies behind you, and every time you hit a block or a seed it roars and breathes a fireball at it: one hit less to break it.' },
+  { id: 'bone_dragon', name: 'Bone Dragon', move: 'big', sky: true, img: 'pet_bone_dragon', ball: 'pet_flame_ball_bone', ballFile: 'flame_ball_bone', head: [30.2, 30.7], dir: 41.3, mouth: [102, 48], len: 100, gold: 100000, rarity: 'Legendary', desc: 'A dragon made of bones with torn dark wings. It flies behind you, and every time you hit a block or a seed it breathes a fireball at it: one hit less to break it.' },
+  { id: 'glacier_dragon', name: 'Glacier Dragon', move: 'big', sky: true, img: 'pet_glacier_dragon', ball: 'pet_flame_ball_glacier', ballFile: 'flame_ball_glacier', head: [30.2, 30.7], dir: 41.3, mouth: [112, 46], len: 110, gold: 100000, rarity: 'Legendary', desc: 'A white dragon with ice-blue crystal wings and spikes. It flies behind you, and every time you hit a block or a seed it breathes a fireball at it: one hit less to break it.' },
+  { id: 'pearl_dragon', name: 'Pearl Dragon', move: 'big', sky: true, img: 'pet_pearl_dragon', ball: 'pet_flame_ball_pearl', ballFile: 'flame_ball_pearl', head: [30.2, 30.7], dir: 41.3, mouth: [113, 42], len: 111, gold: 100000, rarity: 'Legendary', desc: 'A pearl white dragon with blue eyes. It flies behind you, and every time you hit a block or a seed it breathes a fireball at it: one hit less to break it.' },
+  { id: 'jade_dragon', name: 'Jade Dragon', move: 'big', sky: true, img: 'pet_jade_dragon', ball: 'pet_flame_ball_jade', ballFile: 'flame_ball_jade', head: [30.2, 30.7], dir: 41.3, mouth: [116, 36], len: 114, gold: 100000, rarity: 'Legendary', desc: 'A green dragon with golden horns and a misty tail. It flies behind you, and every time you hit a block or a seed it breathes a fireball at it: one hit less to break it.' },
 ];
 for (const p of PETS) {
   if (p.img) A[p.img] = 'assets/pets/' + p.id + '.png';
   if (p.ball) A[p.ball] = 'assets/pets/' + p.ballFile + '.png';
+  if (p.roarImg) A[p.roarImg] = 'assets/pets/' + p.id + '_roar.png';
 }
 const PET_BY_ID = {};
 // the slot (after Aura, before Hand)
@@ -147,7 +161,9 @@ const BIG_FRAMES = 10,
 // feet end at rows 58 and 56 of 61): that sole touches the ground and the other one sinks into the grass a little, so
 // both feet stand on the floor (owner: no gap under the feet). sink = px under the ground's top, like your feet.
 const CYBORG = { frames: 20, idle: [0, 4], walk: [4, 6], left: 10, scale: 64 / 60, plant: 4, sink: 1 };
-const petScale = (p) => (p.robot ? CYBORG.scale : BIG_SCALE);
+// the flying dragons: every one as long as SKY.len world px from tail to snout
+const SKY = { frames: 12, beat: 9, roar: 9, len: 84, flapMs: 80, roarMs: 420, fireAt: 150, hover: 8, headY: 38 };
+const petScale = (p) => (p.sky ? SKY.len / p.len : p.robot ? CYBORG.scale : BIG_SCALE);
 function stripFrames(im, n) {
   const w = Math.floor(im.width / n);
   return Array.from({ length: n }, (_, k) => {
@@ -263,6 +279,7 @@ function petFrames(id) {
     const im = IMG[PET_BY_ID[id].img];
     if (!im || !im.complete || !im.naturalWidth) return null;
     if (PET_BY_ID[id].robot) return (PET_FRAMES[id] = stripFrames(im, CYBORG.frames)); // its feet are drawn already
+    if (PET_BY_ID[id].sky) return (PET_FRAMES[id] = stripFrames(im, SKY.frames)); // flying: no feet to fix
     const feet = DINO_FEET[PET_BY_ID[id].id];
     return (PET_FRAMES[id] = stripFrames(im, BIG_FRAMES).map((c, k) => (feet ? dinoFeet(c, feet[k]) : bigClaws(c))));
   }
@@ -462,6 +479,7 @@ hitsNeeded = ((prev) =>
     return n === Infinity ? n : Math.max(1, n - petHitBonus());
   })(hitsNeeded);
 function drawBig(key, c, ox, oy, id) {
+  if (PET_BY_ID[id].sky) return drawSky(key, c, ox, oy, id);
   const p = PET_BY_ID[id],
     s = petFor(key, c, id),
     frames = petFrames(id),
@@ -507,6 +525,55 @@ function drawBig(key, c, ox, oy, id) {
   const left = p.robot && shown < 0;
   g.scale(left ? flip : shown * flip, 1);
   g.drawImage(frames[left ? k + CYBORG.left : k], Math.round((-w / 2) * Z), Math.round(-h * Z), Math.round(w * Z), Math.round(h * Z));
+  g.restore();
+}
+// the flying dragons (owner, Nov 1 2026): they fly behind you at head height, flapping all the time (frames 0-8,
+// each of the owner's 3 wing beats shown 3 frames running); when you hit a block, a background or a seed they turn
+// to it and roar (frames 9-11, or the Shadow Dragon's own roar picture) and breathe the Fire Dragon's fireball
+function drawSky(key, c, ox, oy, id) {
+  const p = PET_BY_ID[id],
+    s = petFor(key, c, id),
+    frames = petFrames(id),
+    S = petScale(p),
+    w = frames[0].width * S,
+    h = frames[0].height * S;
+  if (c.punch && c.punch !== s.lastPunch) {
+    s.lastPunch = c.punch;
+    const tx = Math.floor(c.punch.x / TS),
+      ty = Math.floor(c.punch.y / TS);
+    if (inW(tx, ty) && (fg[at(tx, ty)] || bg[at(tx, ty)] || trees.has(at(tx, ty)))) s.attack = { t0: now, x: tx * TS + TS / 2, y: ty * TS + TS / 2, tx, ty };
+  }
+  const atk = s.attack && now - s.attack.t0 < SKY.roarMs ? s.attack : null,
+    k = atk ? SKY.roar + Math.min(2, Math.floor(((now - atk.t0) / SKY.roarMs) * 3)) : Math.floor((now + (s.ph0 || (s.ph0 = Math.random() * 1000))) / SKY.flapMs) % SKY.beat,
+    face = atk ? (atk.x >= s.x ? 1 : -1) : s.face,
+    bx = s.x,
+    // (owner: raise it so its head shows) the picture's bottom hovers over your feet line, high enough that its head
+    // (mouth, or eye) is at least SKY.headY over your feet: above your own head, which hid it
+    headUp = ((p.mouth ? frames[0].height - p.mouth[1] : frames[0].height - p.eye[1]) * S),
+    by = s.y - Math.max(SKY.hover, SKY.headY - headUp) + Math.sin(now / 420 + s.ph0) * 2.2;
+  // its own roar picture (Shadow Dragon): at its own scale, its eye where the wing-beat frames' eye is
+  const rim = atk && p.roarImg && IMG[p.roarImg],
+    roar = rim && rim.complete && rim.naturalWidth ? rim : null,
+    R = p.roar,
+    Sr = roar ? SKY.len / R.len : 0,
+    rw = roar ? roar.width / 3 : 0,
+    ex = p.eye ? p.eye[0] * S - w / 2 : 0, // the eye, from the picture's bottom middle (facing right)
+    ey = p.eye ? p.eye[1] * S - h : 0;
+  if (atk && !atk.fired && now - atk.t0 > SKY.fireAt) {
+    atk.fired = true;
+    const mx = roar ? ex + (R.mouth[0] - R.eye[0]) * Sr : p.mouth ? p.mouth[0] * S - w / 2 : ex,
+      my = roar ? ey + (R.mouth[1] - R.eye[1]) * Sr : p.mouth ? p.mouth[1] * S - h : ey;
+    breaths.push({ x0: bx + face * mx, y0: by + my, x1: atk.x, y1: atk.y, t0: now, ball: p.ball, head: p.head, dir: p.dir, tx: atk.tx, ty: atk.ty });
+  }
+  g.save();
+  g.imageSmoothingEnabled = false;
+  if (c.dead) g.globalAlpha = 0.5;
+  g.translate(Math.round(ox + bx * Z), Math.round(oy + by * Z));
+  g.scale(face, 1);
+  if (roar) {
+    const f = k - SKY.roar;
+    g.drawImage(roar, f * rw, 0, rw, roar.height, Math.round((ex - R.eye[0] * Sr) * Z), Math.round((ey - R.eye[1] * Sr) * Z), Math.round(rw * Sr * Z), Math.round(roar.height * Sr * Z));
+  } else g.drawImage(frames[atk && p.roarImg ? 0 : k], Math.round((-w / 2) * Z), Math.round(-h * Z), Math.round(w * Z), Math.round(h * Z));
   g.restore();
 }
 // the fireballs, drawn over the world and the players (from the drawWater wrapper); smoke where they land

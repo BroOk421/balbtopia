@@ -147,33 +147,33 @@ function drawWater(ox, oy, T) {
     x1 = Math.min(WW - 1, Math.ceil((cv.width - ox) / T)),
     y1 = Math.min(WH - 1, Math.ceil((cv.height - oy) / T));
   for (let y = y0; y <= y1; y++)
-    for (let x = x0; x <= x1; x++) {
-      const i = at(x, y);
-      if (!(vari[i] & WATER)) continue;
-      const px = ox + x * T,
-        py = oy + y * T,
-        top = y === 0 || !(vari[at(x, y - 1)] & WATER);
-      let sy = py;
-      if (top) sy += T * 0.12; // the surface sits a little below the tile top
-      g.fillStyle = 'rgba(40,130,220,.38)';
-      g.fillRect(px, sy, T, py + T - sy);
-      if (top) {
-        // wavy surface: light crest, darker under it
-        const wv = Z * 1.2;
-        for (let k = 0; k < 8; k++) {
-          const wx = px + (k * T) / 8,
-            off = Math.sin(now / 420 + (x * 8 + k) * 0.8) * wv;
-          g.fillStyle = 'rgba(200,240,255,.85)';
-          g.fillRect(wx, sy + off - Z, T / 8 + 0.5, Z * 1.2);
-          g.fillStyle = 'rgba(90,170,240,.5)';
-          g.fillRect(wx, sy + off + Z * 0.2, T / 8 + 0.5, Z);
-        }
-      }
-      // a few drifting light streaks
-      g.fillStyle = 'rgba(200,240,255,.18)';
-      const s = (now / 1600 + x * 0.37 + y * 0.61) % 1;
-      g.fillRect(px + T * s, py + T * 0.55, T * 0.18, Z);
+    for (let x = x0; x <= x1; x++) if (vari[at(x, y)] & WATER) drawWaterTile(x, y, ox, oy, T);
+}
+// one tile of water (drawWater, and the Water Bucket's see-through preview under the cursor)
+function drawWaterTile(x, y, ox, oy, T) {
+  const px = ox + x * T,
+    py = oy + y * T,
+    top = y === 0 || !(vari[at(x, y - 1)] & WATER);
+  let sy = py;
+  if (top) sy += T * 0.12; // the surface sits a little below the tile top
+  g.fillStyle = 'rgba(40,130,220,.38)';
+  g.fillRect(px, sy, T, py + T - sy);
+  if (top) {
+    // wavy surface: light crest, darker under it
+    const wv = Z * 1.2;
+    for (let k = 0; k < 8; k++) {
+      const wx = px + (k * T) / 8,
+        off = Math.sin(now / 420 + (x * 8 + k) * 0.8) * wv;
+      g.fillStyle = 'rgba(200,240,255,.85)';
+      g.fillRect(wx, sy + off - Z, T / 8 + 0.5, Z * 1.2);
+      g.fillStyle = 'rgba(90,170,240,.5)';
+      g.fillRect(wx, sy + off + Z * 0.2, T / 8 + 0.5, Z);
     }
+  }
+  // a few drifting light streaks
+  g.fillStyle = 'rgba(200,240,255,.18)';
+  const s = (now / 1600 + x * 0.37 + y * 0.61) % 1;
+  g.fillRect(px + T * s, py + T * 0.55, T * 0.18, Z);
 }
 
 // ---------- swimming pose (owner, Oct 26 2026) ----------
@@ -238,6 +238,11 @@ function drawSwimming(c, ox, oy) {
   if (c.spawnT > 0) g.globalAlpha *= 1 - c.spawnT / SPAWN_FADE;
   g.imageSmoothingEnabled = true;
   swimHairBack(eq, top + hy * sc * Z, sc, headDx, true);
+  // a scarf bends with the neck and its tails stream BEHIND the body (owner, Oct 31 2026; scarves.js swimScarf)
+  g.save();
+  g.translate(headDx, 0);
+  const scarf = typeof swimScarf === 'function' && swimScarf(eq, top + hy * sc * Z, sc, 'tail');
+  g.restore();
   g.drawImage(outfitBody(im, 'swim_' + c.skin + '_' + f, eq, SWIM_BANDS), -W / 2, top, W, H);
   // long hair: the part below the shoulders too, over the body, so the whole hairstyle shows (owner, Oct 29 2026)
   swimHairBack(eq, top + hy * sc * Z, sc, headDx, false);
@@ -248,6 +253,10 @@ function drawSwimming(c, ox, oy) {
   const c2 = Object.create(c);
   c2.equipped = { ...eq, shirt: null };
   g.translate(headDx, 0);
+  if (scarf) {
+    swimScarf(eq, top + hy * sc * Z, sc, 'wrap');
+    c2.equipped.neck = null;
+  }
   drawWorn(c2, top + hy * sc * Z, sc, 0);
   g.restore();
   g.imageSmoothingEnabled = false;

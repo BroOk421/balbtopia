@@ -228,6 +228,13 @@ const actNoShot = act; // the act from before the Water Gun / Heartbow (for door
 act = ((prev) =>
   function () {
     if (P.dead || doorTrip || (hand !== 'water_gun' && hand !== 'heart_bow')) return prev();
+    // (owner, Nov 2 2026) the Feather Bow does nothing (no shot, no pose) when the tile you click is out of reach:
+    // the same square as breaking, where the cursor square turns red (`inReach`; BOW_RANGE's extra tile no longer
+    // lets it shoot at a red square)
+    if (hand === 'heart_bow') {
+      const tu = tileUnder();
+      if (!inReach(tu.x, tu.y)) return;
+    }
     if (now - shotT < (hand === 'water_gun' ? 140 : 380)) return; // a short wait between shots
     shotT = now;
     if (hand === 'heart_bow') P.bowT = now; // the bow's draw / twang animation
@@ -372,9 +379,12 @@ Net.onShot = ((prev) =>
 // After a shot the arm is held straight out at the clicked point with the gun / bow pointed there (the bow's own
 // picture pulls the string and lets go), instead of the tool swing / the gun just lifted. Drawn with the placing
 // arm (drawPunch with a `place` at arm's length), for you and other players (`aim`, set from their 'shot').
-// ---------- Leaf Blower: guitar (owner, Oct 27 2026) ----------
-// Holding the Leaf Blower (in the hand or the Hand slot) and standing still on the ground for LB_WAIT: you play it
-// like a guitar across your body, the hand strumming, and music notes in different colours float up.
+// ---------- Guitar (id leaf_blower; owner, Oct 27 2026, renamed Nov 1 2026) ----------
+// Holding the Guitar (in the hand or the Hand slot) and dancing (/dance) standing still: you play it across your
+// body, the hand strumming, and music notes in different colours float up. Works on a ride and sitting on a chair /
+// couch too (owner, Nov 1 2026); not in bed.
+// Bigger than other tools (GTR_BIG), held at the body with the neck pointing up and forward (owner: it was upside
+// down); swung by the neck, the body out at the end.
 const AIM_MS = 520,
   AIM_ARM = 13, // world px from the shoulder to the hand
   LB_WAIT = 0, // (guitar only while dancing: /dance, jump.js)
@@ -387,13 +397,47 @@ drawHeldTool = ((prev) =>
     if (hideHold) return;
     return prev(...a);
   })(drawHeldTool);
+let sitStrum = false; // drawing the guitar of someone playing it sitting (drawSitTool wrapper below)
+const GTR_BIG = 1.35,
+  GTR_GRIP = [10.5, 21.5], // the hand on the body, where you strum (of the 32 x 32 picture)
+  GTR_NECK = [23.5, 8.5], // swinging: the hand on the neck
+  GTR_TURN = 0.4; // held / played: the neck up and forward
+drawArmWithTool = ((prev) =>
+  function (id, arm, hand, turn, toolTurn = TOOL_TURN, lift = 0) {
+    if (id !== 'leaf_blower') return prev(id, arm, hand, turn, toolTurn, lift);
+    const swing = toolTurn !== TOOL_TURN;
+    if (sitStrum && !swing) turn += Math.sin(now / 110) * 0.09; // playing it sitting: the arm strums
+    const grip = swing ? GTR_NECK : GTR_GRIP,
+      s = toolSprite(id),
+      sz = (17 * GTR_BIG) / (CHAR_H / FR.h),
+      k = sz / 32,
+      px = SHOULDER[0] - FR.w / 2,
+      py = SHOULDER[1];
+    g.save();
+    g.translate(px, py);
+    g.rotate(turn);
+    g.translate(-px, -py);
+    g.save();
+    g.translate(hand[0] - FR.w / 2, hand[1] - lift * (FR.h / CHAR_H));
+    g.rotate(swing ? toolTurn + Math.PI : GTR_TURN);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(s, -grip[0] * k, -grip[1] * k, sz, sz);
+    g.restore();
+    g.imageSmoothingEnabled = true;
+    if (arm) g.drawImage(arm, -FR.w / 2, 0);
+    g.restore();
+  })(drawArmWithTool);
+// the local player: drawn from a new object every frame (render.js), with `equipped` itself, or on a ride with a copy
+// of it (rides.js keeps the real one in `rideBase`)
+const isMeDrawn = (c) => (c.equipped === equipped || c.rideBase === equipped) && c.name === playerName && !Net.remotes.has(c.id);
 const shownTool = (c) => {
   const eq = c.equipped || {};
   return heldTool(c.hand) && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null;
 };
 function guitarOn(c, st) {
-  const ok =
-    st.dance && shownTool(c) === 'leaf_blower' && !c.dead && !c.rest && c.ground !== false && !c.walking && !c.punch && !c.place && !(c.aim && now - c.aim.t < AIM_MS) && !swimPose(c);
+  const sit = c.rest && c.rest.k === 'sit',
+    ok =
+    st.dance && shownTool(c) === 'leaf_blower' && !c.dead && (!c.rest || sit) && (sit || c.ground !== false) && !c.walking && !c.punch && !c.place && !(c.aim && now - c.aim.t < AIM_MS) && !swimPose(c);
   if (!ok) return (st.lbT = 0), false;
   if (!st.lbT) st.lbT = now;
   return now - st.lbT >= LB_WAIT;
@@ -408,7 +452,7 @@ drawHeldTool = ((prev) =>
     g.save();
     g.translate(0, top + dy * sc * Z);
     g.scale(sc * Z, sc * Z);
-    drawArmWithTool(id, parts.arm, parts.hand, strum, 0.785, HOLD_LIFT);
+    drawArmWithTool(id, parts.arm, parts.hand, strum, TOOL_TURN, HOLD_LIFT);
     g.restore();
   })(drawHeldTool);
 // the mouth moves like talking while playing (the chat mouth shapes)
@@ -418,6 +462,16 @@ drawTalk = ((prev) =>
     const el = ((now - (guitarC.st.lbT + LB_WAIT)) / 1000) % 2.9;
     return prev({ skin: c.skin, say: { text: 'x'.repeat(60), T: 3, t: 3 - el } }, top, sc, dy, mouthY);
   })(drawTalk);
+// sitting on a chair / couch (rest.js drawSitTool): the hand on the guitar strums too
+drawSitTool = ((prev) =>
+  function (c, ...a) {
+    sitStrum = guitarC === c && shownTool(c) === 'leaf_blower';
+    try {
+      return prev(c, ...a);
+    } finally {
+      sitStrum = false;
+    }
+  })(drawSitTool);
 function guitarNotes(c, st) {
   if (st.lbNote && now - st.lbNote <= LB_NOTE_MS) return;
   st.lbNote = now;
@@ -435,9 +489,9 @@ function guitarNotes(c, st) {
 }
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
-    if (!c || c.dead || c.rest || c.portrait) return prev(c, ox, oy);
+    if (!c || c.dead || (c.rest && c.rest.k !== 'sit') || c.portrait) return prev(c, ox, oy);
     // the local player is drawn from a new object every frame (render.js): its state lives on P
-    const me = c.equipped === equipped && c.name === playerName && !Net.remotes.has(c.id),
+    const me = isMeDrawn(c),
       st = me ? P : c;
     if (me) {
       c.aim = P.aim;
@@ -525,3 +579,147 @@ drawArmWithTool = ((prev) =>
     if (arm) g.drawImage(arm, -FR.w / 2, 0);
     g.restore();
   })(drawArmWithTool);
+
+// ---------- Spear: thrown (owner, Nov 2 2026) ----------
+// Breaking / punching with the Spear throws it: it flies from the hand to the point you hit like the Feather Bow's
+// arrow (straight, turned the way it flies, a faint streak), sticks there a moment and is gone: the spear is in the
+// hand again (owner: no flying back). While it is out the hand is empty (the arm still swings), no second throw.
+// Others see it through the 'shot' event with k 'spear' (older builds ignore it).
+const SPEAR_SPEED = 620, // world px a second, out and back
+  SPEAR_STICK = 120, // ms stuck in the block, then it is back in the hand
+  SPEAR_LEN = 17, // world px (the size it has in the hand)
+  SPEARS = []; // { who: 'me' | remote id, x0, y0, tx, ty, t0, out, back }
+const spearOwner = (who) => (who === 'me' ? P : Net.remotes.get(who));
+function throwSpear(who, x0, y0, tx, ty) {
+  for (let k = SPEARS.length - 1; k >= 0; k--) if (SPEARS[k].who === who) SPEARS.splice(k, 1);
+  const out = (Math.hypot(tx - x0, ty - y0) / SPEAR_SPEED) * 1000;
+  SPEARS.push({ who, x0, y0, tx, ty, t0: now, out: Math.max(60, out) });
+}
+const spearOut = (who) => SPEARS.some((s) => s.who === who);
+// where a flying spear is now, and the way it points (tip first)
+function spearAt(s) {
+  const t = now - s.t0;
+  if (t < s.out) {
+    const u = t / s.out;
+    return { x: s.x0 + (s.tx - s.x0) * u, y: s.y0 + (s.ty - s.y0) * u, a: Math.atan2(s.ty - s.y0, s.tx - s.x0) };
+  }
+  // (owner: no flying back) it sticks a moment, then it is gone and the spear is simply in the hand again
+  if (t < s.out + SPEAR_STICK) return { x: s.tx, y: s.ty, a: Math.atan2(s.ty - s.y0, s.tx - s.x0), stuck: true };
+  return null;
+}
+// throwing: every punch / break with the Spear in hand (also seated); not while it is still out
+startPunch = ((prev) =>
+  function (wx, wy) {
+    const r = prev(wx, wy);
+    if (hand === 'spear' && !spearOut('me')) {
+      const hp = handPoint(P);
+      throwSpear('me', hp.x, hp.y, wx, wy);
+      Net.sendShot('spear', hp.x, hp.y, wx, wy);
+    }
+    return r;
+  })(startPunch);
+act = ((prev) =>
+  function () {
+    if (hand === 'spear' && spearOut('me') && !P.dead) return; // it comes back first
+    return prev();
+  })(act);
+Net.onShot = ((prev) =>
+  function (p) {
+    if (p && p.k === 'spear') {
+      const r = Net.remotes.get(p.id);
+      if (r) {
+        const h = handPoint(r);
+        throwSpear(p.id, h.x, h.y, p.tx, p.ty);
+      }
+      return;
+    }
+    return prev(p);
+  })(Net.onShot);
+// the hand is empty while the spear is out: drawArmWithTool draws only the arm for that character
+let spearHide = false;
+drawCharacter = ((prev) =>
+  function (c, ox, oy) {
+    if (!c || !SPEARS.length) return prev(c, ox, oy);
+    const who = isMeDrawn(c) ? 'me' : c.id;
+    const was = spearHide;
+    spearHide = spearOut(who);
+    try {
+      return prev(c, ox, oy);
+    } finally {
+      spearHide = was;
+    }
+  })(drawCharacter);
+// held (not thrown) like the scythe (owner): about level, pointing forward, the hand up near the blade, the rest of
+// the shaft behind
+const SPEAR_GRIP = [16, 16], // the hand on the shaft, near the blade (of the 32 x 32 picture; the point is at 31, 1)
+  SPEAR_HOLD_TURN = Math.PI / 4 - 0.16; // level and pointing forward (the picture points up-right), tip raised a bit
+drawArmWithTool = ((prev) =>
+  function (id, arm, hand, turn, toolTurn = TOOL_TURN, lift = 0) {
+    if (id === 'spear' && !spearHide && toolTurn === TOOL_TURN) {
+      const s = toolSprite(id),
+        sz = 17 / (CHAR_H / FR.h),
+        k = sz / 32,
+        px = SHOULDER[0] - FR.w / 2,
+        py = SHOULDER[1];
+      g.save();
+      g.translate(px, py);
+      g.rotate(turn);
+      g.translate(-px, -py);
+      g.save();
+      g.translate(hand[0] - FR.w / 2, hand[1] - lift * (FR.h / CHAR_H));
+      g.rotate(SPEAR_HOLD_TURN);
+      g.imageSmoothingEnabled = false;
+      g.drawImage(s, -SPEAR_GRIP[0] * k, -SPEAR_GRIP[1] * k, sz, sz);
+      g.restore();
+      g.imageSmoothingEnabled = true;
+      if (arm) g.drawImage(arm, -FR.w / 2, 0);
+      g.restore();
+      return;
+    }
+    if (id !== 'spear' || !spearHide) return prev(id, arm, hand, turn, toolTurn, lift);
+    const px = SHOULDER[0] - FR.w / 2,
+      py = SHOULDER[1];
+    g.save();
+    g.translate(px, py);
+    g.rotate(turn);
+    g.translate(-px, -py);
+    g.imageSmoothingEnabled = true;
+    if (arm) g.drawImage(arm, -FR.w / 2, 0);
+    g.restore();
+  })(drawArmWithTool);
+// the flying spear, drawn with the live effects (after the players)
+drawLiveFx = ((prev) =>
+  function () {
+    const ox = -cam.x * Z,
+      oy = -cam.y * Z,
+      pic = SPEARS.length ? toolSprite('spear') : null;
+    for (let k = SPEARS.length - 1; k >= 0; k--) {
+      const p = spearAt(SPEARS[k]);
+      if (!p) {
+        SPEARS.splice(k, 1);
+        continue;
+      }
+      if (!pic) continue;
+      const sz = SPEAR_LEN * Z,
+        q = sz / 32;
+      g.save();
+      g.translate(ox + p.x * Z, oy + p.y * Z);
+      g.rotate(p.a + Math.PI / 4); // the picture's spear points to the top right (-45 deg)
+      if (!p.stuck) {
+        // a faint streak behind it, like the arrow's
+        g.save();
+        g.rotate(-Math.PI / 4);
+        g.globalAlpha = 0.35;
+        g.fillStyle = '#ffffff';
+        g.fillRect(-sz * 0.95, -0.5 * Z * 0.55, sz * 0.4, Z * 0.55);
+        g.restore();
+      }
+      g.globalAlpha = 1;
+      g.imageSmoothingEnabled = false;
+      // the tip (picture px 31, 1) on the spear's point, so it flies point first and sticks in by the tip
+      g.drawImage(pic, -31 * q, -1 * q, sz, sz);
+      g.restore();
+    }
+    return prev();
+  })(drawLiveFx);
+

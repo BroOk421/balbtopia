@@ -80,3 +80,13 @@ for (const id of Object.keys(TEX)) {
   if (id.endsWith('_wallpaper')) HD_TEX[id] = (x, { P }) => hdWallpaper(P, n.color);
   else if (id.endsWith('_block') && n.kind === 'block') HD_TEX[id] = (x, { P }) => hdColorBlock(P, n.color);
 }
+// Pastel backgrounds (owner, Nov 1 2026): a plain wall in one soft colour, a very light paper grain, a touch lighter at
+// the top (blocks.js pastel_<colour>_bg, bg 33-40)
+function hdPastel(P, [base, hi, lo]) {
+  for (let j = 0; j < 32; j++)
+    for (let i = 0; i < 32; i++) {
+      const n = hdNoise(i, j, 9);
+      P(i, j, n < 0.05 ? hdMix(base, lo, 0.35) : n > 0.96 ? hdMix(base, hi, 0.7) : base);
+    }
+}
+for (const n of NEW_ITEMS) if (/^pastel_.*_bg$/.test(n.id)) HD_TEX[n.id] = (x, { P }) => hdPastel(P, n.color);

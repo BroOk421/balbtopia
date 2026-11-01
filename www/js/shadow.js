@@ -37,7 +37,7 @@ function petBox(c) {
   const s = petState.get(c.id ? c.id : c.name === playerName ? 'me' : null);
   if (!s || s.id !== id) return null;
   const half = petWorldW(id) / 2 + 24,
-    up = PET_BY_ID[id].img ? (PET_BY_ID[id].robot ? 80 : 90) : 60; // its height (Tyapa 64 px), plus a flyer's hover over the ground
+    up = PET_BY_ID[id].sky ? 130 : PET_BY_ID[id].img ? (PET_BY_ID[id].robot ? 80 : 90) : 60; // its height (Tyapa 64 px), plus a flyer's hover over the ground (flying dragons: up to ~85 px tall, over your head)
   return { l: s.x - half, r: s.x + half, t: s.y - up, b: s.y + 14 };
 }
 drawCharacter = ((prev) =>
@@ -50,9 +50,19 @@ drawCharacter = ((prev) =>
     const big = c.equipped && PET_BY_ID[c.equipped.pet] && PET_BY_ID[c.equipped.pet].img,
       side = big ? SHADOW_BOX.l : 46,
       pb = petBox(c),
+      // (owner's bug, Oct 31 2026) a punch reaches further than the box: the fist's end was cut off (most of all
+      // punching UP, past the 40 px over the head). The box now also holds the punch / place spot and the fist
+      // round it, and a wide aura (wear.js AURA_W)
+      pu = c.punch || c.place,
+      fistR = 26,
+      auraX = c.equipped && c.equipped.aura && typeof auraHalfW === 'function' ? auraHalfW(c.equipped.aura) : 0,
+      bl = Math.min(c.x - side, pb ? pb.l : Infinity, pu ? pu.x - fistR : Infinity, c.x + c.w / 2 - auraX),
+      br = Math.max(c.x + c.w + side, pb ? pb.r : -Infinity, pu ? pu.x + fistR : -Infinity, c.x + c.w / 2 + auraX),
+      bt = Math.min(c.y - SHADOW_BOX.t, pb ? pb.t : Infinity, pu ? pu.y - fistR : Infinity),
+      bb = Math.max(c.y + c.h + SHADOW_BOX.b, pb ? pb.b : -Infinity, pu ? pu.y + fistR : -Infinity),
       m = main.getTransform(),
-      p0 = m.transformPoint(new DOMPoint(ox + Math.min(c.x - side, pb ? pb.l : Infinity) * Z, oy + Math.min(c.y - SHADOW_BOX.t, pb ? pb.t : Infinity) * Z)),
-      p1 = m.transformPoint(new DOMPoint(ox + Math.max(c.x + c.w + side, pb ? pb.r : -Infinity) * Z, oy + Math.max(c.y + c.h + SHADOW_BOX.b, pb ? pb.b : -Infinity) * Z)),
+      p0 = m.transformPoint(new DOMPoint(ox + bl * Z, oy + bt * Z)),
+      p1 = m.transformPoint(new DOMPoint(ox + br * Z, oy + bb * Z)),
       x0 = Math.max(0, Math.floor(Math.min(p0.x, p1.x))),
       y0 = Math.max(0, Math.floor(Math.min(p0.y, p1.y))),
       x1 = Math.min(W, Math.ceil(Math.max(p0.x, p1.x))),
@@ -89,6 +99,15 @@ drawCharacter = ((prev) =>
     };
     drawBubble = (...a) => note(bub, a);
     let r;
+    // (owner, Oct 31 2026: fading in at the door showed the BALD head through the hair) the fade-in and the hurt
+    // blink are done here, on the finished picture: the character is drawn whole at full strength off screen and
+    // then put on the screen see-through, so nothing under the hair / clothes shows through them
+    const fade =
+        (c.hurt > 0 && Math.floor(now / 80) % 2 ? 0.55 : 1) * (c.spawnT > 0 ? Math.max(0, 1 - c.spawnT / SPAWN_FADE) : 1),
+      keep = [c.spawnT, c.hurt];
+    c.spawnT = 0;
+    c.hurt = 0;
+    shadowG.globalAlpha = 1;
     shadowBusy = true;
     g = shadowG;
     try {
@@ -98,6 +117,8 @@ drawCharacter = ((prev) =>
       shadowBusy = false;
       drawNameTag = tag;
       drawBubble = bub;
+      c.spawnT = keep[0];
+      c.hurt = keep[1];
     }
     // its shape in black (a canvas drop-shadow filter would do it in one go, but costs ~3 ms a character)
     shadeG.globalCompositeOperation = 'copy';
@@ -111,9 +132,10 @@ drawCharacter = ((prev) =>
     g.save();
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'source-over';
-    g.globalAlpha = SHADOW_ALPHA;
+    const base = main.globalAlpha;
+    g.globalAlpha = base * SHADOW_ALPHA * fade;
     g.drawImage(shadeCv, 0, 0, bw, bh, x0 + dx, y0 + dy, bw, bh);
-    g.globalAlpha = 1;
+    g.globalAlpha = base * fade;
     g.drawImage(shadowCv, 0, 0, bw, bh, x0, y0, bw, bh);
     g.restore();
     for (const l of later) {

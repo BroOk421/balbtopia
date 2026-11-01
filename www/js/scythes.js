@@ -854,6 +854,7 @@ drawToolSwing = ((prev) =>
   function (c, cx, top, sc, ox, oy) {
     prev(c, cx, top, sc, ox, oy);
     if (!isScythe(c.hand) || !c.punch) return;
+    if (typeof RIDE_PASS !== 'undefined' && RIDE_PASS === 1) return; // riding: pass 1 only draws what is behind the body
     const fx = scySlash;
     // the character is drawn on shadow.js's small canvas round its box, which would cut the effect off where it
     // flies past it: note it and draw it on the screen right after the character (drawCharacter wrapper below)
@@ -874,9 +875,14 @@ drawCharacter = ((prev) =>
 // ---- Pickaxes swing like the scythes (owner, Oct 29 2026): when breaking, the pickaxe keeps the same turn in the hand
 // as a swinging scythe (handle leaning forward from the fist) and the arm swings it up and over, instead of the old
 // SWING_TURN (handle carried on along the arm). Pickaxe pictures have their handle at -45 deg.
+// (owner, Nov 2 2026) EVERY hand tool / weapon swings in this V (arm and weapon at an angle, like the scythe), the
+// Guitar too (held by the neck, its body out at the end), instead of straight along the arm. Not: the Water Gun and
+// the Dragon Hand (they don't swing), the Feather Bow (aims), the scythes (their own swing above).
+const NO_V_SWING = new Set(['water_gun', 'dragon_hand', 'heart_bow']);
+const vSwing = (id) => !!TOOLS[id] && !isScythe(id) && !NO_V_SWING.has(id);
 const PICK_SWING_TURN = SCY_HANDLE_ANG + SCY_SWING_TURN + Math.PI / 4 + 0.4; // +0.4: a bit more forward, so its short head stays off the face
 drawArmWithTool = ((prev) =>
   function (id, arm, hand, turn, toolTurn = TOOL_TURN, lift = 0) {
-    if (/pickaxe$/.test(id) && toolTurn === SWING_TURN) toolTurn = PICK_SWING_TURN;
+    if (vSwing(id) && toolTurn === SWING_TURN) toolTurn = PICK_SWING_TURN;
     return prev(id, arm, hand, turn, toolTurn, lift);
   })(drawArmWithTool);

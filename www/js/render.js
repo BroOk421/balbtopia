@@ -446,19 +446,21 @@ function drawDead(c, ox, oy) {
   const sag = Math.min(1, t / 0.35),
     fade = 1 - Math.min(1, Math.max(0, (t - 0.45) / 1.1));
   g.imageSmoothingEnabled = true;
-  if (fade > 0) {
-    g.save();
-    g.translate(cx, feet);
-    g.scale(c.face, 1);
-    g.rotate(-0.24 * sag);
-    g.scale(1 + 0.05 * sag, 1 - 0.1 * sag);
-    g.globalAlpha = fade;
-    drawBehind(c, -H, sc, 0);
-    g.drawImage(outfitBody(IMG['skin_' + c.skin + '_closed'], 'skin_' + c.skin + '_closed', c.equipped || {}), -W / 2, -H, W, H);
-    g.drawImage(weakFace(c.skin), -W / 2, -H, W, H);
-    drawWorn(c, -H, sc);
-    g.restore();
-  }
+  // (owner, Oct 31 2026) the body and the ghost fade as ONE picture (drawFaded), so the bald head never shows
+  // through the hair / hat while they fade
+  if (fade > 0)
+    drawFaded(fade, () => {
+      g.save();
+      g.translate(cx, feet);
+      g.scale(c.face, 1);
+      g.rotate(-0.24 * sag);
+      g.scale(1 + 0.05 * sag, 1 - 0.1 * sag);
+      drawBehind(c, -H, sc, 0);
+      g.drawImage(outfitBody(IMG['skin_' + c.skin + '_closed'], 'skin_' + c.skin + '_closed', c.equipped || {}), -W / 2, -H, W, H);
+      g.drawImage(weakFace(c.skin), -W / 2, -H, W, H);
+      drawWorn(c, -H, sc);
+      g.restore();
+    });
   const gt = (t - 0.3) / (DEATH_TIME - 0.3);
   if (gt > 0 && gt < 1) {
     const rise = gt * TS * 1.6 * Z,
@@ -481,13 +483,17 @@ function drawDead(c, ox, oy) {
       g.restore();
     }
     g.imageSmoothingEnabled = true;
-    g.save();
-    g.scale(c.face * gs, gs);
-    g.drawImage(ghostSprite(c.skin), -W / 2, -H, W, H);
-    // the ghost keeps its clothes, a little see-through
+    g.globalAlpha = 1;
+    // the ghost keeps its clothes and hair: drawn whole, then made see-through as one picture
+    drawFaded(ga * 0.85, () => {
+      g.save();
+      g.imageSmoothingEnabled = true;
+      g.scale(c.face * gs, gs);
+      g.drawImage(ghostSprite(c.skin), -W / 2, -H, W, H);
+      drawWorn(c, -H, sc);
+      g.restore();
+    });
     g.globalAlpha = ga * 0.8;
-    drawWorn(c, -H, sc);
-    g.restore();
     // halo
     g.strokeStyle = '#ffd23f';
     g.lineWidth = 1.4 * Z;
@@ -502,6 +508,36 @@ function drawDead(c, ox, oy) {
     tagW = drawNameTag(c.name, cx, headTop - 4 * Z);
   g.globalAlpha = 1;
   return { cx, headTop, tagW };
+}
+// draw(): drawn at full strength on a layer the size of the current canvas (same transform), then put on it at
+// `alpha` as one picture, so overlapping parts (hair over the head) don't show each other through while fading
+const FADE_LAYER = {};
+function drawFaded(alpha, draw) {
+  if (alpha >= 0.999) return draw();
+  if (alpha <= 0) return;
+  const main = g,
+    W = main.canvas.width,
+    H = main.canvas.height,
+    L = FADE_LAYER;
+  if (!L.cv) (L.cv = document.createElement('canvas')), (L.g = L.cv.getContext('2d'));
+  if (L.cv.width < W || L.cv.height < H) (L.cv.width = Math.max(L.cv.width, W)), (L.cv.height = Math.max(L.cv.height, H));
+  L.g.setTransform(1, 0, 0, 1, 0, 0);
+  L.g.globalAlpha = 1;
+  L.g.globalCompositeOperation = 'source-over';
+  L.g.clearRect(0, 0, W, H);
+  L.g.setTransform(main.getTransform());
+  L.g.imageSmoothingEnabled = main.imageSmoothingEnabled;
+  g = L.g;
+  try {
+    draw();
+  } finally {
+    g = main;
+  }
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha = alpha;
+  g.drawImage(L.cv, 0, 0, W, H, 0, 0, W, H);
+  g.restore();
 }
 // one character (you or another player): body, walk cycle, punch arm, clothing and name tag
 function drawCharacter(c, ox, oy) {
@@ -597,6 +633,25 @@ function drawPunch(c, cx, top, sc, ox, oy) {
     nx = -nx;
     ny = -ny;
   }
+  // the arm: pixel art in the fist's colours, thick and shaped like a real arm (bicep, forearm, elbow: art64.js
+  // armPic), drawn with the fist's pixel size so they look like one piece
+  const fs = fistSprite(c.skin),
+    fsz = (2.1 + 1.2 * e) * CHAR_S * Z * (fs.k || 1);
+  if (typeof armPic === 'function') {
+    // it starts ARM_CAP / 2 pixels behind the shoulder, so the rounded end sits on the shoulder (no flat cut)
+    const back = Math.floor(ARM_CAP / 2),
+      n = Math.max(4, Math.round(L / fsz) + 1 + back),
+      ap = armPic(c.skin, n);
+    g.save();
+    g.translate(shX, shY);
+    g.rotate(Math.atan2(dy, dx));
+    // lit side (and the bicep) up on the screen
+    if (ny * Math.cos(Math.atan2(dy, dx)) - nx * Math.sin(Math.atan2(dy, dx)) > 0) g.scale(1, -1);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(ap, -back * fsz, -(ARM_MID + 0.5) * fsz, ap.width * fsz, ap.height * fsz);
+    g.restore();
+  } else drawSmoothArm();
+  function drawSmoothArm() {
   // thick arm with a dark outline and a soft shade along the underside
   const w = 6.2 * CHAR_S * Z;
   g.lineCap = 'round';
@@ -621,6 +676,7 @@ function drawPunch(c, cx, top, sc, ox, oy) {
   g.moveTo(shX + nx * w * 0.5, shY + ny * w * 0.5);
   g.lineTo(fx + nx * w * 0.5, fy + ny * w * 0.5);
   g.stroke();
+  }
   // holding a tool: it swings at the end of the arm instead of the bare fist
   const tl = c.hand !== 'wrench' && heldTool(c.hand);
   if (tl) {
@@ -785,36 +841,48 @@ function render() {
       if (fg[i]) continue;
       if (bgDmg[i]) drawCrack(px, py, T, bgDmg[i] / 2);
     }
-  // blocks
-  for (let y = vy0; y <= vy1; y++)
-    for (let x = vx0; x <= vx1; x++) {
-      const i = at(x, y),
-        t = fg[i];
-      if (!t) continue;
-      const b = BLOCK[t];
-      if (b.art === 'lock') g.drawImage(lockSprite(b.id), ox + x * T, oy + y * T, T, T);
-      else if (b.art === 'grass') {
-        // short grass tuft on the bottom of the tile (walk-through decoration)
-        g.drawImage(grassTuft(), ox + x * T, oy + y * T, T, T);
-      } else if (b.art === 'door') g.drawImage(woodDoorSprite(), ox + x * T, oy + y * T, T, T);
-      else if (b.art === 'tex' || b.art === 'deco' || b.art === 'vend' || b.art === 'disp' || b.art === 'mann') drawNewBlock(b, x, y, ox + x * T, oy + y * T, T);
-      else if (b.art === 'dark') {
-        g.drawImage(darkTile(), ox + x * T, oy + y * T, T, T);
-        drawEdges(maskOf(x, y), ox + x * T, oy + y * T, T, ['#07040b', '#4a3a5c', '#160f1e']);
-      } else {
-        let k = b.sheet();
-        if (t === DIRT) k += vari[i] & 3;
-        const m = maskOf(x, y);
-        g.drawImage(IMG[k], m * 32, 0, 32, 32, ox + x * T, oy + y * T, T, T);
-        // dirt with nothing on top becomes the grassy top layer
-        if (t === DIRT && m & 1) g.drawImage(grassTop(), ox + x * T, oy + y * T, T, T);
+  // blocks, with a shadow like the characters' (owner, Oct 31 2026; shadow.js SHADOW_DX / DY / ALPHA): every block is
+  // drawn on a layer the size of the screen, a black copy of that layer goes on the screen first (a little down and
+  // to the left, see-through), then the blocks themselves. A block's shadow only shows where there is no block.
+  const BL = blockLayers(),
+    mainG = g;
+  BL.g.setTransform(1, 0, 0, 1, 0, 0);
+  BL.g.globalAlpha = 1;
+  BL.g.globalCompositeOperation = 'source-over';
+  BL.g.clearRect(0, 0, BL.cv.width, BL.cv.height);
+  BL.g.imageSmoothingEnabled = mainG.imageSmoothingEnabled;
+  g = BL.g;
+  try {
+    for (let y = vy0; y <= vy1; y++)
+      for (let x = vx0; x <= vx1; x++) {
+        const i = at(x, y),
+          t = fg[i];
+        if (!t) continue;
+        const b = BLOCK[t];
+        // Guard Glass is drawn later, over the players and the drops (like a glass case in front of them)
+        if (!(b.id === 'guard_glass')) drawTileBlock(b, t, i, x, y, ox, oy, T);
+        if (dmg[i]) {
+          if (now - dmgT[i] > healMs(hitsNeeded(b))) {
+            dmg[i] = 0;
+          } else drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b));
+        }
       }
-      if (dmg[i]) {
-        if (now - dmgT[i] > healMs(hitsNeeded(b))) {
-          dmg[i] = 0;
-        } else drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b));
-      }
-    }
+  } finally {
+    g = mainG;
+  }
+  BL.sg.globalCompositeOperation = 'copy';
+  BL.sg.drawImage(BL.cv, 0, 0);
+  BL.sg.globalCompositeOperation = 'source-in';
+  BL.sg.fillStyle = '#000';
+  BL.sg.fillRect(0, 0, BL.sh.width, BL.sh.height);
+  BL.sg.globalCompositeOperation = 'source-over';
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha = typeof SHADOW_ALPHA === 'number' ? SHADOW_ALPHA : 0.2;
+  g.drawImage(BL.sh, Math.round((typeof SHADOW_DX === 'number' ? SHADOW_DX : -2) * Z), Math.round((typeof SHADOW_DY === 'number' ? SHADOW_DY : 2) * Z));
+  g.globalAlpha = 1;
+  g.drawImage(BL.cv, 0, 0);
+  g.restore();
   for (let i = 0; i < bgDmg.length; i++) if (bgDmg[i] && now - dmgT[i] > healMs(2)) bgDmg[i] = 0;
   // music notes: the beat plays the next column, then the notes get their letters and pops (music.js)
   stepMusic();
@@ -827,6 +895,56 @@ function render() {
   // holding the wrench: a wrench on every nearby block the wrench opens (signs.js), drawn here so it is behind the
   // drops and the players (owner, Oct 21 2026)
   drawSetupBadges(ox, oy, T);
+  // other players in this world (online), then you on top
+  // holding the wrench: a small wrench shows next to each other player's name; click it (or them) for their menu
+  if (typeof Net !== 'undefined')
+    for (const r of Net.remotes.values()) {
+      const m = drawCharacter(r, ox, oy);
+      if (hand === 'wrench') {
+        const ws = 9 * Z,
+          wx = m.cx + m.tagW / 2 + 2 * Z,
+          wy = m.headTop - 4 * Z - ws + Z;
+        g.drawImage(wrenchSprite(), wx, wy, ws, ws);
+        r.wrenchHit = { x: (wx - ox) / Z, y: (wy - oy) / Z, s: ws / Z };
+      } else r.wrenchHit = null;
+    }
+  const me = drawCharacter(
+    {
+      x: P.x,
+      y: P.y,
+      w: P.w,
+      h: P.h,
+      face: P.face,
+      skin,
+      style: walkStyle,
+      walking: P.walkT > 0,
+      walkPh: P.walkPh,
+      ground: P.ground,
+      punch: P.punch,
+      angry: P.angry,
+      hand,
+      dead: P.dead,
+      spawnT: P.spawnT,
+      hurt: P.hitT > 0 ? 0.3 : 0, // (owner, Nov 1 2026) no blinking when lava burns you; only when another player hits you
+      equipped,
+      name: playerName,
+      flag: myFlag,
+      place: P.place,
+      say: P.say,
+      rest: P.rest,
+      joke: jokeOn(), // /facejoke
+    },
+    ox,
+    oy,
+  );
+  // blocks that stand in front of players (Picket Fence): drawn again over them
+  for (let y = vy0; y <= vy1; y++)
+    for (let x = vx0; x <= vx1; x++) {
+      const b = BLOCK[fg[at(x, y)]];
+      if (b && b.front && b.id !== 'guard_glass') drawNewBlock(b, x, y, ox + x * T, oy + y * T, T);
+    }
+  // floating drops (owner, Oct 31 2026): always IN FRONT of the players and the blocks, so they never hide
+  // behind anyone; only a Guard Glass covers them (drawn right after, like a glass case)
   // floating drops: bob up and down; picked up by walking into them
   for (const d of drops) {
     const bob = Math.sin(now / 380 + d.ph) * 2.5,
@@ -840,7 +958,7 @@ function render() {
     if (d.id === 'gold') drawGoldPile(d, x, y, s);
     else drawDropBox(d.id, d.qty, x, y, s);
   }
-  // drops flying into whoever picked them up
+  // drops flying into whoever picked them up (your own items fly into the BAG button instead: flyToBag)
   for (const v of vacs) {
     const u = Math.min(1, v.t / VAC_TIME),
       e = u * u,
@@ -875,53 +993,14 @@ function render() {
       y = oy + (fy + (v.d.y + bob - fy) * e - Math.sin(u * Math.PI) * 8) * Z;
     drawDropBox(v.id, v.d.qty, x, y, s);
   }
-  // other players in this world (online), then you on top
-  // holding the wrench: a small wrench shows next to each other player's name; click it (or them) for their menu
-  if (typeof Net !== 'undefined')
-    for (const r of Net.remotes.values()) {
-      const m = drawCharacter(r, ox, oy);
-      if (hand === 'wrench') {
-        const ws = 9 * Z,
-          wx = m.cx + m.tagW / 2 + 2 * Z,
-          wy = m.headTop - 4 * Z - ws + Z;
-        g.drawImage(wrenchSprite(), wx, wy, ws, ws);
-        r.wrenchHit = { x: (wx - ox) / Z, y: (wy - oy) / Z, s: ws / Z };
-      } else r.wrenchHit = null;
-    }
-  const me = drawCharacter(
-    {
-      x: P.x,
-      y: P.y,
-      w: P.w,
-      h: P.h,
-      face: P.face,
-      skin,
-      style: walkStyle,
-      walking: P.walkT > 0,
-      walkPh: P.walkPh,
-      ground: P.ground,
-      punch: P.punch,
-      angry: P.angry,
-      hand,
-      dead: P.dead,
-      spawnT: P.spawnT,
-      hurt: Math.max(P.hurt, P.hitT > 0 ? 0.3 : 0),
-      equipped,
-      name: playerName,
-      flag: myFlag,
-      place: P.place,
-      say: P.say,
-      rest: P.rest,
-      joke: jokeOn(), // /facejoke
-    },
-    ox,
-    oy,
-  );
-  // blocks that stand in front of players (Picket Fence): drawn again over them
+  // Guard Glass (owner, Oct 31 2026): in front of the players and the drops, like a fence / glass case over them
   for (let y = vy0; y <= vy1; y++)
     for (let x = vx0; x <= vx1; x++) {
-      const b = BLOCK[fg[at(x, y)]];
-      if (b && b.front) drawNewBlock(b, x, y, ox + x * T, oy + y * T, T);
+      const i = at(x, y),
+        b = BLOCK[fg[i]];
+      if (!b || b.id !== 'guard_glass') continue;
+      drawNewBlock(b, x, y, ox + x * T, oy + y * T, T);
+      if (dmg[i]) drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b));
     }
   drawWater(ox, oy, T); // gates.js: water in front of the world and players
   if (P.hurt > 0) {
@@ -972,12 +1051,125 @@ function render() {
   if (ptr.inside && $('inv').hidden) {
     const { x, y } = tileUnder();
     if (inW(x, y)) {
+      drawPlacePreview(x, y, ox, oy, T); // holding a block: see-through copy where it would go
       const ok = hand === 'wrench' && wrenchBlock(x, y) ? inWrenchReach(x, y) : inReach(x, y);
       g.lineWidth = Z;
       g.strokeStyle = ok ? 'rgba(255,255,255,.85)' : 'rgba(255,90,90,.6)';
       g.strokeRect(ox + x * T + Z / 2, oy + y * T + Z / 2, T - Z, T - Z);
     }
   }
+}
+// the two screen-sized layers for the blocks and their shadow (render: blocks pass), made / resized as needed
+const BLOCK_LAYERS = {};
+function blockLayers() {
+  const L = BLOCK_LAYERS;
+  if (!L.cv) {
+    L.cv = document.createElement('canvas');
+    L.g = L.cv.getContext('2d');
+    L.sh = document.createElement('canvas');
+    L.sg = L.sh.getContext('2d');
+  }
+  if (L.cv.width !== cv.width || L.cv.height !== cv.height) {
+    L.cv.width = L.sh.width = cv.width;
+    L.cv.height = L.sh.height = cv.height;
+  }
+  return L;
+}
+// one block's picture on its tile (the main block pass, and the place preview below)
+function drawTileBlock(b, t, i, x, y, ox, oy, T) {
+  if (b.art === 'lock') g.drawImage(lockSprite(b.id), ox + x * T, oy + y * T, T, T);
+  else if (b.art === 'grass') {
+    // short grass tuft on the bottom of the tile (walk-through decoration)
+    g.drawImage(grassTuft(), ox + x * T, oy + y * T, T, T);
+  } else if (b.art === 'door') g.drawImage(woodDoorSprite(), ox + x * T, oy + y * T, T, T);
+  else if (b.art === 'tex' || b.art === 'deco' || b.art === 'vend' || b.art === 'disp' || b.art === 'mann') drawNewBlock(b, x, y, ox + x * T, oy + y * T, T);
+  else if (b.art === 'dark') {
+    g.drawImage(darkTile(), ox + x * T, oy + y * T, T, T);
+    drawEdges(maskOf(x, y), ox + x * T, oy + y * T, T, ['#07040b', '#4a3a5c', '#160f1e']);
+  } else {
+    let k = b.sheet();
+    if (t === DIRT) k += vari[i] & 3;
+    const m = maskOf(x, y);
+    g.drawImage(IMG[k], m * 32, 0, 32, 32, ox + x * T, oy + y * T, T, T);
+    // dirt with nothing on top becomes the grassy top layer
+    if (t === DIRT && m & 1) g.drawImage(grassTop(), ox + x * T, oy + y * T, T, T);
+  }
+}
+// Place preview (owner, Oct 31 2026): holding a BLOCK (not a seed, background, tool...), the empty tile under the
+// pointer shows a see-through copy of it, so you see how it will look before you place it. Only where the block
+// could really go (in reach, empty, you may build there, not inside a player for solid blocks).
+const PREVIEW_ALPHA = 0.45;
+function drawPlacePreview(x, y, ox, oy, T) {
+  // (owner) the Water Bucket shows the WATER it would pour there, not the bucket (same checks as useWaterBucket)
+  if (hand === 'water_bucket' && typeof drawWaterTile === 'function') {
+    const i = at(x, y);
+    if (P.dead || !inReach(x, y) || hasWater(i) || isDoorTile(x, y) || !canEdit(true, i)) return;
+    if (fg[i] && BLOCK[fg[i]] && BLOCK[fg[i]].solid !== false && !isGateT(fg[i])) return;
+    if (typeof SPONGE_T !== 'undefined' && fg[i] === SPONGE_T) return; // a bucket on a dry Sponge soaks it
+    const al = g.globalAlpha;
+    g.globalAlpha = al * Math.min(1, PREVIEW_ALPHA * 1.6);
+    try {
+      drawWaterTile(x, y, ox, oy, T);
+    } finally {
+      g.globalAlpha = al;
+    }
+    return;
+  }
+  const it = ITEMS[hand];
+  if (!it || it.kind !== 'block' || P.dead || !BLOCK[it.block]) return;
+  const i = at(x, y),
+    t = it.block,
+    b = BLOCK[t];
+  if (fg[i] || trees.has(i) || isDoorTile(x, y) || !inReach(x, y)) return;
+  if (!isLockT(t) && !canEdit(false, i)) return;
+  if (b.solid !== false && overlapsPlayer(x, y)) return;
+  const al = g.globalAlpha;
+  fg[i] = t; // for a moment, so it joins its neighbours like the real one would
+  try {
+    g.globalAlpha = al * PREVIEW_ALPHA;
+    drawTileBlock(b, t, i, x, y, ox, oy, T);
+  } catch (e) {
+    /* a picture that can't be drawn as a preview: no preview */
+  } finally {
+    fg[i] = 0;
+    g.globalAlpha = al;
+  }
+}
+// Picked-up items fly into the BAG button (owner, Oct 31 2026): the item's picture leaves the spot where it floated,
+// hops up a little and curves down into the bag on the hotbar, shrinking; the bag gives a little bounce (bagGot).
+// It is a small picture over the whole screen (on top of the hotbar too), so it never goes behind the buttons.
+// (x, y): world px where the drop was. False when the bag button isn't shown (then the old pull into you is used).
+const BAG_FLY_MS = 560;
+function flyToBag(id, x, y) {
+  const bag = document.getElementById('bag');
+  if (!bag || bag.offsetParent === null || !ITEMS[id] || typeof bag.animate !== 'function') return false;
+  const b = bag.getBoundingClientRect(),
+    c = cv.getBoundingClientRect();
+  if (!b.width || !c.width) return false;
+  const k = c.width / cv.width, // canvas px -> CSS px
+    sx = c.left + (x - cam.x) * Z * k,
+    sy = c.top + (y - cam.y) * Z * k,
+    ex = b.left + b.width / 2,
+    ey = b.top + b.height / 2,
+    s = Math.max(16, DROP_SIZE * Z * k),
+    im = iconCanvas(id).cloneNode();
+  im.getContext('2d').drawImage(iconCanvas(id), 0, 0);
+  im.className = 'tobag';
+  im.style.width = im.style.height = s + 'px';
+  document.body.appendChild(im);
+  const at = (u) => {
+    const e = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u), // ease in-out
+      hop = Math.sin(u * Math.PI) * Math.min(90, Math.abs(ey - sy) * 0.35 + 30); // an arc up on the way
+    return `translate(${sx + (ex - sx) * e - s / 2}px, ${sy + (ey - sy) * e - hop - s / 2}px) scale(${1.1 - 0.5 * u})`;
+  };
+  const frames = [];
+  for (let n = 0; n <= 12; n++) frames.push({ transform: at(n / 12), opacity: n === 12 ? 0.6 : 1 });
+  const a = im.animate(frames, { duration: BAG_FLY_MS, easing: 'linear', fill: 'forwards' });
+  a.onfinish = a.oncancel = () => {
+    im.remove();
+    bagGot();
+  };
+  return true;
 }
 function drawCrack(px, py, T, r) {
   const s = Math.min(2, Math.floor(r * 3));

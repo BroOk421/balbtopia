@@ -149,7 +149,7 @@ function lobbyData() {
     songs: (w.songs || []).filter(inRoom),
     atm: (w.atm || []).filter(inRoom),
     qd: (w.qd || []).filter(inRoom), // Question Doors' lists (qdoor.js)
-    drops: (w.drops || []).slice(-100),
+    drops: w.drops || [], // (worldData packs them to MAX_DROPS; was the newest 100 only, older ones vanished)
   };
 }
 // saved with the player

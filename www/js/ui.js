@@ -239,7 +239,42 @@ function renderBars() {
       };
     hb.appendChild(b);
   });
+  // the BAG button sits at the end of the hotbar, beside slot 0 (owner, Oct 31 2026): a square slot with a pixel bag
+  const bag = (renderBars.bag ||= $('bag'));
+  if (bag) {
+    if (!bag.querySelector('canvas')) {
+      bag.textContent = '';
+      bag.appendChild(bagIconCanvas());
+    }
+    hb.appendChild(bag);
+  }
   if (!$('inv').hidden) renderInv();
+}
+// the pixel bag on the BAG button (owner, Oct 31 2026: it must look like a BAG, not a pot): a brown leather school bag
+// with a carry handle on top, a front flap with a gold buckle and stitching, drawn cell by cell on a 16 x 16 grid
+const BAG_ICON = [
+  '.....KKKKKK.....',
+  '....KhhhhhhK....',
+  '....KhK..KhK....',
+  '..KKKhKKKKhKKK..',
+  '.KLLLLLLLLLLLMK.',
+  '.KLMMMMMMMMMMDK.',
+  '.KFFFFFFFFFFFfK.',
+  '.KFHHHHHHHHHHfK.',
+  '.KFFFFFGGFFFFfK.',
+  '.KfffffGgfffffK.',
+  '.KLMMMMMMMMMMDK.',
+  '.KLMsMMMMMMsMDK.',
+  '.KLMMMMMMMMMMDK.',
+  '.KMMMMMMMMMMMDK.',
+  '..KDDDDDDDDDDK..',
+  '...KKKKKKKKKK...',
+];
+const BAG_ICON_COL = { K: '#2a1406', h: '#7a4520', L: '#d08a4a', M: '#a8642e', D: '#7a4520', F: '#8a4e22', f: '#6a3816', H: '#b8763c', G: '#ffd23f', g: '#c89a1a', s: '#e8c890' };
+function bagIconCanvas() {
+  const c = pix64Canvas(16, (a) => BAG_ICON.forEach((row, j) => [...row].forEach((ch, i) => BAG_ICON_COL[ch] && a.px(i, j, BAG_ICON_COL[ch]))));
+  c.className = 'bagpix';
+  return c;
 }
 let sel = -1;
 // ---------- GM bag: every item in the game, sorted into category tabs ----------
@@ -332,6 +367,33 @@ function renderInvNow() {
   $('bagPick').hidden = !bagPick;
   if (bagPick) $('bagPickT').textContent = bagPick.note;
   if (q && !shown.length) gr.innerHTML = '<p class="mnote">No item in your bag matches "' + esc(q) + '"</p>';
+  // (owner, Nov 1 2026: less UI) the Wearing column beside the bag is hidden; what you wear and hold shows at the start
+  // of the grid instead, marked worn (gold frame + a check). Tap one = Unequip, like the old Wearing boxes. These
+  // cells don't count as bag slots.
+  if (!trashMode)
+    for (const sl of EQ_SLOTS) {
+      const id = equipped[sl];
+      if (!id || !ITEMS[id]) continue;
+      if (q && !ITEMS[id].name.toLowerCase().includes(q)) continue;
+      if (gm && !q && gmTab !== 'all' && itemCat(id) !== gmTab) continue;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cell has worn' + (bagPick && !(sl === 'hand' && bagPick.ok(id)) ? ' nopick' : '');
+      const ic = iconCanvas(id).cloneNode();
+      ic.getContext('2d').drawImage(iconCanvas(id), 0, 0);
+      b.appendChild(ic);
+      b.insertAdjacentHTML('beforeend', '<span class="wornck"></span>');
+      b.title = SLOT_NAME[sl] + ': ' + ITEMS[id].name + ' (tap to unequip)';
+      b.setAttribute('aria-label', ITEMS[id].name + ', ' + (sl === 'hand' ? 'in your hand' : 'worn'));
+      b.onclick = (e) => {
+        e.stopPropagation();
+        closePop();
+        // picking: the tool you hold can be picked (a Display Box takes it); worn clothes must come off first
+        if (bagPick) return sl === 'hand' ? bagPicked(id) : toast('Take it off first to pick it');
+        askUnequip(sl);
+      };
+      gr.appendChild(b);
+    }
   for (let p = 0; p < (gm || q || bagPick ? shown.length : BAG_MAX); p++) {
     const i = p < shown.length ? shown[p] : -1 - p,
       s = inv[i];

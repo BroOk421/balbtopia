@@ -523,6 +523,14 @@ const SPLICE = {
   "magic_bacon_wallpaper+red_bricks": "red_wallpaper",
   "magic_bacon_wallpaper+white_block": "white_wallpaper",
   "magic_bacon_wallpaper+yellow_block": "yellow_wallpaper",
+  "red_block+white_wallpaper": "pastel_pink_bg",
+  "orange_block+white_wallpaper": "pastel_peach_bg",
+  "white_wallpaper+yellow_block": "pastel_yellow_bg",
+  "green_block+white_wallpaper": "pastel_mint_bg",
+  "aqua_block+white_wallpaper": "pastel_aqua_bg",
+  "blue_block+white_wallpaper": "pastel_blue_bg",
+  "purple_block+white_wallpaper": "pastel_lavender_bg",
+  "white_wallpaper+wood_block": "pastel_cream_bg",
   "magic_bacon_wallpaper+rose": "hanging_guytrap",
   "daisy+magic_bacon_wallpaper": "venus_guytrap",
   "door+lattice_background": "screen_door",
@@ -666,6 +674,18 @@ const SPLICE = {
   "grey_wallpaper+ice_crust_block": "skeleton",
   "happy_joy_plaque+seaweed": "sugar_cane",
   "grass+rainbow_block": "cherry_blossom",
+  "rose+water_bucket": "dye_pink", // dyes.js (Oct 31 2026)
+  "red_block+water_bucket": "dye_red", // dyes.js (Oct 31 2026)
+  "orange_block+water_bucket": "dye_fire", // dyes.js (Oct 31 2026)
+  "sunflower+water_bucket": "dye_gold", // dyes.js (Oct 31 2026)
+  "aqua_block+water_bucket": "dye_mint", // dyes.js (Oct 31 2026)
+  "blue_block+water_bucket": "dye_blue", // dyes.js (Oct 31 2026)
+  "water_bucket+white_block": "dye_frost", // dyes.js (Oct 31 2026)
+  "purple_block+water_bucket": "dye_lavender", // dyes.js (Oct 31 2026)
+  "dark_purple_block+water_bucket": "dye_purple", // dyes.js (Oct 31 2026)
+  "grey_block+water_bucket": "dye_silver", // dyes.js (Oct 31 2026)
+  "dark_blue_block+water_bucket": "dye_galaxy", // dyes.js (Oct 31 2026)
+  "rainbow_block+water_bucket": "dye_rainbow", // dyes.js (Oct 31 2026)
 };
 // read data/farming.json (tree grow times and splice recipes); keeps the built-in ones if it can't
 function loadFarming() {
@@ -771,7 +791,14 @@ const TREE_GOLD_CHANCE = 0.35;
 // ([Dirt, rarity 130], sliding on a log scale), coins only from Rare / Epic / Legendary blocks with DROP_COIN_CHANCE
 const DROP_BLOCK = [0.35, 0.12],
   DROP_SEED = [0.3, 0.1],
-  DROP_COIN_CHANCE = { Rare: 0.15, Epic: 0.2, Legendary: 0.25 };
+  DROP_COIN_CHANCE = { Rare: 0.04, Epic: 0.06, Legendary: 0.08 };
+// (owner, Oct 31 2026: only a FEW blocks should drop lots of coins, the rest mostly blocks / seeds) ordinary Rare+ blocks
+// drop a few coins now and then (DROP_COIN_FEW: most coins one break gives, by tier); about DROP_RICH_SHARE of the Epic /
+// Legendary blocks (picked by their id, the same on every device: `richBlock`) are money blocks that drop coins
+// DROP_RICH_CHANCE of the time, in big amounts (goldDropAmount)
+const DROP_COIN_FEW = { Rare: 2, Epic: 3, Legendary: 4 },
+  DROP_RICH_SHARE = 0.12,
+  DROP_RICH_CHANCE = 0.25;
 const GOLD_AMOUNT = [1, 3]; // how much gold one drop gives (min, max)
 // game masters: everything in the Shop is free for them (lower-case usernames)
 const GM_USERS = ["anTz"]; // (renamed from tae123, Oct 27 2026: supabase/rename_gm.sql)

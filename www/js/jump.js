@@ -83,9 +83,10 @@ function drawJumpTool(c, f) {
   const s = id === 'wrench' ? wrenchSprite() : toolSprite(id);
   if (!s) return;
   const bow = id === 'heart_bow',
-    sz = (17 * (bow ? BOW_BIG : 1)) / (CHAR_H / FR.h),
+    gtr = id === 'leaf_blower', // the Guitar: bigger, held at its body (handfx.js)
+    sz = (17 * (bow ? BOW_BIG : gtr ? GTR_BIG : 1)) / (CHAR_H / FR.h),
     k = sz / 32,
-    grip = bow ? BOW_GRIP : GRIP,
+    grip = bow ? BOW_GRIP : gtr ? GTR_GRIP : GRIP,
     [hx, hy] = JUMP_HAND[f],
     sc = CHAR_H / FR.h;
   // the character transform is face-scaled round cx; jump picture px -> that space
@@ -100,7 +101,8 @@ function drawJumpTool(c, f) {
 }
 let jumpTop = 0;
 // /dance (owner, Oct 27 2026): the body leans left, holds, leans right, holds (a step with a little delay), till
-// you move, jump, punch or place. With the Leaf Blower in hand you play it like a guitar meanwhile (handfx.js).
+// you move, jump, punch or place. With the Guitar (leaf_blower) in hand there is no lean: you stand and play it
+// (handfx.js) (owner, Nov 1 2026).
 const DANCE_MS = 1100,
   DANCE_TILT = 0.13;
 function danceTilt(st) {
@@ -114,14 +116,19 @@ function danceTilt(st) {
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
     if (!c) return prev(c, ox, oy);
-    const me = c.equipped === equipped && c.name === playerName && !Net.remotes.has(c.id) && !c.portrait,
+    const me = isMeDrawn(c) && !c.portrait,
       st = me ? P : c;
-    if (me && P.dance && (c.walking || c.ground === false || c.punch || c.place || c.rest || c.dead)) P.dance = false;
+    // (owner, Nov 1 2026) sitting on a chair / couch keeps the dance going (the Guitar is played sitting); a bed stops it
+    const sitting = c.rest && c.rest.k === 'sit';
+    if (me && P.dance && (c.walking || (c.ground === false && !sitting) || c.punch || c.place || (c.rest && !sitting) || c.dead)) P.dance = false;
     if (!me && c.dance && !c.danceT) c.danceT = now;
     if (!me && !c.dance) c.danceT = 0;
     const f = jumpFrame(c, st);
     let res;
-    if (f < 0 && st.dance && !c.portrait) {
+    const eq = c.equipped || {},
+      guitar = (heldTool(c.hand) && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null) === 'leaf_blower';
+    // no lean with the Guitar, nor on a ride (the ride stays put under you) or sitting
+    if (f < 0 && st.dance && !c.portrait && !guitar && !c.rideBase && !c.rest) {
       const fx = Math.round(ox + (c.x + c.w / 2) * Z),
         fy = oy + (c.y + c.h) * Z;
       g.save();

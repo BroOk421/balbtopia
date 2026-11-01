@@ -152,6 +152,99 @@ function seatFace(r, own) {
 }
 const sittingNow = () => !!(P.rest && P.rest.k === 'sit');
 
+// ---------- the weapon / tool in the hand while sitting (owner, Nov 1 2026) ----------
+// Sitting used to hide the held tool. Now it sits in the hand that rests on the knees (the arm on the back side of
+// the sitting picture: screen left when facing right, mirrored when facing left), held like when standing (same
+// picture, size and turn, via drawArmWithTool, so scythes / bows / guns keep their own looks), drawn WHOLE in front of
+// the body and legs (owner: it may cover the feet). The hand is then drawn again over the handle so it holds it.
+const SIT_HAND = [80, 144], // sit.png px: where the hand grips (the bottom of the resting hand, like armParts' hand)
+  SIT_HAND_BOX = [55, 126, 102, 160]; // x0, y0, x1, y1 (sit.png px): where the hand / forearm is looked for
+let SIT_HAND_MASK = null; // sit.png pixel indices of the hand (skin + its outline)
+function sitHandMask() {
+  if (SIT_HAND_MASK) return SIT_HAND_MASK;
+  const im = IMG.sit_body;
+  if (!im || !im.width) return null;
+  try {
+    const c = document.createElement('canvas');
+    c.width = im.width;
+    c.height = im.height;
+    const x = c.getContext('2d');
+    x.drawImage(im, 0, 0);
+    const W = c.width,
+      p = x.getImageData(0, 0, W, c.height).data,
+      [x0, y0, x1, y1] = SIT_HAND_BOX,
+      skin = (k) => {
+        const r = p[k * 4],
+          gg = p[k * 4 + 1],
+          bb = p[k * 4 + 2];
+        return p[k * 4 + 3] > 100 && r > 120 && r - bb > 30 && r - bb < 150 && gg < r && bb > 50;
+      },
+      dark = (k) => p[k * 4 + 3] > 100 && p[k * 4] + p[k * 4 + 1] + p[k * 4 + 2] < 200,
+      out = [];
+    for (let y = y0; y < y1; y++)
+      for (let xx = x0; xx < x1; xx++) {
+        const k = y * W + xx;
+        if (skin(k)) out.push(k);
+        else if (dark(k)) {
+          // the outline round the hand: a dark pixel touching a skin pixel of the hand
+          let near = false;
+          for (let dy = -1; dy <= 1 && !near; dy++)
+            for (let dx = -1; dx <= 1 && !near; dx++) {
+              const yy = y + dy,
+                xq = xx + dx;
+              if (yy >= y0 && yy < y1 && xq >= x0 && xq < x1 && skin(yy * W + xq)) near = true;
+            }
+          if (near) out.push(k);
+        }
+      }
+    SIT_HAND_MASK = out;
+  } catch (e) {
+    SIT_HAND_MASK = []; // can't read pixels (page opened as a file): no hand over the handle
+  }
+  return SIT_HAND_MASK;
+}
+// the hand alone, cut out of the (recoloured / dressed) sitting body canvas
+const SIT_HAND_PICS = new Map();
+function sitHandPic(body, key) {
+  if (SIT_HAND_PICS.has(key)) return SIT_HAND_PICS.get(key);
+  const mask = sitHandMask();
+  if (!mask) return null; // picture not loaded yet: try again next frame
+  let res = null;
+  if (mask.length)
+    try {
+      const W = body.width,
+        H = body.height,
+        src = body.getContext('2d').getImageData(0, 0, W, H).data,
+        c = document.createElement('canvas');
+      c.width = W;
+      c.height = H;
+      const x = c.getContext('2d'),
+        d = x.createImageData(W, H);
+      for (const k of mask) for (let j = 0; j < 4; j++) d.data[k * 4 + j] = src[k * 4 + j];
+      x.putImageData(d, 0, 0);
+      res = c;
+    } catch (e) {}
+  if (SIT_HAND_PICS.size > 60) SIT_HAND_PICS.clear();
+  SIT_HAND_PICS.set(key, res);
+  return res;
+}
+// inside drawResting's transform (x 0 = the seat's middle, mirrored by the seat's way)
+function drawSitTool(c, body, bodyKey, top, k) {
+  const eq = c.equipped || {},
+    id = heldTool(c.hand) && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null;
+  if (!id || (typeof hideHold !== 'undefined' && hideHold)) return;
+  g.save();
+  g.translate(0, top);
+  g.scale(k, k);
+  // body-sprite space: drawArmWithTool takes x from the standing frame's left edge; the sitting picture has SIT_PAD
+  // more room on its left
+  drawArmWithTool(id, null, [SIT_HAND[0] - SIT_PAD, SIT_HAND[1]], 0, TOOL_TURN, 0);
+  g.restore();
+  const hp = body && sitHandPic(body, bodyKey);
+  g.imageSmoothingEnabled = true;
+  if (hp) g.drawImage(hp, (-FR.w / 2 - SIT_PAD) * k, top, hp.width * k, hp.height * k);
+}
+
 // ---------- drawing ----------
 function drawResting(c, ox, oy) {
   const r = c.rest,
@@ -164,7 +257,7 @@ function drawResting(c, ox, oy) {
   g.save();
   if (c.spawnT > 0) g.globalAlpha = 1 - c.spawnT / SPAWN_FADE;
   g.imageSmoothingEnabled = true;
-  let tagX, tagY;
+  let tagX, tagY, sitSwing = null;
   if (r.k === 'sit') {
     // the owner's sitting pose (legs out in front), its head exactly where the standing head is, so hair and
     // hats fit; skin tone and clothes repainted like the standing body; bottom on the seat
@@ -179,11 +272,13 @@ function drawResting(c, ox, oy) {
       face = seatFace(r, c.face);
     // punching / placing while sitting (owner, Oct 23 2026): you stay seated, the arm reaches out from the
     // shoulder like when standing (a tool swings at the end of it), behind the body
-    if (c.punch || c.place) {
-      const pc = Object.assign({}, c, { face });
-      drawPunch(pc, Math.round(cx), top, sc, ox, oy);
-      if (laserFace(eq) && c.punch) drawLaser(pc, Math.round(cx), top, sc, ox, oy);
-    }
+    // (owner, Nov 1 2026) breaking with a weapon / tool while sitting swings THAT weapon like when standing (its own
+    // swing, slash and effects, drawn after the body); the bare-fist punch is only for an empty hand
+    const pc = Object.assign({}, c, { face }),
+      swinging = !!(heldTool(c.hand) && c.punch && c.hand !== 'wrench');
+    if ((c.punch || c.place) && !swinging) drawPunch(pc, Math.round(cx), top, sc, ox, oy);
+    if (laserFace(eq) && c.punch) drawLaser(pc, Math.round(cx), top, sc, ox, oy);
+    if (swinging) sitSwing = { pc, cx: Math.round(cx), top, sc };
     g.translate(Math.round(cx), 0);
     g.scale(face, 1);
     drawBehind(c, top, sc, 0);
@@ -195,6 +290,7 @@ function drawResting(c, ox, oy) {
     else drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
     drawWorn(c, top, sc, 0);
     drawAuraFront(c, top, sc, 0);
+    if (!swinging) drawSitTool(c, body, 'sit_' + c.skin + '_' + fr + '|' + [eq.shirt, eq.pants, eq.feet].join('|'), top, k); // the held weapon / tool
     tagX = cx;
     tagY = top + NAME_TOP * sc * Z; // same height as standing, whatever is worn (render.js)
   } else {
@@ -237,6 +333,14 @@ function drawResting(c, ox, oy) {
     tagY = matY - thick - 16 * Z; // above the Zzz
   }
   g.restore();
+  // the weapon swing (sitting, set above): the arm turning round the shoulder with the weapon, in front of the body
+  if (sitSwing) {
+    g.save();
+    if (c.spawnT > 0) g.globalAlpha = 1 - c.spawnT / SPAWN_FADE;
+    g.imageSmoothingEnabled = true;
+    drawToolSwing(sitSwing.pc, sitSwing.cx, sitSwing.top, sitSwing.sc, ox, oy);
+    g.restore();
+  }
   g.imageSmoothingEnabled = false;
   const tagW = drawNameTag(c.name, tagX, tagY - 4 * Z, c.flag);
   if (c.say) drawBubble(c.say.text, tagX, tagY - 11 * Z, Math.min(1, c.say.t * 2));

@@ -78,7 +78,7 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => {
   keys[e.code] = false;
-  if (['Space', 'KeyW', 'ArrowUp'].includes(e.code) && P.vy < 0) P.vy *= 0.55;
+  if (['Space', 'KeyW', 'ArrowUp'].includes(e.code) && P.vy < 0 && !P.swimOut) P.vy *= 0.55; // (not the jump out of the water: physics.js)
 });
 addEventListener('blur', () => {
   for (const k in keys) keys[k] = false;

@@ -387,7 +387,12 @@ let worldRV = null; // which recipe list the RECIPES world was built from (saved
 // L7: items were renamed (Oct 2026); the names are part of the tag so a rename rebuilds the signs too
 // L8 (Oct 22 2026): rebuilt once more so no outfit-set wear is left in an old RECIPES world
 const recipesVersion = () =>
-  'L11:' + Object.keys(SPLICE).length + ':' + Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length;
+  'L12:' +
+  Object.keys(SPLICE).length +
+  ':' +
+  Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length +
+  ':' +
+  (typeof STOVE_RECIPES !== 'undefined' ? Object.keys(STOVE_RECIPES).length : 0);
 // one entry per item the splices make (an item with two recipes, like Grass, gets one sign with both),
 // sorted A to Z by name
 function recipeList() {
@@ -397,6 +402,14 @@ function recipeList() {
     if (!by.has(r)) by.set(r, []);
     by.get(r).push(ITEMS[a].name + ' + ' + ITEMS[b].name);
   }
+  // (owner, Oct 31 2026) dyed hairs: cooked in a Stove from a plain hair + a dye (dyes.js STOVE_RECIPES)
+  if (typeof STOVE_RECIPES !== 'undefined')
+    for (const [k, r] of Object.entries(STOVE_RECIPES)) {
+      const [a, b] = k.split('+');
+      if (!ITEMS[a] || !ITEMS[b] || !ITEMS[r]) continue;
+      if (!by.has(r)) by.set(r, []);
+      by.get(r).push(ITEMS[a].name + ' + ' + ITEMS[b].name + ' (in a Stove)');
+    }
   return [...by]
     .map(([id, ways]) => ({ id, text: ITEMS[id].name + ' = ' + ways.join(' or ') }))
     .sort((p, q) => ITEMS[p.id].name.localeCompare(ITEMS[q.id].name, 'en', { sensitivity: 'base' }));

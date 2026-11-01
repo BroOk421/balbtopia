@@ -33,7 +33,23 @@ jobs:
       - name: Copy the game into the Android project
         run: npx cap sync android
 
+      # the fixed signing key (GitHub Secrets), so every new APK updates the installed app instead of failing
+      - name: Signing key from GitHub Secrets
+        env:
+          BALB_KEYSTORE_B64: ${{ secrets.BALB_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$BALB_KEYSTORE_B64" ]; then
+            echo "$BALB_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/balb.jks"
+            echo "BALB_KEYSTORE=$RUNNER_TEMP/balb.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::BALB_KEYSTORE_B64 secret missing: the APK gets a random key and won't update over the installed app"
+          fi
+
       - name: Build debug APK
+        env:
+          BALB_KEYSTORE_PASSWORD: ${{ secrets.BALB_KEYSTORE_PASSWORD }}
+          BALB_KEY_ALIAS: ${{ secrets.BALB_KEY_ALIAS }}
+          BALB_KEY_PASSWORD: ${{ secrets.BALB_KEY_PASSWORD }}
         run: |
           chmod +x android/gradlew
           cd android

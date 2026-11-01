@@ -300,7 +300,7 @@ kbd {
 }
 .hb {
   position: relative;
-  width: clamp(28px, calc((100vw - 80px) / 10), 46px);
+  width: clamp(28px, calc((100vw - 80px) / 11), 46px);
   aspect-ratio: 1;
   flex: none;
   border-radius: 4px;
@@ -791,7 +791,7 @@ button:focus-visible {
     bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
   .touch .hb {
-    width: clamp(26px, calc((100vw - 330px) / 10), 40px);
+    width: clamp(26px, calc((100vw - 330px) / 11), 40px);
   }
   .touch .bag {
     bottom: calc(90px + env(safe-area-inset-bottom, 0px));
@@ -3463,6 +3463,65 @@ button:focus-visible {
 .bag {
   zoom: var(--btnz, 1);
 }
+/* the BAG button lives in the hotbar beside slot 0 (owner, Oct 31 2026): a square slot like the others, with a pixel
+   bag picture (ui.js bagIconCanvas), no text; it bounces when a picked-up item flies into it (.got) */
+.hotbar .bag,
+.touch .hotbar .bag {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  zoom: 1; /* (the hotbar is zoomed already) */
+  flex: none;
+  width: clamp(28px, calc((100vw - 80px) / 11), 46px);
+  height: auto;
+  aspect-ratio: 1;
+  margin-left: 4px;
+  padding: 0;
+  border-radius: 4px;
+  border: 2px solid var(--sun);
+  background: linear-gradient(#5a3a9a, #3a2470);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.35), 0 0 0 1px var(--night);
+}
+.hotbar .bag:hover {
+  filter: brightness(1.15);
+}
+.hotbar .bag .bagpix {
+  position: absolute;
+  inset: 10%;
+  width: 80%;
+  height: 80%;
+  image-rendering: pixelated;
+}
+/* an item flying into the bag (render.js flyToBag): over everything, never takes clicks */
+.tobag {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  image-rendering: pixelated;
+  will-change: transform;
+}
+.hotbar .bag.got {
+  animation: bagGot 0.3s ease-out;
+}
+@keyframes bagGot {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .touch .hotbar .bag {
+    width: clamp(26px, calc((100vw - 330px) / 11), 40px);
+    height: auto;
+  }
+}
 /* ---------- Menu: title in the header, tabs a column OUTSIDE the window on its right (owner, Oct 24 2026) ---------- */
 #menu.win {
   overflow: visible;
@@ -4478,4 +4537,41 @@ body.mannmode.mailmode {
   #inv:has(#gmTabs:not([hidden])) .grid {
     height: auto;
   }
+}
+
+/* (owner, Nov 1 2026: less UI) the Wearing column beside the bag is gone: worn items show at the start of the grid
+   (ui.js renderInvNow, .cell.worn) */
+#inv .wearing {
+  display: none !important;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #inv.win {
+    left: max(14px, env(safe-area-inset-left, 0px), min(calc(50vw - var(--bagw) / 2), calc(100vw - var(--bagw) - 340px)));
+  }
+}
+#inv .cell.worn {
+  position: relative;
+  border-color: #ffd23f;
+  box-shadow: inset 0 0 0 2px rgba(255, 210, 63, 0.55);
+}
+#inv .cell.worn .wornck {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #ffd23f;
+  box-shadow: 0 0 0 1px #1a1024;
+}
+#inv .cell.worn .wornck::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 3px;
+  height: 6px;
+  border: solid #1a1024;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }

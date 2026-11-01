@@ -9,7 +9,7 @@ const WEAPONS2 = {
   golden_scythe: { name: 'Golden Scythe', rarity: 'Epic', head: ['#f2b41e', '#fff4a8', '#8a5006'], sparkle: ['#ffd23f', '#fff4b8', '#ffffff'], desc: 'A shining gold scythe with a golden handle, an engraved blade and a ruby crown.', rec: ['hand_scythe', 'golden_block'] },
   flame_scythe: { name: 'Flame Scythe', rarity: 'Epic', head: ['#e8641a', '#ffd27a', '#661606'], sparkle: ['#ff6a1a', '#ffd040', '#ff3a10'], desc: 'A red-hot scythe on a charred, glowing handle. Flames lick off its blade.', rec: ['hand_scythe', 'lava'] },
   garden_scythe: { name: 'Garden Scythe', rarity: 'Rare', head: ['#b2c8a4', '#eef6e4', '#4c6444'], desc: 'A garden scythe with a green vine winding round its handle and onto the blade. Its handle is green bamboo. It leaves a green slash when you swing it.', rec: ['hand_scythe', 'viney_block'] },
-  leaf_blower: { name: 'Leaf Blower', rarity: 'Rare', head: ['#f07a1e', '#ffd040', '#3a3a44'], sparkle: ['#6ab84a', '#ffa030', '#9ad86a'], desc: 'A noisy orange leaf blower. Leaves fly when you hit with it.', rec: ['electric_fan', 'leaf_block'] },
+  leaf_blower: { name: 'Guitar', rarity: 'Rare', head: ['#f0a020', '#ffd060', '#6b3a1a'], sparkle: ['#ffd040', '#ff4a6a', '#4ad0ff'], desc: 'A golden acoustic guitar. Type /dance while holding it to play a tune.', rec: ['electric_fan', 'leaf_block'] },
   paper_umbrella: { name: 'Oil-paper Umbrella', rarity: 'Rare', head: ['#e8303e', '#ffd040', '#8a1a14'], desc: 'A red oil-paper umbrella with a bamboo frame and painted flowers.', rec: ['beach_umbrella', 'bamboo_block'] },
   smores_staff: { name: "Staff of S'mores", rarity: 'Rare', head: ['#f4ead6', '#ffffff', '#8a5a2a'], sparkle: ['#ffa030', '#ffd040', '#f4ead6'], desc: "A roasting stick with a toasty s'more on the end.", rec: ['campfire', 'cookie_block'] },
   death_scythe: { name: 'Dark Scythe', rarity: 'Legendary', head: ['#3c3c4c', '#7a7a92', '#15151b'], sparkle: ['#7a3ac8', '#2a2a34', '#b088ff'], desc: 'A black soul scythe with a deep blue handle and a silver star. Dark purple flames rise off it.', rec: ['hand_scythe', 'skeleton'] },
@@ -48,14 +48,48 @@ function hdtArc(set, cx, cy, r, a0, a1, w0, col) {
   }
 }
 Object.assign(HDT_ART, {
+  // Guitar (owner, Nov 1 2026; id leaf_blower kept for old saves): an acoustic guitar along the diagonal, the golden
+  // body at the bottom left, the neck up to the headstock at the top right. Held at the body (GTR_GRIP, handfx.js).
   leaf_blower: () =>
     hdtSprite((set) => {
-      // motor body (orange) with a handle, a long tube out to the top right
-      hdtDisc(set, 9, 22, 6, (dx, dy) => (dx + dy < -0.5 ? '#ffd040' : dx + dy > 0.6 ? '#a84a0e' : '#f07a1e'));
-      hdtSeg(set, [5, 15], [12, 15], 1.2, () => '#3a3a44'); // handle bar
-      hdtSeg(set, [12, 19], [29, 4], (t) => 1.8 + t * 0.6, (t, s) => (s < -0.3 ? '#8a8a96' : s > 0.4 ? '#2a2a34' : '#5a5a66'));
-      hdtDisc(set, 9, 22, 2.4, (dx, dy) => (Math.abs(dx - dy) < 0.4 ? '#c8ccd6' : '#3a3a44')); // fan grille
-      for (const [x, y, c] of [[30, 1, '#6ab84a'], [27, 1, '#ffa030'], [31, 5, '#9ad86a']]) set(x, y, c);
+      const A = [29.5, 2.5], // headstock end
+        ux = -Math.SQRT1_2,
+        uy = Math.SQRT1_2; // along the guitar, towards the body
+      // u: distance along the guitar from A, v: across it (+ is the lit upper-left side)
+      const at = (x, y) => {
+        const dx = x + 0.5 - A[0],
+          dy = y + 0.5 - A[1];
+        return [dx * ux + dy * uy, dx * -uy + dy * ux];
+      };
+      const body = (u, v) => {
+        const up = Math.hypot(u - 23, v) / 4.2, // upper bout
+          lo = Math.hypot(u - 30, v) / 5.2, // lower bout
+          waist = u > 23 && u < 30 && Math.abs(v) < 3.4;
+        return Math.min(up, lo, waist ? 0.8 : 9);
+      };
+      for (let y = 0; y < 32; y++)
+        for (let x = 0; x < 32; x++) {
+          const [u, v] = at(x, y);
+          let c = null;
+          const b = body(u, v);
+          if (b <= 1 && u > 18) {
+            // the golden body: darker orange rim, light upper-left face
+            c = b > 0.82 ? '#c86a10' : v > 1.2 && u < 32 ? '#ffd060' : '#f0a020';
+            const hole = Math.hypot(u - 24.6, v);
+            if (hole < 1.9) c = '#5a2e12';
+            else if (hole < 2.6) c = '#8a4a1a'; // ring round the sound hole
+            if (u > 30.6 && u < 32.1 && Math.abs(v) < 2.3) c = '#6b3a1a'; // bridge
+            else if (Math.abs(v) < 0.55 && u > 26.8 && u <= 30.6) c = '#fff0b0'; // strings over the body
+          } else if (u >= 5.5 && u <= 21.5 && Math.abs(v) <= 1.25) {
+            // the neck: dark fretboard, light frets, the strings down the middle
+            c = Math.round(u) % 3 === 0 ? '#e8c060' : v > 0.4 ? '#9a5a26' : '#6b3a1a';
+          } else if (u >= 4.6 && u < 5.5 && Math.abs(v) <= 1.4) c = '#fff0b0'; // nut
+          else if (u >= 0 && u < 4.6 && Math.abs(v) <= 1.9) c = v > 0.5 ? '#7a4418' : '#5a2e12'; // headstock
+          if (c) set(x, y, c);
+        }
+      // tuning pegs on both sides of the headstock
+      for (const u of [1.2, 3.2])
+        for (const v of [-2.6, 2.6]) set(Math.floor(A[0] + u * ux - v * uy), Math.floor(A[1] + u * uy + v * ux), '#ffd040');
     }),
   paper_umbrella: () =>
     hdtSprite((set) => {

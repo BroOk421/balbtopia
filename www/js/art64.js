@@ -225,3 +225,54 @@ fistSprite = function (name) {
   c.k = 13 / c.width; // per pixel, so the whole fist is as wide as the old 13 px one
   return (FISTS['ref:' + name] = c);
 };
+// The punching ARM (owner, Oct 31 2026): pixel art in the fist's own colours, thick like the owner's drawing, and
+// SHAPED like a real arm (build c): a bicep bulging on the top near the shoulder, a smaller forearm swell nearer the
+// fist, a tricep curve underneath, a little crease at the elbow. armPic(name, n) is the arm n fist-pixels long from the
+// shoulder (x 0) to the fist (x n), lit side up; render.js drawPunch rotates it and draws it with the fist's pixel size.
+const ARM_PIC_H = 19,
+  ARM_MID = 9, // the arm's centre row
+  ARM_CAP = 5; // columns of the rounded ends
+function armPic(name, n) {
+  n = Math.max(4, Math.min(320, n | 0));
+  const key = 'arm:' + name + ':' + n;
+  if (FISTS[key]) return FISTS[key];
+  const col = ARM_COLOR[name] || ARM_COLOR.porcelain,
+    H = mixHex(col.light, '#ffffff', 0.25),
+    S = col.light,
+    s = mixHex(col.skin, col.shade, 0.45),
+    d = mixHex(col.shade, col.dark, 0.5),
+    K = mixHex(col.dark, '#2a120a', 0.55);
+  const bump = (u, c, w) => (Math.abs(u - c) < w ? Math.cos(((u - c) / w) * (Math.PI / 2)) ** 2 : 0);
+  const c = document.createElement('canvas'),
+    x = c.getContext('2d');
+  c.width = n;
+  c.height = ARM_PIC_H;
+  const put = (i, j, cl) => {
+    x.fillStyle = cl;
+    x.fillRect(i, j, 1, 1);
+  };
+  for (let i = 0; i < n; i++) {
+    const u = (i + 0.5) / n,
+      // half thickness above / below the centre (in fist pixels): bicep + forearm on top, tricep + forearm below
+      up = 4.6 + 3.2 * bump(u, 0.3, 0.3) + 1.6 * bump(u, 0.74, 0.22),
+      dn = 4.4 + 1.8 * bump(u, 0.32, 0.3) + 1.1 * bump(u, 0.72, 0.2),
+      // ROUND ends (owner, Oct 31 2026: the shoulder end showed a flat cut line): the first / last ARM_CAP columns
+      // follow a circle, so the arm ends in a rounded tip with its outline going round it
+      ce = Math.min(i + 0.5, n - i - 0.5),
+      f = ce < ARM_CAP ? Math.sqrt(Math.max(0, 1 - ((ARM_CAP - ce) / ARM_CAP) ** 2)) : 1,
+      t = Math.round(ARM_MID - up * f),
+      b = Math.round(ARM_MID + dn * f),
+      span = b - t;
+    for (let j = t; j <= b; j++) {
+      const k = (j - t) / Math.max(1, span); // 0 top .. 1 bottom
+      let cl = j === t || j === b ? K : j === t + 1 ? H : k < 0.62 ? S : j === b - 1 ? d : s;
+      if (j === t + 2 && bump(u, 0.3, 0.3) > 0.55) cl = H; // a second highlight row on the bicep's bulge
+      // the very tip of a rounded end is all outline
+      put(i, j, ce < 1 ? K : cl);
+    }
+  }
+  // the elbow crease underneath, and the dip where the bicep meets the forearm on top
+  const col0 = (u) => Math.min(n - 1, Math.floor(u * n));
+  for (const [u, j0, j1] of [[0.55, ARM_MID + 1, ARM_MID + 3], [0.56, ARM_MID - 4, ARM_MID - 3]]) for (let j = j0; j <= j1; j++) put(col0(u), j, s);
+  return (FISTS[key] = c);
+}

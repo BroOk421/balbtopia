@@ -76,34 +76,40 @@ const guardAt = (x, y) => inW(x, y) && isGuardT(fg[at(x, y)]);
 // ---------- Checkpoint Tower ----------
 // a white stone pedestal with green-gold rings and a round orb on top (owner's reference picture)
 // lit: 0 = orb dull (not your checkpoint), 1 = orb glowing (yours)
+// (owner, Oct 31 2026) pixel art on a 32 x 32 grid (2 screen px a cell at 64 px a tile): flat steps of colour, no
+// blending, and a SLIM tower: a narrow column on a small stepped base, a cup and a round orb on top
 function paintCpTower(a, lit) {
-  const M = ['#6e6a62', '#9c978e', '#c4bfb5', '#e2ded6', '#f6f4ef', '#ffffff']; // white stone
-  const O = lit ? ['#2e5a0c', '#4e8a14', '#7ab820', '#a8dc30', '#d8f878', '#ffffff'] : ['#262c20', '#363e2e', '#4a5440', '#5e6a52', '#7a8670', '#98a48c'];
-  const stone = (i, x0, x1, extra = 0) => ramp(M, 0.95 - (i - x0) / (x1 - x0) * 0.8 + extra);
-  // base: a wide plinth and a step
-  a.rect(15, 57, 34, 7, (i, j) => (j === 57 ? M[5] : stone(i, 15, 49, -0.05)));
-  a.rect(19, 52, 26, 5, (i, j) => (j === 52 ? M[5] : stone(i, 19, 45)));
-  // stem, a little narrower in the middle
-  a.fill((i, j) => {
-    if (j < 30 || j > 51) return null;
-    const half = 5 - Math.round(Math.sin(((j - 30) / 21) * Math.PI) * 1.2);
-    return Math.abs(i + 0.5 - 32) <= half ? stone(i, 32 - half, 32 + half) : null;
-  });
-  // two rings round the stem, in the orb's colour
-  for (const y of [35, 45]) a.rect(24, y, 16, 3, (i, j) => (j === y ? O[4] : j === y + 2 ? O[1] : ramp(O.slice(1, 5), 0.9 - (i - 24) / 18)));
-  // the cup that holds the orb
-  a.poly([[21, 25], [43, 25], [39, 31], [25, 31]], (i, j) => (j === 25 ? M[5] : stone(i, 21, 43)));
-  a.rect(20, 24, 24, 2, (i, j) => (j === 24 ? O[4] : O[2]));
-  // the orb
-  a.disc(32, 13, 11.5, (i, j) => {
-    const dx = i + 0.5 - 28, dy = j + 0.5 - 9, d = Math.hypot(dx, dy);
-    return ramp(O, 1 - d / 17);
-  });
-  a.disc(28, 8, 2.2, O[5]);
+  const M = ['#5e5a52', '#8f8a80', '#bdb8ad', '#e2ded5', '#ffffff']; // white stone: shadow .. light
+  const O = lit ? ['#1e4208', '#3c7410', '#6aaa18', '#a8dc30', '#e2ff9a', '#ffffff'] : ['#20261a', '#323a2a', '#46503c', '#5e6a52', '#7a8670', '#98a48c'];
+  // stone lit from the left: light edge, light, mid, shadow edge
+  const stone = (i, x0, x1) => (i === x0 ? M[4] : i === x1 ? M[1] : i - x0 <= (x1 - x0) * 0.45 ? M[3] : M[2]);
+  // base: plinth and a step (top edge lit)
+  a.rect(10, 29, 12, 3, (i, j) => (j === 29 ? M[4] : stone(i, 10, 21)));
+  a.rect(12, 27, 8, 2, (i, j) => (j === 27 ? M[4] : stone(i, 12, 19)));
+  // the column: slim, with a groove down it
+  a.rect(14, 15, 4, 12, (i, j) => (i === 15 && j > 16 && j < 25 ? M[2] : stone(i, 14, 17)));
+  // two rings in the orb's colour
+  for (const y of [18, 23]) a.rect(13, y, 6, 1, (i) => (i === 13 ? O[4] : i < 16 ? O[3] : i < 18 ? O[2] : O[1]));
+  // the cup holding the orb: a green rim over a stone collar
+  a.rect(12, 13, 8, 1, (i) => (i === 12 ? O[4] : i < 16 ? O[3] : O[2]));
+  a.rect(13, 14, 6, 1, (i) => stone(i, 13, 18));
+  // the orb: flat bands from a light spot at its top left
+  // (a hand-made round shape: a computed disc left single-pixel bumps on its sides)
+  const ORB = ['...####...', '..######..', '.########.', '##########', '##########', '##########', '##########', '.########.', '..######..', '...####...'];
+  ORB.forEach((row, j) =>
+    [...row].forEach((ch, i) => {
+      if (ch !== '#') return;
+      const d = Math.hypot(i + 0.5 - 3.5, j + 0.5 - 3.2);
+      a.px(11 + i, 3 + j, d < 1.5 ? O[4] : d < 3.6 ? O[3] : d < 6 ? O[2] : O[1]);
+    }),
+  );
+  a.px(13, 5, O[5]); // the shine
+  a.px(14, 5, O[5]);
+  a.px(13, 6, O[5]);
   a.outline('#141210');
-  if (lit) for (const [r, al] of [[18, 0.16], [15, 0.26]]) a.fill((i, j) => (!a.get(i, j) && Math.hypot(i + 0.5 - 32, j + 0.5 - 13) < r ? `rgba(200,255,90,${al})` : null));
+  // (owner, Oct 31 2026 build c: no glow round the orb any more; lit = the bright green orb itself)
 }
-const CPT_PICS = [0, 1].map((k) => pix64Canvas(64, (a) => paintCpTower(a, k)));
+const CPT_PICS = [0, 1].map((k) => pix64Canvas(32, (a) => paintCpTower(a, k)));
 const CP_BLINK_MS = 200; // 3 blinks: on / off 3 times
 function cpTowerLit(x, y) {
   if (!(P.cp && P.cp.x === x && P.cp.y === y)) return 0;

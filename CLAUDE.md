@@ -40,6 +40,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `social.js` | `dialog()` pop-up helper, trade/friends/messages/email/gifts, world chat (CHAT button) |
 | `weather.js` | Snow Weather Machine block and the snowy weather: winter backdrop, falling snow, white flash |
 | `rest.js` | Sitting on chairs and sleeping in beds (pose, Zzz, 3 s wait, one player per bed / seat tile) |
+| `beds.js` | Bed / Hospital Bed pictures (the owner's bed picture, recoloured) and the sleeping look (wraps `drawResting`) |
 | `lobby.js` | Every player's OWN LOBBY: an 11 x 6 room round the main door, bedrock everywhere else, saved in the player save (`lobby`) |
 | `gates.js` | Gates (Portcullis, Iron Bars), water from the Water Bucket (swimming), Death Spikes / Stalactite kill on touch |
 | `worlds.js` | Saving/loading worlds (`worldData` / `applyWorld`), entering worlds, world list |
@@ -2031,3 +2032,191 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   not([hidden]))`: grid height min(50vh, 300px), phone landscape: the window takes the full available height).
   Other players' bags are unchanged (they always show every slot).
 - actions.js is CRLF: edit it as bytes / with newline='' so its line endings stay.
+
+## Swimming scarves, softer Golden Wings (Oct 31 2026, owner; GAME_BUILD '2026-10-31 i')
+
+- Scarves (necklace slot, `scarves.js`) while swimming: the scarf BENDS with the neck (head up right, body lying down
+  left) and ALL its tails stream BEHIND. `paintScarf(x, st, f, part)` with part 'tail' / 'wrap' paints the upright scarf
+  (tails sloped for swimming, `scarfCells(kind, f, swim)`), then `swimScarfCells` turns it by `SWIM_SCARF.turn` (0.7 rad)
+  round the standing neck `from` (62, 110) onto the swimmer's neck `to` (30, 106) and lays it back on the SCARF_CELL grid
+  (crisp). WEAR_ART `<id>:swim_tail` / `<id>:swim_wrap`; `swimScarf(eq, top, sc, part)` is called by `drawSwimming`
+  (gates.js): tails before the body (behind it), wrap + knot after it, and drawWorn then skips the neck item.
+- Golden Wings outline softer (owner: the stroke was too strong): `wingPair(..., soft)` (hd/wear_face_back.js) skips
+  the dark smooth stroke and draws feather lines in the middle gold; goldwings.js pixel outline is one ring of
+  `GW_OUTLINE` (#9a6410, was #3a2404).
+- Scarf pins (owner, GAME_BUILD '2026-10-31 j'): `pin` on a SCARF_STYLES entry puts a 5 x 5-cell brooch in the middle of
+  the wrap (`SCARF_PINS`: gold, star, pearl, ruby, sapphire, emerald; `scarfPin`, also on the swimming wrap); `goldEnds`
+  makes the tails' fringe gold. Red Knit star, Blue Striped pearl, Plaid gold, Snowflake sapphire, Fluffy Pink pearl,
+  Royal Silk ruby, Big Black gold + gold fringe, Black emerald + gold fringe (descriptions in wear.js say so).
+
+## Capes, Vampire Face (Oct 31 2026, owner; GAME_BUILD '2026-10-31 k')
+
+- Capes (back slot, `capes.js`, loaded after goldwings.js): our own hero capes (no logos), pixel art on the body grid
+  (`CAPE_CELL` 5, origin 2). Hung from the shoulders (`CAPE_TOP` 104), flaring out behind (left); standing = frames 0-3
+  (gentle sway, 230 ms), walking / in the air = frames 4-7 (blown back with the back corner lifted, ripples, 85 ms),
+  picked by a `drawBehind` wrapper (`capeFrame(c)`): aura, cape, back of long hair. A `drawWorn` wrapper draws the neck
+  strap + round clasp (`<id>:clasp`) first (not while swimming; back items aren't drawn while swimming). Styles
+  `CAPE_STYLES`: main ramp, lining (back edge + blown-back hem), outline; extras collar (Vampire: tall pointed collar
+  behind the head), trim + ermine (Royal), stars (Galaxy), shine (Golden). Shop gold: Red Hero / Blue Hero / Forest
+  15,000, Vampire 25,000, Royal 30,000, Galaxy 35,000, Golden 40,000 (prices picked by Claude).
+- Vampire Face (face slot, `vampire_face.js`, `blank: true` so the normal face is wiped): angry slanted brows, red
+  glowing eyes with a slit pupil under a thick black lid (`vfEye`), purple shadows under them, small open mouth with two
+  fangs; the red glow pulses (`ANIM_N` 4 x 170 ms). Shop 25,000 gold.
+- schema.sql `shop_prices`: the 13 scarves were MISSING (buying them on the live server would fail); they are in now
+  with the capes and the Vampire Face (insert + the keep-list of the delete). Re-run schema.sql.
+- Build '2026-10-31 l' (owner: the fangs were ugly, the slit pupils didn't match): the Vampire Face is SPLIT in two.
+  `vampire_face` is now **Vampire Fangs** (mouth slot, 15,000): a longer mouth line (x 63-89) and two fangs set apart
+  (x 64 and 78). New **Vampire Eyes** (`vampire_eyes`, face slot, `blank`, 20,000): tired ("puyat") eyes from ONE cell
+  map `VE_EYE` for both eyes (same slit pupil), heavy lid, purple bags, red glow pulse, mirrored angry brows, and the
+  normal nose dot + mouth line redrawn (the fangs go over it). shop.js + schema.sql match.
+
+## Cape jump, more clothes (Oct 31 2026, owner; GAME_BUILD '2026-10-31 m')
+
+- Capes give the extra air jump like wings: `cape: true` on the cape WEAR entries, physics.js gives `WING_JUMPS` when
+  the back item has `wings` or `cape`.
+- `clothes.js` (loaded after vampire_face.js): 21 Shop wearables (WEAR tab; prices picked by Claude, shop.js +
+  schema.sql). Shirts: Sailor Shirt, Flower Shirt, Camo Shirt, Red Flannel, Heart Tee, Star Tee, Ball Jersey, Sunset
+  Tee. Shorts: Denim, Black, Red Track, Flower Board, Camo. Slippers: Blue, Pink, Green, Gold. Sneakers: Red, Black,
+  Blue, Gold. New patterns in a `paintPixel` wrapper: hstripe, flower, camo, plaid, heart, star (`CL_STAR` polygon),
+  jersey, grad, side (stripes at x 30-33 / 76-79), sole.
+- wear.js support: pants `short: <row>` (bare legs below, hem 3 rows darker; swimming: legs left of shortX - 18 bare;
+  sitting: full); feet `slip: { sole, strap }` recolours the standing frames' own flip-flops (`slipPixel`: grey edge +
+  dark sole line -> sole, dark interior strap -> strap; outline and skin stay; sit / swim via `flipFlop(..., sl)`);
+  feet `pat: 'sole'` paints the bottom 3 light rows of each foot column `col2` (`soleRow`).
+
+## Girls' clothes, styled hair (Oct 31 2026, owner; GAME_BUILD '2026-10-31 n')
+
+- clothes.js, 15 more (Shop WEAR; prices picked by Claude): dresses (shirt slot, `dress: true` = covers the legs too,
+  wear.js outfitBody treats it like 'dress' / 'pj'): Pink Sundress, Flower Dress, Red Party Dress (pat glitter), Blue
+  Polka Dress, Sailor Dress, Lavender Gown (no `short` = ankle length); Ruffle Blouse (pat ruffle), Bow Top (pat bow);
+  skirts (pants, `skirt: true`, pat pleat / plaid): Pink Pleated, Plaid, Denim; Pink / Red / White Flats (pat sole),
+  Lilac Slippers. A real SKIRT SHAPE: an outfitBody wrapper (`clSkirt`, cached per body canvas) paints a skirt flaring
+  from `SKIRT_TOP` 150 to the hem (`short`, gown 200) over the legs and the gap between them, folds + dark outline;
+  standing / walking / jumping only (not sit / swim).
+- `hairstyles.js` (after clothes.js): 18 styled Shop hairs made from the 9 picture hairs (`HAIR_STYLED`: id, name, from,
+  style, ramp, ramp2, extra). Styles `HS_STYLES`: ombre (tips), streak (thin random strands), full, fade (two ramps
+  roots -> tips), rainbow; ramps `HS_RAMPS`; galaxy ones get white star pixels. `hsRecolor` keeps the picture's shading
+  (brightness between its 5% / 95% -> ramp), outline (L <= 28) stays. Pictures are IMG getters (`hsLazyImg`, made once
+  the source is loaded), icons too. Copies the base hair's strip (split / grow / x / y), `top`. Prices: streak / full
+  8,000, ombre 10,000, fade 12,000, rainbow 15,000.
+- Build '2026-10-31 o' (owner: the skirt wasn't even; not only recolours, new hair SHAPES too):
+  - Skirt centred on `SKIRT_MID` 55 (hips x 34-79, legs x 20-88), same width both sides, folds symmetric.
+  - `HAIR_SHAPES` (hairstyles.js): 10 new hairstyles put together from pieces of the owner's picture hairs (12,000 gold
+    each): Space Buns, Pink Space Buns (bob + two buns from the Black Top Bun picture `HS_BUN`, drawn `under` the bob),
+    Half-Up Bun (long black + a bun), Wolf Cut (Spikey top + Long Black's lower locks), Long Quiff (quiff + long back,
+    recoloured brown), Long Swept Hair (silver swept + long back), Pink Top Knot (pink bun cut at y 96), Short Red
+    Ponytail (cut at y 118), Blonde Bob, Blonde Top Bun. `hsCompose` draws each piece on its own layer in body px
+    (`HS_BOX` -50, -70, 220 x 290; `hsRect` = drawWearStrip's grow maths), `hsCutEdges` turns every cut into jagged
+    hair tips with an outline. Long ones get `split`. Icons from the drawn part.
+- Build '2026-10-31 p' (owner: "pangit, wag mo na dagdagan"): the 10 HAIR_SHAPES are REMOVED again (code, shop.js,
+  schema.sql rows; re-running schema.sql deletes their price rows). Don't add more hairs unless asked. The 18
+  recoloured styles (HAIR_STYLED) and the centred skirt stay.
+
+## Rides (Oct 31 2026, owner; GAME_BUILD '2026-10-31 q')
+
+- `rides.js` (loaded right after scythes.js, so its drawCharacter wrapper is the OUTERMOST): new Wearing slot Ride
+  (after Pet; `WEAR_SLOTS`, `EQ_SLOTS`, `SLOT_NAME.ride`, `equipped.ride`), Shop tab RIDES (before TOP UP), items
+  `ride_horse` "Pony" (60,000, speed x1.35) and `ride_truck` "Fire Truck" (80,000, x1.5); shop_prices rows. The owner
+  first asked truck / chicken / horse, then: SMALL and cute, a fire truck, no chicken, finer pixels on the horse.
+- Pixel art painted in code (`ridePainter`: rect / ell / poly / line with 3-tone ramps; `rideCanvas` adds the outline),
+  `RIDE_CELL` 0.5 world px a pixel, picture `RIDE_W` x `RIDE_H` with the ground at `RIDE_AY`. Each ride paints a `back`
+  layer (behind the rider: far legs, tail; seat back, ladder) and a `front` layer (body covering the rider's legs, near
+  legs, head; truck body, siren). States idle / walk / air, 4 frames (air 2), cached in `RIDE_PICS`.
+- Riding: the rider is drawn `lift` world px higher (pony 3, truck 1; the saddle / door top sits at the rider's hip,
+  9.7 px over his feet); the pet is drawn on the ground around it (`drawPetOf` big / small, with equipped.pet hidden
+  from the inner draw). Not while sitting, swimming, dead or on a portrait (`rideOf`). `feetSpeed` wrapper: the higher
+  of shoes and ride. `rideAirJumps()` (physics.js airJ) gives WING_JUMPS for a ride with `flap` (none now).
+- Build '2026-10-31 r' (owner: less pixelated / more detailed; the first car was good; a fire truck with a BIG front):
+  `RIDE_RES` 2 = every shape is painted twice as fine as its drawing units (outline one fine pixel); each ride has its
+  own `cell` (world px per drawing unit). Rides: Pony (cell 0.5), Red Car (`ride_car`, 70,000, x1.4: the first truck
+  drawing `paintCar`, cell 0.75, lift 6), Fire Truck (`ride_truck`, tall cab with side window, roof light bar, grille,
+  long ladder from a rear post to the cab roof, bigger front wheel). A concurrent edit had turned the pixels CHUNKIER
+  (RIDE_CELL 0.744 / RIDE_SCALE); that was the opposite of the owner's "bawasan mo pa pagka pixel" and was replaced.
+- Build '2026-10-31 s' (owner's picture: a ride only about as wide as the character, low, rider seen from the waist
+  up): `cell` Pony 0.45 (lift 2), Red Car 0.36 (lift 0), Fire Truck 0.36 (lift 0), so each is ~22-24 world px long;
+  `RIDE_RES` back to 1 (one drawing unit is already finer than the body's pixels at this size). Car and fire truck got
+  a side panel / door by the seat up to the rider's hip (y -27 units) so the legs stay hidden.
+- Build '2026-10-31 t' (owner sent pictures of mounts: flying dragons, a turtle, a lion dance; "the horse is ugly,
+  make dragons too, rides should be pixelated like these"): every ride is now CHUNKY: `cell` 0.744 world px a picture
+  pixel (the body's own pixel), dark outline. Fields: `res` (picture pixels per drawing unit: car / truck 0.484, so
+  they keep their size), `lift`, `seat` (the rider is CLIPPED below this height over the ground, so he sits in the
+  ride; drawCharacter wrapper `g.clip`). Brown Horse = hand-drawn pixel map `HORSE_MAP` + stepping legs. Five dragons
+  (`ride_<look>_dragon`: aqua, shadow, ember, frost, leaf; 100,000 gold, speed x1.4, `flap` = one more air jump):
+  our own drawing `DRAGON_MAP` + `DRAGON_WING` (flaps all the time by squashing towards its base, `DRAGON_FLAP`),
+  colours `DRAGON_LOOKS`, hover bob. Icons fitted from the drawn pixels. Painter `map(rows, ox, oy, pal)` added.
+- Build '2026-10-31 u' (owner: the dragon was ugly; "like my pictures, but change the look; it should fly, no legs"):
+  the copyrighted pictures were NOT copied; a new own drawing in that style: slim long flying body with no legs,
+  spikes on the back (`s`), big head with an open jaw and swept-back horns, thin tail with a fin. Wing = a bat-like
+  swept-back map drawn 1.45x (`WS`) behind the rider (`wx` = ox - 6), squashed for the flap. Dragons `cell` 0.85.
+- Build '2026-10-31 v' (owner: "pangit, alisin mo na lang yung dragon"): the dragon rides are REMOVED (rides.js,
+  schema.sql rows). Rides left: Brown Horse, Red Car, Fire Truck. Don't add dragon rides again unless asked.
+- Build '2026-10-31 w' (owner: on a ride the wings and aura were cut off): riding draws the rider TWICE. Pass 1
+  (`ridePass1`): `g` is swapped for a 2 x 2 scratch context, so the body goes nowhere, but `drawBehind` (aura, wings,
+  cape, long hair's back) runs on the real canvas with the scratch's transform (`rideOnReal`), uncut; `drawAuraFront`
+  (lightning) is recorded and replayed after pass 2. Pass 2 (`RIDE_PASS` 2): the rider cut at the seat, with
+  drawBehind / drawAuraFront skipped. Note: anything else a drawCharacter wrapper does per call (spawning particles)
+  happens twice per frame while riding.
+- Build '2026-10-31 x' (owner's screenshot: on a ride the wings / aura were drawn up and to the left, away from the
+  player): shadow.js draws the character on its own small canvas with moved coordinates, so pass 1's transform was
+  that canvas's. Pass 1 now sets `shadowBusy` (shadow.js skips itself), so the transform is the screen's. Checked in
+  the running game (not only the test drawing), with the drop shadow on.
+- Build '2026-10-31 y' (owner): HARVESTER ride (`ride_harvester`, 75,000 gold, speed x1.2, `harvest: true`): green farm
+  machine (`paintHarvester`: spinning reel with bats and teeth at the front, big lugged back wheel, exhaust with smoke,
+  roll bar). `rideHarvest()` runs after every `stepFx` (wrapper): ripe trees (treeProgress >= 1) in the tiles the
+  rider's box covers, plus the reel's 10 px in front, are harvested with `punchTree` where `canEdit(true, i)`. Tested
+  live: a ripe tree beside the player was harvested by driving into it. Horse redrawn "professional": `cell` 0.5,
+  5-tone shading (`HC` ramps, `ell5` / `poly5` / `leg5`, light from the top front), arched neck, head, muzzle, eye
+  glint, flowing mane band, tail, knees / fetlocks / hooves, bridle with an unbroken rein, leather saddle, girth,
+  stirrup (lift 4.6, seat 14).
+- Build '2026-10-31 z' (owner: on rides the hand and the held weapon must be IN FRONT): order is now back layer ->
+  pass 1 (aura / wings) -> FRONT layer -> the rider, cut only inside the legs' box below the seat (`RIDE_LEGS`
+  -6.2..4.6 world px across, even-odd clip), so arms, hands and held tools / weapons are drawn over the ride.
+- Build '2026-10-31 za' (owner: only the LEFT hand, the one with the weapon, in front): holding a tool / weapon
+  (`rideArmed`: c.hand is an ITEMS kind 'tool', not fist / wrench), the cut below the seat runs from the legs' back edge
+  to the far side, so only the back (weapon) hand and the weapon are drawn over the ride; empty-handed, everything
+  below the seat is cut (both hands behind the ride). Mirrors with the facing.
+- Build '2026-10-31 zb' (owner: "the arm and the weapon should just overlap the ride"): the body is cut everywhere
+  below the seat again (free hand behind the ride), and `drawArmWithTool` (held tool and tool swing; scythes /
+  pickaxes go through it too) is NOTED in pass 2 (`rideArms`, with the transform) and drawn after it, whole, over the
+  ride. Pass 2 also sets `shadowBusy` so those transforms are the screen's (no drop shadow while riding).
+  `rideArmed` is no longer used for the cut.
+- Build '2026-10-31 zc' (owner: slow the Harvester down): `speed` 0.7 with `fixed: true` (feetSpeed uses the ride's own
+  speed, shoes don't make it faster; other rides still take the higher of shoes and ride).
+
+- Nov 1 2026 (build '2026-11-01 a', owner): sitting keeps the held weapon / tool (it used to disappear). rest.js `drawSitTool`: the tool (hand item, else the Hand slot) is gripped in the hand resting on the knees (`SIT_HAND` sit.png px [80, 144]; screen left when facing right, mirrored when facing left), drawn with `drawArmWithTool` (no arm) so every weapon keeps its standing look / size / turn, WHOLE and in front of the body and legs (owner: covering the feet is fine); then the hand (skin + outline in `SIT_HAND_BOX`, `sitHandMask` / `sitHandPic`) is drawn again over the handle.
+- Nov 1 2026 (build '2026-11-01 b', owner): breaking while sitting with a weapon / tool in hand swings THAT weapon (rest.js `drawResting`: `swinging` like render.js; `drawToolSwing` with the seat's face after the body, so scythe slashes and other swing effects show) instead of the bare-fist `drawPunch`; the fist punch is only for an empty hand (and the placing arm). The resting-hand weapon (`drawSitTool`) is hidden during the swing.
+- Nov 1 2026 (build '2026-11-01 c', owner): 5 FLYING dragon pets (Shop PETS, 100,000 gold, Legendary; schema.sql shop_prices rows, re-run it): Shadow, Bone, Glacier (ice blue), Pearl (white), Jade (green) Dragon (`pet_<id>_dragon`; names ours, not Growtopia's). Art: the owner's sheets `art-source/pets/sky_dragons_sheet.png` (4 dragons x 3 wing beats), `shadow_dragon_sheet.png` (3 beats) and `shadow_dragon_roar.png` (his fire-breathing pose), cut by `sky_dragons_cut.py` (art px 4 / 5, roar resampled at 12.5 to the same length; background keyed by flood fill, Shadow gets a 1 px outline back; frames lined up on the snout, the roar on the eye) into `www/assets/pets/<id>.png`: 12 frames, 0-8 = each of his 3 beats 3 times (owner: duplicate each to 3 frames), 9-11 = breathing fire (Shadow: his roar x3; the others: frame 0 with the jaw turned down 12/20/26 deg, `open_jaw`). pets.js: `sky: true` on a `move: 'big'` pet (drawn behind you like the big ones) -> `drawSky`: flies behind you hovering over your feet line (`SKY.hover`, bob), flaps every `SKY.flapMs` 80 ms; when you hit a block / background / seed it turns to it, plays the roar frames over `SKY.roarMs` 420 ms and at `SKY.fireAt` 150 ms breathes the Fire Dragon's fireball (`pet_flame_ball`, same `breaths` / smoke / one hit less as the Fire Dragon). Size: `SKY.len` 84 world px tail to snout (`petScale`, per-pet `len`). shadow.js `petBox` up 110 for them. The unused flame_dragon / frost_dragon / *_fx pictures in assets/pets are still unused.
+- Nov 1 2026 (build '2026-11-01 d', owner: the black dragon was ugly / not accurate, outline too thick): the owner's dragon PNGs are SEE-THROUGH (the dark / gradient background was only the viewer; the glow is half see-through), so `sky_dragons_cut.py` now takes the dragon from the alpha channel (median alpha >= 128 per art pixel) instead of keying colours, and adds no outline: exactly his pixels and outline (all 5 dragons re-cut). The Shadow Dragon's roar is his picture at its own pixels (7 sheet px, `www/assets/pets/shadow_dragon_roar.png`, 3 frames) instead of resampled coarser into the strip: pets.js `roarImg` / `roar` { eye, mouth, len } and `eye` (strip): drawSky draws it at SKY.len / roar.len, its eye on the wing-beat frames' eye, and the fireball leaves from `roar.mouth`. Frames 9-11 of shadow_dragon.png are unused copies of frame 0.
+- Nov 1 2026 (build '2026-11-01 e', owner: "that size: not a pet, make it a RIDE, sitting on top of the dragon; fine if the wing covers a little"): the 5 flying dragons are RIDES now, not pets (pets.js back to its committed version, shadow.js petBox line back; pictures moved to `www/assets/rides/`; schema.sql rows renamed `ride_<x>_dragon`, re-run it). rides.js `kind: 'sky'` (`skyRide` / `drawSkyRide` / `skyRideIcon`, `SKYR`): 80 world px tail to snout (per-ride `len`), its lowest leg row (`foot`) hovers `SKYR.hover` 3 px (+ bob) over the ground, flapping frames 0-8 every 80 ms; the rider sits with his hip on `saddle` (picture px, top of the back) sunk `SKYR.sink` 2 px, cut below it like other rides (the dragon is drawn whole behind him, no front layer). Hitting a block / background / seed: roar (frames 9-11, Shadow: its roar strip lined up on `eye`) and the Fire Dragon's fireball (`breaths`, pets.js) from the mouth; `petHitBonus` wrapped so the ride also takes one hit off (at most 1 with a Fire Dragon pet). speed x1.4, `flap` (one more air jump), 100,000 gold, Legendary. Tested live: all 5, both ways, roar + fireball + smoke.
+- Nov 1 2026 (build '2026-11-01 f', owner: "the front wing must overlap the character"): dragon rides draw the NEAR wing again over the rider (after pass 2, before the held arm / weapon): per wing-beat frame `front` [x at the top, x at the saddle's height] = a line between the near wing (left) and the far wing; `wingCut` keeps what is left of it and above the back (`skyFront`, cached; roar frames use frame 0's line; Shadow's roar picture `roar.front` [x top, x bottom, y], `skyRoarFront`). The rider's head box (`SKYR.headW/headUp/headH`) is clipped out of that front layer so the wing covers body and arms but not the face. Saddles moved 4 px back (towards the wing root).
+- Nov 1 2026 (build '2026-11-01 g', owner: "the body still shows and the wing was cut"): the head box clip is GONE (the whole near wing is drawn over the rider), and the saddles moved back onto the wing root (Shadow [55, 50], Bone [60, 41], Glacier [65, 40], Pearl [63, 38], Jade [60, 34]; Shadow roar front [94, 102, 77]), so the near wing covers the rider's body; on the upstroke frames it covers most of him, on the downstroke he shows.
+- Nov 1 2026 (build '2026-11-01 h', owner: "ugly, make them pets again, back to the first one"): the dragon RIDES (builds e-g) are REMOVED again: rides.js is back to the owner's own version from before them, and the 5 dragons are flying PETS again exactly as in build d (pets.js `sky` / `drawSky` / `SKY`, Shadow's `roarImg`; shadow.js petBox up 110; pictures back in `www/assets/pets/`; schema.sql rows `pet_<x>_dragon`, re-run it). Don't make dragon rides again unless asked.
+- Nov 1 2026 (build '2026-11-01 i', owner: "raise the dragon a little so its head shows"): drawSky lifts each flying dragon so its head (mouth, Shadow: eye) is at least `SKY.headY` 38 world px over your feet line (above your head, which hid it): bottom = feet - max(SKY.hover, headY - head height in the picture). shadow.js petBox up 130.
+- Nov 1 2026 (build '2026-11-01 j', owner: "match the dragons' fire to their colour"): each flying dragon pet breathes the Fire Dragon's fireball recoloured to it (`www/assets/pets/flame_ball_<shadow|bone|glacier|pearl|jade>.png`, made by `art-source/pets/dragon_balls.py`: brightness ^0.6 onto a 5-stop ramp, alpha kept): Shadow purple, Bone magenta (its eyes), Glacier ice blue, Pearl white / pale blue, Jade green. Same head / dir as flame_ball.
+- Nov 1 2026 (build '2026-11-01 k', owner: swimming up to the top of the water should jump out, half a normal jump): physics.js `step`: when the body's middle leaves the water (`inWater` was true last step, `P.wasSwim`) while rising with jump held, vy = -JUMP_V x `SWIM_OUT` (sqrt 1/2 = half the height), `P.rise` set so letting go cuts it like any jump, jump sound 0.7. Measured in the game: normal jump 94 px, out of the water ~48 px (feet 36 px over the surface).
+- Nov 1 2026 (build '2026-11-01 l', owner's video: at the top of the water he only bobbed, the feet never came out): build k's jump was too low (JUMP_V x sqrt 1/2 at normal GRAVITY = ~31 px, since a normal jump rises on the lighter RISE_GRAVITY) and needed jump held at that moment. Now: leaving the water's top while rising (held or not) sets vy = -sqrt(2 x GRAVITY x `SWIM_OUT_H` 47) = half the ~94 px normal jump, `P.rise` false, and `P.swimOut` stops the keyup cut (input.js) until it starts falling. Measured with real key presses in a 7 x 4 pool: feet 33 px over the surface (they start ~13 px under it).
+- Nov 1 2026 (build '2026-11-01 m', owner): ground tiles. DIRT is plain (no pebbles / holes): `art-source/tiles/ ground_shapes.py` rewrites `www/assets/tiles/dirt_0..2.png` from the sheets kept in `art-source/tiles/before_nov1/` (edge bands of open sides kept, the rest base brown + faint grain). ROCK and LAVA are shaped in the game by the new `www/js/ground.js` (loaded right before main.js, wraps `drawTileBlock`, caches per sheet + frame + cut in `GROUND_PICS`), from their unchanged sheets: rock is its own stone, outlined wherever the next tile is air or dirt, every corner whose two sides are both air (cut to the sky) or both dirt (cut filled with plain dirt) is a curve (`GROUND_R.rock` 11); a corner between air and dirt stays square. Lava: top corners rounded where the top and that side are air (`GROUND_R.lava` 9); bottom over air = sky-island underside (`lavaUnder`: dark crust band `CRUST` with 3 hanging points per tile, same in every tile so rows join, tapering up at an air side). Lava on dirt etc. is drawn as before. Collisions unchanged (visual only).
+  (same build, owner while it was being made: "keep these designs on the dirt" + a picture of a faceted grey boulder for the rock): dirt keeps its mottled two-tone texture and specks, only the grey pebbles and the dark holes (with their light rim / shadow) are refilled from the dirt round them. `stone.png` is now a NEW faceted rock made by ground_shapes.py: 4 big flat faces per tile (wrapped Voronoi, so it tiles), neutral greys, dark cracks, each face lit on its top-left edge, shaded bottom-right and lighter towards its top-left; open sides keep outline / light line / shadow. ground.js rock corners radius 12 with the new greys.
+- Nov 1 2026 (build '2026-11-01 n', owner):
+  - Rock corners are ANGULAR now ("like that drawing, not the one with a radius"): ground.js `rockCut` / `ROCK_CUTS` (a straight slanted facet per corner, each a little different) instead of the round cut; lava keeps its round top.
+  - Bag: the Wearing column beside the bag is hidden (CSS `#inv .wearing` display none; the phone layout's extra left room for it removed). The slots still exist: what you wear / hold shows at the START of the bag grid as `.cell.worn` (gold frame + check, ui.js renderInvNow, not counted as bag slots, follows the search / GM tab); tap = `askUnequip`.
+  - 8 pastel backgrounds, bg 33-40 (next free bg: 41): `pastel_<pink|peach|yellow|mint|aqua|blue|lavender|cream>_bg` (blocks.js NEW_ITEMS after the wallpapers, Common, 300 s trees; art `hdPastel` at the end of hd/colors.js: plain soft colour + faint grain). Recipes (balbtopia): White Wallpaper + Red / Orange / Yellow / Green / Aqua / Blue / Purple / Wood Block (farming.json trees + splices, config.js SPLICE).
+- Nov 1 2026 (build '2026-11-01 o', owner, his rock picture again: "still not like that"): ROCK is now a BOULDER (our own drawing in the style of his picture: lumpy outline `SIL`, 8 flat slabs `FACES` split by dark cracks, each slab lighter to its top-left, a light edge past each crack, lit top rim / shaded underside) in ground_shapes.py; all 16 frames of stone.png are that boulder. ground.js `rockTile`: each quarter of the tile is first filled with what its two sides touch (air on either = nothing, dirt = plain dirt, rock / other = dark `ROCK_GAP`), then the boulder on top, so rock in dirt is a boulder in the dirt and a patch of rock is a pile of boulders. The angular `rockCut` of build n is gone.
+- Nov 1 2026 (build '2026-11-01 p', owner): the boulder's bottom-left is curved too (`SIL` / last face in ground_shapes.py), and a rock tile is ONLY the boulder: no dirt / dark fill in its corners, they are see-through (owner: transparent is fine; underground the backdrop shows there, since no background is drawn behind sheet blocks). ground.js `rockTile` just returns stone.png.
+- Nov 1 2026 (build '2026-11-01 q', owner): the boulder's bottom-RIGHT is curved like its bottom-left (`SIL` and the last-but-one face in ground_shapes.py).
+- Nov 1 2026 (build '2026-11-01 r', owner): lava burns. A burn throws you up (vy -520, as before) AND pushes you the way you are going (`BURN_PUSH` 340 px/s: the key held, else the way you move, else the way you face; was backwards at 140), held for `kbT` 0.22 s. The next burn can come after `BURN_GAP` 0.35 s (was 0.8), so landing in lava again burns and bounces you again and again (each burn still takes a heart). No blinking when burned: the character's `hurt` flag (render.js local, net.js `hu`) now only comes from being hit by another player (`hitT`); the red screen tint on a burn stays. Tested: walking left over 8 lava tiles = 4 bounces of ~77 px, pushed left each time.
+- Nov 1 2026 (build '2026-11-01 s', owner's video: faster, burn after burn, smoke): `BURN_GAP` 0.12 s (was 0.35), the hop `BURN_UP` 400 px/s (was 520, so you land and burn again sooner); every burn puffs smoke (`smoke`, 6 puffs, 0.55) off your head when the lava touched is above you (probe 3, `headHot`), else off your feet.
+- Nov 1 2026 (build '2026-11-01 t', owner): a CHAIN of burns (each within `CHAIN_GAP` 0.7 s of the last) gets `CHAIN_HP` 2 extra hearts, used before the real ones (`P.chainHp`, reset when a burn starts a new chain), so a chain kills after 7 burns; single burns still kill after LAVA_HP 5. Tested in a lava pit: dead on the 7th burn.
+- Nov 1 2026 (build '2026-11-01 u', owner): Cosmic Dragon and Fire Dragon pets REMOVED (pets.js PETS, schema.sql shop_prices rows + the keep-list, re-run it). Owned ones disappear from bags (cleanInv drops unknown items). Their pictures (cosmic_dragon / fire_dragon / frost_ball / flame_ball .png) stay in www/assets/pets; flame_ball.png is the source of the flying dragons' coloured fireballs (dragon_balls.py).
+- Nov 2 2026 (build '2026-11-02 a', owner; one delivery for everything since build u):
+  - Leaf Blower is now the GUITAR (weapons2.js; id `leaf_blower` kept for saves, recipe Electric Fan + Leaf Block unchanged): name, description ("Type /dance while holding it to play a tune"), seed colours, and new 1 px art (acoustic guitar: gold body with sound hole and bridge at the bottom left, brown neck with frets, headstock with yellow pegs at the top right). handfx.js: own `drawArmWithTool` branch: held at the body (`GTR_GRIP` 10.5, 21.5), `GTR_BIG` 1.35 bigger than other tools, `GTR_TURN` 0.4 (neck up and forward); swinging holds the neck (`GTR_NECK`) with the body out at the end; jump.js draws it the same size / grip in the jump pose.
+  - /dance with the Guitar (hand or Hand slot): NO left-right lean (jump.js), you stand and play (strumming arm, talking mouth, notes). Works on a RIDE: rides.js draws the rider with a COPY of `equipped`, so it now keeps the real one in `c.rideBase` and `isMeDrawn(c)` (handfx.js, used by jump.js too) accepts either. Works SITTING on a chair / couch: the dance is no longer cancelled by sitting (only by a bed), `guitarOn` allows `rest.k === 'sit'`, and the wrapped `drawSitTool` sets `sitStrum` so the seated arm strums. No lean on a ride or while resting, with or without a guitar.
+  - Beds (`beds.js`, new, loaded right after blocks64h.js): Bed and Hospital Bed use the owner's own bed picture, resampled to its 32 x 32 pixels (`BED_ROWS`: a-f wood, p q s blanket, 1-8 sheet / pillow), outlined, and recoloured per bed (`BED_STYLE`: Bed = mahogany + red blanket, Hospital Bed = white enamel + sky-blue blanket; owner: not grey). Set on `NEWART['bed:f']` / `SHOP_ICON`. Block numbers unchanged.
+  - Sleeping (owner's video; `drawResting` wrapped in beds.js): the standing body UPRIGHT like idle (no lying, no slant), eyes shut, the SAME head size as standing (`BED_SIZE` 1, top at `BED_TOP_Y` -2.5, middle x `BED_MID_X` 14), ALWAYS facing right; only the head shows over a dome of blanket (`bedDome`, drawn with the rail / legs in `BED_FRONT` over the body; the body is clipped at the mattress edge); breathing, Zzz, a snore mouth every `BED_SNORE_MS` (drawTalk). Asleep you lose your aura, wings (back items with `wings`) and the held tool / weapon (a copy `c2` of the character); hats, hair, face, clothes, capes and jetpacks stay.
+  - V swing for EVERY hand tool / weapon (scythes.js `vSwing`, `NO_V_SWING`): breaking with a sword, chainsaw, hammer, wand, the Guitar... uses the pickaxe's swing turn (`PICK_SWING_TURN`: arm and weapon at an angle like the scythe) instead of straight along the arm. Not the Water Gun, Dragon Hand, Feather Bow (and scythes keep their own).
+  - APK updates (owner: a new APK wouldn't install over the old one): every GitHub build made a new random debug key. android/app/build.gradle signs debug and release with ONE key from env (`BALB_KEYSTORE`, `BALB_KEYSTORE_PASSWORD`, `BALB_KEY_ALIAS`, `BALB_KEY_PASSWORD`) and sets `versionCode` = `GITHUB_RUN_NUMBER` (versionName 1.0.N); .github/workflows/android.yml decodes the secret `BALB_KEYSTORE_B64` into `$RUNNER_TEMP/balb.jks` (warning if missing). The owner keeps balbtopia.jks + its passwords outside the repo (4 GitHub Secrets). Phones need ONE last uninstall (old APK had a random key); local Android Studio builds use another key and won't update a GitHub APK.
+- Nov 2 2026 (build '2026-11-02 b', owner):
+  - Feather Bow: a click OUTSIDE its range (`clampAim` square: REACH + BOW_RANGE, +1 with Red Visor / Laser Eyes) does nothing at all (no shot, no pose); before, it shot to the edge of the range. The Water Gun is unchanged.
+  - Spear is THROWN (handfx.js end, `SPEARS`, `throwSpear`, `spearAt`): every punch / break with it in hand (wrapped `startPunch`) throws it from the hand to the point hit at `SPEAR_SPEED` 620 px/s like the arrow (straight, point first, faint streak), it sticks there `SPEAR_STICK` 90 ms, (build c: it no longer flies back; after sticking it is gone and the spear is in the hand again). While it is out the hand is empty (`spearHide` set per character in a drawCharacter wrapper; drawArmWithTool draws only the arm) and act does nothing with the spear (no second throw). The block is broken by the normal punch as before. Others see it: `Net.sendShot('spear', ...)`, handled in a wrapped `Net.onShot` (older builds ignore the unknown kind). Known: on a ride the spear may still show in the hand while thrown (rides.js draws the arm later, after the flag is reset).
+- Nov 2 2026 (build '2026-11-02 c', owner): Spear thrown WITHOUT flying back (`spearAt` returns null after `SPEAR_STICK` 120 ms stuck in the block: the spear is in the hand again). Held like the scythe (handfx.js `SPEAR_GRIP` 16, 16 near the blade, `SPEAR_HOLD_TURN` = PI/4 - 0.16: about level, pointing forward, the shaft behind). Feather Bow out-of-range clicks checked again: no shot, no draw / twang (`P.bowT` untouched), no punch pose.
+- Nov 2 2026 (build '2026-11-02 d', owner's video: the bow still shot at a RED cursor square): the Feather Bow now only shoots when the tile clicked is `inReach` (the same square as breaking, where the cursor is white); `BOW_RANGE`'s extra tile only matters for `clampAim`. Red square = no shot, no draw / twang, no punch.

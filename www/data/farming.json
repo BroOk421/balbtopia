@@ -1296,6 +1296,30 @@
     },
     "thunder_hammer": {
       "growSeconds": 360
+    },
+    "pastel_pink_bg": {
+      "growSeconds": 300
+    },
+    "pastel_peach_bg": {
+      "growSeconds": 300
+    },
+    "pastel_yellow_bg": {
+      "growSeconds": 300
+    },
+    "pastel_mint_bg": {
+      "growSeconds": 300
+    },
+    "pastel_aqua_bg": {
+      "growSeconds": 300
+    },
+    "pastel_blue_bg": {
+      "growSeconds": 300
+    },
+    "pastel_lavender_bg": {
+      "growSeconds": 300
+    },
+    "pastel_cream_bg": {
+      "growSeconds": 300
     }
   },
   "splices": [
@@ -5023,7 +5047,7 @@
       ],
       "result": "leaf_blower",
       "source": "balbtopia",
-      "note": "Leaf Blower = Electric Fan + Leaf Block (Balbtopia recipe)"
+      "note": "Guitar (id leaf_blower) = Electric Fan + Leaf Block (Balbtopia recipe)"
     },
     {
       "seeds": [
@@ -5240,6 +5264,186 @@
       "result": "ice_platform",
       "source": "balbtopia",
       "note": "Ice Platform = wooden_platform + ice (Balbtopia recipe, Oct 30 2026)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "rose"
+      ],
+      "result": "dye_pink",
+      "source": "balbtopia",
+      "note": "Pink Dye = Water Bucket + rose (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "red_block"
+      ],
+      "result": "dye_red",
+      "source": "balbtopia",
+      "note": "Red Dye = Water Bucket + red_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "orange_block"
+      ],
+      "result": "dye_fire",
+      "source": "balbtopia",
+      "note": "Fire Dye = Water Bucket + orange_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "sunflower"
+      ],
+      "result": "dye_gold",
+      "source": "balbtopia",
+      "note": "Gold Dye = Water Bucket + sunflower (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "aqua_block"
+      ],
+      "result": "dye_mint",
+      "source": "balbtopia",
+      "note": "Mint Dye = Water Bucket + aqua_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "blue_block"
+      ],
+      "result": "dye_blue",
+      "source": "balbtopia",
+      "note": "Blue Dye = Water Bucket + blue_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "white_block"
+      ],
+      "result": "dye_frost",
+      "source": "balbtopia",
+      "note": "Frost Dye = Water Bucket + white_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "purple_block"
+      ],
+      "result": "dye_lavender",
+      "source": "balbtopia",
+      "note": "Lavender Dye = Water Bucket + purple_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "dark_purple_block"
+      ],
+      "result": "dye_purple",
+      "source": "balbtopia",
+      "note": "Purple Dye = Water Bucket + dark_purple_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "grey_block"
+      ],
+      "result": "dye_silver",
+      "source": "balbtopia",
+      "note": "Silver Dye = Water Bucket + grey_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "dark_blue_block"
+      ],
+      "result": "dye_galaxy",
+      "source": "balbtopia",
+      "note": "Galaxy Dye = Water Bucket + dark_blue_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "water_bucket",
+        "rainbow_block"
+      ],
+      "result": "dye_rainbow",
+      "source": "balbtopia",
+      "note": "Rainbow Dye = Water Bucket + rainbow_block (Balbtopia recipe, Oct 31 2026; hair dye for the Stove)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "white_wallpaper"
+      ],
+      "result": "pastel_pink_bg",
+      "source": "balbtopia",
+      "note": "Pastel Pink Background = White Wallpaper + Red Block"
+    },
+    {
+      "seeds": [
+        "orange_block",
+        "white_wallpaper"
+      ],
+      "result": "pastel_peach_bg",
+      "source": "balbtopia",
+      "note": "Pastel Peach Background = White Wallpaper + Orange Block"
+    },
+    {
+      "seeds": [
+        "white_wallpaper",
+        "yellow_block"
+      ],
+      "result": "pastel_yellow_bg",
+      "source": "balbtopia",
+      "note": "Pastel Yellow Background = White Wallpaper + Yellow Block"
+    },
+    {
+      "seeds": [
+        "green_block",
+        "white_wallpaper"
+      ],
+      "result": "pastel_mint_bg",
+      "source": "balbtopia",
+      "note": "Pastel Mint Background = White Wallpaper + Green Block"
+    },
+    {
+      "seeds": [
+        "aqua_block",
+        "white_wallpaper"
+      ],
+      "result": "pastel_aqua_bg",
+      "source": "balbtopia",
+      "note": "Pastel Aqua Background = White Wallpaper + Aqua Block"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "white_wallpaper"
+      ],
+      "result": "pastel_blue_bg",
+      "source": "balbtopia",
+      "note": "Pastel Blue Background = White Wallpaper + Blue Block"
+    },
+    {
+      "seeds": [
+        "purple_block",
+        "white_wallpaper"
+      ],
+      "result": "pastel_lavender_bg",
+      "source": "balbtopia",
+      "note": "Pastel Lavender Background = White Wallpaper + Purple Block"
+    },
+    {
+      "seeds": [
+        "white_wallpaper",
+        "wood_block"
+      ],
+      "result": "pastel_cream_bg",
+      "source": "balbtopia",
+      "note": "Pastel Cream Background = White Wallpaper + Wood Block"
     }
   ],
   "growtopiaNotInGameYet": [

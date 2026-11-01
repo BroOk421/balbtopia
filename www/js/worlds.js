@@ -87,9 +87,47 @@ function worldData() {
     songs: [...pianoSongs].filter(([i]) => isPianoT(fg[i])), // [tile, song] of every Piano with a song (music.js)
     osongs: ownerSongs, // the world's song list: its owner's saved songs, shown to others at its Pianos (music.js)
     // floating drops stay in the world: [uid, item, qty, x, y, dropped at (ms), dropped by]
-    drops: drops.slice(-MAX_DROPS).map((d) => [d.uid, d.id, d.qty, Math.round(d.x), Math.round(d.y), d.born, d.by || 0, ...(d.ck ? [d.ck] : [])]),
+    // (owner's bug, Oct 31 2026: coins and items left floating vanished) over MAX_DROPS the OLDEST ones used to be
+    // cut off; now they are packed together instead (savedDrops), so nothing floating is lost
+    drops: savedDrops(MAX_DROPS),
     visited: Date.now(),
   };
+}
+// the floating drops as saved: [uid, item, qty, x, y, dropped at (ms), dropped by, coin kind?]. When there are more
+// than `cap` (every coin is its own drop, so a busy world gets there), they are packed instead of cut off:
+// 1. the coins in one tile become one gold pile (same value, no fixed coin kind), 2. the same item from the same
+// player in one tile joins up to DROP_STACK. Only if that still isn't enough are the oldest left out.
+const DROP_Q_MAX = 999999; // the server's limit for one drop's amount (schema.sql drop_ok)
+function savedDrops(cap) {
+  let list = drops.map((d) => [d.uid, d.id, d.qty, Math.round(d.x), Math.round(d.y), d.born, d.by || 0, ...(d.ck ? [d.ck] : [])]);
+  if (list.length <= cap) return list;
+  const tileKey = (e) => Math.floor(e[3] / TS) + ',' + Math.floor(e[4] / TS);
+  const pack = (key, top) => {
+    const out = [],
+      open = new Map(); // key -> the entry still taking more
+    for (const e of list) {
+      const k = key(e);
+      if (k === null) {
+        out.push(e);
+        continue;
+      }
+      const o = open.get(k);
+      if (o && o[2] + e[2] <= top) {
+        o[2] += e[2];
+        o[5] = Math.max(o[5], e[5]); // the newest one's wait (locked worlds) carries over
+        if (o[6] !== e[6]) o[6] = 0;
+        o.length = 7; // a pile: no fixed coin picture
+        continue;
+      }
+      const c = e.slice();
+      open.set(k, c);
+      out.push(c);
+    }
+    return out;
+  };
+  list = pack((e) => (e[1] === 'gold' ? 'g' + tileKey(e) : null), DROP_Q_MAX);
+  if (list.length > cap) list = pack((e) => (e[1] === 'gold' ? null : e[1] + '|' + e[6] + '|' + tileKey(e)), DROP_STACK);
+  return list.length > cap ? list.slice(-cap) : list;
 }
 // skew: how far our clock is ahead of the clock that wrote w (for the age of drops)
 function applyWorld(w, skew = 0) {
