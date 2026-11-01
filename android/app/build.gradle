@@ -24,9 +24,9 @@ android {
         balb {
             if (balbKs) {
                 storeFile file(balbKs)
-                storePassword System.getenv("BALB_KEYSTORE_PASSWORD")
-                keyAlias System.getenv("BALB_KEY_ALIAS")
-                keyPassword System.getenv("BALB_KEY_PASSWORD")
+                storePassword System.getenv("BALB_KEYSTORE_PASSWORD")?.trim()
+                keyAlias System.getenv("BALB_KEY_ALIAS")?.trim()
+                keyPassword System.getenv("BALB_KEY_PASSWORD")?.trim()
             }
         }
     }
