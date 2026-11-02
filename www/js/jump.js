@@ -55,10 +55,19 @@ function drawJumping(c, ox, oy, f) {
   if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else drawTalk(c, top, sc, hdy, MOUTH_Y);
-  // hats, hair, face items (a picture shirt like the hoodie is for the standing body, so not mid-jump)
+  // hats, hair, face items. A picture shirt (Cat Ear Hoodie, Skull Tee) stays on mid-jump (owner, Nov 2 2026: the
+  // hoodie vanished when jumping): `pwJump` tells photo_wear.js to draw it fitted to this jump picture
+  // (drawOverJump), and the hoodie still hides the worn hair.
   const c2 = Object.create(c);
-  c2.equipped = { ...eq, shirt: WEAR_BY_ID[eq.shirt] && WEAR_BY_ID[eq.shirt].over ? null : eq.shirt };
+  c2.pwJump = f;
   drawWorn(c2, top, sc, hdy);
+  // the raised arms / hands go back over the hair, hats and shirt pictures (owner, Nov 2 2026: long hair hid them),
+  // except with the Cat Ear Hoodie, whose hood stays over them
+  const shW = WEAR_BY_ID[eq.shirt];
+  if (!(shW && shW.hood)) {
+    const arms = jumpArms(outfitBody(im, 'jump_' + c.skin + '_' + f, eq, info), f);
+    if (arms) g.drawImage(arms, -(FR.w / 2 + JUMP_PAD) * sc * Z, top - JUMP_PAD * sc * Z, JUMP_W * sc * Z, JUMP_H * sc * Z);
+  }
   drawAuraFront(c, top, sc, hdy);
   drawJumpTool(c, f);
   g.restore();
@@ -67,6 +76,114 @@ function drawJumping(c, ox, oy, f) {
   const tagW = drawNameTag(c.name, cx, headTop - 4 * Z, c.flag);
   if (c.say) drawBubble(c.say.text, cx, headTop - 11 * Z, Math.min(1, c.say.t * 2));
   return { cx, headTop, tagW, bald: top + (4 + hdy) * sc * Z };
+}
+// The arms of a jump picture (JUMP_ARM_MASK[f], from the PEACH picture: every skin has the same shapes): skin pixels
+// outside the standing head's outline (placed where the jump head is, + hdy, grown 1 px), above the hips (row 150 of
+// the body), plus the dark outline touching them. `jumpArms(body, f)` cuts those pixels out of the drawn body
+// (clothes and skin colour included); cached per body canvas.
+// JUMP_HAND_POLY[f]: the left and right raised arm of frames 1 and 2 (owner, Nov 2 2026: the left hand's fingers
+// over the ear were still crossed by hair strands), each edge running along the hand's own inner outline so the
+// cheek and ear stay out.
+const JUMP_HAND_POLY = [
+    [],
+    [
+      [[0, 97], [46, 97], [46, 103], [51, 112], [53, 123], [59, 132], [66, 140], [75, 147], [80, 165], [0, 190]],
+      [[154, 100], [198, 100], [198, 190], [150, 165], [140, 152], [140, 145], [144, 140], [149, 136], [154, 131]],
+    ],
+    [
+      [[0, 97], [44, 97], [44, 99], [49, 104], [51, 117], [55, 127], [61, 135], [69, 145], [80, 165], [0, 190]],
+      [[150, 88], [198, 88], [198, 190], [150, 165], [136, 152], [136, 140], [140, 135], [145, 131], [150, 128]],
+    ],
+  ],
+  // the ear between the raised hand and the cheek: the body is shown there too, so long hair's loose strands don't
+  // hang over the ear / cheek beside the hand (owner, Nov 2 2026)
+  JUMP_EAR_POLY = [
+    [],
+    [[[46, 105], [66, 105], [70, 110], [91, 110], [91, 140], [88, 151], [75, 151], [66, 140], [59, 132], [53, 123], [51, 112], [46, 103]]],
+    [[[44, 102], [64, 102], [68, 108], [90, 108], [90, 138], [87, 150], [69, 150], [61, 135], [55, 127], [51, 117], [49, 104], [44, 99]]],
+  ],
+  JUMP_ARM_MASK = [],
+  JUMP_ARMS = new WeakMap();
+function jumpArmMask(f) {
+  if (JUMP_ARM_MASK[f]) return JUMP_ARM_MASK[f];
+  const ref = IMG['jump_peach_' + f],
+    st = IMG.skin_peach_open;
+  if (!ref || !ref.width || !st || !st.width) return null;
+  const W = JUMP_W,
+    H = JUMP_H,
+    cv = document.createElement('canvas');
+  cv.width = W;
+  cv.height = H;
+  const x = cv.getContext('2d');
+  x.drawImage(ref, 0, 0);
+  const b = x.getImageData(0, 0, W, H).data;
+  x.clearRect(0, 0, W, H);
+  x.drawImage(st, 0, 0, FR.w, 109, JUMP_PAD, JUMP_PAD + JUMP_INFO[f].hdy, FR.w, 109); // head down to the chin
+  const hd = x.getImageData(0, 0, W, H).data,
+    head = new Uint8Array(W * H),
+    arm = new Uint8Array(W * H),
+    at = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H;
+  for (let y = 0; y < H; y++)
+    for (let X = 0; X < W; X++) {
+      if (!hd[(y * W + X) * 4 + 3]) continue;
+      for (let v = -1; v <= 1; v++) for (let u = -1; u <= 1; u++) if (at(X + u, y + v)) head[(y + v) * W + X + u] = 1;
+    }
+  // the raised hands also lie over the head's outline: their whole shape (drawn round each hand's own inner
+  // outline, in jump picture px) counts as arm too
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = '#000';
+  for (const p of JUMP_HAND_POLY[f] || []) {
+    x.beginPath();
+    p.forEach(([px, py], k) => (k ? x.lineTo(px, py) : x.moveTo(px, py)));
+    x.closePath();
+    x.fill();
+  }
+  const hand = x.getImageData(0, 0, W, H).data;
+  x.clearRect(0, 0, W, H);
+  for (const p of JUMP_EAR_POLY[f] || []) {
+    x.beginPath();
+    p.forEach(([px, py], k) => (k ? x.lineTo(px, py) : x.moveTo(px, py)));
+    x.closePath();
+    x.fill();
+  }
+  const ear = x.getImageData(0, 0, W, H).data;
+  const skin = (i) => b[i * 4 + 3] > 0 && b[i * 4] > 90 && b[i * 4] - b[i * 4 + 2] > 40;
+  for (let y = 0; y < H; y++)
+    for (let X = 0; X < W; X++) {
+      const i = y * W + X;
+      if (skin(i) && ((y < JUMP_PAD + 150 && !head[i]) || hand[i * 4 + 3] > 127)) arm[i] = 1;
+    }
+  const out = arm.slice();
+  for (let i = 0; i < W * H; i++) if (ear[i * 4 + 3] > 127 && b[i * 4 + 3]) out[i] = 1;
+  for (let y = 0; y < H; y++)
+    for (let X = 0; X < W; X++) {
+      const i = y * W + X;
+      if (arm[i] || !b[i * 4 + 3] || b[i * 4] + b[i * 4 + 1] + b[i * 4 + 2] >= 200) continue;
+      for (let v = -1; v <= 1 && !out[i]; v++) for (let u = -1; u <= 1 && !out[i]; u++) if (at(X + u, y + v) && arm[(y + v) * W + X + u]) out[i] = 1;
+    }
+  return (JUMP_ARM_MASK[f] = out);
+}
+function jumpArms(body, f) {
+  if (!body || !body.width) return null;
+  if (JUMP_ARMS.has(body)) return JUMP_ARMS.get(body);
+  let res = null;
+  try {
+    const m = jumpArmMask(f);
+    if (!m) return null; // pictures not loaded yet: try again next frame
+    const W = JUMP_W,
+      H = JUMP_H,
+      cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = H;
+    const x = cv.getContext('2d');
+    x.drawImage(body, 0, 0, W, H);
+    const d = x.getImageData(0, 0, W, H);
+    for (let i = 0; i < W * H; i++) if (!m[i]) d.data[i * 4 + 3] = 0;
+    x.putImageData(d, 0, 0);
+    res = cv;
+  } catch (e) {} // a page opened as a file can't read pixels: arms stay as before
+  JUMP_ARMS.set(body, res);
+  return res;
 }
 // the held tool while jumping: in the back fist (screen left when facing right), pointing up, over the arm
 // (JUMP_HAND: that fist on each jump picture, in its own px; the pictures face right)

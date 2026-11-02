@@ -43,20 +43,22 @@ function toast(msg) {
     setTimeout(() => (t.hidden = true), 250);
   }, 1500);
 }
-// Hotbar: slot 1 is the fist (or the tool in the Hand slot), slot 2 the wrench; both are fixed.
-// Slots 3-0 hold what YOU put there: click an item in the bag, then click one of those slots. The stack then
+// Hotbar (owner, Nov 2 2026): slot 1 is the wrench (fixed); there is no fist / weapon slot any more. Tools and
+// weapons stay in the bag like everything else and are held from the bag or a hotbar slot; tapping the slot you
+// hold again puts it away (bare fist).
+// Slots 2-0 hold what YOU put there: click an item in the bag, then click one of those slots. The stack then
 // leaves the bag (its bag slot closes up) and lives on the hotbar (`hb` = hotbar index 2-9 on the stack in `inv`,
 // saved with the bag). Nothing is put there by itself. With the bag open and nothing picked, clicking a filled
 // slot 3-0 puts it back in the bag.
 let bagPick = null; // picking an item from the bag: { note, ok(id), bad(id), cb(id) } (pickFromBag below)
 const HOTBAR_SIZE = 10,
-  HB_FIRST = 2; // first free slot (index; key "3")
+  HB_FIRST = 1; // first free slot (index; key "2")
 const hbStack = (k) => inv.find((s) => s.hb === k);
-// stacks shown in the bag grid (not on the hotbar, and not the wrench, which is always hotbar slot 2)
+// stacks shown in the bag grid (not on the hotbar, and not the wrench, which is always hotbar slot 1)
 const inBag = (s) => !s.hb && s.id !== 'wrench';
 const bagCount = () => inv.reduce((n, s) => n + (inBag(s) ? 1 : 0), 0);
 function hotbarList() {
-  const list = [bareHand(), inv.some((s) => s.id === 'wrench') ? 'wrench' : null];
+  const list = [inv.some((s) => s.id === 'wrench') ? 'wrench' : null];
   for (let k = HB_FIRST; k < HOTBAR_SIZE; k++) {
     const s = hbStack(k);
     list.push(s ? s.id : null);
@@ -67,7 +69,7 @@ function hotbarList() {
 function toHotbar(i, k) {
   const s = inv[i];
   if (!s || k < HB_FIRST || k >= HOTBAR_SIZE) return;
-  if (s.id === 'wrench') return toast('The Wrench always has slot 2');
+  if (s.id === 'wrench') return toast('The Wrench always has slot 1');
   const old = hbStack(k);
   if (old && old !== s) delete old.hb;
   s.hb = k;
@@ -86,15 +88,55 @@ function fromHotbar(k) {
   savePlayer();
   toast(ITEMS[s.id].name + ' is back in the bag');
 }
+// (owner, Nov 2 2026) the Wrench is only SELECTED, never held: picking slot 1 turns the wrench on (`hand` =
+// 'wrench', so clicks wrench things as before) but the character keeps holding what it held before
+// (`wrenchKeep`: drawn, and sent to other players, through `shownHand()`). Tapping the Wrench again goes back to it.
+// Any hotbar slot can be selected, empty ones too (`hbSel`): an empty slot = the bare fist.
+let wrenchKeep = 'fist',
+  hbSel = -1; // the highlighted hotbar slot (index), -1 = by what is held
+const shownHand = () => (hand !== 'wrench' ? hand : wrenchKeep !== 'fist' && ITEMS[wrenchKeep] && inv.some((s) => s.id === wrenchKeep) ? wrenchKeep : 'fist');
 function selectHand(id, k) {
-  // clothes and tools from the bag go into their Wearing slot (tools: the Hand slot, and you hold it)
-  if (k > 0 && slotOf(id)) {
+  // clothes go into their Wearing slot; tools / weapons are just held (no Hand slot any more, owner Nov 2 2026)
+  const sl = slotOf(id);
+  if (sl && sl !== 'hand') {
     wear(id);
     return;
   }
-  hand = id;
+  if (k === undefined) k = hotbarList().indexOf(id);
+  if (id === 'wrench') {
+    if (hand === 'wrench') {
+      // the Wrench again: back to what you hold
+      hand = shownHand();
+      hbSel = hand === 'fist' ? -1 : hotbarList().indexOf(hand);
+    } else {
+      wrenchKeep = hand;
+      hand = 'wrench';
+      hbSel = k;
+    }
+  } else if (hand === id) {
+    // tapping the slot you already hold puts it away: bare fist
+    hand = 'fist';
+    hbSel = -1;
+    toast('Fist');
+  } else {
+    hand = id;
+    hbSel = k;
+  }
   renderBars();
   savePlayer(); // what you hold is kept too
+}
+// an empty hotbar slot: selected, bare fist
+function selectEmpty(k) {
+  hand = 'fist';
+  hbSel = k;
+  renderBars();
+  savePlayer();
+}
+// a slot from the number keys (input.js)
+function selectSlot(k) {
+  const id = hotbarList()[k];
+  if (id) selectHand(id, k);
+  else if (k >= HB_FIRST) selectEmpty(k);
 }
 // Worn items live in the Wearing slots, not in the bag (so they don't take bag space).
 // Wearing takes one out of the bag; whatever was in that slot goes back into the bag.
@@ -105,6 +147,14 @@ function wear(id) {
     sl = slotOf(id),
     s = inv.find((o) => o.id === id);
   if (!sl || !s) return;
+  // tools / weapons aren't worn any more: they are held straight from the bag (owner, Nov 2 2026)
+  if (sl === 'hand') {
+    hand = id;
+    toast('Holding ' + it.name);
+    renderBars();
+    savePlayer();
+    return;
+  }
   const old = equipped[sl];
   // the old item needs a bag slot, unless wearing this one empties its slot
   if (old && !bagRoom(old) && s.qty > 1) return toast('Bag is full: no room to take off ' + ITEMS[old].name);
@@ -127,6 +177,32 @@ function unequip(sl) {
   toast((sl === 'hand' ? 'Put away ' : 'Took off ') + ITEMS[id].name);
   renderBars();
   savePlayer();
+}
+// the tool / weapon held straight from the bag (not on a hotbar slot): its bag stack, or null
+function heldBagStack() {
+  if (!hand || hand === 'fist' || hand === 'wrench' || !ITEMS[hand] || ITEMS[hand].kind !== 'tool') return null;
+  const s = inv.find((o) => o.id === hand);
+  return s && !s.hb && s.qty === 1 ? s : null;
+}
+// tapping the held tool in the bag: a small pop-up with Put away (back to the bare fist)
+function askPutAway(id) {
+  const body = dialog(
+    'HAND',
+    `<div class="vend"><div class="vrow"><div class="vpic"></div><div><b>${esc(ITEMS[id].name)}</b><br>In your hand</div></div></div>`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => {} },
+      {
+        label: 'Put away',
+        run: () => {
+          if (hand === id) hand = 'fist';
+          toast('Put away ' + ITEMS[id].name);
+          renderBars();
+          savePlayer();
+        },
+      },
+    ],
+  );
+  body.querySelector('.vpic').appendChild(shopPic(id));
 }
 // clicking a Wearing slot: a small pop-up with Unequip
 function askUnequip(sl) {
@@ -185,9 +261,11 @@ function renderBars() {
   cleanInv();
   const hb = $('hotbar');
   hb.innerHTML = '';
-  hotbarList().forEach((id, k) => {
+  const list = hotbarList(),
+    selOk = hbSel >= 0 && hbSel < list.length && (list[hbSel] ? list[hbSel] === hand : hand === 'fist');
+  list.forEach((id, k) => {
     const b = document.createElement('button');
-    b.className = 'hb' + (id && hand === id ? ' on' : '') + (id ? '' : ' empty');
+    b.className = 'hb' + ((selOk ? k === hbSel : id && hand === id) ? ' on' : '') + (id ? '' : ' empty');
     if (!id) {
       b.setAttribute('aria-label', 'Empty slot ' + ((k + 1) % 10));
       b.tabIndex = -1;
@@ -237,6 +315,7 @@ function renderBars() {
         if (doubleTap('hb' + k) && LOCK_TIERS.includes(id)) return lockTap(id);
         selectHand(id, k);
       };
+    else if (k >= HB_FIRST && !bagPick) b.onclick = () => selectEmpty(k); // an empty slot: the bare fist
     hb.appendChild(b);
   });
   // the BAG button sits at the end of the hotbar, beside slot 0 (owner, Oct 31 2026): a square slot with a pixel bag
@@ -356,13 +435,16 @@ function renderInv() {
 function renderInvNow() {
   const gr = $('grid');
   gr.innerHTML = '';
-  const open = bagSize(),
-    gm = isGM();
+  const gm = isGM();
   renderGmTabs();
+  // (owner, Nov 2 2026) the tool / weapon you hold from the bag shows at the start with the worn ones (gold frame +
+  // check) instead of in the grid; its stack still takes a bag slot, so one cell fewer is open
+  const heldS = !trashMode && !bagPick ? heldBagStack() : null,
+    open = bagSize() - (heldS ? 1 : 0);
   // the bag shows only stacks that aren't on the hotbar, packed from the first cell (no gaps)
   const shown = [],
     q = ($('bagQ').value || '').trim().toLowerCase(); // the search box: only items whose name has it
-  inv.forEach((s, i) => (bagPick ? s.id !== 'wrench' : inBag(s)) && (!q || ITEMS[s.id].name.toLowerCase().includes(q)) && shown.push(i));
+  inv.forEach((s, i) => s !== heldS && (bagPick ? s.id !== 'wrench' : inBag(s)) && (!q || ITEMS[s.id].name.toLowerCase().includes(q)) && shown.push(i));
   // picking for a lock / Vending Machine / Display Box: a note with Cancel on top of the bag
   $('bagPick').hidden = !bagPick;
   if (bagPick) $('bagPickT').textContent = bagPick.note;
@@ -394,7 +476,26 @@ function renderInvNow() {
       };
       gr.appendChild(b);
     }
-  for (let p = 0; p < (gm || q || bagPick ? shown.length : BAG_MAX); p++) {
+  if (heldS && (!q || ITEMS[heldS.id].name.toLowerCase().includes(q)) && !(gm && !q && gmTab !== 'all' && itemCat(heldS.id) !== gmTab)) {
+    const id = heldS.id,
+      b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cell has worn';
+    b.id = 'slot' + inv.indexOf(heldS);
+    const ic = iconCanvas(id).cloneNode();
+    ic.getContext('2d').drawImage(iconCanvas(id), 0, 0);
+    b.appendChild(ic);
+    b.insertAdjacentHTML('beforeend', '<span class="wornck"></span>');
+    b.title = 'Hand: ' + ITEMS[id].name + ' (tap to put away)';
+    b.setAttribute('aria-label', ITEMS[id].name + ', in your hand');
+    b.onclick = (e) => {
+      e.stopPropagation();
+      closePop();
+      askPutAway(id);
+    };
+    gr.appendChild(b);
+  }
+  for (let p = 0; p < (gm || q || bagPick ? shown.length : BAG_MAX - (heldS ? 1 : 0)); p++) {
     const i = p < shown.length ? shown[p] : -1 - p,
       s = inv[i];
     // GM: only this tab's items
@@ -405,12 +506,12 @@ function renderInvNow() {
     b.id = s ? 'slot' + i : 'cellE' + p;
     if (p >= open && !bagPick) {
       // locked: opens at a higher level
-      b.innerHTML = `<span class="lk"></span><span class="lv">Lv ${slotLevel(p)}</span>`;
-      b.setAttribute('aria-label', 'Locked slot, opens at level ' + slotLevel(p));
+      b.innerHTML = `<span class="lk"></span><span class="lv">Lv ${slotLevel(p + (heldS ? 1 : 0))}</span>`;
+      b.setAttribute('aria-label', 'Locked slot, opens at level ' + slotLevel(p + (heldS ? 1 : 0)));
       b.tabIndex = -1;
       b.onclick = (e) => {
         e.stopPropagation();
-        toast('This slot opens at level ' + slotLevel(p) + ' (you are level ' + level + ')');
+        toast('This slot opens at level ' + slotLevel(p + (heldS ? 1 : 0)) + ' (you are level ' + level + ')');
       };
     } else if (s) {
       const it = ITEMS[s.id];
@@ -439,7 +540,7 @@ function renderInvNow() {
     }
     gr.appendChild(b);
   }
-  $('count').textContent = bagCount() + ' / ' + open;
+  $('count').textContent = bagCount() + ' / ' + bagSize();
   $('grid').classList.toggle('trashing', trashMode);
   $('trashBtn').classList.toggle('on', trashMode);
   // what you wear and hold: one box per slot (these items are out of the bag); click one to unequip it
@@ -660,9 +761,7 @@ function openPop(i) {
   $('aUse').textContent =
     it.kind === 'clothing'
       ? 'Wear'
-      : slotOf(s.id) === 'hand'
-        ? 'Hold'
-        : hand === s.id
+      : hand === s.id
         ? 'Put away'
         : 'Hold';
   pop.hidden = false;
@@ -680,7 +779,7 @@ $('aUse').onclick = () => {
   const s = inv[sel];
   if (!s) return;
   const it = ITEMS[s.id];
-  if (slotOf(s.id)) wear(s.id);
+  if (slotOf(s.id) && slotOf(s.id) !== 'hand') wear(s.id);
   else if (s.id === 'clear_world') {
     closePop();
     $('inv').hidden = true;

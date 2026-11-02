@@ -1320,6 +1320,15 @@
     },
     "pastel_cream_bg": {
       "growSeconds": 300
+    },
+    "bounce_block": {
+      "growSeconds": 300
+    },
+    "spring": {
+      "growSeconds": 360
+    },
+    "portal": {
+      "growSeconds": 420
     }
   },
   "splices": [
@@ -5444,6 +5453,33 @@
       "result": "pastel_cream_bg",
       "source": "balbtopia",
       "note": "Pastel Cream Background = White Wallpaper + Wood Block"
+    },
+    {
+      "seeds": [
+        "jelly_block",
+        "das_red_balloon"
+      ],
+      "result": "bounce_block",
+      "source": "balbtopia",
+      "note": "bounce_block = jelly_block + das_red_balloon (Balbtopia recipe, Nov 2 2026)"
+    },
+    {
+      "seeds": [
+        "bounce_block",
+        "steel_block"
+      ],
+      "result": "spring",
+      "source": "balbtopia",
+      "note": "spring = bounce_block + steel_block (Balbtopia recipe, Nov 2 2026)"
+    },
+    {
+      "seeds": [
+        "question_door",
+        "galaxy_block"
+      ],
+      "result": "portal",
+      "source": "balbtopia",
+      "note": "portal = question_door + galaxy_block (Balbtopia recipe, Nov 2 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

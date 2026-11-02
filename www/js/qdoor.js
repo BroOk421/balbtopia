@@ -70,11 +70,13 @@ applyWorld = function (w, skew) {
   qdoors.clear();
   for (const [i, l] of Array.isArray(w && w.qd) ? w.qd : []) if (Number.isInteger(i)) setQDoor(i, l);
 };
-// a new world (nothing to apply) starts with none
-const _enterWorldNowQ = enterWorldNow;
-enterWorldNow = async function (name) {
+// a new world (made, not loaded) starts with none. NOT cleared at the start of entering a world: enterWorldNow
+// saves the world being left first, and clearing before that saved every Mystery Door there EMPTY (owner, Nov 2
+// 2026: the RECIPES Mystery Door lost all its destinations). Loaded worlds get theirs from applyWorld above.
+const _genWorldQ = genWorld;
+genWorld = function (...a) {
   qdoors.clear();
-  return _enterWorldNowQ(name);
+  return _genWorldQ(...a);
 };
 
 // ---------- a quick click = the list; holding = punching ----------

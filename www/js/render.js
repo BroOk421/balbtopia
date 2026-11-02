@@ -927,7 +927,8 @@ function render() {
       ground: P.ground,
       punch: P.punch,
       angry: P.angry,
-      hand,
+      hand: shownHand(), // with the Wrench selected: what you held before (ui.js), the wrench is never in the hand
+      wr: hand === 'wrench',
       dead: P.dead,
       spawnT: P.spawnT,
       hurt: P.hitT > 0 ? 0.3 : 0, // (owner, Nov 1 2026) no blinking when lava burns you; only when another player hits you

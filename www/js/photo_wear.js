@@ -17,10 +17,10 @@ const PHOTO_WEAR = [
     strip: { img: 'black_beanie', frames: 1, ms: 1000, x: -8, y: -13, w: 130, h: 91, icon: [0, 0, 130, 91] },
     desc: 'A slouchy black knit beanie with a little white patch, black hair peeking out.' },
   { id: 'skull_tee', name: 'Skull Tee', slot: 'shirt', rarity: 'Rare', shop: true,
-    over: { img: 'skull_tee', frames: 1, ms: 1000, x: 29, y: 101, w: 58, h: 60, icon: [0, 0, 58, 60] },
+    over: { img: 'skull_tee', frames: 1, ms: 1000, x: 29, y: 101, w: 58, h: 60, armsFront: true, icon: [0, 0, 58, 60] },
     desc: 'A roomy white sleeveless tee with a tiny black skull.' },
   { id: 'cat_ear_hoodie', name: 'Cat Ear Hoodie', slot: 'shirt', rarity: 'Epic', shop: true, hideHair: true, hood: true,
-    over: { img: 'cat_ear_hoodie', frames: 1, ms: 1000, x: -7, y: -23, w: 139, h: 192, icon: [0, 0, 139, 192] },
+    over: { img: 'cat_ear_hoodie', frames: 1, ms: 1000, x: -7, y: -23, w: 139, h: 192, split: 108, icon: [0, 0, 139, 192] },
     desc: 'A soft grey sleeveless hoodie, hood up, with cat ears and black bangs.' },
 ];
 for (const w of PHOTO_WEAR) {
@@ -31,6 +31,90 @@ for (const w of PHOTO_WEAR) {
 // sitting: the sitting picture's chest sits a little higher than the standing one's (rest.js draws worn things
 // with the standing head's place), so a shirt picture moves up by this much
 const PW_SIT_DY = -5;
+
+// Jumping (owner, Nov 2 2026: the Cat Ear Hoodie disappeared mid-jump). The jump pictures (jump.js) keep the head
+// where the standing head is (+ hdy) but move the chest, so a picture shirt is drawn in two parts: rows above
+// `split` (body px; the hood, ears and bangs) go with the head, the rest (the chest) is turned round the neck
+// (PW_NECK) by `r` radians and moved dx, dy to sit on that jump picture's chest (0 crouch leans forward, 1 going
+// up, 2 top / falling). Without `split` the whole picture is chest (Skull Tee).
+const PW_NECK = [60, 110],
+  PW_JUMP = [
+    { r: 0.56, dx: -12, dy: 9 },
+    { r: 0, dx: 0, dy: -3 },
+    { r: 0, dx: -2, dy: -4 },
+  ];
+// `armsFront`: the chest part is laid on a jump-picture-sized canvas (1 px = 1 body px, body origin at JUMP_PAD) and
+// every pixel where the jump picture has an arm (skin, or the dark outline touching skin) is cleared, so the body's
+// own arm drawn underneath shows in front. Arm pixels come from the PEACH jump pictures (every skin has the same
+// shapes, and peach skin is easy to tell from the white tank top / jeans). Cached per picture and frame.
+const PW_JUMP_PIC = {};
+function overJumpPic(o, f) {
+  const key = o.img + ':' + f;
+  if (PW_JUMP_PIC[key]) return PW_JUMP_PIC[key];
+  const im = IMG[o.img],
+    ref = IMG['jump_peach_' + f];
+  if (!im || !im.width || !ref || !ref.width) return null;
+  const c = document.createElement('canvas');
+  c.width = JUMP_W;
+  c.height = JUMP_H;
+  const x = c.getContext('2d'),
+    p = PW_JUMP[f] || PW_JUMP[2],
+    split = o.split !== undefined ? o.split : o.y,
+    sy = Math.max(0, Math.min(o.h, split - o.y)),
+    fy = im.height / o.h;
+  x.translate(JUMP_PAD + PW_NECK[0] + p.dx, JUMP_PAD + PW_NECK[1] + p.dy);
+  if (p.r) x.rotate(p.r);
+  x.drawImage(im, 0, sy * fy, im.width, (o.h - sy) * fy, o.x - PW_NECK[0], o.y + sy - PW_NECK[1], o.w, o.h - sy);
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  try {
+    const r = document.createElement('canvas');
+    r.width = JUMP_W;
+    r.height = JUMP_H;
+    const rx = r.getContext('2d');
+    rx.drawImage(ref, 0, 0);
+    const b = rx.getImageData(0, 0, JUMP_W, JUMP_H).data,
+      d = x.getImageData(0, 0, JUMP_W, JUMP_H),
+      a = d.data,
+      skin = (i) => b[i + 3] > 0 && b[i] > 90 && b[i] - b[i + 2] > 40,
+      dark = (i) => b[i + 3] > 0 && b[i] + b[i + 1] + b[i + 2] < 200;
+    for (let yy = 0; yy < JUMP_H; yy++)
+      for (let xx = 0; xx < JUMP_W; xx++) {
+        const i = (yy * JUMP_W + xx) * 4;
+        if (!a[i + 3]) continue;
+        let arm = skin(i);
+        if (!arm && dark(i))
+          for (let v = -1; v <= 1 && !arm; v++)
+            for (let u = -1; u <= 1 && !arm; u++) {
+              const X = xx + u,
+                Y = yy + v;
+              if (X >= 0 && Y >= 0 && X < JUMP_W && Y < JUMP_H && skin((Y * JUMP_W + X) * 4)) arm = true;
+            }
+        if (arm) a[i + 3] = 0;
+      }
+    x.putImageData(d, 0, 0);
+  } catch (e) {} // a page opened as a file can't read pixels: the shirt is drawn whole
+  return (PW_JUMP_PIC[key] = c);
+}
+function drawOverJump(o, top, sc, hdy, f) {
+  const im = IMG[o.img];
+  if (!im || !im.width) return;
+  const k = sc * Z,
+    split = o.split !== undefined ? o.split : o.y,
+    sy = Math.max(0, Math.min(o.h, split - o.y)), // picture rows (body px) that go with the head
+    fy = im.height / o.h,
+    p = PW_JUMP[f] || PW_JUMP[2];
+  // arms in front of the shirt (owner, Nov 2 2026: Skull Tee covered the arms mid-jump; the hoodie stays as it is)
+  const pic = o.armsFront && sy < o.h ? overJumpPic(o, f) : null;
+  if (pic) g.drawImage(pic, -(FR.w / 2 + JUMP_PAD) * k, top - JUMP_PAD * k, JUMP_W * k, JUMP_H * k);
+  else if (sy < o.h) {
+    g.save();
+    g.translate((-FR.w / 2 + PW_NECK[0] + p.dx) * k, top + (PW_NECK[1] + p.dy) * k);
+    if (p.r) g.rotate(p.r);
+    g.drawImage(im, 0, sy * fy, im.width, (o.h - sy) * fy, (o.x - PW_NECK[0]) * k, (o.y + sy - PW_NECK[1]) * k, o.w * k, (o.h - sy) * k);
+    g.restore();
+  }
+  if (sy > 0) g.drawImage(im, 0, 0, im.width, sy * fy, (-FR.w / 2 + o.x) * k, top + (o.y + hdy) * k, o.w * k, sy * k);
+}
 
 // the body is not repainted for a picture shirt (it is drawn over the body instead)
 outfitBody = ((prev) =>
@@ -60,7 +144,10 @@ drawWorn = ((prev) =>
       c2.equipped.hat = null;
       if (w.hide) c2.equipped.hair = null;
       prev(c2, top, sc, dy); // the hair (if not hidden), mustache, mouth...
-      if (w.sh) drawWearStrip({ strip: w.sh.over }, top, sc, dy + (c.rest && c.rest.k === 'sit' ? PW_SIT_DY : 0));
+      if (w.sh) {
+        if (c.pwJump !== undefined && c.pwJump >= 0) drawOverJump(w.sh.over, top, sc, dy, c.pwJump);
+        else drawWearStrip({ strip: w.sh.over }, top, sc, dy + (c.rest && c.rest.k === 'sit' ? PW_SIT_DY : 0));
+      }
       if (w.hat) {
         if (w.hat.strip) drawWearStrip(w.hat, top, sc, dy);
         else drawWearArt(w.eq.hat, top, sc, dy);

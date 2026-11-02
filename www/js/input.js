@@ -72,8 +72,7 @@ addEventListener('keydown', (e) => {
   }
   if (/^Digit[0-9]$/.test(e.code)) {
     const k = (+e.code.slice(5) + 9) % 10; // keys 1..9 then 0 = slot 10
-    const list = hotbarList();
-    if (list[k]) selectHand(list[k]);
+    selectSlot(k); // (an empty slot too: the bare fist)
   }
 });
 addEventListener('keyup', (e) => {

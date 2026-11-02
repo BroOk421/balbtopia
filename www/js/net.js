@@ -738,6 +738,7 @@ const Net = (() => {
       name: realName,
       equipped: p.eq && typeof p.eq === 'object' ? { ...p.eq } : { hair: p.h || null, feet: p.ft || null },
       hand: typeof p.hd === 'string' ? p.hd : 'fist',
+      wr: !!p.wr,
       flag: typeof isFlag === 'function' && isFlag(p.fl) ? p.fl : null, // flags.js
       hurt: p.hu ? 0.3 : 0,
       rest: restFromNet(p.rs),
@@ -770,7 +771,8 @@ const Net = (() => {
       h: equipped.hair,
       ft: equipped.feet,
       eq: equipped, // everything worn
-      hd: hand, // what's in the hand (tools show)
+      hd: shownHand(), // what's in the hand (tools show; never the wrench, ui.js)
+      wr: hand === 'wrench' ? 1 : undefined, // the Wrench is selected (the little mark over the head, liven.js)
       fl: myFlag || undefined, // the player's flag (flags.js)
       hu: P.hitT > 0 ? 1 : 0, // (no blinking for lava burns, owner Nov 1 2026)
       rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
@@ -1123,7 +1125,7 @@ const Net = (() => {
       // (owner's bug, Oct 25 2026: jumping players seemed to go through blocks) the guess falls with gravity like a
       // real jump and stops at solid blocks, one axis at a time, instead of flying on in a straight line
       if (!r.dead && r.vx !== undefined && now - r.posAt < POS_EVERY * 1500) {
-        if (r.vy) r.vy = Math.min(MAX_FALL, r.vy + GRAVITY * dt);
+        if (r.vy) r.vy = Math.min(MAX_FALL, r.vy + (r.vy >= 0 ? FALL_GRAVITY : RISE_GRAVITY) * dt);
         const rw = r.w || P.w,
           rh = r.h || P.h;
         const nx = r.tx + r.vx * dt;

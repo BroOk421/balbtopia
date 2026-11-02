@@ -2,8 +2,14 @@
 // gravity this frame: lighter on the way up while the jump is held (a soft rise with a short hang at the top),
 // normal on the way down (config.js RISE_GRAVITY / APEX_*)
 // Only a real jump rises softly (P.rise, set when you jump); a lava bounce or a knock-up uses normal gravity.
+// (owner, Nov 2 2026) falling is as quick as rising: the way down mirrors the jump's way up (RISE_GRAVITY, with the
+// same slow part at the top), for any fall, not only after a jump. Before it was the stronger GRAVITY.
+const FALL_GRAVITY = RISE_GRAVITY;
 function fallGravity() {
-  if (P.vy >= 0) P.rise = false;
+  if (P.vy >= 0) {
+    P.rise = false;
+    return P.vy < APEX_VY ? FALL_GRAVITY * APEX_K : FALL_GRAVITY;
+  }
   if (!P.rise || !(keys.Space || keys.KeyW || keys.ArrowUp)) return GRAVITY;
   return P.vy > -APEX_VY ? RISE_GRAVITY * APEX_K : RISE_GRAVITY;
 }

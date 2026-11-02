@@ -702,7 +702,7 @@ drawCharacter = ((prev) =>
     const m = prev(c, ox, oy);
     if (!m || !c.name || c.say || c.dead) return m;
     const mine = !c.id && c.name === playerName,
-      show = c.hand === 'wrench' || (mine ? chatTyping() : !!c.typing);
+      show = c.hand === 'wrench' || c.wr || (mine ? chatTyping() : !!c.typing);
     if (show) {
       const pic = talkMark(),
         w = pic.width * Z,

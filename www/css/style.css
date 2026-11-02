@@ -323,8 +323,11 @@ kbd {
   image-rendering: pixelated;
 }
 .hb.empty {
-  cursor: default;
   opacity: 0.75;
+}
+/* an empty slot can be selected (the bare fist, owner Nov 2 2026) */
+.hb.empty.on {
+  opacity: 1;
 }
 .hb .k {
   position: absolute;
