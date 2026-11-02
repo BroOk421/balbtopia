@@ -24,7 +24,10 @@ function loadAssets() {
 const TS = 32,
   WW = 100,
   WH = 60;
-const SKINS = ["porcelain", "peach", "tan", "honey", "brown", "deep"];
+// the last 5 are the Subscriber skins (owner, Nov 2 2026; subscriber.js): only subscribers (and GMs) may wear them.
+// Their pictures are the porcelain ones recoloured by art-source/character/sub_skins.py.
+const SUB_SKINS = ["red", "white", "green", "violet", "orange"];
+const SKINS = ["porcelain", "peach", "tan", "honey", "brown", "deep", ...SUB_SKINS];
 const SWATCH = {
   porcelain: "#fdcfac",
   peach: "#f2b786",
@@ -32,6 +35,11 @@ const SWATCH = {
   honey: "#c78865",
   brown: "#9f6444",
   deep: "#6c4230",
+  red: "#e2564c",
+  white: "#f4f1ec",
+  green: "#68bf57",
+  violet: "#a47bdd",
+  orange: "#f39340",
 };
 const EMPTY = 0,
   DIRT = 1,

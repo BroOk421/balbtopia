@@ -404,8 +404,8 @@ const onSale = (s) => !s.peso || gmFree(s);
 const costOf = (s) => (s.bc ? s.bc : s.gold);
 const shortOf = (s) => !isGM() && !s.peso && (s.bc ? P.bc < s.bc : P.gold < s.gold); // not enough money
 function priceHtml(s) {
-  if (gmFree(s)) return '<span class="peso">₱</span><span class="free">FREE</span>';
-  if (s.peso) return '<span class="peso">₱</span>Pesos';
+  if (gmFree(s)) return '<span class="peso">$</span><span class="free">FREE</span>';
+  if (s.peso) return '<span class="peso">$</span>Dollars'; // real money (owner, Nov 2 2026: dollars, not pesos)
   const coin = s.bc ? '<canvas class="bcc" width="64" height="64"></canvas>' : '<canvas width="32" height="32"></canvas>';
   return isGM()
     ? `${coin}<s>${costOf(s).toLocaleString()}</s><span class="free">FREE</span>`
@@ -458,7 +458,7 @@ function shopItem(s) {
     shopTitle(s),
     `<div class="sdet"><div class="spic big"></div><p>${esc(shopDesc(s))}</p>
       <div class="sprice">${priceHtml(s)}</div>
-      ${!onSale(s) ? '<p class="snote">Paying in pesos is coming soon.</p>' : isGM() ? '<p class="snote">You are a GM: everything in the Shop is free.</p>' : s.bc ? `<p class="snote">You have ${P.bc.toLocaleString()} Balb Coin${P.bc === 1 ? '' : 's'}.</p>` : `<p class="snote">You have ${P.gold.toLocaleString()} gold.</p>`}</div>`,
+      ${!onSale(s) ? '<p class="snote">Paying with real money is coming soon.</p>' : isGM() ? '<p class="snote">You are a GM: everything in the Shop is free.</p>' : s.bc ? `<p class="snote">You have ${P.bc.toLocaleString()} Balb Coin${P.bc === 1 ? '' : 's'}.</p>` : `<p class="snote">You have ${P.gold.toLocaleString()} gold.</p>`}</div>`,
     !onSale(s)
       ? [{ label: 'Close', run: () => {} }]
       : [

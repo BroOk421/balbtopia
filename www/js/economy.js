@@ -215,20 +215,23 @@ updateGold = function (pop) {
 // open yet: Stripe doesn't take businesses in the Philippines, so a local provider (e.g. PayMongo) comes later; the
 // cards say SOON. When there isn't enough gold for something in the Shop, the Shop jumps to this tab with the
 // smallest pack that covers it marked (goTopUp, from buy() in shop.js).
+// Prices in US DOLLARS (owner, Nov 2 2026: international, through Google Play, which shows each country its own
+// price). Google Play price points nearest the old pesos (P50 = $0.99 ... P1,000 = $19.99); the gold stays the same.
 const TOPUP = [
-  { php: 50, gold: 5200 },
-  { php: 100, gold: 10400 },
-  { php: 200, gold: 20800 },
-  { php: 500, gold: 52000 },
-  { php: 1000, gold: 104000 },
+  { usd: 0.99, gold: 5200 },
+  { usd: 1.99, gold: 10400 },
+  { usd: 3.99, gold: 20800 },
+  { usd: 9.99, gold: 52000 },
+  { usd: 19.99, gold: 104000 },
 ];
-// Balb Coin packs (owner, Oct 2026: separate from gold), P25 a coin; SOON like the gold ones
+const usd = (n) => '$' + n.toFixed(2);
+// Balb Coin packs (owner, Oct 2026: separate from gold), was P25 a coin, now dollars; SOON like the gold ones
 const TOPUP_BC = [
-  { php: 25, bc: 1 },
-  { php: 50, bc: 2 },
-  { php: 125, bc: 5 },
-  { php: 250, bc: 10 },
-  { php: 625, bc: 25 },
+  { usd: 0.49, bc: 1 },
+  { usd: 0.99, bc: 2 },
+  { usd: 2.49, bc: 5 },
+  { usd: 4.99, bc: 10 },
+  { usd: 11.99, bc: 25 },
 ];
 SHOP_TABS.push({ id: 'topup', label: 'TOP UP' });
 let topupNeed = 0, // money missing for what the player tried to buy (0: just looking)
@@ -273,16 +276,16 @@ renderShop = function () {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'scard soon topup' + (t.bc ? ' tbc' : '') + (t === best ? ' best' : '');
-      card.setAttribute('aria-label', amt(t).toLocaleString() + ' ' + name(t) + ' for ' + t.php + ' pesos');
+      card.setAttribute('aria-label', amt(t).toLocaleString() + ' ' + name(t) + ' for ' + usd(t.usd));
       card.innerHTML = `<div class="spic"></div>${t === best ? `<span class="sqty">${amt(t) >= topupNeed ? 'ENOUGH' : 'BEST'}</span>` : ''}
         <div class="tgold">${amt(t).toLocaleString()}</div>
-        <div class="sprice"><span class="peso">₱</span>${t.php.toLocaleString()}</div>
+        <div class="sprice">${usd(t.usd)}</div>
         <span class="btn sbuy">SOON</span>`;
       card.querySelector('.spic').appendChild(topupPic(t));
       card.onclick = () => {
         const body = dialog(
           amt(t).toLocaleString() + ' ' + name(t).toUpperCase(),
-          `<div class="sdet"><div class="spic big"></div><p>${amt(t).toLocaleString()} ${name(t)} for ₱${t.php.toLocaleString()}.</p>
+          `<div class="sdet"><div class="spic big"></div><p>${amt(t).toLocaleString()} ${name(t)} for ${usd(t.usd)}.</p>
             <p class="snote">Top up is coming soon. ${t.bc ? 'For now, get Balb Coins from the daily quest of a Genie Teapot.' : 'For now, earn gold by breaking blocks and harvesting trees.'}</p></div>`,
           [{ label: 'Close', run: () => {} }],
         );

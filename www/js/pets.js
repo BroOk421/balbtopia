@@ -530,6 +530,62 @@ function drawBig(key, c, ox, oy, id) {
 // the flying dragons (owner, Nov 1 2026): they fly behind you at head height, flapping all the time (frames 0-8,
 // each of the owner's 3 wing beats shown 3 frames running); when you hit a block, a background or a seed they turn
 // to it and roar (frames 9-11, or the Shadow Dragon's own roar picture) and breathe the Fire Dragon's fireball
+// Idle wander (owner, Nov 2 2026): when you stand still for SKY_WANDER.idleMs, a flying dragon slowly flies past you
+// to your other side, turns and comes back, like a slow loop round you (a little higher going right, lower going
+// left), and now and then stops to hover for a moment facing you. Slow start and stop on every pass (smoothstep).
+// Moving again: it glides back behind you. Drawing only (each screen picks its own random passes); `rel` is the
+// dragon's x from your middle, `wy` its extra height.
+const SKY_WANDER = { idleMs: 1200, speed: 22, reach: [26, 38], pauseChance: 0.4, pause: [900, 2600], loopY: 10, back: 4 }; // close round you (owner: not too far)
+const skyRnd = (a, b) => a + Math.random() * (b - a);
+function skyWander(s, c, atk) {
+  const cx = c.x + c.w / 2,
+    feet = c.y + c.h,
+    W = SKY_WANDER,
+    dt = Math.min(0.1, Math.max(0.001, (now - (s.wt || now)) / 1000));
+  s.wt = now;
+  if (s.rel == null || Math.abs(s.x - cx) > TS * 6) s.rel = s.x - cx; // first frame, or it popped over (door, respawn)
+  s.wy = s.wy || 0;
+  if (s.lcx == null || Math.abs(cx - s.lcx) > 0.5 || Math.abs(feet - s.lfeet) > 0.5 || c.dead) s.moveT = now;
+  s.lcx = cx;
+  s.lfeet = feet;
+  if (now - s.moveT < W.idleMs) {
+    // walking: back behind you, smoothly
+    s.leg = s.hold = null;
+    s.rel += (s.x - cx - s.rel) * Math.min(1, dt * W.back);
+    s.wy += (0 - s.wy) * Math.min(1, dt * W.back);
+    return { x: cx + s.rel, y: s.wy, face: null };
+  }
+  if (atk) {
+    // roaring at a block: it stays where it is (the leg waits)
+    if (s.leg) s.leg.t0 += dt * 1000;
+    if (s.hold) s.hold.until += dt * 1000;
+    return { x: cx + s.rel, y: s.wy, face: null };
+  }
+  if (s.hold && now >= s.hold.until) s.hold = null;
+  if (!s.leg && !s.hold) {
+    // a new pass: from where it is to the other side of you
+    const side = Math.abs(s.rel) < 8 ? (Math.random() < 0.5 ? 1 : -1) : -Math.sign(s.rel),
+      x1 = side * skyRnd(W.reach[0], W.reach[1]);
+    s.leg = { x0: s.rel, x1, y0: s.wy, t0: now, ms: (Math.abs(x1 - s.rel) / W.speed) * 1000 };
+  }
+  if (s.leg) {
+    const L = s.leg,
+      u = Math.min(1, (now - L.t0) / L.ms),
+      e = u * u * (3 - 2 * u), // slow start, slow stop
+      dir = Math.sign(L.x1 - L.x0) || 1;
+    s.rel = L.x0 + (L.x1 - L.x0) * e;
+    // half a loop: up going right, down going left, so the passes draw an oval round you
+    s.wy = L.y0 * (1 - e) + dir * W.loopY * Math.sin(u * Math.PI);
+    if (u >= 1) {
+      s.leg = null;
+      if (Math.random() < W.pauseChance) s.hold = { until: now + skyRnd(W.pause[0], W.pause[1]) };
+    }
+    return { x: cx + s.rel, y: s.wy, face: dir };
+  }
+  // hovering in place for a moment, facing you
+  s.wy += (0 - s.wy) * Math.min(1, dt * 1.5);
+  return { x: cx + s.rel, y: s.wy, face: Math.sign(-s.rel) || s.face };
+}
 function drawSky(key, c, ox, oy, id) {
   const p = PET_BY_ID[id],
     s = petFor(key, c, id),
@@ -545,12 +601,13 @@ function drawSky(key, c, ox, oy, id) {
   }
   const atk = s.attack && now - s.attack.t0 < SKY.roarMs ? s.attack : null,
     k = atk ? SKY.roar + Math.min(2, Math.floor(((now - atk.t0) / SKY.roarMs) * 3)) : Math.floor((now + (s.ph0 || (s.ph0 = Math.random() * 1000))) / SKY.flapMs) % SKY.beat,
-    face = atk ? (atk.x >= s.x ? 1 : -1) : s.face,
-    bx = s.x,
+    wd = skyWander(s, c, atk),
+    bx = wd.x,
+    face = atk ? (atk.x >= bx ? 1 : -1) : wd.face || s.face,
     // (owner: raise it so its head shows) the picture's bottom hovers over your feet line, high enough that its head
     // (mouth, or eye) is at least SKY.headY over your feet: above your own head, which hid it
     headUp = ((p.mouth ? frames[0].height - p.mouth[1] : frames[0].height - p.eye[1]) * S),
-    by = s.y - Math.max(SKY.hover, SKY.headY - headUp) + Math.sin(now / 420 + s.ph0) * 2.2;
+    by = s.y - wd.y - Math.max(SKY.hover, SKY.headY - headUp) + Math.sin(now / 420 + s.ph0) * 2.2;
   // its own roar picture (Shadow Dragon): at its own scale, its eye where the wing-beat frames' eye is
   const rim = atk && p.roarImg && IMG[p.roarImg],
     roar = rim && rim.complete && rim.naturalWidth ? rim : null,

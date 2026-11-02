@@ -14,9 +14,9 @@ const JUMP_PAD = 40,
   JUMP_W = 198,
   JUMP_H = 295,
   JUMP_INFO = [
-    { hdy: 12, shirt: [147, 191], pants: [185, 238], feet: 228, bt: 187, bb: 205 },
-    { hdy: 0, shirt: [135, 198], pants: [192, 247], feet: 215, bt: 194, bb: 212 },
-    { hdy: 0, shirt: [135, 201], pants: [195, 249], feet: 218, bt: 197, bb: 215 },
+    { hdy: 12, shirt: [147, 191], pants: [185, 238], feet: 228, bt: 187, bb: 205, skirtMid: 67 },
+    { hdy: 0, shirt: [135, 198], pants: [192, 247], feet: 215, bt: 194, bb: 212, skirtMid: 96 },
+    { hdy: 0, shirt: [135, 201], pants: [195, 249], feet: 218, bt: 197, bb: 215, skirtMid: 94 },
   ].map((f) => ({ ...f, shirtX: -1, feetX: 9999, pose: 'jump' })),
   JUMP_CROUCH_MS = 110,
   LAND_CROUCH_MS = 100;

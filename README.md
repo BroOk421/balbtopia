@@ -298,6 +298,17 @@ Pagkatapos patakbuhin ang bagong `schema.sql`, nasa server na ang gold ng bawat 
 - **Free plan ng Supabase**: sapat para sa maliit na grupo. Bawat player ay nagpapadala ng mga 10 mensahe bawat segundo habang gumagalaw.
 - Hindi nalilipat sa online account ang offline save na nasa device.
 
+## Subscriber ($1.99 bawat buwan)
+
+Ang subscriber ay may **SUBSCRIBER** badge sa profile at **5 dagdag na skin**: red, white, green, violet at orange.
+
+- **Ngayon:** "SOON" pa ang SUBSCRIBE button kasi wala pang bayad. Para ma-test, ang GM ay magta-type sa chat ng `/sub PANGALAN 30` (30 araw) o `/unsub PANGALAN`. Kailangan munang i-run ulit ang `supabase/schema.sql`.
+- **Mga presyo:** dollars na lahat. Ikaw ang magse-set ng base price sa Play Console, at si Google na ang magpapakita ng presyo sa pera ng bawat bansa.
+- **Kapag bubuksan na ang bayad sa Google Play:**
+  1. Sa Play Console, gumawa ng subscription na may product ID na `balbtopia_subscriber` sa halagang $1.99 bawat buwan.
+  2. Gumawa ng Google Cloud service account na may access sa Play Developer API. Ang key nito ay ilalagay sa Supabase bilang secret, hindi sa game.
+  3. Kailangan pa ng billing plugin sa app at ng Supabase function na magche-check ng purchase token. Kapag tama, isusulat ito sa table na `subscriptions` (source `google_play`). Hindi pa ito nagawa.
+
 ## Pwede ba itong i-online?
 
 Oo, pero dalawang magkaibang bagay ang "online".

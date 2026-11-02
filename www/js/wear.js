@@ -274,7 +274,8 @@ function outfitMasked(im, key, shirt, pants, feet, mask, bands) {
       // light and shade come from the picture, measured against what that pixel is (skin or the white briefs), so
       // the clothes are the same colour on every skin and over the briefs
       sk = legSkin(key),
-      skinL = (sk[0] + sk[1] + sk[2]) / 3;
+      skinL = (sk[0] + sk[1] + sk[2]) / 3,
+      sm = typeof subSkinMask === 'function' ? subSkinMask(key, c.width, c.height) : null; // Subscriber skins: see outfitBody
     for (let i = 0; i < p.length; i += 4) {
       if (p[i + 3] < 120) continue;
       const r = p[i],
@@ -296,7 +297,7 @@ function outfitMasked(im, key, shirt, pants, feet, mask, bands) {
       else if (feet && foot && !dark)
         // `pat: 'sole'`: the bottom rows of each foot are the sole colour (soleRow)
         rgb = feet.pat === 'sole' && soleRow(p, mask, i, c.width, skinL) ? rgbOf(feet.col2).map((v) => Math.round(v * Math.min(1.05, shadeK + 0.1))) : paintPixel(feet, px, py, shadeK);
-      else if (shirt && !legs && !foot && py >= bands.shirt[0] && py <= bands.shirt[1] && sat < 28 && L > 110)
+      else if (shirt && !legs && !foot && !(sm && sm.m[i >> 2]) && py >= bands.shirt[0] && py <= bands.shirt[1] && sat < 28 && L > 110)
         rgb = paintPixel(shirt, px, py, Math.min(1.08, Math.max(0.5, L / 238)));
       if (!rgb) continue;
       p[i] = rgb[0];
@@ -307,6 +308,7 @@ function outfitMasked(im, key, shirt, pants, feet, mask, bands) {
   } catch (e) {
     return im;
   }
+  if (subPending(key, c.width, c.height)) return c; // (see outfitBody)
   if (OUTFIT.size > 600) OUTFIT.clear();
   OUTFIT.set(k, c);
   return c;
@@ -443,6 +445,25 @@ function jumpSpecks(p, W, H, top) {
   }
   return out;
 }
+// (Nov 2 2026, owner: shorts / skirts looked wrong mid-jump) a row given on the standing frames (a shorts' `short`
+// hem, BODY_BANDS) -> the same place on another picture's pants band (the jumping pictures sit lower and taller)
+function bandRow(y, bands) {
+  if (!bands || bands.pose !== 'jump') return y;
+  const [a, b] = BODY_BANDS.pants,
+    [c, d] = bands.pants;
+  return Math.round(c + ((y - a) * (d - c)) / (b - a));
+}
+// (Nov 2 2026, owner: the Ball Jersey turned all navy mid-jump) patterns (stripes, jersey sides, heart / star / bow
+// prints, colour fades) are laid out in STANDING-frame pixels: on a jumping picture each pixel is first moved to the
+// same place on the standing frame (sideways by the hips' middle, `skirtMid` vs SKIRT_MID; down / up per band)
+function standPaint(w, part, x, y, f, bands) {
+  if (!bands || bands.pose !== 'jump' || !bands.skirtMid) return paintPixel(w, x, y, f);
+  const sx = x - bands.skirtMid + 55,
+    [a, b] = BODY_BANDS.shirt,
+    [c, d] = bands.shirt,
+    sy = part === 'shirt' ? Math.round(a + ((y - c) * (b - a)) / (d - c)) : part === 'pants' ? bandRow(y, bands) : y - bands.feet + BODY_BANDS.feet;
+  return paintPixel(w, sx, sy, f);
+}
 const OUTFIT = new Map();
 // the body image with these clothes on (cached per frame and outfit)
 // bands: the rows of the shirt, pants and shoes on this picture (the standing frames by default)
@@ -486,7 +507,10 @@ function outfitBody(im, key, eq, bands = BODY_BANDS) {
     // briefs need the jeans' width per row; flip-flops the shoes' top / bottom per column
     const spans = pantsMode === 'under' ? jeansSpans(p, W, c.height, bands) : null,
       shoes = feetMode !== 'wear' ? shoeCols(p, W, c.height, bands) : null,
-      specks = pose === 'jump' ? jumpSpecks(p, W, c.height, bands.bt) : null;
+      specks = pose === 'jump' ? jumpSpecks(p, W, c.height, bands.bt) : null,
+      // Subscriber skins (subscriber.js): white / violet skin looks like the white top / blue jeans to the colour
+      // tests below, so their skin pixels are found by position (porcelain vs deep twin picture) and left alone
+      sm = typeof subSkinMask === 'function' ? subSkinMask(key, W, c.height) : null;
     for (let i = 0; i < p.length; i += 4) {
       if (p[i + 3] < 120) continue;
       const r = p[i],
@@ -500,12 +524,13 @@ function outfitBody(im, key, eq, bands = BODY_BANDS) {
       // jumping pictures: the jeans' little dark folds / hems inside the legs (jumpSpecks) become bare leg / briefs
       if (specks && specks.has(i)) {
         const bi = pantsMode === 'under' ? briefsIn(spans, px, py, bands) : 0;
-        put(i, pantsMode === 'wear' && py <= bands.pants[1] ? paintPixel(pants, px, py, 0.6) : bi === 2 ? BRIEF_COL : bi === 1 ? BRIEF_EDGE : skinAt(88));
+        put(i, pantsMode === 'wear' && py <= bands.pants[1] ? standPaint(pants, 'pants', px, py, 0.6, bands) : bi === 2 ? BRIEF_COL : bi === 1 ? BRIEF_EDGE : skinAt(88));
         continue;
       }
+      if (sm && sm.m[i >> 2]) continue; // a Subscriber skin's skin pixel
       // (bands.shirtX / feetX: only right / left of that column, for the swimming frames that lie flat)
       if (shirt && py >= bands.shirt[0] && py <= bands.shirt[1] && !(px < bands.shirtX) && sat < 28 && L > 110) {
-        put(i, paintPixel(shirt, px, py, Math.min(1.08, Math.max(0.5, L / 238))));
+        put(i, standPaint(shirt, 'shirt', px, py, Math.min(1.08, Math.max(0.5, L / 238)), bands));
         continue;
       }
       const inPants = py >= bands.pants[0] && py <= bands.pants[1];
@@ -518,21 +543,27 @@ function outfitBody(im, key, eq, bands = BODY_BANDS) {
         if (at >= 0) continue;
       } else if (pantsMode === 'wear' && inPants && blue) {
         // shorts: bare legs past the hem (swimming: the legs lie left of the hips)
-        if (pants.short && (pose === 'swim' ? px < bands.shortX - 18 : pose !== 'sit' && py > pants.short)) put(i, skinAt(Math.max(L, 84)));
-        else put(i, paintPixel(pants, px, py, Math.min(1.45, Math.max(0.45, L / 95))));
+        if (pants.short && (pose === 'swim' ? px < bands.shortX - 18 : pose !== 'sit' && py > bandRow(pants.short, bands))) put(i, skinAt(Math.max(L, 84)));
+        else put(i, standPaint(pants, 'pants', px, py, Math.min(1.45, Math.max(0.45, L / 95)), bands));
         continue;
       }
       if (py < bands.feet || px > bands.feetX || sat >= 30) continue;
-      if (feetMode === 'wear' && L > 105) put(i, paintPixel(feet, px, py, Math.min(1.08, Math.max(0.5, L / 238))));
+      if (feetMode === 'wear' && L > 105) put(i, standPaint(feet, 'feet', px, py, Math.min(1.08, Math.max(0.5, L / 238)), bands));
       else if (feetMode !== 'wear' && L > 55) put(i, flipFlop(shoes, px, py, L, pose, skinAt, feetMode === 'slip' ? feet.slip : null));
     }
     x.putImageData(d, 0, 0);
   } catch (e) {
     return im; // can't read pixels (page opened as a file): no repaint
   }
+  // a Subscriber skin whose porcelain / deep twin isn't ready yet: don't keep this repaint (it would keep the
+  // colour-sorted mistakes for good); the next frame tries again with the mask
+  if (subPending(key, c.width, c.height)) return c;
   if (OUTFIT.size > 600) OUTFIT.clear();
   OUTFIT.set(k, c);
   return c;
+}
+function subPending(key, w, h) {
+  return typeof subSkinMask === 'function' && typeof SUB_RE !== 'undefined' && SUB_RE.some((r) => r.test(String(key))) && !subSkinMask(key, w, h);
 }
 
 // ---------- hats, face, back and hairstyles: drawn on a 118x215 canvas ----------
@@ -1284,7 +1315,9 @@ function armParts(img, key) {
     x.drawImage(img, 0, 0);
     const d = x.getImageData(0, 0, W, H),
       p = d.data,
-      skinish = (k) => p[k * 4 + 3] > 100 && p[k * 4] - p[k * 4 + 2] > 40 && p[k * 4] > 70,
+      sm = typeof subSkinMask === 'function' ? subSkinMask(key, W, H) : null, // Subscriber skins: the porcelain twin's colours
+      q = sm ? sm.por : p,
+      skinish = (k) => p[k * 4 + 3] > 100 && q[k * 4] - q[k * 4 + 2] > 40 && q[k * 4] > 70,
       dark = (k) => p[k * 4 + 3] > 100 && p[k * 4] + p[k * 4 + 1] + p[k * 4 + 2] < 160;
     // the arm: the biggest patch of skin found from a few points on it (a stray edge pixel won't do)
     const fill = (sx, sy) => {

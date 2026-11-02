@@ -4575,3 +4575,75 @@ body.mannmode.mailmode {
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
+/* Subscriber (subscriber.js): badge, locked skins, subscribe pop-up */
+.subbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  margin: 3px 0 4px;
+  padding: 3px 6px 3px 4px;
+  border-radius: 4px;
+  border: 2px solid #b8860b;
+  background: linear-gradient(#5a2d8c, #3a1a66);
+  color: var(--sun);
+  font: 7px var(--pixel);
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 6px rgba(255, 210, 63, 0.35);
+}
+.pmenu .subbadge {
+  display: flex;
+  margin: 4px 0 0;
+}
+.sublabel span {
+  color: var(--sun);
+}
+.subswatches {
+  align-items: center;
+}
+.swatch.locked {
+  position: relative;
+  filter: saturate(0.55) brightness(0.7);
+}
+.swatch.locked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 12px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 7' shape-rendering='crispEdges'%3E%3Cpath fill='%231c1033' d='M1 0h4v1h1v2h-1v-2h-4v2h-1v-2h1zM0 3h6v4h-6z'/%3E%3Cpath fill='%23ffd23f' d='M1 4h4v2h-4z'/%3E%3Cpath fill='%231c1033' d='M2 4h2v1h-2z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.btn.subgo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 8px;
+}
+.subwin .subprice {
+  margin: 0 0 8px;
+  font: 9px var(--pixel);
+  color: var(--muted);
+}
+.subwin .subprice b {
+  font-size: 16px;
+  color: var(--sun);
+}
+.subwin .sublist {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+.subwin .sublist li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+.subwin .subprev .swatch {
+  width: 26px;
+  height: 26px;
+  cursor: default;
+}

@@ -100,7 +100,8 @@ function profile(el) {
     if (inWorld && !P.dead) die('spawn');
   };
   const sw = el.querySelector('.swatches');
-  for (const s of SKINS) {
+  for (const s of SKINS.filter((n) => !SUB_SKINS.includes(n))) {
+    // (the Subscriber skins get their own row: subscriber.js)
     const b = document.createElement('button');
     b.className = 'swatch';
     b.style.background = SWATCH[s];

@@ -167,8 +167,13 @@ const SKIRT_TOP = 150,
   SKIRT_MID = 55,
   SKIRT_OL = '#141016',
   SKIRT_DONE = new WeakMap();
-function clSkirt(src, w, gown) {
-  const hem = w.short || 200,
+// (Nov 2 2026) jumping pictures: `geo` = the frame's own waist row (top), hips' middle (mid) and a wider start
+// (half), and the hem moved onto its pants band (wear.js bandRow); the legs are tucked up there
+function clSkirt(src, w, gown, geo) {
+  const top = geo ? geo.top : SKIRT_TOP,
+    mid = geo ? geo.mid : SKIRT_MID,
+    half0 = geo ? geo.half : 24,
+    hem = geo ? geo.hem(w.short || 200) : w.short || 200,
     W = src.width,
     H = src.height,
     c = document.createElement('canvas');
@@ -179,19 +184,19 @@ function clSkirt(src, w, gown) {
   // the waist and the hem's width, the same on both sides of the body's middle (SKIRT_MID: the hips span x 34-79,
   // the legs x 20-88 on the standing frames)
   const span = (y) => {
-    const t = (y - SKIRT_TOP) / Math.max(1, hem - SKIRT_TOP),
-      half = Math.round(24 + t * (gown ? 21 : 15));
-    return [SKIRT_MID - half, SKIRT_MID + half];
+    const t = (y - top) / Math.max(1, hem - top),
+      half = Math.round(half0 + t * (gown ? 21 : 15));
+    return [mid - half, mid + half];
   };
-  for (let y = SKIRT_TOP; y <= hem + 1; y++) {
+  for (let y = top; y <= hem + 1; y++) {
     const [a, b] = span(Math.min(y, hem));
     for (let px = a - 1; px <= b + 1; px++) {
       const edge = px < a || px > b || y > hem;
       let col;
       if (edge) col = SKIRT_OL;
       else {
-        const f = 0.9 + 0.14 * Math.cos((px - SKIRT_MID) / 3.2) - (y > hem - 2 ? 0.15 : 0);
-        const rgb = paintPixel(w, px, y, f);
+        const f = 0.9 + 0.14 * Math.cos((px - mid) / 3.2) - (y > hem - 2 ? 0.15 : 0);
+        const rgb = geo ? geo.paint(w, px, y, f) : paintPixel(w, px, y, f);
         col = 'rgb(' + rgb.join(',') + ')';
       }
       x.fillStyle = col;
@@ -209,5 +214,6 @@ outfitBody = ((prev) =>
     if (!w || !out || (bands && bands.pose && bands.pose !== 'jump')) return out;
     let m = SKIRT_DONE.get(out);
     if (!m) SKIRT_DONE.set(out, (m = {}));
-    return (m[w.id] ||= clSkirt(out, w, !w.short));
+    const geo = bands && bands.pose === 'jump' && bands.skirtMid ? { top: bands.pants[0], mid: bands.skirtMid, half: 30, hem: (y) => bandRow(y, bands), paint: (ww, px, y, f) => standPaint(ww, 'pants', px, y, f, bands) } : null;
+    return (m[w.id] ||= clSkirt(out, w, !w.short, geo));
   })(outfitBody);

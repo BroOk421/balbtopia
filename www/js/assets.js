@@ -277,7 +277,25 @@ const ARM_COLOR = {
     light: '#9d8176',
     dark: '#41261b',
   },
+  // Subscriber skins (art-source/character/sub_skins.py prints these, from the porcelain ones)
+  red: { skin: '#d65248', shade: '#ab413a', light: '#e5685f', dark: '#84322c' },
+  white: { skin: '#e7e4e0', shade: '#b9b7b3', light: '#f5f3ee', dark: '#8e8d8a' },
+  green: { skin: '#63b552', shade: '#4f9142', light: '#78c669', dark: '#3d7033' },
+  violet: { skin: '#9b75d1', shade: '#7c5da7', light: '#ae89e1', dark: '#604881' },
+  orange: { skin: '#e68b3d', shade: '#b86f30', light: '#f49f55', dark: '#8e5625' },
 };
+// the Subscriber skins' pictures (same files as every other skin's folder; assets.js loads before config.js, so the
+// names are written out here: keep them the same as SUB_SKINS)
+for (const s of ['red', 'white', 'green', 'violet', 'orange']) {
+  A['punch_' + s] = 'assets/character/' + s + '/punch_body.png';
+  A['fist_' + s] = 'assets/character/' + s + '/fist.png';
+  for (const f of ['open', 'half', 'closed']) A['skin_' + s + '_' + f] = 'assets/character/' + s + '/idle_' + f + '.png';
+  for (let i = 0; i < 12; i++) {
+    const n = String(i).padStart(2, '0');
+    A['walk_' + s + '_' + i] = 'assets/character/' + s + '/walk_stride_' + n + '.png';
+    A['walkstep_' + s + '_' + i] = 'assets/character/' + s + '/walk_step_' + n + '.png';
+  }
+}
 const DATA = {
   hairOffset: {
     x: -27.0,
@@ -349,7 +367,7 @@ A.desert_far = 'assets/background/desert_far.webp';
 A.desert_big = 'assets/background/desert_big.webp';
 A.desert_front = 'assets/background/desert_front.webp';
 // swimming in water (art-source/character/swim_cut.py): 8 frames per skin, 218 x 171, head lined up per frame
-for (const s of ['porcelain', 'peach', 'tan', 'honey', 'brown', 'deep']) {
+for (const s of ['porcelain', 'peach', 'tan', 'honey', 'brown', 'deep', 'red', 'white', 'green', 'violet', 'orange']) {
   for (let i = 0; i < 8; i++) A['swim_' + s + '_' + i] = 'assets/character/' + s + '/swim_0' + i + '.png';
   for (let i = 0; i < 3; i++) A['jump_' + s + '_' + i] = 'assets/character/' + s + '/jump_0' + i + '.png'; // jumping (jump.js)
 }

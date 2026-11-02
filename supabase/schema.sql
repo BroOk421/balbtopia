@@ -2533,3 +2533,51 @@ revoke execute on function public.load_world(text), public.world_lock_info(text)
   public.my_worlds(), public.world_door_exists(text, integer), public.world_exists(text) from public, anon;
 grant execute on function public.load_world(text), public.world_lock_info(text), public.world_infos(text[]),
   public.my_worlds(), public.world_door_exists(text, integer), public.world_exists(text) to authenticated;
+
+-- ---------- SUBSCRIBERS (Nov 2 2026, owner) ----------
+-- $1.99 a month through Google Play (not open yet: the game's SUBSCRIBE button says SOON). A subscriber gets a
+-- SUBSCRIBER badge and 5 more skin colours (www/js/subscriber.js). This table is the truth; players can't write it.
+-- For now a GM sets it (/sub NAME DAYS, /unsub NAME in the game's chat -> gm_set_sub). When Google Play billing is
+-- added, a server function that checks the Play purchase token writes here too (source 'google_play').
+create table if not exists public.subscriptions (
+  id uuid primary key references auth.users (id) on delete cascade,
+  until timestamptz not null,
+  source text not null default 'gm',
+  updated_at timestamptz not null default now()
+);
+alter table public.subscriptions enable row level security;
+revoke all on public.subscriptions from anon, authenticated;
+
+-- my subscription: { until } (null = not a subscriber or it ran out)
+create or replace function public.my_subscription()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('until', (select s.until from public.subscriptions s where s.id = auth.uid() and s.until > now()))
+  where auth.uid() is not null
+$$;
+-- which of these players are subscribers now (the badge in the wrench player menu)
+create or replace function public.player_subs(p_ids uuid[])
+returns table (id uuid) language sql stable security definer set search_path = public as $$
+  select s.id from public.subscriptions s
+  where auth.uid() is not null and s.until > now() and s.id = any ((coalesce(p_ids, '{}'::uuid[]))[1:60])
+$$;
+-- GM: p_days > 0 adds that many days (from now, or from the end of a subscription still running); 0 or less ends it
+create or replace function public.gm_set_sub(p_name text, p_days integer)
+returns timestamptz language plpgsql security definer set search_path = public as $$
+declare uid uuid; t timestamptz;
+begin
+  if not public.is_gm() then raise exception 'Only a GM can do that' using errcode = '42501'; end if;
+  select id into uid from public.usernames where lower(name) = lower(p_name);
+  if uid is null then raise exception 'No player called %', p_name; end if;
+  if coalesce(p_days, 0) <= 0 then
+    delete from public.subscriptions where id = uid;
+    return null;
+  end if;
+  insert into public.subscriptions as s (id, until, source)
+  values (uid, now() + make_interval(days => least(p_days, 3650)), 'gm')
+  on conflict (id) do update
+    set until = greatest(s.until, now()) + make_interval(days => least(p_days, 3650)), source = 'gm', updated_at = now()
+  returning until into t;
+  return t;
+end $$;
+revoke execute on function public.my_subscription(), public.player_subs(uuid[]), public.gm_set_sub(text, integer) from public, anon;
+grant execute on function public.my_subscription(), public.player_subs(uuid[]), public.gm_set_sub(text, integer) to authenticated;

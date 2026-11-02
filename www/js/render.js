@@ -165,6 +165,11 @@ const FACE_COLOR = {
   honey: ['#c68765', '#2e150f', '#733b25'],
   brown: ['#9e6344', '#250f0a', '#5c2c19'],
   deep: ['#6b4130', '#190a07', '#3e1d11'],
+  red: ['#e0554b', '#2a100e', '#6d2925'],
+  white: ['#f2efea', '#2d2c2b', '#757472'],
+  green: ['#67be56', '#132310', '#325c2a'],
+  violet: ['#a37adb', '#1e1729', '#4f3b6a'],
+  orange: ['#f19240', '#2d1b0c', '#75471f'],
 };
 const ANGRY = {};
 function angryFace(skin) {
