@@ -1329,6 +1329,33 @@
     },
     "portal": {
       "growSeconds": 420
+    },
+    "elevator": {
+      "growSeconds": 420
+    },
+    "bounce_mushroom": {
+      "growSeconds": 360
+    },
+    "bait_basket": {
+      "growSeconds": 360
+    },
+    "fishing_rod": {
+      "growSeconds": 360
+    },
+    "golden_rod": {
+      "growSeconds": 420
+    },
+    "noah_rod": {
+      "growSeconds": 600
+    },
+    "aquarium": {
+      "growSeconds": 360
+    },
+    "tank_lid": {
+      "growSeconds": 240
+    },
+    "spotlight": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -5480,6 +5507,60 @@
       "result": "portal",
       "source": "balbtopia",
       "note": "portal = question_door + galaxy_block (Balbtopia recipe, Nov 2 2026)"
+    },
+    {
+      "seeds": [
+        "door",
+        "steel_beam"
+      ],
+      "result": "elevator",
+      "source": "balbtopia",
+      "note": "elevator = door + steel_beam (Balbtopia recipe, Nov 3 2026)"
+    },
+    {
+      "seeds": [
+        "mushroom",
+        "spring"
+      ],
+      "result": "bounce_mushroom",
+      "source": "balbtopia",
+      "note": "bounce_mushroom = mushroom + spring (Balbtopia recipe, Nov 3 2026)"
+    },
+    {
+      "seeds": [
+        "hay_bale",
+        "dirt"
+      ],
+      "result": "bait_basket",
+      "source": "balbtopia",
+      "note": "bait_basket = hay_bale + dirt (Balbtopia recipe, Nov 3 2026)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "wood_block"
+      ],
+      "result": "aquarium",
+      "source": "balbtopia",
+      "note": "aquarium (Fish Tank) = glass_pane + wood_block (Balbtopia recipe, Nov 3 2026; low rarity on purpose)"
+    },
+    {
+      "seeds": [
+        "white_block",
+        "glass_block"
+      ],
+      "result": "tank_lid",
+      "source": "balbtopia",
+      "note": "tank_lid = white_block + glass_block (Balbtopia recipe, Nov 3 2026)"
+    },
+    {
+      "seeds": [
+        "galaxy_block",
+        "neon_lights"
+      ],
+      "result": "spotlight",
+      "source": "balbtopia",
+      "note": "spotlight = galaxy_block + neon_lights (Balbtopia recipe, Nov 3 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

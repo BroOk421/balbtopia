@@ -94,11 +94,20 @@ function fromHotbar(k) {
 // Any hotbar slot can be selected, empty ones too (`hbSel`): an empty slot = the bare fist.
 let wrenchKeep = 'fist',
   hbSel = -1; // the highlighted hotbar slot (index), -1 = by what is held
-const shownHand = () => (hand !== 'wrench' ? hand : wrenchKeep !== 'fist' && ITEMS[wrenchKeep] && inv.some((s) => s.id === wrenchKeep) ? wrenchKeep : 'fist');
+// (owner, Nov 3 2026) the Hand slot is back: a tool / weapon is WORN in it like clothes (out of the bag, tap the worn
+// cell to unequip), so picking a block, a seed or an empty slot keeps it; an empty hand (`bareHand()`) is that weapon
+const shownHand = () =>
+  hand === 'fist'
+    ? bareHand()
+    : hand !== 'wrench'
+      ? hand
+      : wrenchKeep !== 'fist' && ITEMS[wrenchKeep] && (inv.some((s) => s.id === wrenchKeep) || equipped.hand === wrenchKeep)
+        ? wrenchKeep
+        : bareHand();
 function selectHand(id, k) {
-  // clothes go into their Wearing slot; tools / weapons are just held (no Hand slot any more, owner Nov 2 2026)
+  // clothes go into their Wearing slot, tools / weapons into the Hand slot (owner, Nov 3 2026)
   const sl = slotOf(id);
-  if (sl && sl !== 'hand') {
+  if (sl) {
     wear(id);
     return;
   }
@@ -107,17 +116,17 @@ function selectHand(id, k) {
     if (hand === 'wrench') {
       // the Wrench again: back to what you hold
       hand = shownHand();
-      hbSel = hand === 'fist' ? -1 : hotbarList().indexOf(hand);
+      hbSel = hand === bareHand() ? -1 : hotbarList().indexOf(hand);
     } else {
       wrenchKeep = hand;
       hand = 'wrench';
       hbSel = k;
     }
   } else if (hand === id) {
-    // tapping the slot you already hold puts it away: bare fist
-    hand = 'fist';
+    // tapping the slot you already hold puts it away: back to the empty hand (the Hand slot's weapon, else the fist)
+    hand = bareHand();
     hbSel = -1;
-    toast('Fist');
+    toast(hand === 'fist' ? 'Fist' : ITEMS[hand].name);
   } else {
     hand = id;
     hbSel = k;
@@ -127,7 +136,7 @@ function selectHand(id, k) {
 }
 // an empty hotbar slot: selected, bare fist
 function selectEmpty(k) {
-  hand = 'fist';
+  hand = bareHand();
   hbSel = k;
   renderBars();
   savePlayer();
@@ -147,14 +156,6 @@ function wear(id) {
     sl = slotOf(id),
     s = inv.find((o) => o.id === id);
   if (!sl || !s) return;
-  // tools / weapons aren't worn any more: they are held straight from the bag (owner, Nov 2 2026)
-  if (sl === 'hand') {
-    hand = id;
-    toast('Holding ' + it.name);
-    renderBars();
-    savePlayer();
-    return;
-  }
   const old = equipped[sl];
   // the old item needs a bag slot, unless wearing this one empties its slot
   if (old && !bagRoom(old) && s.qty > 1) return toast('Bag is full: no room to take off ' + ITEMS[old].name);
@@ -173,6 +174,7 @@ function unequip(sl) {
   if (!bagRoom(id)) return toast('Bag is full: make room to take off ' + ITEMS[id].name);
   equipped[sl] = null;
   if (hand === id) hand = 'fist';
+  if (sl === 'hand' && wrenchKeep === id) wrenchKeep = 'fist';
   addItem(id, 1);
   toast((sl === 'hand' ? 'Put away ' : 'Took off ') + ITEMS[id].name);
   renderBars();
@@ -194,7 +196,7 @@ function askPutAway(id) {
       {
         label: 'Put away',
         run: () => {
-          if (hand === id) hand = 'fist';
+          if (hand === id) hand = bareHand();
           toast('Put away ' + ITEMS[id].name);
           renderBars();
           savePlayer();
@@ -262,7 +264,7 @@ function renderBars() {
   const hb = $('hotbar');
   hb.innerHTML = '';
   const list = hotbarList(),
-    selOk = hbSel >= 0 && hbSel < list.length && (list[hbSel] ? list[hbSel] === hand : hand === 'fist');
+    selOk = hbSel >= 0 && hbSel < list.length && (list[hbSel] ? list[hbSel] === hand : hand === bareHand());
   list.forEach((id, k) => {
     const b = document.createElement('button');
     b.className = 'hb' + ((selOk ? k === hbSel : id && hand === id) ? ' on' : '') + (id ? '' : ' empty');
@@ -761,7 +763,9 @@ function openPop(i) {
   $('aUse').textContent =
     it.kind === 'clothing'
       ? 'Wear'
-      : hand === s.id
+      : slotOf(s.id) === 'hand'
+        ? 'Equip'
+        : hand === s.id
         ? 'Put away'
         : 'Hold';
   pop.hidden = false;
@@ -779,7 +783,7 @@ $('aUse').onclick = () => {
   const s = inv[sel];
   if (!s) return;
   const it = ITEMS[s.id];
-  if (slotOf(s.id) && slotOf(s.id) !== 'hand') wear(s.id);
+  if (slotOf(s.id)) wear(s.id);
   else if (s.id === 'clear_world') {
     closePop();
     $('inv').hidden = true;

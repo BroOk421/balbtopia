@@ -42,7 +42,8 @@ function setATMs(list) {
     else if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) atms.set(i, Date.parse(d + 'T00:00:00+08:00'));
   }
 }
-const atmList = () => [...atms].filter(([i]) => isATMT(fg[i]));
+// (Bait Baskets keep their 24 h in this map too: fishing.js)
+const atmList = () => [...atms].filter(([i]) => isATMT(fg[i]) || (typeof isBaitBoxT === 'function' && isBaitBoxT(fg[i])));
 const atmKey = () => JSON.stringify(atmList());
 // full? (an ATM with no time at all is one from before this rule: full)
 const atmReady = (i) => !atms.has(i) || Date.now() - atms.get(i) >= ATM_WAIT;

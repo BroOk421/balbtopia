@@ -198,6 +198,116 @@ HD_DECO.desert_weather_machine = (x, { P, R, E }) => {
   R(14, 0, 4, 2, '#14101c');
   R(15, 0, 2, 1, '#ffd23f');
 };
+// ---------- the Blackout Machine (owner, Nov 3 2026) ----------
+// the whole backdrop is one plain very dark colour (`BLACKOUT_BG`, not pure black), no hills, sun or clouds
+// (drawBg wrapper in concert.js). Shop WORLD 10,000 gold (shop_prices row, tracked).
+const WEATHER_BLACKOUT = 387; // block number (permanent)
+const BLACKOUT_BG = '#141419';
+BLOCK[WEATHER_BLACKOUT] = { id: 'blackout_weather_machine', name: 'Blackout Machine', hits: 8, art: 'deco', solid: false, fx: ['#2a2a34', '#5a5a6a', '#14141a'] };
+ITEMS.blackout_weather_machine = {
+  name: 'Blackout Machine',
+  kind: 'block',
+  block: WEATHER_BLACKOUT,
+  desc: 'Place it in a world and the sky goes dark: a plain black backdrop, nothing else. Great with Spotlights. Punch it once to switch it off, again to switch it on.',
+  rarity: 'Epic',
+};
+DECO.blackout_weather_machine = () => {};
+// the same glass-dome machine, dark inside with a tiny crescent moon and a few faint stars
+HD_DECO.blackout_weather_machine = (x, { P, R, E }) => {
+  R(3, 25, 26, 7, '#14101c');
+  R(4, 25, 24, 6, '#3a3a46');
+  R(4, 25, 24, 1, '#5a5a6a');
+  R(4, 30, 24, 1, '#22222a');
+  R(14, 26, 4, 3, '#14101c');
+  R(15, 26, 2, 2, '#8a8aa0');
+  E(16, 14, 12.5, 12.5, '#14101c');
+  for (let j = 2; j < 26; j++)
+    for (let i = 4; i < 28; i++) if (Math.hypot(i + 0.5 - 16, j + 0.5 - 14) <= 11.5) P(i, j, j < 9 ? '#1c1c24' : '#18181e');
+  E(19, 10, 3, 3, '#d8d8e0');
+  E(20.4, 9.2, 2.6, 2.6, '#18181e');
+  for (const [sx, sy] of [[9, 9], [12, 16], [22, 18], [8, 19], [24, 13]]) P(sx, sy, '#6a6a7a');
+  P(8, 7, '#5a5a6a');
+  P(9, 6, '#6a6a7a');
+  R(14, 0, 4, 2, '#14101c');
+  R(15, 0, 2, 1, '#8a8aa0');
+};
+// ---------- the Disco Machine (owner, Nov 3 2026) ----------
+// the backdrop is a wall of little mirror squares side by side in pink, purple, silver and grey that sparkle, like a
+// disco ball's face but flat (drawn by concert.js `drawDiscoBg`). Shop WORLD 10,000 gold and in the Stage Set.
+const WEATHER_DISCO = 392; // block number (permanent)
+BLOCK[WEATHER_DISCO] = { id: 'disco_weather_machine', name: 'Disco Machine', hits: 8, art: 'deco', solid: false, fx: ['#e070c8', '#c8ccd6', '#8a4ad8'] };
+ITEMS.disco_weather_machine = {
+  name: 'Disco Machine',
+  kind: 'block',
+  block: WEATHER_DISCO,
+  desc: 'Place it in a world and the sky becomes a sparkling disco wall: little mirror squares in pink, purple, silver and grey. Punch it once to switch it off, again to switch it on.',
+  rarity: 'Epic',
+};
+DECO.disco_weather_machine = () => {};
+HD_DECO.disco_weather_machine = (x, { P, R, E }) => {
+  R(3, 25, 26, 7, '#14101c');
+  R(4, 25, 24, 6, '#6a6a7a');
+  R(4, 25, 24, 1, '#c8ccd6');
+  R(4, 30, 24, 1, '#3a3a46');
+  R(14, 26, 4, 3, '#14101c');
+  R(15, 26, 2, 2, '#ff70d0');
+  E(16, 14, 12.5, 12.5, '#14101c');
+  const C = ['#ff70c8', '#b060e0', '#d8dce6', '#8a8a9a', '#f0a0e0', '#6a3aa8', '#ffffff'];
+  for (let j = 2; j < 26; j++)
+    for (let i = 4; i < 28; i++) {
+      if (Math.hypot(i + 0.5 - 16, j + 0.5 - 14) > 11.5) continue;
+      // 3 x 3 squares with a dark line between them
+      if (i % 3 === 0 || j % 3 === 0) P(i, j, '#2a1a3a');
+      else P(i, j, C[(Math.floor(i / 3) * 7 + Math.floor(j / 3) * 3) % C.length]);
+    }
+  P(8, 7, '#ffffff');
+  P(9, 6, '#ffffff');
+  P(21, 17, '#ffffff');
+  R(14, 0, 4, 2, '#14101c');
+  R(15, 0, 2, 1, '#ff70d0');
+};
+// ---------- the Halloween Machine (owner, Nov 3 2026) ----------
+// a night sky going from green at the bottom to black at the top, stars, the owner's grim moon, castle, haunted houses,
+// bare trees and mountains as black silhouettes (drawn by concert.js `drawHalloweenBg`). Shop WORLD 10,000 gold.
+const WEATHER_HALLOWEEN = 393; // block number (permanent)
+BLOCK[WEATHER_HALLOWEEN] = { id: 'halloween_weather_machine', name: 'Halloween Machine', hits: 8, art: 'deco', solid: false, fx: ['#2d6a33', '#ffb020', '#0a0a0a'] };
+ITEMS.halloween_weather_machine = {
+  name: 'Halloween Machine',
+  kind: 'block',
+  block: WEATHER_HALLOWEEN,
+  desc: 'Place it in a world for a spooky night: a green-to-black sky with stars, a grinning moon, a dark castle, haunted houses and bare trees. Punch it once to switch it off, again to switch it on.',
+  rarity: 'Epic',
+};
+DECO.halloween_weather_machine = () => {};
+HD_DECO.halloween_weather_machine = (x, { P, R, E }) => {
+  R(3, 25, 26, 7, '#14101c');
+  R(4, 25, 24, 6, '#3a2a1a');
+  R(4, 25, 24, 1, '#6a4a2a');
+  R(4, 30, 24, 1, '#1a120a');
+  R(14, 26, 4, 3, '#14101c');
+  R(15, 26, 2, 2, '#ffb020');
+  E(16, 14, 12.5, 12.5, '#14101c');
+  const SKY = ['#040604', '#081208', '#0e2210', '#163a1a', '#215226', '#2d6a33'];
+  for (let j = 2; j < 26; j++)
+    for (let i = 4; i < 28; i++) if (Math.hypot(i + 0.5 - 16, j + 0.5 - 14) <= 11.5) P(i, j, SKY[Math.min(5, Math.max(0, Math.floor((j - 3) / 4)))]);
+  for (const [sx, sy] of [[9, 7], [13, 5], [7, 12], [22, 9]]) P(sx, sy, '#ffffff');
+  E(20, 9, 3, 3, '#5a5a5a');
+  P(19, 9, '#1a1a1a');
+  P(21, 9, '#1a1a1a');
+  // a castle silhouette with a lit window
+  R(8, 17, 12, 8, '#050505');
+  R(9, 13, 3, 4, '#050505');
+  R(16, 12, 3, 5, '#050505');
+  P(10, 12, '#050505');
+  P(17, 11, '#050505');
+  P(13, 20, '#ffb020');
+  P(17, 15, '#ffb020');
+  R(20, 21, 7, 4, '#050505');
+  R(21, 19, 3, 2, '#050505');
+  P(23, 22, '#ffb020');
+  R(14, 0, 4, 2, '#14101c');
+  R(15, 0, 2, 1, '#ffb020');
+};
 // the desert's layers in place of the hills (null = that layer isn't drawn); the sky, sun and clouds stay the sunset's
 const DESERT_LAY = { bg_far: 'desert_far', bg_big: 'desert_big', bg_mid: 'desert_front', bg_front: null };
 
@@ -210,7 +320,7 @@ let weatherNow = null,
 // A machine is switched off by a punch and on again by the next one (bit WEATHER_OFF of its tile's `vari`,
 // which is saved with the world and sent to everyone like the tile itself).
 const WEATHER_OFF = 4;
-const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN || t === WEATHER_DESERT;
+const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN || t === WEATHER_DESERT || t === WEATHER_BLACKOUT || t === WEATHER_DISCO || t === WEATHER_HALLOWEEN;
 const machineOn = (t) => {
   for (let i = 0; i < fg.length; i++) if (fg[i] === t && !(vari[i] & WEATHER_OFF)) return true;
   return false;
@@ -238,7 +348,13 @@ function currentWeather() {
           ? 'sunny'
           : machineOn(WEATHER_DESERT)
             ? 'desert'
-            : null;
+            : machineOn(WEATHER_BLACKOUT)
+              ? 'blackout'
+              : machineOn(WEATHER_DISCO)
+                ? 'disco'
+                : machineOn(WEATHER_HALLOWEEN)
+                  ? 'halloween'
+                  : null;
   if (worldName !== weatherWorld) {
     // just came into this world: no flash, the loading screen covers it
     weatherWorld = worldName;

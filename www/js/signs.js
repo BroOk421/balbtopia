@@ -179,9 +179,13 @@ function doorUnderPlayer() {
 }
 // stand in the door with this number (else at the main door)
 function toDoorId(n) {
-  const i = doorById(n);
-  if (i < 0) return toDoor();
+  // (owner, Nov 3 2026) going through a door / portal inside the world keeps your Checkpoint; only leaving the world
+  // forgets it (worlds.js enterWorldNow)
+  const cp = P.cp,
+    i = doorById(n);
   toDoor();
+  P.cp = cp;
+  if (i < 0) return;
   P.x = (i % WW) * TS + TS / 2 - P.w / 2;
   P.y = (((i / WW) | 0) + 1) * TS - P.h;
 }

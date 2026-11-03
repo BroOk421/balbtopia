@@ -161,6 +161,7 @@ const SHOP = [
   { id: 'sunny_weather_machine', gold: 10000, cat: 'world' },
   { id: 'rain_weather_machine', gold: 10000, cat: 'world' },
   { id: 'desert_weather_machine', gold: 10000, cat: 'world' },
+  { id: 'blackout_weather_machine', gold: 10000, cat: 'world' }, // weather.js (Nov 3 2026)
   { id: 'clear_world', gold: 10000, cat: 'world' },
   { id: 'vending_machine', gold: 5000, cat: 'world' },
   // (Display Box / Mannequin: no longer sold, they grow from recipes now: display.js; owner Oct 25 2026)

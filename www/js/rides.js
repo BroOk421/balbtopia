@@ -692,6 +692,34 @@ drawArmWithTool = function (...a) {
   }
   return rideOldArmTool(...a);
 };
+// (owner, Nov 3 2026: punching on a ride cut the punching hand off at the seat) the bare-fist punch / placing arm
+// (drawPunch) and the Laser Eyes beam (drawLaser) are noted in pass 2 like the tool arm and drawn after it, whole,
+// over the ride, so a punch looks the same as when standing
+function rideLater(old) {
+  return function (...a) {
+    if (RIDE_PASS === 1) return;
+    if (RIDE_PASS === 2) {
+      const m = g.getTransform(),
+        al = g.globalAlpha,
+        sm = g.imageSmoothingEnabled;
+      rideArms.push(() => {
+        g.save();
+        g.setTransform(m);
+        g.globalAlpha = al;
+        g.imageSmoothingEnabled = sm;
+        try {
+          old(...a);
+        } finally {
+          g.restore();
+        }
+      });
+      return;
+    }
+    return old(...a);
+  };
+}
+drawPunch = rideLater(drawPunch);
+drawLaser = rideLater(drawLaser);
 const rideOldAuraFront = drawAuraFront;
 drawAuraFront = function (...a) {
   if (RIDE_PASS === 1) {
