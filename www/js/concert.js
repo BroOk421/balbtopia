@@ -398,10 +398,17 @@ const HW_ROW = [
   ['house2', 0.21, 0.02],
   ['tree1', 0.2, 0.06],
 ];
-const HW_STARS = Array.from({ length: 90 }, (_, k) => {
-  const h = (n) => ((Math.imul(k * 2654435761 + n * 97, 0x85ebca6b) >>> 0) % 10000) / 10000;
-  return { x: h(1), y: h(2) * h(2), r: 0.6 + h(3) * 1.4, ph: h(4) * 6.28, sp: 0.6 + h(5) * 1.6 };
-});
+// a few stars at random heights (owner, Nov 4 2026: no rows of stars), seeded so every device draws the same sky
+const HW_STARS = (() => {
+  let a = 0x5eed1;
+  const rnd = () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return Array.from({ length: 16 }, () => ({ x: rnd(), y: rnd(), r: 0.7 + rnd() * 1.3, ph: rnd() * 6.28, sp: 0.6 + rnd() * 1.6 }));
+})();
 const hwImg = (k) => {
   const im = IMG['hw_' + k];
   return im && im.complete && im.naturalWidth ? im : null;
@@ -429,7 +436,7 @@ function drawHalloweenBg() {
   for (const st of HW_STARS) {
     const a = 0.35 + 0.65 * Math.abs(Math.sin(now / 900 * st.sp + st.ph)),
       x = ((((st.x * W * 1.3 + sx0) % (W * 1.3)) + W * 1.3) % (W * 1.3)) - W * 0.15,
-      y = (horizon - bh) + st.y * bh * 0.55;
+      y = (horizon - bh) + st.y * bh * 0.6;
     g.fillStyle = `rgba(255,255,240,${a})`;
     g.fillRect(x, y, st.r * Math.max(1, s * 2), st.r * Math.max(1, s * 2));
   }
@@ -439,6 +446,7 @@ function drawHalloweenBg() {
   if (moon) {
     const mh = bh * 0.3,
       mw = mh * (moon.width / moon.height),
+      // not fixed on the screen: it drifts with the camera and follows the horizon, as at first (owner, Nov 4 2026)
       mx = W * 0.72 - cam.x * Z * 0.01,
       my = Math.max(H * 0.04, horizon - bh * 0.78),
       cx = mx + mw / 2,
@@ -488,3 +496,194 @@ drawBg = ((prev) =>
     drawHalloweenBg();
   })(drawBg);
 SHOP.push({ id: 'halloween_weather_machine', gold: 10000, cat: 'world' });
+// ---------- the Night backdrop (owner, Nov 4 2026) ----------
+// deep blue sky, few twinkling stars, a flat cream moon with a glow (fixed on screen), two blue ridges, and a row of
+// coconut-tree silhouettes. Pictures: www/assets/night (art-source/night/night_cut.py).
+const NIGHT_PARTS = ['palm', 'grass', 'moon'];
+for (const k of NIGHT_PARTS) A['night_' + k] = 'assets/night/' + k + '.png';
+const NIGHT_PAD = 8; // glow picture padding, in picture pixels (night_cut.py GLOW_PAD)
+// the row along the horizon (repeats): [picture, height as a part of the backdrop's height, gap after it (can be
+// negative: overlap), flipped left / right, opacity]. The see-through ones (opacity under 1) are drawn first, so they
+// stand behind the solid ones (owner, Nov 4 2026: only coconut trees, many, flipped, some see-through).
+const NIGHT_ROW = [
+  ['palm', 0.4, -0.04, 0, 1],
+  ['grass', 0.09, -0.03, 0, 1],
+  ['grass', 0.12, -0.02, 1, 1],
+  ['palm', 0.3, -0.02, 1, 0.5],
+  ['grass', 0.08, -0.04, 0, 1],
+  ['palm', 0.34, -0.06, 1, 1],
+  ['grass', 0.11, -0.01, 0, 1],
+  ['palm', 0.27, -0.03, 0, 0.55],
+  ['grass', 0.1, -0.03, 0, 1],
+  ['grass', 0.13, -0.02, 1, 1],
+  ['palm', 0.42, -0.05, 1, 1],
+  ['grass', 0.08, -0.04, 0, 1],
+  ['palm', 0.32, -0.04, 0, 0.45],
+  ['grass', 0.11, -0.01, 0, 1],
+  ['palm', 0.36, -0.02, 0, 1],
+  ['grass', 0.09, -0.03, 0, 1],
+  ['grass', 0.12, -0.02, 1, 1],
+  ['palm', 0.26, -0.03, 1, 0.6],
+  ['grass', 0.08, -0.04, 0, 1],
+  ['palm', 0.39, -0.06, 1, 1],
+  ['grass', 0.11, -0.01, 0, 1],
+  ['palm', 0.3, -0.03, 0, 0.5],
+  ['grass', 0.1, -0.03, 0, 1],
+  ['grass', 0.13, -0.02, 1, 1],
+  ['palm', 0.34, -0.05, 0, 1],
+  ['grass', 0.08, -0.04, 0, 1],
+  ['palm', 0.28, -0.02, 1, 0.55],
+  ['grass', 0.11, -0.01, 0, 1],
+  ['palm', 0.4, -0.04, 0, 1],
+  ['grass', 0.09, -0.03, 0, 1],
+  ['grass', 0.12, -0.02, 1, 1],
+  ['palm', 0.33, -0.05, 1, 0.5],
+  ['grass', 0.08, -0.04, 0, 1],
+  ['palm', 0.37, -0.03, 1, 1],
+  ['grass', 0.11, -0.01, 0, 1],
+];
+const nightImg = (k) => {
+  const im = IMG['night_' + k];
+  return im && im.complete && im.naturalWidth ? im : null;
+};
+const nightRnd = (seed) => {
+  let a = seed | 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+const NIGHT_STARS = (() => {
+  const rnd = nightRnd(0x41a7);
+  return Array.from({ length: 48 }, () => ({ x: rnd(), y: rnd(), r: 0.7 + rnd() * 1.3, ph: rnd() * 6.28, sp: 0.5 + rnd() * 1.7 }));
+})();
+// a ridge that repeats every `period`: a few sine waves with whole-number counts (so the ends meet), 0..1 high
+function nightRidge(seed) {
+  const rnd = nightRnd(seed),
+    waves = [2, 3, 5, 8, 13].map((k, n) => ({ k, a: 1 / (1 + n * 0.7), ph: rnd() * 6.28 })),
+    norm = waves.reduce((s, w) => s + w.a, 0);
+  return (u) => (waves.reduce((s, w) => s + w.a * Math.sin(w.k * u * 6.2832 + w.ph), 0) / norm + 1) / 2;
+}
+const NIGHT_FAR = nightRidge(11),
+  NIGHT_NEAR = nightRidge(29);
+const NIGHT_PERIOD = 3.2; // one repeat of the ridges, in backdrop heights
+// the moon's place: FIXED on the screen (owner, Nov 4 2026: it must not follow the camera, so it stays put when you
+// jump or walk). Used by the Halloween and the Night backdrop.
+const moonSpot = (W, H, mh, mw, horizon, bh) => ({ x: W * 0.72 - cam.x * Z * 0.01, y: Math.max(H * 0.04, horizon - bh * 0.78) });
+function drawNightBg() {
+  const W = cv.width,
+    H = cv.height,
+    // the same backdrop size and ground line as drawBg (render.js) and the Halloween backdrop
+    s = Math.min(H / 971, (W * 1.25) / 1620),
+    bh = 971 * s,
+    surfY = Math.round(-cam.y * Z + SURF * TS * Z),
+    horizon = Math.min(Math.max(surfY, H * 0.35), H + bh * 0.1),
+    period = bh * NIGHT_PERIOD;
+  // the sky: deep blue at the top, lighter blue at the horizon
+  const gr = g.createLinearGradient(0, horizon - bh, 0, horizon);
+  gr.addColorStop(0, '#030816');
+  gr.addColorStop(0.4, '#081a46');
+  gr.addColorStop(0.75, '#14388a');
+  gr.addColorStop(1, '#2f66b8');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, W, H);
+  // stars at random heights
+  const sx0 = -cam.x * Z * 0.02;
+  for (const st of NIGHT_STARS) {
+    const a = 0.4 + 0.6 * Math.abs(Math.sin((now / 900) * st.sp + st.ph)),
+      x = ((((st.x * W * 1.3 + sx0) % (W * 1.3)) + W * 1.3) % (W * 1.3)) - W * 0.15,
+      y = horizon - bh + st.y * bh * 0.72,
+      z = st.r * Math.max(1, s * 2);
+    g.fillStyle = `rgba(235,244,255,${a})`;
+    g.fillRect(x, y, z, z);
+    if (st.r > 1.7) {
+      g.fillStyle = `rgba(235,244,255,${a * 0.5})`;
+      g.fillRect(x - z, y + z * 0.35, z * 3, z * 0.3);
+      g.fillRect(x + z * 0.35, y - z, z * 0.3, z * 3);
+    }
+  }
+  // the moon: the owner's flat disc in cream, with a soft blue-white glow, drifting with the camera like the Halloween moon
+  const moon = nightImg('moon');
+  if (moon) {
+    const mh = bh * 0.3, // the same size as the Halloween moon
+      mw = mh * (moon.width / moon.height),
+      sp = moonSpot(W, H, mh, mw, horizon, bh),
+      cx = sp.x + mw / 2,
+      cy = sp.y + mh / 2;
+    const glow = g.createRadialGradient(cx, cy, mh * 0.4, cx, cy, mh * 1.3);
+    glow.addColorStop(0, 'rgba(210,230,255,0.45)');
+    glow.addColorStop(0.45, 'rgba(160,200,255,0.18)');
+    glow.addColorStop(1, 'rgba(160,200,255,0)');
+    g.fillStyle = glow;
+    g.fillRect(cx - mh * 1.4, cy - mh * 1.4, mh * 2.8, mh * 2.8);
+    g.imageSmoothingEnabled = true; // smooth like the Halloween moon, so the circle's edge is round
+    g.drawImage(moon, sp.x, sp.y, mw, mh);
+  }
+  g.imageSmoothingEnabled = true;
+  // a ridge: filled from its line down to the horizon
+  const ridge = (fn, speed, base, amp, color) => {
+    const off = ((((-cam.x * Z * speed) % period) + period) % period) - period;
+    g.fillStyle = color;
+    g.beginPath();
+    g.moveTo(0, H + 2);
+    for (let x = 0; x <= W + 8; x += 8) {
+      const u = ((((x - off) / period) % 1) + 1) % 1;
+      g.lineTo(x, horizon - (base + amp * fn(u)) * bh);
+    }
+    g.lineTo(W + 8, H + 2);
+    g.closePath();
+    g.fill();
+  };
+  ridge(NIGHT_FAR, 0.04, 0.05, 0.2, '#1a438c');
+  ridge(NIGHT_NEAR, 0.09, 0.015, 0.13, '#0e2756');
+  // the row of silhouettes: coconut trees and grass (the grass first gets its glow, smooth); two passes, so the
+  // see-through trees stand behind the solid ones
+  const rowW = NIGHT_ROW.reduce((n, [k, hh, gap]) => {
+    const im = nightImg(k);
+    return n + (im ? bh * hh * (im.width / im.height) : 0) + bh * gap;
+  }, 0);
+  if (rowW > 0) {
+    const off = ((((-cam.x * Z * 0.15) % rowW) + rowW) % rowW) - rowW;
+    for (const pass of [0, 1])
+      for (let x0 = off; x0 < W; x0 += rowW) {
+        let x = x0;
+        for (const [k, hh, gap, flip, alpha] of NIGHT_ROW) {
+          const im = nightImg(k);
+          if (!im) continue;
+          const h = bh * hh,
+            w = h * (im.width / im.height),
+            y = horizon - h + bh * 0.01;
+          if ((alpha < 1 ? 0 : 1) === pass && x + w > 0 && x < W) {
+            const gl = nightImg(k + '_glow');
+            g.save();
+            g.globalAlpha = alpha;
+            if (flip) {
+              g.translate(Math.round(x + w), 0);
+              g.scale(-1, 1);
+            } else g.translate(Math.round(x), 0);
+            if (gl) {
+              const q = h / im.height; // screen px per picture pixel
+              g.imageSmoothingEnabled = true;
+              g.drawImage(gl, -NIGHT_PAD * q, y - NIGHT_PAD * q, gl.width * q, gl.height * q);
+            }
+            g.imageSmoothingEnabled = false;
+            g.drawImage(im, 0, Math.round(y), Math.round(w), Math.round(h));
+            g.restore();
+          }
+          x += w + bh * gap;
+        }
+      }
+  }
+  g.imageSmoothingEnabled = true;
+  // below the horizon: dark ground (the world's own ground covers most of it)
+  g.fillStyle = '#04070f';
+  g.fillRect(0, horizon, W, H - horizon + 2);
+}
+drawBg = ((prev) =>
+  function () {
+    if (currentWeather() !== 'night') return prev();
+    drawNightBg();
+  })(drawBg);
+SHOP.push({ id: 'night_weather_machine', gold: 10000, cat: 'world' });

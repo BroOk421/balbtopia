@@ -33,7 +33,7 @@ const BAIT_INFO = {
 const isRod = (id) => !!ROD_INFO[id];
 {
   const RODS2 = [
-    ['golden_rod', 'Golden Rod', 'Epic', ['#f2b41e', '#fff4a8', '#8a5006'], 'A shining golden fishing rod with a ruby on its reel. Big fish bite more often, and sooner.', ['fishing_rod', 'golden_block'], 420],
+    ['golden_rod', 'Golden Rod', 'Epic', ['#f2b41e', '#fff4a8', '#8a5006'], 'A shining golden fishing rod with a ruby on its reel. Big fish bite more often.', ['fishing_rod', 'golden_block'], 420],
     ['noah_rod', "Noah's Rod", 'Legendary', ['#f4ead6', '#ffffff', '#6a4a2a'], 'An old wooden rod banded in rainbow colours. The biggest fish of all come to it.', ['golden_rod', 'rainbow_block'], 600],
   ];
   for (const [id, name, rarity, head, desc, rec, grow] of RODS2) {
@@ -147,8 +147,9 @@ for (const [sp, name, size] of FISH_LIST) {
 const FISH_CLS_LEN = [null, 2 * TS, 3 * TS];
 const fishLen = (id) => FISH_CLS_LEN[FISH_BY[id].cls] || FISH_DRAW[FISH_BY[id].size] * 1.3;
 // things that aren't fish (a better rod brings up fewer): [fish, junk, nothing] chances
-const JUNK = ['empty_bottle', 'empty_can'];
-const CATCH_ODDS = { fishing_rod: [70, 18, 12], golden_rod: [78, 14, 8], noah_rod: [86, 9, 5] };
+// (owner, Nov 3 2026) most catches are an Empty Bottle: junk is the biggest share for every rod
+const JUNK = ['empty_bottle', 'empty_bottle', 'empty_bottle', 'empty_bottle', 'empty_bottle', 'empty_bottle', 'empty_bottle', 'empty_bottle', 'empty_bottle', 'empty_can'];
+const CATCH_ODDS = { fishing_rod: [25, 65, 10], golden_rod: [33, 58, 9], noah_rod: [45, 48, 7] };
 ITEMS.empty_bottle = { name: 'Empty Bottle', kind: 'junk', desc: 'An empty glass bottle someone threw in the water. Fished up with a rod.', rarity: 'Common' };
 ITEMS.empty_can = { name: 'Empty Can', kind: 'junk', desc: 'A dented, empty soda can. Fished up with a rod.', rarity: 'Common' };
 function fmtLb(lb) {
@@ -320,7 +321,8 @@ function rollFish(rod, bait) {
     cls = 0;
   while (cls < 2 && w >= cc[cls]) w -= cc[cls++];
   const C = FISH_CLS[cls],
-    lb = C.lo + (C.hi - C.lo) * Math.random() ** 1.5;
+    // (owner, Nov 3 2026) 195-200 lb is VERY rare: 1 Large fish in 100; all the other Large ones stay under 195
+    lb = cls === 2 && Math.random() < 0.01 ? 195 + Math.random() * 5 : C.lo + ((cls === 2 ? 194.9 : C.hi) - C.lo) * Math.random() ** 1.5;
   return { id: f[0] + C.k, lb: Math.round(lb * 10) / 10 };
 }
 
@@ -407,11 +409,15 @@ askUnequip = ((prev) =>
   })(askUnequip);
 
 // ---------- casting and reeling ----------
-const FISH_RANGE = 6, // tiles from you
+const FISH_RANGE = 3, // tiles from you (owner, Nov 3 2026: 3 tiles only)
+  SWING_MS = 0.5, // seconds: ONE swing of the arm (cast = down, reel = up)
+  THROW_AT = 0.2, // seconds into the cast swing when the arm is down and the float leaves the rod
   CAST_MS = 380,
   BACK_MS = 300,
   BITE_MS = 3200,
   CATCH_MS = 650;
+const FLOAT_PIX = ['.KKKKK.', 'KRHRRRK', 'KRRRRRK', 'KKKKKKK', 'KWWWWWK', 'KWWWWSK', '.KKKKK.'],
+  FLOAT_COL = { K: '#14101c', R: '#e8303e', H: '#ff8a90', W: '#ffffff', S: '#c4ccd8' };
 let fishing = null, // { st: 'out' | 'wait' | 'bite' | 'back' | 'catch', t0, x, y, water, rod, bait, at, f }
   pressN = 0,
   pressUsed = -1;
@@ -457,17 +463,29 @@ const rodHeld = () => (isRod(hand) ? hand : null);
 function castLine(t, water, rod) {
   const x = t.x * TS + TS / 2,
     y = t.y * TS + (water ? 8 : TS / 2);
-  P.face = x > P.x + P.w / 2 ? 1 : -1;
-  fishing = { st: 'out', t0: now, x, y, water, rod, bait: fishBait, at: 0, f: null };
+  fishSwing(x, y, false);
+  fishing = { st: 'out', t0: now + THROW_AT * 1000, x, y, water, rod, bait: fishBait, at: 0, f: null }; // t0 later: the float leaves when the arm is down
   Sfx.play('jump', 0.5);
 }
+// (owner, Nov 3 2026) a fish takes 14 to 30 seconds to bite, whatever the rod or bait
 function nextBite() {
-  const r = ROD_INFO[fishing.rod] || ROD_INFO.fishing_rod,
-    b = BAIT_INFO[fishing.bait] || BAIT_INFO.worm;
-  fishing.at = now + (2500 + Math.random() * 5000) * r.wait * b.wait;
+  fishing.at = now + 14000 + Math.random() * 16000;
+}
+// ONE swing of the arm with the rod: down (cast, thrown as the arm comes down) or up (reel in, `rev`). Sent to others
+// as a normal punch; wear.js swingTurn wrapper below turns it round for `rev`.
+function fishSwing(wx, wy, rev) {
+  const cx = P.x + P.w / 2;
+  if (Math.abs(wx - cx) > 2) P.face = wx > cx ? 1 : -1;
+  P.punch = { t: 0, x: wx, y: wy, dur: SWING_MS, rev: !!rev };
+  Net.sendPunch(wx, wy);
+}
+// the tile is the top of a body of water: water here, none above it
+function waterSurface(x, y) {
+  return inW(x, y) && hasWater(at(x, y)) && !(inW(x, y - 1) && hasWater(at(x, y - 1)));
 }
 function reel() {
   const F = fishing;
+  fishSwing(F.x, F.y, true); // the arm swings back UP (the cast swung down)
   if (F.st === 'bite') {
     const c = F.f;
     if (!F.bait || countItem(F.bait) < 1) {
@@ -479,7 +497,6 @@ function reel() {
       return toast('Bag is full: the ' + ITEMS[c.id].name + ' got away');
     }
     takeItem(F.bait); // the bait is gone, whatever came up
-    splash(F.x, F.y, 'water');
     Sfx.play('water', 0.8);
     if (!c.id) {
       // nothing on the hook: the line comes back empty
@@ -506,7 +523,7 @@ function reel() {
 function fishPos() {
   const F = fishing,
     tip = rodTip(),
-    u = Math.min(1, (now - F.t0) / (F.st === 'out' ? CAST_MS : F.st === 'back' ? BACK_MS : CATCH_MS));
+    u = Math.max(0, Math.min(1, (now - F.t0) / (F.st === 'out' ? CAST_MS : F.st === 'back' ? BACK_MS : CATCH_MS)));
   if (F.st === 'out') return { x: tip.x + (F.x - tip.x) * u, y: tip.y + (F.y - tip.y) * u - 4 * u * (1 - u) * 34 };
   if (F.st === 'back' || F.st === 'catch') {
     const fx = F.fromX ?? F.x,
@@ -530,14 +547,12 @@ function stepFishing() {
     if (F.water && hasWater(at(Math.floor(F.x / TS), Math.floor(F.y / TS)))) {
       F.st = 'wait';
       F.t0 = now;
-      splash(F.x, F.y, 'water');
       nextBite();
     } else fishing = { ...F, st: 'back', t0: now };
   } else if (F.st === 'wait' && now >= F.at) {
     F.st = 'bite';
     F.t0 = now;
     F.f = rollFish(F.rod, F.bait);
-    splash(F.x, F.y, 'water');
     Sfx.play('water', 0.6);
     Native.haptic('light');
   } else if (F.st === 'bite' && now - F.t0 >= BITE_MS) {
@@ -545,8 +560,7 @@ function stepFishing() {
     F.t0 = now;
     toast('It got away!');
     nextBite();
-  } else if (F.st === 'wait' && Math.random() < 0.01) splash(F.x, F.y, 'water');
-  else if ((F.st === 'back' && now - F.t0 >= BACK_MS) || (F.st === 'catch' && now - F.t0 >= CATCH_MS)) fishing = null;
+  } else if ((F.st === 'back' && now - F.t0 >= BACK_MS) || (F.st === 'catch' && now - F.t0 >= CATCH_MS)) fishing = null;
 }
 function drawFishing(ox, oy) {
   fishO = { x: ox, y: oy };
@@ -578,19 +592,18 @@ function drawFishing(ox, oy) {
     if (fb) drawFishAt(g, F.f.id, s, Math.floor(now / 90));
     else g.drawImage(caughtPic(F.f.id), -s / 2, -s / 2, s, s);
   } else {
-    const r = 2.6 * Z;
-    g.fillStyle = '#14101c';
-    g.beginPath();
-    g.arc(bx, by, r + Z * 0.6, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#ffffff';
-    g.beginPath();
-    g.arc(bx, by, r, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#e8303e';
-    g.beginPath();
-    g.arc(bx, by, r, Math.PI, Math.PI * 2);
-    g.fill();
+    // the float: a pixel-art ball, 7 x 7 pixels (owner, Nov 3 2026: pixelated, not a smooth circle)
+    const c = Math.max(1, Math.round(Z)),
+      fx = Math.round(bx - 3.5 * c),
+      fy = Math.round(by - 3.5 * c);
+    FLOAT_PIX.forEach((row, j) => {
+      for (let i = 0; i < 7; i++) {
+        const col = FLOAT_COL[row[i]];
+        if (!col) continue;
+        g.fillStyle = col;
+        g.fillRect(fx + i * c, fy + j * c, c, c);
+      }
+    });
     if (F.st === 'wait' || F.st === 'bite') {
       // rings on the water
       const k = ((now - F.t0) / (F.st === 'bite' ? 350 : 1200)) % 1;
@@ -635,7 +648,9 @@ act = ((prev) =>
     if ((fg[i] && !(water && BLOCK[fg[i]].solid === false)) || trees.has(i) || isDoorTile(t.x, t.y) || Net.bodyAt(ptr.x, ptr.y)) return prev();
     if (pressUsed === pressN) return; // the same press held down: one cast
     pressUsed = pressN;
-    if (Math.hypot(t.x * TS + TS / 2 - (P.x + P.w / 2), t.y * TS + TS / 2 - (P.y + P.h / 2)) > FISH_RANGE * TS + TS / 2) return toast('Too far to cast');
+    const pt = playerTile();
+    if (Math.abs(t.x - pt.x) > FISH_RANGE || Math.abs(t.y - pt.y) > FISH_RANGE) return toast('Too far: you can cast ' + FISH_RANGE + ' tiles');
+    if (!waterSurface(t.x, t.y)) return toast('Cast at the very top of the water');
     if (water && !(fishBait && countItem(fishBait) > 0)) {
       if (!BAITS.some((b) => countItem(b) > 0)) return toast('You need bait: a Worm, Snail or Shrimp from a Bait Basket');
       return openRodPop();
@@ -652,6 +667,25 @@ enterWorldNow = ((prev) =>
     fishing = null;
     return prev(name);
   })(enterWorldNow);
+
+// ---------- the swing (owner, Nov 3 2026) ----------
+// A fishing swing is one slow swing (punch.dur). Casting uses the normal tool swing (raised behind, then DOWN onto the
+// water). Reeling in (punch.rev) is the same turned round: the arm starts down and swings UP and back.
+swingTurn = ((prev) =>
+  function (c, cx, top, sc, ox, oy) {
+    const pu = c.punch;
+    if (!pu || !pu.dur) return prev(c, cx, top, sc, ox, oy);
+    const parts = armParts(IMG['skin_' + c.skin + '_open'], 'skin_' + c.skin + '_open'),
+      tx = (ox + pu.x * Z - cx) / (c.face * sc * Z) + FR.w / 2,
+      ty = (oy + pu.y * Z - top) / (sc * Z),
+      aim = Math.atan2(ty - SHOULDER[1], tx - SHOULDER[0]),
+      rest = Math.atan2(parts.hand[1] - SHOULDER[1], parts.hand[0] - SHOULDER[0]),
+      u = Math.min(1, pu.t / pu.dur);
+    let back; // how far the arm is raised behind (0 = on the target, 1 = ~150 degrees up)
+    if (pu.rev) back = 1 - (1 - u) ** 2 * 1; // down -> up
+    else back = u < THROW_AT / SWING_MS ? (1 - u / (THROW_AT / SWING_MS)) ** 2 : ((u - THROW_AT / SWING_MS) / (1 - THROW_AT / SWING_MS)) * 0.3; // up -> down at the throw, then rests
+    return { parts, turn: aim - 2.6 * back - rest };
+  })(swingTurn);
 
 // ---------- the Aquarium ----------
 const AQ_PER_TILE = 3;

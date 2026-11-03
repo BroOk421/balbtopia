@@ -308,6 +308,48 @@ HD_DECO.halloween_weather_machine = (x, { P, R, E }) => {
   R(14, 0, 4, 2, '#14101c');
   R(15, 0, 2, 1, '#ffb020');
 };
+// ---------- the Night Machine (owner, Nov 3 2026) ----------
+// a calm BLUE night: a deep blue sky, twinkling stars at random heights, a plain moon with no face, blue mountain ridges
+// and pine trees as dark silhouettes (drawn by concert.js `drawNightBg`). Shop WORLD 10,000 gold (shop_prices, tracked).
+const WEATHER_NIGHT = 394; // block number (permanent)
+BLOCK[WEATHER_NIGHT] = { id: 'night_weather_machine', name: 'Night Machine', hits: 8, art: 'deco', solid: false, fx: ['#1a3a7a', '#f4efd0', '#050c24'] };
+ITEMS.night_weather_machine = {
+  name: 'Night Machine',
+  kind: 'block',
+  block: WEATHER_NIGHT,
+  desc: 'Place it in a world for a calm blue night: a deep blue sky with twinkling stars, a bright moon, blue mountains and pine trees. Punch it once to switch it off, again to switch it on.',
+  rarity: 'Epic',
+};
+DECO.night_weather_machine = () => {};
+HD_DECO.night_weather_machine = (x, { P, R, E }) => {
+  R(3, 25, 26, 7, '#14101c');
+  R(4, 25, 24, 6, '#2a3a5a');
+  R(4, 25, 24, 1, '#5a7ab0');
+  R(4, 30, 24, 1, '#18243c');
+  R(14, 26, 4, 3, '#14101c');
+  R(15, 26, 2, 2, '#9ad0ff');
+  E(16, 14, 12.5, 12.5, '#14101c');
+  const SKY = ['#050c24', '#081a46', '#0e2d6a', '#1a4488', '#2858a8', '#3a70c0'];
+  for (let j = 2; j < 26; j++)
+    for (let i = 4; i < 28; i++) if (Math.hypot(i + 0.5 - 16, j + 0.5 - 14) <= 11.5) P(i, j, SKY[Math.min(5, Math.max(0, Math.floor((j - 3) / 4)))]);
+  for (const [sx, sy] of [[9, 6], [13, 4], [7, 11], [24, 12], [17, 7]]) P(sx, sy, '#ffffff');
+  // a plain moon, no face
+  E(20, 9, 3.4, 3.4, '#f4efd0');
+  P(19, 8, '#fffbe6');
+  P(21, 10, '#d6cd9c');
+  // blue ridges and a few pines
+  for (let i = 4; i < 28; i++) {
+    if (Math.hypot(i + 0.5 - 16, 21 - 14) > 11.5) continue;
+    const h = 3 + Math.round(2 * Math.sin(i * 0.55) + Math.sin(i * 1.3));
+    for (let j = 22 - h; j < 26; j++) if (Math.hypot(i + 0.5 - 16, j + 0.5 - 14) <= 11.5) P(i, j, '#16346e');
+  }
+  for (const [tx, th] of [[8, 5], [12, 4], [21, 6], [24, 4]]) {
+    for (let k = 0; k < th; k++) R(tx - Math.floor(k / 2), 24 - th + k, 1 + Math.floor(k / 2) * 2, 1, '#06122c');
+    P(tx, 24, '#06122c');
+  }
+  R(14, 0, 4, 2, '#14101c');
+  R(15, 0, 2, 1, '#9ad0ff');
+};
 // the desert's layers in place of the hills (null = that layer isn't drawn); the sky, sun and clouds stay the sunset's
 const DESERT_LAY = { bg_far: 'desert_far', bg_big: 'desert_big', bg_mid: 'desert_front', bg_front: null };
 
@@ -320,7 +362,7 @@ let weatherNow = null,
 // A machine is switched off by a punch and on again by the next one (bit WEATHER_OFF of its tile's `vari`,
 // which is saved with the world and sent to everyone like the tile itself).
 const WEATHER_OFF = 4;
-const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN || t === WEATHER_DESERT || t === WEATHER_BLACKOUT || t === WEATHER_DISCO || t === WEATHER_HALLOWEEN;
+const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN || t === WEATHER_DESERT || t === WEATHER_BLACKOUT || t === WEATHER_DISCO || t === WEATHER_HALLOWEEN || t === WEATHER_NIGHT;
 const machineOn = (t) => {
   for (let i = 0; i < fg.length; i++) if (fg[i] === t && !(vari[i] & WEATHER_OFF)) return true;
   return false;
@@ -354,7 +396,9 @@ function currentWeather() {
                 ? 'disco'
                 : machineOn(WEATHER_HALLOWEEN)
                   ? 'halloween'
-                  : null;
+                  : machineOn(WEATHER_NIGHT)
+                    ? 'night'
+                    : null;
   if (worldName !== weatherWorld) {
     // just came into this world: no flash, the loading screen covers it
     weatherWorld = worldName;

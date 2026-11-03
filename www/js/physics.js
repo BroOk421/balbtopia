@@ -340,7 +340,7 @@ function stepFx(dt) {
   }
   if (P.punch) {
     P.punch.t += dt;
-    if (P.punch.t >= PUNCH_TIME) P.punch = null;
+    if (P.punch.t >= (P.punch.dur || PUNCH_TIME)) P.punch = null; // fishing swings last longer (fish.js)
   }
   // the arm stays out after placing, but only while you stand still (moving would stretch it)
   if (P.place) {
