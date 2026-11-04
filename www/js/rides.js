@@ -26,6 +26,8 @@ const RIDES = [
   { id: 'ride_truck', name: 'Fire Truck', kind: 'truck', cell: 0.744, res: 0.484, lift: 0, seat: 9.6, speed: 1.5, gold: 80000, rarity: 'Legendary', ol: '#100c18', desc: 'A fire truck with a big front cab, a long ladder and a flashing siren. The fastest ride.' },
   // (owner, Nov 4 2026: his picture of a green leaf) you STAND on it, the leaf over your feet, leaves blowing out behind
   { id: 'ride_leaf', name: 'Leaf Glider', kind: 'leaf', cell: 0.58, res: 1, lift: 0, seat: 0, speed: 1.45, gold: 90000, rarity: 'Legendary', ol: null, desc: 'A big red and orange leaf that floats over the ground. Stand on it and glide, a trail of colourful leaves blowing out behind you.' },
+  // (owner, Nov 4 2026: "gawa ka ng rides na cloud") you STAND on four little clouds going round under your feet
+  { id: 'ride_cloud', name: 'Cloud Ride', kind: 'cloud', cell: 0.62, res: 1, lift: 0, seat: 0, speed: 1.5, flap: true, gold: 100000, rarity: 'Legendary', ol: '#7d89c4', desc: 'Four little clouds that go round under your feet. Stand on them and fly, with one more jump in the air; moving, the clouds behind you trail off and float back.' },
 ];
 const RIDE_BY_ID = {};
 // the rider's legs (and hips) across, in world px from his middle, facing right: body px 18-90 of the 118 wide sprite
@@ -714,15 +716,17 @@ function drawLeafRider(c, ox, oy, r) {
     ground = c.ground;
   c.equipped = { ...eq, pet: null };
   c.rideBase = eq;
+  c.realGround = ground; // (the real one, for the Autumn Wings' jump beat: autumn.js)
   c.walking = false;
   c.ground = true;
   let res;
   try {
-    res = rideOldDraw(c, ox, oy - rise * Z);
+    res = rideStanding(c, ox, oy - rise * Z);
   } finally {
     c.equipped = eq;
     c.walking = walking;
     c.ground = ground;
+    delete c.realGround;
     delete c.rideBase;
   }
   // the leaf, over his feet
@@ -734,10 +738,320 @@ function drawLeafRider(c, ox, oy, r) {
   g.drawImage(pic.front, -RIDE_AX, -RIDE_AY);
   g.restore();
   drawLeafTrail(c, ox, oy, trail, alpha, true); // and the ones over it
+  rideArmsNow(); // the arm with the weapon, over the leaf
   if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
   return res;
 }
-const RIDE_PAINT = { horse: paintHorse, car: paintCar, truck: paintTruck, harvester: paintHarvester, leaf: paintLeaf };
+// ---------- the Cloud Ride (owner, Nov 4 2026) ----------
+// (owner, after a few looks) no big cloud: puffs over the rider's feet (four in the middle, two big ones left and right,
+// two a little smaller under them, and smaller ones further out so the ride is long), each staying in place and turning on the spot. A small puff behind them turns too and, moving,
+// leaves copies of itself one after another (a trail) that fade as the rider gets away. Standing still, little
+// clouds pop up round the ride and fade.
+// (owner, his recording: the puffs must look like the game's own breaking smoke, but WHITE) each puff is the smoke's
+// pixel cloud (render.js `puffSprite`: lobes lit from the top left, dither, dark rim) in a white shade added to SMOKE
+// (`CLOUD_SHADE`); copies and pop-ups fade by opacity only (the smoke's dither holes looked ugly turned).
+const CLOUD_RAMP = ['#ffffff', '#f3f6ff', '#dde4fa', '#b8c2ea', '#8f9ad0'],
+  CLOUD_SHADE = SMOKE.push(['#b4bdd8', '#dfe4f2', '#fbfcff']) - 1, // white smoke (dark, mid, light)
+  CLOUDR = {
+    // (owner: "not going round like that, each one just turns on the spot") the puffs stay in place and each one
+    // turns round its own middle: [x (world px from the rider's middle, + = the way he faces), y (from the puffs'
+    // middle, + = down), size (world px, even), seconds a turn (- = the other way)]; two big ones left / right of the
+    // feet, two a little smaller under them, all drawn over the feet
+    // [..., opacity: 1 = solid, else it breathes between this and solid]
+    // (owner: "a bit small, add clouds left and right so it is longer") the outer ones first (drawn under the inner)
+    puffs: [
+      [-13, 0.5, 11, -2.7, 0.75],
+      [13, 0.5, 11, 2.3, 1],
+      // (owner: "add 2 at the middle bottom, just offset") under the middle, one a little left and lower than the other
+      [-4.5, 3.5, 9, 2.5, 1],
+      [2.5, 4.5, 8, -2.3, 0.8],
+      [-6.5, -1, 14, 2.6, 1],
+      [6.5, -1, 12, -2.9, 0.62],
+      [-3, 3, 11, -2.2, 0.7],
+      [3.5, 3, 10, 2.4, 1],
+    ],
+    up: -3, // world px the puffs' middle is under the soles (less than 0: over them, so they hide the feet)
+    // (owner: "as high as the Leaf Glider") the soles as high as on the leaf (LEAFR.hover + the leaf under the feet,
+    // ~8.5 px); every puff keeps its bottom `gap` px over the ground (its y is held at hover - gap - size / 2 at most)
+    hover: LEAFR.hover + (LEAF_MAP.length - LEAFR.feet) * RIDE_BY_ID.ride_leaf.cell,
+    gap: 3,
+    bob: 1, // world px up and down while floating
+    bobMs: 600,
+    // a small puff behind the feet, also turning on the spot; moving, it leaves copies one after another (a trail)
+    tiny: 9, // its size (world px)
+    tinyX: 18, // world px behind the rider's middle
+    tinyY: 1, // world px under the puffs' middle
+    tinyTurn: 1.2, // seconds a turn
+    every: 0.045, // moving: a copy of it is left behind this often (seconds)
+    far: 70, // world px from the rider where a left copy has faded out completely
+    life: 1.4, // seconds a left copy lasts at most
+    drift: 6, // world px a second a left copy drifts further back
+    max: 40,
+    // (owner: "idle, add clouds that appear and fade") standing still, little clouds pop up round the ride
+    pop: [0.18, 0.4], // seconds between them
+    popLife: [0.8, 1.2],
+    popSize: [6, 10],
+    popW: 22, // world px either side of the rider's middle
+    // (owner: "they fade ONE at a time and grow again somewhere else; the others don't fade until that one is back",
+    // later: "idle too") one puff fades out, then grows in at a new spot near its home, then the next one
+    // (the front end's small hopping puff was tried and REMOVED on the owner's word: no puff at the front end)
+    // (the back end's small puff, looping away and back in, was tried and REMOVED too: no small end puffs)
+    swapOut: 0.3, // seconds fading out
+    swapIn: 0.28, // seconds growing in at the new spot
+    // (owner: "random spots, not fixed, but still under there") a new spot is anywhere in this box under the rider
+    // (world px from his middle / the puffs' middle), the best of a few random tries: far from the other puffs, and
+    // only where the feet (`feetPts`) stay covered by some puff
+    swapX: 14,
+    swapY: -2, // (the lowest a spot goes: see `gap`)
+    feetPts: [[-3, -1], [3, -1], [0, 1]],
+  },
+  CLOUD_FX = new Map();
+// the shop / bag icon: the four puffs (left and right big, two smaller at the bottom)
+function paintCloud() {
+  const F = ridePainter(1);
+  ell5(F, -15, -11, 5.2, 4.2, CLOUD_RAMP);
+  ell5(F, 15, -11, 5.2, 4.2, CLOUD_RAMP);
+  ell5(F, -8, -13, 6.5, 5, CLOUD_RAMP);
+  ell5(F, 8, -13, 6.5, 5, CLOUD_RAMP);
+  ell5(F, -4, -7, 5.2, 4, CLOUD_RAMP);
+  ell5(F, 4, -6, 5.2, 4, CLOUD_RAMP);
+  return { back: new Map(), front: F.m, bob: 0 };
+}
+// the puffs of one character, stepped while drawing (so every player's show on every screen); returns what to
+// draw: [{ x, y (world px), n (size), a (alpha), k (scale), r (turn, radians), back (behind him) }]
+function cloudPuffs(c, face, fy) {
+  const key = c.id || 'n:' + (c.name || ''),
+    S = CLOUD_FX.get(key) || CLOUD_FX.set(key, { t: now, trail: [], pops: [], every: 0, pop: 0, spots: CLOUDR.puffs.map((q) => [q[0], q[1]]), swap: null, next: 0 }).get(key),
+    dt = Math.max(0, Math.min(0.05, (now - S.t) / 1000)),
+    moving = !!c.walking || c.ground === false,
+    cx = c.x + c.w / 2,
+    cy = fy + CLOUDR.up,
+    sec = (now + (c.blink || 0)) / 1000,
+    rnd = Math.random,
+    turn = (T) => (sec / T) * Math.PI * 2,
+    out = [];
+  S.t = now;
+  // the puffs, each turning on the spot
+  // one at a time fades out and grows again at a new spot near its home (the one farthest from the others of a few
+  // tries), then the next; moving or standing still (owner: the fading must show when idle too)
+  if (S.swap) {
+    S.swap.t += dt;
+    const W = S.swap;
+    if (W.ph === 'out' && W.t >= CLOUDR.swapOut) {
+      let best = null;
+      const covered = (spots) => CLOUDR.feetPts.every(([fx, fy2]) => spots.some((o, k2) => Math.hypot(o[0] - fx, o[1] - fy2) <= CLOUDR.puffs[k2][2] * 0.42));
+      for (let q = 0; q < 12; q++) {
+        const lowY = CLOUDR.hover - CLOUDR.up - CLOUDR.gap - CLOUDR.puffs[W.k][2] / 2, // its bottom gap px over the ground
+          p2 = [(rnd() * 2 - 1) * CLOUDR.swapX, CLOUDR.swapY + rnd() * Math.max(0, lowY - CLOUDR.swapY)],
+          test = S.spots.map((o, k2) => (k2 === W.k ? p2 : o));
+        if (!covered(test)) continue;
+        const d = Math.min(...S.spots.filter((_, k2) => k2 !== W.k).map((o) => Math.hypot(o[0] - p2[0], (o[1] - p2[1]) * 1.6)));
+        if (!best || d > best.d) best = { p: p2, d };
+      }
+      if (best) S.spots[W.k] = best.p; // (no good spot: it grows back where it was)
+      Object.assign(W, { ph: 'in', t: 0 });
+    } else if (W.ph === 'in' && W.t >= CLOUDR.swapIn) {
+      const N = CLOUDR.puffs.length;
+      S.next = (W.k + 1 + Math.floor(rnd() * (N - 1))) % N; // then another one
+      S.swap = null;
+    }
+  } else S.swap = { k: S.next, ph: 'out', t: 0 }; // (owner: idle too)
+  CLOUDR.puffs.forEach(([, , n, T, op], k) => {
+    const W = S.swap && S.swap.k === k ? S.swap : null,
+      u = W ? Math.min(1, W.t / (W.ph === 'out' ? CLOUDR.swapOut : CLOUDR.swapIn)) : 1,
+      fa = !W ? 1 : W.ph === 'out' ? 1 - u : u, // fading out / in
+      sc = !W || W.ph === 'out' ? 1 : 0.3 + 0.7 * u; // growing in
+    out.push({
+      x: cx + face * S.spots[k][0],
+      y: cy + S.spots[k][1],
+      n,
+      a: fa * (op >= 1 ? 1 : op + (1 - op) * (0.5 + 0.5 * Math.sin(sec * 2.6 + k * 1.7))),
+      k: sc,
+      r: turn(T),
+      back: false,
+    });
+  });
+  // the small one behind, and its trail while moving (fading as the rider gets away from the copies)
+  const tx = cx - face * CLOUDR.tinyX,
+    ty = cy + CLOUDR.tinyY,
+    tr = turn(CLOUDR.tinyTurn);
+  S.every -= dt;
+  if (moving && S.every <= 0) {
+    S.every = CLOUDR.every;
+    if (S.trail.length >= CLOUDR.max) S.trail.shift();
+    S.trail.push({ age: 0, x: tx, y: ty, r: tr, n: CLOUDR.tiny * (0.65 + rnd() * 0.45), op: 0.55 + rnd() * 0.45 });
+  }
+  for (const q of S.trail) {
+    q.age += dt;
+    q.x -= face * CLOUDR.drift * dt;
+    q.y -= 2 * dt;
+  }
+  S.trail = S.trail.filter((q) => q.age < CLOUDR.life && Math.abs(q.x - cx) < CLOUDR.far);
+  for (const q of S.trail) {
+    const u = Math.min(1, Math.max(Math.abs(q.x - cx) / CLOUDR.far, q.age / CLOUDR.life));
+    out.push({ x: q.x, y: q.y, n: q.n * (1 - 0.25 * u), a: q.op * (1 - u * u), k: 1, r: q.r, back: true });
+  }
+  out.push({ x: tx, y: ty, n: CLOUDR.tiny, a: 1, k: 1, r: tr, back: true });
+  // standing still: little clouds pop up round the ride, grow, drift up a little and fade
+  S.pop -= dt;
+  if (!moving && S.pop <= 0) {
+    const G = CLOUDR.pop,
+      L = CLOUDR.popLife,
+      N = CLOUDR.popSize;
+    S.pop = G[0] + rnd() * (G[1] - G[0]);
+    S.pops.push({
+      age: 0,
+      x: cx + (rnd() * 2 - 1) * CLOUDR.popW,
+      y: cy - 1 + rnd() * 5,
+      n: N[0] + rnd() * (N[1] - N[0]),
+      life: L[0] + rnd() * (L[1] - L[0]),
+      r0: rnd() * Math.PI * 2,
+      dir: rnd() < 0.5 ? -1 : 1,
+      op: 0.5 + rnd() * 0.5,
+      back: rnd() < 0.5,
+    });
+  }
+  for (const q of S.pops) {
+    q.age += dt;
+    q.y -= 4 * dt;
+  }
+  S.pops = S.pops.filter((q) => q.age < q.life);
+  for (const q of S.pops) {
+    const u = q.age / q.life;
+    out.push({
+      x: q.x,
+      y: q.y,
+      n: q.n,
+      a: q.op * (u < 0.2 ? 1 : 1 - ((u - 0.2) / 0.8) ** 2),
+      k: u < 0.2 ? 0.3 + 0.7 * (u / 0.2) : 1,
+      r: q.r0 + q.dir * q.age * 2.5,
+      back: q.back,
+    });
+  }
+  return out;
+}
+// (owner: "some clouds looked ugly: make them ONE cloud, only in different sizes, some see-through") every puff is the
+// same cloud: puffSprite's look 0 (a big body + three bumps, render.js) painted here in the white shade, its bumps
+// turned round the middle by one of CLOUD_STEPS angles while the light stays at the top left, so a turning puff is
+// clean pixel art at every angle (turning the finished picture gave ragged spikes); cached per size and angle
+const CLOUD_STEPS = 24,
+  CLOUD_TURNED = new Map(),
+  CLOUD_LOBES = (() => {
+    let seed = 13; // = puffSprite's look 0
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647),
+      L = [[0.5, 0.56, 0.36]];
+    for (let k = 0; k < 3; k++) {
+      const a = -Math.PI / 2 + (k - 1) * 1.05 + (rnd() - 0.5) * 0.5;
+      L.push([0.5 + Math.cos(a) * 0.2, 0.52 + Math.sin(a) * 0.2, 0.2 + rnd() * 0.08]);
+    }
+    return L;
+  })();
+function cloudTurned(D, r) {
+  const st = ((Math.round((r / (Math.PI * 2)) * CLOUD_STEPS) % CLOUD_STEPS) + CLOUD_STEPS) % CLOUD_STEPS,
+    key = D + ':' + st;
+  let c = CLOUD_TURNED.get(key);
+  if (c) return c;
+  const a = (st / CLOUD_STEPS) * Math.PI * 2,
+    co = Math.cos(a),
+    si = Math.sin(a),
+    lobes = CLOUD_LOBES.map(([x, y, r2]) => [0.5 + (x - 0.5) * co - (y - 0.5) * si, 0.5 + (x - 0.5) * si + (y - 0.5) * co, r2]),
+    [dark, mid, light] = SMOKE[CLOUD_SHADE].map(hexRGB),
+    tones = [dark.map((v) => Math.round(v * 0.72)), dark, mid, light, light.map((v) => Math.min(255, v + 22))];
+  c = document.createElement('canvas');
+  c.width = c.height = D;
+  const x = c.getContext('2d'),
+    img = x.createImageData(D, D),
+    px = img.data,
+    sample = (sx, sy) => {
+      let best = null;
+      for (const [lx, ly, lr] of lobes) {
+        const dx = sx / D - lx,
+          dy = sy / D - ly,
+          d = Math.hypot(dx, dy) / lr;
+        if (d <= 1 && (!best || d - 1 < best.k)) best = { k: d - 1, nx: dx / lr, ny: dy / lr, d };
+      }
+      return best;
+    };
+  for (let j = 0; j < D; j++)
+    for (let i = 0; i < D; i++) {
+      const s = sample(i + 0.5, j + 0.5);
+      if (!s) continue;
+      const b = BAYER4[(j & 3) * 4 + (i & 3)] / 16,
+        lit = -(s.nx * 0.62 + s.ny * 0.78) * 0.8 + (1 - s.d) * 0.55;
+      let t = lit * 2.2 + 1.6 + (b - 0.5) * 0.6;
+      if (!sample(i + 0.5, j + 1.5) || (!sample(i + 1.5, j + 0.5) && s.ny > -0.2)) t = 0; // dark rim bottom / right
+      const tone = tones[Math.max(0, Math.min(4, Math.round(t)))],
+        k = (j * D + i) * 4;
+      px[k] = tone[0];
+      px[k + 1] = tone[1];
+      px[k + 2] = tone[2];
+      px[k + 3] = 255;
+    }
+  x.putImageData(img, 0, 0);
+  if (CLOUD_TURNED.size > 1500) CLOUD_TURNED.clear();
+  CLOUD_TURNED.set(key, c);
+  return c;
+}
+function drawCloudPuffs(ox, oy, list, alpha, back) {
+  g.save();
+  g.imageSmoothingEnabled = false;
+  for (const p of list) {
+    if (p.back !== back || p.a <= 0.02) continue;
+    // size in world px in steps of 2, so the pixels stay crisp (like drawSmoke); turned round its own middle
+    const D = Math.max(4, Math.round((p.n * p.k) / 2) * 2),
+      im = cloudTurned(D, p.r || 0),
+      w = im.width * Z;
+    g.globalAlpha = alpha * p.a;
+    g.drawImage(im, Math.round(ox + p.x * Z - w / 2), Math.round(oy + p.y * Z - w / 2), w, w);
+  }
+  g.restore();
+}
+// riding the Cloud Ride: the far puffs and the trail behind, the rider STANDING over the ring, the near puffs over
+// his feet
+function drawCloudRider(c, ox, oy, r) {
+  const face = c.face || 1,
+    bob = Math.sin((now + (c.blink || 0)) / CLOUDR.bobMs) * CLOUDR.bob,
+    rise = CLOUDR.hover + bob,
+    fy = c.y + c.h + FOOT_SINK - rise, // the rider's soles
+    eq = c.equipped;
+  let alpha = 1;
+  if (c.hurt > 0 && Math.floor(now / 80) % 2) alpha = 0.55;
+  if (c.spawnT > 0) alpha *= 1 - c.spawnT / SPAWN_FADE;
+  if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'big');
+  const X = Math.round(ox + (c.x + c.w / 2) * Z),
+    Yg = Math.round(oy + (c.y + c.h + FOOT_SINK) * Z);
+  g.save();
+  g.globalAlpha = 0.14 * alpha;
+  g.fillStyle = '#1a2050';
+  g.beginPath();
+  g.ellipse(X, Yg, 22 * Z, 1.5 * Z, 0, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+  const puffs = cloudPuffs(c, face, fy);
+  drawCloudPuffs(ox, oy, puffs, alpha, true);
+  const walking = c.walking,
+    ground = c.ground;
+  c.equipped = { ...eq, pet: null };
+  c.rideBase = eq;
+  c.realGround = ground; // (the real one, for the Autumn Wings' jump beat: autumn.js)
+  c.walking = false;
+  c.ground = true;
+  let res;
+  try {
+    res = rideStanding(c, ox, oy - rise * Z);
+  } finally {
+    c.equipped = eq;
+    c.walking = walking;
+    c.ground = ground;
+    delete c.realGround;
+    delete c.rideBase;
+  }
+  drawCloudPuffs(ox, oy, puffs, alpha, false);
+  rideArmsNow(); // the arm with the weapon, over the clouds
+  if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
+  return res;
+}
+const RIDE_PAINT = { horse: paintHorse, car: paintCar, truck: paintTruck, harvester: paintHarvester, leaf: paintLeaf, cloud: paintCloud };
 const RIDE_PICS = {};
 function ridePic(r, state, f) {
   const k = r.id + ':' + state + ':' + f;
@@ -819,6 +1133,7 @@ drawCharacter = function (c, ox, oy) {
   const r = rideOf(c);
   if (!r) return rideOldDraw(c, ox, oy);
   if (r.kind === 'leaf') return drawLeafRider(c, ox, oy, r);
+  if (r.kind === 'cloud') return drawCloudRider(c, ox, oy, r);
   const { st, f } = rideState(c, r),
     pic = ridePic(r, st, f),
     eq = c.equipped,
@@ -881,6 +1196,32 @@ drawCharacter = function (c, ox, oy) {
 function rideLocal() {
   return !!(RIDE_BY_ID[equipped.ride] && !P.dead && !P.rest && !(typeof inWater === 'function' && inWater(P)));
 }
+// ---------- standing riders (Leaf Glider, Cloud Ride) ----------
+// (owner, Nov 4 2026: "the weapon must overlap the ride, the leaf ride too") the rider is drawn whole, then the ride
+// over his feet; the arm with its tool / weapon, the bare-fist punch and the laser are NOTED while he is drawn
+// (RIDE_LATER, like pass 2 of the seated rides) and drawn after the ride by rideArmsNow. The drop shadow is skipped
+// for the rider (shadowBusy, as on every other ride) so the noted transforms are the screen's.
+let RIDE_LATER = false;
+function rideStanding(c, ox, oy) {
+  const busy = typeof shadowBusy !== 'undefined' ? shadowBusy : null;
+  if (busy !== null) shadowBusy = true;
+  RIDE_LATER = true;
+  try {
+    return rideOldDraw(c, ox, oy);
+  } finally {
+    RIDE_LATER = false;
+    if (busy !== null) shadowBusy = busy;
+  }
+}
+function rideArmsNow() {
+  for (const fn of rideArms.splice(0)) fn();
+  // scythes.js notes its slash while shadowBusy is set: draw it now
+  if (typeof scyFxLater !== 'undefined')
+    while (scyFxLater.length) {
+      const [fx, cc, x, y, id] = scyFxLater.shift();
+      fx(cc, x, y, id);
+    }
+}
 // ---------- the two passes ----------
 let RIDE_PASS = 0,
   RIDE_REAL = null;
@@ -935,7 +1276,7 @@ const rideArms = [];
 const rideOldArmTool = drawArmWithTool;
 drawArmWithTool = function (...a) {
   if (RIDE_PASS === 1) return; // (pass 1 draws only what is behind the body)
-  if (RIDE_PASS === 2) {
+  if (RIDE_PASS === 2 || RIDE_LATER) {
     const m = g.getTransform(),
       al = g.globalAlpha,
       sm = g.imageSmoothingEnabled;
@@ -960,7 +1301,7 @@ drawArmWithTool = function (...a) {
 function rideLater(old) {
   return function (...a) {
     if (RIDE_PASS === 1) return;
-    if (RIDE_PASS === 2) {
+    if (RIDE_PASS === 2 || RIDE_LATER) {
       const m = g.getTransform(),
         al = g.globalAlpha,
         sm = g.imageSmoothingEnabled;

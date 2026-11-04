@@ -254,6 +254,8 @@ function act() {
         questTick('break', id); // daily quest (quests.js)
         // a Red / Blue Lock goes back into its owner's bag and its area is free again (alocks.js)
         if (b.alock) return alockBroken(i, id);
+        // an Autumn Chest gives one random prize instead (autumn.js)
+        if (b.chest && typeof openChest === 'function') return openChest(i, x, y);
         const got = breakDrop(id), // one roll: the block, its seed, coins or nothing (farming.js)
           gotBlock = got.block;
         if (gotBlock) spawnDrop(id, x * TS + 16, y * TS + 16);

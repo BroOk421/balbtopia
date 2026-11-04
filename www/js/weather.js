@@ -362,7 +362,7 @@ let weatherNow = null,
 // A machine is switched off by a punch and on again by the next one (bit WEATHER_OFF of its tile's `vari`,
 // which is saved with the world and sent to everyone like the tile itself).
 const WEATHER_OFF = 4;
-const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN || t === WEATHER_DESERT || t === WEATHER_BLACKOUT || t === WEATHER_DISCO || t === WEATHER_HALLOWEEN || t === WEATHER_NIGHT;
+const isWeatherT = (t) => t === WEATHER_SNOW || t === WEATHER_SUNNY || t === WEATHER_RAIN || t === WEATHER_DESERT || t === WEATHER_BLACKOUT || t === WEATHER_DISCO || t === WEATHER_HALLOWEEN || t === WEATHER_NIGHT || (typeof WEATHER_FALL !== 'undefined' && t === WEATHER_FALL); // (Fall Machine: autumn.js)
 const machineOn = (t) => {
   for (let i = 0; i < fg.length; i++) if (fg[i] === t && !(vari[i] & WEATHER_OFF)) return true;
   return false;
@@ -398,7 +398,9 @@ function currentWeather() {
                   ? 'halloween'
                   : machineOn(WEATHER_NIGHT)
                     ? 'night'
-                    : null;
+                    : typeof WEATHER_FALL !== 'undefined' && machineOn(WEATHER_FALL)
+                      ? 'fall' // (autumn.js)
+                      : null;
   if (worldName !== weatherWorld) {
     // just came into this world: no flash, the loading screen covers it
     weatherWorld = worldName;

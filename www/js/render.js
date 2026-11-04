@@ -89,9 +89,12 @@ function drawBg() {
   for (const [k, f] of LAY) {
     if (snow && (k === 'bg_sky' || (k === 'bg_sun' && (wx === 'snow' || wx === 'rain')))) continue;
     // (the sun's glow fades out before the edges of its picture, so no box shows round it)
-    const key = desert && k in DESERT_LAY ? DESERT_LAY[k] : k;
+    // (a weather may swap the hills for its own pictures: the desert's, or the owner's mountains: autumn.js mountLay)
+    const lay = (typeof mountLay === 'function' && mountLay(wx)) || (desert ? DESERT_LAY : null),
+      key = lay && k in lay ? lay[k] : k,
+      own = key !== k; // a swapped picture is drawn as it is (never recoloured by the weather)
     if (!key) continue;
-    const im = snow ? weatherLayer(wx, k) : key === 'bg_sun' ? softEdges(IMG[key]) : IMG[key];
+    const im = own ? IMG[key] : snow ? weatherLayer(wx, k) : key === 'bg_sun' ? softEdges(IMG[key]) : IMG[key];
     if (!im || !im.width) continue;
     if (f === 0) {
       g.drawImage(im, 0, top, cv.width, h);
@@ -106,7 +109,7 @@ function drawBg() {
     for (let i = start; i < start + Math.ceil(cv.width / w) + 2; i++) {
       const x = off + i * w;
       if (x > cv.width || x + w < 0) continue;
-      g.drawImage(((i % 2) + 2) % 2 ? (snow ? weatherFlipped(wx, k) : flipped(key)) : im, Math.floor(x), top, Math.ceil(w) + 1, h);
+      g.drawImage(((i % 2) + 2) % 2 ? (snow && !own ? weatherFlipped(wx, k) : flipped(key)) : im, Math.floor(x), top, Math.ceil(w) + 1, h);
     }
   }
   g.imageSmoothingEnabled = false;
@@ -819,6 +822,7 @@ function render() {
   if (weatherNow === 'snow') drawSnow();
   else if (weatherNow === 'rain') drawRain();
   else if (weatherNow === 'desert') drawSand();
+  else if (weatherNow === 'fall' && typeof drawFall === 'function') drawFall(); // falling leaves (autumn.js)
   const sx = (Math.random() - 0.5) * shake,
     sy = (Math.random() - 0.5) * shake;
   const ox = Math.round(-cam.x * Z + sx),

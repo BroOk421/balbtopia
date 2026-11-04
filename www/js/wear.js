@@ -292,7 +292,9 @@ function outfitMasked(im, key, shirt, pants, feet, mask, bands) {
       let rgb = null;
       // shorts (`short`: last covered row): bare legs below, a darker hem just above (owner, Oct 31 2026)
       const bare = pants && pants.short && py > pants.short;
-      if (pants && legs && !dark && !bare) rgb = paintPixel(pants, px, py, shadeK * (pants.short && py > pants.short - 3 ? 0.76 : 1));
+      // boots (`bootTop`, autumn.js): the shoe goes on up the shins from that row, over bare legs or trousers
+      if (feet && feet.bootTop && legs && !dark && py >= feet.bootTop) rgb = paintPixel(feet, px, py, shadeK);
+      else if (pants && legs && !dark && !bare) rgb = paintPixel(pants, px, py, shadeK * (pants.short && py > pants.short - 3 ? 0.76 : 1));
       else if (feet && foot && feet.slip) rgb = slipPixel(feet.slip, p, i, c.width, sat, L);
       else if (feet && foot && !dark)
         // `pat: 'sole'`: the bottom rows of each foot are the sole colour (soleRow)

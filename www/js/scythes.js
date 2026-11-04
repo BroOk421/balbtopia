@@ -399,9 +399,11 @@ function scyBlade(set, L, glint, pulse) {
 }
 // Garden Scythe: a vine winding up the handle like a snake. `front` true = the turns in front of the handle (drawn
 // after it), false = the turns behind (drawn before the handle, so the handle covers them). Then on along the blade.
-const SCY_VINE = { body: '#3c8a2a', lit: '#7ccf4a', dark: '#1e4a16', leaf: '#5cc03a', leafDark: '#2a6e22' };
+const SCY_VINE_GREEN = { body: '#3c8a2a', lit: '#7ccf4a', dark: '#1e4a16', leaf: '#5cc03a', leafDark: '#2a6e22' };
+// (the Autumn Scythe has its own vine colours, `vineCol`: autumn.js)
 function scyVineHandle(set, front) {
-  const G = scyHandleGeo(SCY_LOOK.garden_scythe);
+  const SCY_VINE = scyCur.vineCol || SCY_VINE_GREEN,
+    G = scyHandleGeo(scyCur.vine ? scyCur : SCY_LOOK.garden_scythe);
   for (let d = 26; d >= 0; d -= 0.1) {
     const ph = (26 - d) * ((Math.PI * 2) / 9.5), // one turn every 9.5 px
       inFront = Math.cos(ph) > 0;
@@ -423,6 +425,7 @@ function scyVineHandle(set, front) {
 }
 function scyVineBlade(set) {
   // from the collar, a wavy vine along the middle of the blade, leaves, and a curled tendril at its end
+  const SCY_VINE = scyCur.vineCol || SCY_VINE_GREEN;
   let last = null;
   for (let t = 0.0; t <= 0.62; t += 0.004) {
     const u = 0.45 + 0.22 * Math.sin(t * 22),
@@ -445,7 +448,8 @@ function scyVineBlade(set) {
 // curve along its underside from the base (P0) round C to the tip (P2); `u` 0 = that underside .. 1 = the top edge.
 const SCY_BACK = { p0: [18.5, 16], c: [5, 17.5], p2: [2.5, 4.5], mid: [11, 9], w: 6.8 };
 function scyBackBlade(set, L, pulse) {
-  const { p0, c, p2, mid, w: W0 } = SCY_BACK,
+  // (a look may bring its own back blade, `back`: the Autumn Scythe's long curved one, autumn.js)
+  const { p0, c, p2, mid, w: W0 } = L.back || SCY_BACK,
     at = (t) => [(1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * c[0] + t * t * p2[0], (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * c[1] + t * t * p2[1]];
   for (let t = 0; t <= 1; t += 0.0025) {
     const [x, y] = at(t),

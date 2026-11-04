@@ -2,11 +2,7 @@
 // file is easy to spot. Any script error, or a game file that fails to load, shows in a small red box at the bottom
 // of the screen (tap it to close) so problems on a phone can be read and reported.
 // ===== errors =====
-<<<<<<< HEAD
-const GAME_BUILD = '2026-11-04 k';
-=======
-const GAME_BUILD = '2026-11-04 i';
->>>>>>> 3c3db67 (add leaf ride)
+const GAME_BUILD = '2026-11-04 o';
 console.info('Balbtopia build ' + GAME_BUILD);
 (() => {
   let box = null;
