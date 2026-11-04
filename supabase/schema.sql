@@ -511,6 +511,34 @@ create table if not exists public.world_moves (
 );
 alter table public.world_moves enable row level security;
 revoke all on public.world_moves from anon, authenticated;
+-- (owner, Nov 4 2026: floating coins and items in his world kept vanishing) a save's drop list only says what THAT game
+-- has. A game that came in later or missed a 'drop' message doesn't have every drop, and its save used to wipe the
+-- ones it never got (a builder's list replaced the saved one; a visitor's list took out every drop older than 15 s
+-- that it didn't have). New games send `dt` = the drops they SAW go away (picked up, joined into a bigger coin,
+-- packed, cleared). keep_unseen_drops puts back every saved drop that isn't in the new list and isn't in `dt`.
+-- Old games (no `dt`) are unchanged: their list is taken as before.
+create or replace function public.keep_unseen_drops(p_old jsonb, p_new jsonb, p_gone jsonb)
+returns jsonb language plpgsql immutable as $$
+declare
+  outl jsonb;
+  have text[];
+  gone text[];
+  o jsonb;
+begin
+  if jsonb_typeof(p_new) is distinct from 'array' then p_new := '[]'::jsonb; end if;
+  if jsonb_typeof(p_gone) is distinct from 'array' or jsonb_typeof(p_old) is distinct from 'array' then return p_new; end if;
+  outl := p_new;
+  select coalesce(array_agg(x ->> 0), '{}') into have from jsonb_array_elements(p_new) x where jsonb_typeof(x) = 'array';
+  select coalesce(array_agg(g #>> '{}'), '{}') into gone from jsonb_array_elements(p_gone) g where jsonb_typeof(g) = 'string';
+  for o in select * from jsonb_array_elements(p_old) loop
+    if jsonb_array_length(outl) >= 500 then exit; end if; -- MAX_DROPS 400 + room; the next save packs them again
+    if jsonb_typeof(o) <> 'array' or (o ->> 0) = any (have) or (o ->> 0) = any (gone) then continue; end if;
+    outl := outl || jsonb_build_array(o);
+  end loop;
+  return outl;
+end $$;
+revoke execute on function public.keep_unseen_drops(jsonb, jsonb, jsonb) from public, anon, authenticated;
+
 create or replace function public.save_world(p_name text, p_data jsonb)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
@@ -545,7 +573,7 @@ begin
     -- a new world: you can only lock it for yourself
     own := case when req is not null and (lower(req) = lower(me) or gm) then req end;
     if not gm then p_data := public.alock_guard('{}'::jsonb, p_data, me); end if; -- area locks: only your own
-    outd := jsonb_set(p_data, '{owner}', coalesce(to_jsonb(own), 'null'::jsonb));
+    outd := jsonb_set(p_data - 'dt', '{owner}', coalesce(to_jsonb(own), 'null'::jsonb));
     insert into public.worlds (name, data, owner, updated_at, lockv) values (p_name, outd, own, now(), 0);
     perform public.vend_track(p_name, '[]'::jsonb, outd -> 'vends');
     return jsonb_build_object('r', 'saved', 'v', 0);
@@ -575,6 +603,11 @@ begin
       own := r.owner;
     end if;
     outd := jsonb_set(p_data, '{owner}', coalesce(to_jsonb(own), 'null'::jsonb));
+    -- (Nov 4 2026) drops this game never had stay (keep_unseen_drops); `dt` itself isn't kept
+    if jsonb_typeof(p_data -> 'dt') = 'array' then
+      outd := jsonb_set(outd, '{drops}', public.keep_unseen_drops(r.data -> 'drops', p_data -> 'drops', p_data -> 'dt'));
+    end if;
+    outd := outd - 'dt';
     if not boss then
       -- builders with access can't change who has access
       outd := jsonb_set(outd, '{lock}', coalesce(r.data -> 'lock', 'null'::jsonb));
@@ -595,7 +628,9 @@ begin
   -- tiles of Red / Blue Lock areas that let this player build (alock_area_only)
   outd := case when public.alock_grants(r.data, me) then public.alock_area_only(r.data, p_data, me) else r.data end;
   -- (Oct 27 2026) not the visitor's whole list any more: visitor_drops keeps the saved drops they may not take
-  outd := jsonb_set(outd, '{drops}', public.visitor_drops(r.data -> 'drops', p_data -> 'drops', me));
+  -- (Nov 4 2026) a drop the visitor's game never had counts as still there, not as taken (keep_unseen_drops)
+  outd := jsonb_set(outd - 'dt', '{drops}', public.visitor_drops(r.data -> 'drops',
+    public.keep_unseen_drops(r.data -> 'drops', p_data -> 'drops', p_data -> 'dt'), me));
   if jsonb_typeof(r.data -> 'vends') = 'array' and jsonb_typeof(p_data -> 'vends') = 'array' then
     for e in select * from jsonb_array_elements(r.data -> 'vends') loop
       ov := e -> 1;
@@ -1043,6 +1078,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('ride_truck', 1, 80000, true, 0),
   ('ride_car', 1, 70000, true, 0),
   ('ride_harvester', 1, 75000, true, 0),
+  ('ride_leaf', 1, 90000, true, 0), -- Leaf Glider (Nov 4 2026)
   -- girls' clothes (clothes.js) and styled hair (hairstyles.js), Oct 31 2026
   ('pink_sundress', 1, 6000, true, 0),
   ('flower_dress', 1, 7000, true, 0),
@@ -1149,7 +1185,11 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_jade_dragon', 1, 100000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
+<<<<<<< HEAD
 delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('halo', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('red_knit_scarf', 1), ('blue_striped_scarf', 1), ('red_bandana', 1), ('big_orange_scarf', 1), ('big_black_scarf', 1), ('big_striped_scarf', 1), ('black_scarf', 1), ('candy_stripe_scarf', 1), ('green_plaid_scarf', 1), ('snowflake_scarf', 1), ('pink_fluffy_scarf', 1), ('rainbow_scarf', 1), ('royal_silk_scarf', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('vampire_face', 1), ('vampire_eyes', 1), ('sailor_shirt', 1), ('flower_shirt', 1), ('camo_shirt', 1), ('red_flannel', 1), ('heart_tee', 1), ('star_tee', 1), ('ball_jersey', 1), ('sunset_tee', 1), ('denim_shorts', 1), ('black_shorts', 1), ('track_shorts', 1), ('board_shorts', 1), ('camo_shorts', 1), ('blue_slippers', 1), ('pink_slippers', 1), ('green_slippers', 1), ('gold_slippers', 1), ('red_sneakers', 1), ('black_sneakers', 1), ('blue_sneakers', 1), ('gold_sneakers', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('pink_sundress', 1), ('flower_dress', 1), ('red_party_dress', 1), ('blue_polka_dress', 1), ('sailor_dress', 1), ('lavender_gown', 1), ('ruffle_blouse', 1), ('bow_top', 1), ('pink_skirt', 1), ('plaid_skirt', 1), ('denim_skirt', 1), ('pink_flats', 1), ('red_flats', 1), ('white_flats', 1), ('lilac_slippers', 1), ('fire_quiff', 1), ('frosted_quiff', 1), ('pink_ombre_long_hair', 1), ('rainbow_long_hair', 1), ('blue_streak_spikes', 1), ('galaxy_spikes', 1), ('sunset_ponytail', 1), ('mint_ponytail', 1), ('lavender_swept_hair', 1), ('blue_streak_swept_hair', 1), ('cotton_candy_bun', 1), ('galaxy_bun', 1), ('blue_tip_bob', 1), ('red_streak_bob', 1), ('gold_tip_top_bun', 1), ('mint_top_bun', 1), ('purple_ombre_long_hair', 1), ('silver_streak_long_hair', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('set_fishing', 1), ('set_stage', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_raptor', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+=======
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('halo', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('red_knit_scarf', 1), ('blue_striped_scarf', 1), ('red_bandana', 1), ('big_orange_scarf', 1), ('big_black_scarf', 1), ('big_striped_scarf', 1), ('black_scarf', 1), ('candy_stripe_scarf', 1), ('green_plaid_scarf', 1), ('snowflake_scarf', 1), ('pink_fluffy_scarf', 1), ('rainbow_scarf', 1), ('royal_silk_scarf', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('vampire_face', 1), ('vampire_eyes', 1), ('sailor_shirt', 1), ('flower_shirt', 1), ('camo_shirt', 1), ('red_flannel', 1), ('heart_tee', 1), ('star_tee', 1), ('ball_jersey', 1), ('sunset_tee', 1), ('denim_shorts', 1), ('black_shorts', 1), ('track_shorts', 1), ('board_shorts', 1), ('camo_shorts', 1), ('blue_slippers', 1), ('pink_slippers', 1), ('green_slippers', 1), ('gold_slippers', 1), ('red_sneakers', 1), ('black_sneakers', 1), ('blue_sneakers', 1), ('gold_sneakers', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('pink_sundress', 1), ('flower_dress', 1), ('red_party_dress', 1), ('blue_polka_dress', 1), ('sailor_dress', 1), ('lavender_gown', 1), ('ruffle_blouse', 1), ('bow_top', 1), ('pink_skirt', 1), ('plaid_skirt', 1), ('denim_skirt', 1), ('pink_flats', 1), ('red_flats', 1), ('white_flats', 1), ('lilac_slippers', 1), ('fire_quiff', 1), ('frosted_quiff', 1), ('pink_ombre_long_hair', 1), ('rainbow_long_hair', 1), ('blue_streak_spikes', 1), ('galaxy_spikes', 1), ('sunset_ponytail', 1), ('mint_ponytail', 1), ('lavender_swept_hair', 1), ('blue_streak_swept_hair', 1), ('cotton_candy_bun', 1), ('galaxy_bun', 1), ('blue_tip_bob', 1), ('red_streak_bob', 1), ('gold_tip_top_bun', 1), ('mint_top_bun', 1), ('purple_ombre_long_hair', 1), ('silver_streak_long_hair', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('set_fishing', 1), ('set_stage', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_raptor', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+>>>>>>> 3c3db67 (add leaf ride)
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,

@@ -68,7 +68,8 @@ function setFgBytes(loB64, hiB64) {
   for (let i = 0; i < fg.length; i++) fg[i] = lo[i] !== FG_EXT ? lo[i] : hi[i] && BLOCK[254 + hi[i]] ? 254 + hi[i] : 0;
 }
 function worldData() {
-  const [fgLo, fgHi] = fgBytes();
+  const [fgLo, fgHi] = fgBytes(),
+    dl = savedDrops(MAX_DROPS);
   return {
     fg: toB64(fgLo),
     fgx: toB64(fgHi),
@@ -89,7 +90,12 @@ function worldData() {
     // floating drops stay in the world: [uid, item, qty, x, y, dropped at (ms), dropped by]
     // (owner's bug, Oct 31 2026: coins and items left floating vanished) over MAX_DROPS the OLDEST ones used to be
     // cut off; now they are packed together instead (savedDrops), so nothing floating is lost
-    drops: savedDrops(MAX_DROPS),
+    drops: dl,
+    // (owner, Nov 4 2026: floating coins / items in his world kept vanishing) the drops this game SAW go away (picked
+    // up, joined into a bigger coin, packed, cleared): the server takes only these out of the saved list, so a game
+    // that simply never got a drop (came in later, missed the message) can't wipe it any more (schema.sql
+    // keep_unseen_drops). Not kept in the world itself.
+    dt: dropsGone(dl),
     visited: Date.now(),
   };
 }
@@ -159,6 +165,27 @@ function applyWorld(w, skew = 0) {
   for (const [uid, id, qty, x, y, born, by, ck] of w.drops || [])
     if (typeof uid === 'string' && (id === 'gold' || ITEMS[id]) && qty > 0)
       drops.push({ uid, id, qty, x, y, age: 1, minAge: 0, ph: Math.random() * 6.28, born: (+born || 0) + skew, by: by || null, ck: id === 'gold' && COIN_LOOK[ck] ? ck : undefined });
+  // a new world: nothing seen go away yet
+  dropSeen.clear();
+  for (const d of drops) dropSeen.add(d.uid);
+}
+// every floating drop this game has had in the current world (added every frame in stepFx, physics.js), so a save
+// can tell the server which ones went away here (worldData `dt`)
+const dropSeen = new Set(),
+  DROP_SEEN_MAX = 6000,
+  DROP_GONE_MAX = 3000;
+function dropsGone(saved) {
+  const keep = new Set(saved.map((e) => e[0])),
+    here = new Set(drops.map((d) => d.uid));
+  // forget the oldest gone ones when the list gets long (a world with a lot of coins coming and going)
+  if (dropSeen.size > DROP_SEEN_MAX)
+    for (const u of dropSeen) {
+      if (dropSeen.size <= DROP_SEEN_MAX) break;
+      if (!here.has(u)) dropSeen.delete(u);
+    }
+  const out = [];
+  for (const u of dropSeen) if (!keep.has(u)) out.push(u);
+  return out.slice(-DROP_GONE_MAX);
 }
 function saveWorld(force) {
   if (!inWorld) return;

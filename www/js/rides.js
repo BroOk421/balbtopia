@@ -24,6 +24,8 @@ const RIDES = [
   { id: 'ride_car', name: 'Red Car', kind: 'car', cell: 0.744, res: 0.484, lift: 0, seat: 9.6, speed: 1.4, gold: 70000, rarity: 'Epic', ol: '#100c18', desc: 'A little red car with a white stripe.' },
   { id: 'ride_harvester', name: 'Harvester', kind: 'harvester', cell: 0.744, res: 0.484, lift: 0, seat: 9.6, speed: 0.7, fixed: true, harvest: true, gold: 75000, rarity: 'Legendary', ol: '#100c18', desc: 'A green farm harvester. Drive it past ripe trees and it harvests them for you.' },
   { id: 'ride_truck', name: 'Fire Truck', kind: 'truck', cell: 0.744, res: 0.484, lift: 0, seat: 9.6, speed: 1.5, gold: 80000, rarity: 'Legendary', ol: '#100c18', desc: 'A fire truck with a big front cab, a long ladder and a flashing siren. The fastest ride.' },
+  // (owner, Nov 4 2026: his picture of a green leaf) you STAND on it, the leaf over your feet, leaves blowing out behind
+  { id: 'ride_leaf', name: 'Leaf Glider', kind: 'leaf', cell: 0.58, res: 1, lift: 0, seat: 0, speed: 1.45, gold: 90000, rarity: 'Legendary', ol: null, desc: 'A big red and orange leaf that floats over the ground. Stand on it and glide, a trail of colourful leaves blowing out behind you.' },
 ];
 const RIDE_BY_ID = {};
 // the rider's legs (and hips) across, in world px from his middle, facing right: body px 18-90 of the 118 wide sprite
@@ -129,6 +131,7 @@ function ridePainter(res) {
 // a finished layer: the fine pixels + a one fine pixel outline, on a canvas of RIDE_W x RIDE_H drawing units
 function rideCanvas(m, ol) {
   const out = new Map(m);
+  if (ol)
   for (const k of m.keys()) {
     const [i, j] = k.split(',').map(Number);
     for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -476,7 +479,265 @@ function paintHarvester(state, f) {
   F.clearGround();
   return { back: B.m, front: F.m, bob: shake };
 }
-const RIDE_PAINT = { horse: paintHorse, car: paintCar, truck: paintTruck, harvester: paintHarvester };
+// the Leaf Glider (owner's picture, Nov 4 2026: art-source/rides/leaf_glider_source.png; only the green leaf kept, the
+// petals / wisps under it removed, cut to 56 x 21 pixels with its own outline: leaf_glider_cut.png). A crescent: the
+// tips curl up, the rider's feet stand in the dip of its top edge (row LEAF_FEET), the leaf drawn over them.
+const LEAF_MAP = [
+    '.a....................................................a.',
+    'ac...................................................aca',
+    'adaa.................................................ada',
+    'adea................................................acda',
+    'adeecaa..........................................aaaeeda',
+    'aaeeeeeaa.................................aaaaa..aeeeeaa',
+    '.abeeffbba.....aaaaaaa....aaaaabaa.......acedcaaaeeedba.',
+    '.abeefeddaa...aacddcaa....abdcddaa.......acddceeeedddb..',
+    '..abeefffcbaaacddeedbaaaaadeeedccdaa..aaaadceeffeeddca..',
+    '...adefffeddcdddeffdddccdceeeeeeeedcaaccddeffffeccdba...',
+    '...baddfffeddffffffffddcdcdddeeeeedcaadcdefffffeddcab...',
+    '....bbeeeeeeeefffffffddeeddddeeedcdeeeffeeeefffedbaa....',
+    '.....aeeeeeeeeeeeeffffffeddcfffedddeeeffeeeeeeddcaa.....',
+    '......addeeeeeeeeeefffffeeeffffffeeeeeeeeeeeeedda.......',
+    '......ababdcddeeeeeeefefffffffeeeeeeeedddddddccaa.......',
+    '......baaacccccddeeeefeeffffffeeeeeeeeddddddbaa.........',
+    '.........aaaccdddeeeeeeeeeeeeeeeffeddddddcbabaa.........',
+    '............aaaddeeeeeeeeeeeeeeeffecddccbbaa............',
+    '............aabdcdccccccccccccdddddcdcdaaa..............',
+    '..............aaaaaccccccccccccccdccaaaa................',
+    '...................aaaaaaaaaaaaaaaaaa...................',
+  ],
+  // (owner, Nov 4 2026, build i: red with orange, was green #282b00 #3c4001 #787e01 #7b8301 #a3ba08 #cbe21c)
+  LEAF_PAL = { a: '#3a0808', b: '#5e0e0c', c: '#a01c16', d: '#b8261a', e: '#e23a22', f: '#ff8a24' },
+  LEAFR = {
+    feet: 11.5, // the rider's soles are this many leaf pixels under the top of the picture (half the shoe is covered)
+    hover: 3, // world px between the ground and the leaf's bottom
+    bob: 0.7, // world px up and down while floating
+    bobMs: 520,
+    // the trail (owner, Nov 4 2026, later): HIS petals from the picture (PETAL_MAPS), red, orange or the glider's
+    // green, coming out of the FEET now and then, 1, 2 or 3 at a time; they swing, blow backwards, fade with distance
+    gap: [[0.2, 0.5], [0.12, 0.38]], // seconds between bursts standing / moving
+    max: 40, // at most per player
+    far: 90, // world px from the rider where a trail leaf has faded out completely
+    carry: 0.9, // share of the rider's own speed a petal starts with, so it follows him a while before falling behind
+    drag: 0.6, // how fast the air takes that speed away (per second)
+    fadeFrom: 0.62, // (owner: the effect was hard to see) fully solid until this share of `far`, then it fades
+    long: 1.25, // (owner) the glider drawn this much longer than tall (its height, so the feet, unchanged)
+    life: [2.8, 3.8], // seconds (long enough to get far away; they fade by distance, not by time)
+    idleLife: [0.9, 1.6], // seconds: standing still, the petals round the glider fade out in this time
+    speed: [14, 30], // world px a second backwards
+    front: 0.45, // share of petals drawn over the glider
+    px: 0.58, // world px per petal pixel (the glider's own pixel size, so they are as big as in his picture)
+    // petal tones 0 (outline) .. 3 (lightest)
+    cols: [
+      ['#6a0a0c', '#a8141a', '#e0302a', '#ff6a4a'], // red
+      ['#7a2a04', '#c8480a', '#f47a14', '#ffb030'], // orange
+      ['#282b00', '#787e01', '#a3ba08', '#cbe21c'], // green (the glider's first colour)
+    ],
+  };
+// the owner's petals, cut from his picture (art-source/rides/leaf_glider_source.png, the red / orange ones round the
+// leaf; the wisps and specks left out) at the picture's own pixel size, each pixel a tone 0-3
+const LEAF_BITS = {},
+  LEAF_TRAILS = new Map();
+const PETAL_MAPS = [
+  ['00.............', '0100...........', '.022100........', '..03221........', '..0222210......', '..01222220.....', '...022222200...', '...022222220...', '....02222222000', '....001221000..', '......00000....', '......0000.....'],
+  ['00000..........', '0111100........', '.0222111.......', '.022222210.....', '..022222210....', '..0122222211...', '...01222222100.', '....01122211100', '.....000000....', '......00001....'],
+  ['.........11...', '........021111', '.......1223321', '......12233321', '....123233331.', '..12333233320.', '.11333212111..', '.1333310110...', '12221110......', '111...........'],
+  ['.......11....', '..13211211...', '1123331221...', '13333333221..', '.13333333321.', '..1233332221.', '....111111111', '....111111...'],
+  ['.......101', '......110.', '.....1210.', '...01221..', '...12220..', '..022220..', '.1222210..', '0122210...', '..0000....', '..000.....'],
+  ['000......', '0210.....', '022211...', '.1222211.', '.12222210', '..111110.', '...0000..'],
+  ['...111.', '..13331', '.133331', '.13331.', '.3331..', '1111...'],
+  ['2222...', '23332..', '23333..', '.233322', '..22222'],
+  ['...111', '..1231', '.1331.', '1121..', '0111..'],
+  ['....1', '...11', '.0221', '12210', '000..'],
+  ['...11.', '112311', '.1321.', '..11..'],
+  ['010.', '121.', '.120', '..00'],
+];
+// one petal in a colour (cached)
+function leafBit(n, col) {
+  const k = n + ':' + col;
+  if (LEAF_BITS[k]) return LEAF_BITS[k];
+  const C = LEAFR.cols[col],
+    rows = PETAL_MAPS[n],
+    cv = document.createElement('canvas');
+  cv.width = Math.max(...rows.map((r) => r.length));
+  cv.height = rows.length;
+  const x = cv.getContext('2d');
+  rows.forEach((row, j) =>
+    [...row].forEach((ch, i) => {
+      if (ch === '.') return;
+      x.fillStyle = C[+ch];
+      x.fillRect(i, j, 1, 1);
+    }),
+  );
+  return (LEAF_BITS[k] = cv);
+}
+function paintLeaf() {
+  const F = ridePainter(1);
+  F.map(LEAF_MAP, -LEAF_MAP[0].length / 2, -LEAF_MAP.length, LEAF_PAL);
+  return { back: new Map(), front: F.m, bob: 0 };
+}
+// the trail of one character (in world px, so the leaves stay where they came out while he
+// glides away); stepped while drawing, so every player's trail moves on every screen
+function leafTrail(c, r, face, fy) {
+  // (the local player is drawn from a new object every frame, so the trail is kept by player id / name)
+  const key = c.id || 'n:' + (c.name || ''),
+    T = LEAF_TRAILS.get(key) || LEAF_TRAILS.set(key, { list: [], t: now, next: 0, px: null, vx: 0 }).get(key),
+    dt = Math.max(0, Math.min(0.05, (now - T.t) / 1000)),
+    moving = !!c.walking || c.ground === false,
+    cx = c.x + c.w / 2,
+    rnd = Math.random;
+  T.t = now;
+  // the rider's speed (from how far he moved; other players have no speed of their own here), smoothed; a jump of
+  // more than 40 px (door, respawn) isn't speed
+  if (T.px !== null && dt > 0 && Math.abs(cx - T.px) < 40) T.vx += ((cx - T.px) / dt - T.vx) * Math.min(1, dt * 10);
+  else T.vx = 0;
+  T.px = cx;
+  // a burst of 1, 2 or 3 petals, then a random wait. Gliding: out of the feet, blowing out BEHIND only (owner: never
+  // to the front). Standing still (owner): around the glider, floating up a little and fading away
+  T.next -= dt;
+  if (T.next <= 0) {
+    const G = LEAFR.gap[moving ? 1 : 0],
+      n = 1 + Math.floor(rnd() * 3),
+      half = (LEAF_MAP[0].length / 2) * r.cell * LEAFR.long; // half the glider's length
+    T.next = G[0] + rnd() * (G[1] - G[0]);
+    for (let q = 0; q < n; q++) {
+      if (T.list.length >= LEAFR.max) T.list.shift();
+      const sp = LEAFR.speed[0] + rnd() * (LEAFR.speed[1] - LEAFR.speed[0]),
+        side = Math.floor(rnd() * 3) - 1, // idle (owner): left end, middle or right end of the glider, at random
+        p = {
+          age: -q * 0.06, // a burst comes out one right after the other
+          size: Math.floor(rnd() * PETAL_MAPS.length), // which petal (they are all different shapes and sizes)
+          col: Math.floor(rnd() * LEAFR.cols.length),
+          fl: rnd() < 0.5 ? -1 : 1, // mirrored or not
+          fr: rnd() < LEAFR.front, // drawn OVER the glider (owner: some must overlap the ride itself), else behind it
+          sw: 3 + rnd() * 4, // swing speed (radians a second)
+          ph: rnd() * Math.PI * 2,
+          spin: (rnd() - 0.5) * 1.2,
+        };
+      if (moving)
+        Object.assign(p, {
+          x: cx - face * (3 + rnd() * 3), // just behind the feet
+          y: fy - rnd() * 2,
+          own: -face * sp * (0.8 + q * 0.15), // its own speed backwards (the rider's speed is added while stepping)
+          vx: 0,
+          vy: -3 - rnd() * 9,
+          life: LEAFR.life[0] + rnd() * (LEAFR.life[1] - LEAFR.life[0]),
+          amp: 1 + rnd() * 2, // swing size (world px), small so a petal never swings out in front
+        });
+      else
+        Object.assign(p, {
+          idle: true,
+          x: cx + side * half * 0.72 + (rnd() - 0.5) * half * 0.5, // round that part of the glider
+          y: fy - 1 + rnd() * 5, // round its top and sides
+          own: 0,
+          vx: side ? side * (2 + rnd() * 7) : (rnd() - 0.5) * 8, // drifting a little outwards (the middle: either way)
+          vy: -4 - rnd() * 8, // and up
+          life: LEAFR.idleLife[0] + rnd() * (LEAFR.idleLife[1] - LEAFR.idleLife[0]),
+          amp: 1 + rnd() * 2.5,
+        });
+      T.list.push(p);
+    }
+  }
+  for (const p of T.list) {
+    p.age += dt;
+    if (p.age < 0) continue; // not out yet
+    if (p.idle) {
+      p.vx *= 1 - dt * 1.2;
+      p.vy *= 1 - dt * 1.2;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      continue;
+    }
+    // the rider's CURRENT speed, less and less of it as the petal gets older, plus its own speed backwards: it can
+    // never get ahead of him, and when he stops it simply drifts back (no more petals flying on past him)
+    p.own *= 1 - dt * 0.35;
+    p.vy += dt * 7; // slowly sinking
+    p.x += (T.vx * LEAFR.carry * Math.exp(-LEAFR.drag * p.age) + p.own) * dt;
+    p.y += p.vy * dt;
+  }
+  T.list = T.list.filter((p) => p.age < p.life);
+  return T.list;
+}
+function drawLeafTrail(c, ox, oy, list, alpha, front) {
+  const cx = c.x + c.w / 2,
+    cy = c.y + c.h;
+  g.save();
+  g.imageSmoothingEnabled = false;
+  const base = g.getTransform();
+  for (const p of list) {
+    if (p.age < 0 || !!p.fr !== front) continue;
+    const s = Math.sin(p.age * p.sw + p.ph),
+      x = p.x + s * p.amp, // the swing, side to side
+      y = p.y + Math.cos(p.age * p.sw * 2 + p.ph) * p.amp * 0.35,
+      d = Math.hypot(x - cx, (y - cy) * 1.2),
+      a = p.idle
+        ? Math.min(1, p.age / 0.12) * Math.min(1, ((p.life - p.age) / p.life) * 1.6) // idle: fades out as it floats away
+        : Math.min(1, p.age / 0.05) * Math.max(0, Math.min(1, (LEAFR.far - d) / (LEAFR.far * (1 - LEAFR.fadeFrom)))) * Math.min(1, (p.life - p.age) / 0.3);
+    if (a <= 0.02) continue;
+    const im = leafBit(p.size, p.col),
+      k = LEAFR.px * Z;
+    g.globalAlpha = alpha * a;
+    g.setTransform(base);
+    g.translate(Math.round(ox + x * Z), Math.round(oy + y * Z));
+    g.rotate(s * 0.7 + p.spin * p.age);
+    g.scale(k * p.fl * (Math.cos(p.age * p.sw * 0.7 + p.ph) < -0.6 ? -1 : 1), k); // flips over now and then, like a falling leaf
+    g.drawImage(im, -im.width / 2, -im.height / 2);
+  }
+  g.restore();
+}
+// riding the Leaf Glider: the trail behind, the rider STANDING (no walk / jump poses, nothing cut off), the leaf over
+// his feet
+function drawLeafRider(c, ox, oy, r) {
+  const pic = ridePic(r, 'idle', 0),
+    face = c.face || 1,
+    bob = Math.sin((now + (c.blink || 0)) / LEAFR.bobMs) * LEAFR.bob,
+    rise = LEAFR.hover + (LEAF_MAP.length - LEAFR.feet) * r.cell + bob, // world px the soles go up
+    fy = c.y + c.h + FOOT_SINK - rise, // the rider's soles: the petals come out here
+    eq = c.equipped;
+  let alpha = 1;
+  if (c.hurt > 0 && Math.floor(now / 80) % 2) alpha = 0.55;
+  if (c.spawnT > 0) alpha *= 1 - c.spawnT / SPAWN_FADE;
+  if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'big');
+  // shadow on the ground
+  const X = Math.round(ox + (c.x + c.w / 2) * Z),
+    Yg = Math.round(oy + (c.y + c.h + FOOT_SINK) * Z);
+  g.save();
+  g.globalAlpha = 0.2 * alpha;
+  g.fillStyle = '#000';
+  g.beginPath();
+  g.ellipse(X, Yg, 24 * r.cell * LEAFR.long * Z, 1.6 * Z, 0, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+  const trail = leafTrail(c, r, face, fy);
+  drawLeafTrail(c, ox, oy, trail, alpha, false); // the petals behind the glider
+  // the rider, standing still on the leaf
+  const walking = c.walking,
+    ground = c.ground;
+  c.equipped = { ...eq, pet: null };
+  c.rideBase = eq;
+  c.walking = false;
+  c.ground = true;
+  let res;
+  try {
+    res = rideOldDraw(c, ox, oy - rise * Z);
+  } finally {
+    c.equipped = eq;
+    c.walking = walking;
+    c.ground = ground;
+    delete c.rideBase;
+  }
+  // the leaf, over his feet
+  g.save();
+  g.imageSmoothingEnabled = false;
+  g.globalAlpha *= alpha;
+  g.translate(X, Math.round(oy + (c.y + c.h + FOOT_SINK - LEAFR.hover - bob) * Z));
+  g.scale(face * r.cell * LEAFR.long * Z, r.cell * Z);
+  g.drawImage(pic.front, -RIDE_AX, -RIDE_AY);
+  g.restore();
+  drawLeafTrail(c, ox, oy, trail, alpha, true); // and the ones over it
+  if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
+  return res;
+}
+const RIDE_PAINT = { horse: paintHorse, car: paintCar, truck: paintTruck, harvester: paintHarvester, leaf: paintLeaf };
 const RIDE_PICS = {};
 function ridePic(r, state, f) {
   const k = r.id + ':' + state + ':' + f;
@@ -557,6 +818,7 @@ const rideOldDraw = drawCharacter;
 drawCharacter = function (c, ox, oy) {
   const r = rideOf(c);
   if (!r) return rideOldDraw(c, ox, oy);
+  if (r.kind === 'leaf') return drawLeafRider(c, ox, oy, r);
   const { st, f } = rideState(c, r),
     pic = ridePic(r, st, f),
     eq = c.equipped,
