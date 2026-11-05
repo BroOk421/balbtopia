@@ -162,7 +162,7 @@ const BIG_FRAMES = 10,
 // both feet stand on the floor (owner: no gap under the feet). sink = px under the ground's top, like your feet.
 const CYBORG = { frames: 20, idle: [0, 4], walk: [4, 6], left: 10, scale: 64 / 60, plant: 4, sink: 1 };
 // the flying dragons: every one as long as SKY.len world px from tail to snout
-const SKY = { frames: 12, beat: 9, roar: 9, len: 84, flapMs: 80, roarMs: 420, fireAt: 150, hover: 8, headY: 38 };
+const SKY = { frames: 12, beat: 9, roar: 9, len: 100, flapMs: 80, roarMs: 420, fireAt: 150, hover: 8, headY: 38 };
 const petScale = (p) => (p.sky ? SKY.len / p.len : p.robot ? CYBORG.scale : BIG_SCALE);
 function stripFrames(im, n) {
   const w = Math.floor(im.width / n);

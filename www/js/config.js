@@ -600,7 +600,6 @@ const SPLICE = {
   "blue_block+glass_pane": "fish_tank",
   "mushroom+torch": "magic_mushroom",
   "glass_pane+lava": "lava_lamp",
-  "dirt+water_bucket": "sand",
   "sand+yellow_block": "sponge",
   "bush+dirt": "bush_block",
   "dirt+romantic_bushes": "romantic_bush_block",

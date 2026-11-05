@@ -103,7 +103,7 @@ function namePopup(title, text, opts, ok) {
     [
       { label: 'Cancel', cls: 'ghost', run: () => {} },
       {
-        label: 'Confirm',
+        label: opts.okLabel || 'Confirm',
         run: async (b) => {
           const v = b.querySelector('#rnIn').value.trim(),
             err = b.querySelector('#rnErr');

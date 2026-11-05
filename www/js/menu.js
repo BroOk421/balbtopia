@@ -151,10 +151,6 @@ function worldsTab(el) {
 function settingsTab(el) {
   // (no Walk style any more: everyone walks with strides, owner Oct 22 2026)
   el.innerHTML = `
-    <div class="set">
-      <span>Camera</span>
-      <span class="zoom"><small>Far</small><input type="range" id="sZoom" min="0" max="${ZOOM_MAX}" step="1" aria-label="Camera distance" /><small>Near</small></span>
-    </div>
     <label class="set"><span>Sound</span><input type="checkbox" id="sSnd" /></label>
     <label class="set"><span>Vibration ${Native.isApp ? '' : '<small>(phone app)</small>'}</span><input type="checkbox" id="sVib" /></label>
     <div class="set"><span>Account <span class="acct">${playerName}</span></span>
@@ -162,14 +158,8 @@ function settingsTab(el) {
     </div>
     <div class="set"><span>Version</span><small>Build ${GAME_BUILD}</small>
     </div>`;
-  const vib = el.querySelector('#sVib'),
-    zm = el.querySelector('#sZoom');
-  zm.value = settings.zoom || 0;
-  zm.oninput = () => {
-    settings.zoom = Math.max(0, Math.min(ZOOM_MAX, Number(zm.value) || 0));
-    resize();
-  };
-  zm.onchange = () => savePlayer();
+  // (the Camera slider is gone: mouse wheel / pinch zoom, camzoom.js)
+  const vib = el.querySelector('#sVib');
   const snd = el.querySelector('#sSnd');
   snd.checked = settings.sound !== false;
   snd.onchange = () => {

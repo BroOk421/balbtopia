@@ -51,7 +51,9 @@ function resize() {
   // Settings → Camera: 0 is the farthest view (the default); each step brings it closer,
   // but never so close that fewer than about 4 tiles fit top to bottom
   const near = Math.max(far, Math.floor(cv.height / (4 * TS)));
-  Z = Math.min(far + ((typeof settings !== 'undefined' && settings.zoom) || 0), near);
+  // (owner, Nov 5 2026) no Camera setting any more: mouse wheel / two-finger pinch zoom smoothly between far and
+  // near (camzoom.js camZ); before it loads, the old way
+  Z = typeof camZ === 'function' ? camZ(far, near) : Math.min(far + ((typeof settings !== 'undefined' && settings.zoom) || 0), near);
   if (typeof inLobby === 'function' && inLobby()) Z = lobbyZoom(); // your LOBBY: fixed, the whole room fits (lobby.js)
   g.imageSmoothingEnabled = false;
 }

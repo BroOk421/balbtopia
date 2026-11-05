@@ -559,6 +559,12 @@ const NIGHT_STARS = (() => {
   const rnd = nightRnd(0x41a7);
   return Array.from({ length: 48 }, () => ({ x: rnd(), y: rnd(), r: 0.7 + rnd() * 1.3, ph: rnd() * 6.28, sp: 0.5 + rnd() * 1.7 }));
 })();
+// the TOP of the night sky gets its own stars like the Halloween sky (owner, Nov 5 2026): a second seeded set in the
+// Halloween look (warm white, 0.35-1 twinkle), from above the backdrop's top down to about the moon's height
+const NIGHT_TOP_STARS = (() => {
+  const rnd = nightRnd(0x7a11);
+  return Array.from({ length: 56 }, () => ({ x: rnd(), y: rnd(), r: 0.7 + rnd() * 1.3, ph: rnd() * 6.28, sp: 0.6 + rnd() * 1.6 }));
+})();
 // a ridge that repeats every `period`: a few sine waves with whole-number counts (so the ends meet), 0..1 high
 function nightRidge(seed) {
   const rnd = nightRnd(seed),
@@ -603,6 +609,16 @@ function drawNightBg() {
       g.fillRect(x - z, y + z * 0.35, z * 3, z * 0.3);
       g.fillRect(x + z * 0.35, y - z, z * 0.3, z * 3);
     }
+  }
+  // the top of the sky: Halloween-style stars, higher up (also above the backdrop on tall screens)
+  for (const st of NIGHT_TOP_STARS) {
+    const a = 0.35 + 0.65 * Math.abs(Math.sin((now / 900) * st.sp + st.ph)),
+      x = ((((st.x * W * 1.3 + sx0) % (W * 1.3)) + W * 1.3) % (W * 1.3)) - W * 0.15,
+      y = horizon - bh * (0.5 + st.y * 0.65),
+      z = st.r * Math.max(1, s * 2);
+    if (y < -z || y > H) continue;
+    g.fillStyle = `rgba(255,255,240,${a})`;
+    g.fillRect(x, y, z, z);
   }
   // the moon: the owner's flat disc in cream, with a soft blue-white glow, drifting with the camera like the Halloween moon
   const moon = nightImg('moon');

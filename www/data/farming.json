@@ -1356,6 +1356,69 @@
     },
     "spotlight": {
       "growSeconds": 360
+    },
+    "hanging_vines": {
+      "growSeconds": 300
+    },
+    "arrow_gate_up": {
+      "growSeconds": 300
+    },
+    "arrow_gate_down": {
+      "growSeconds": 300
+    },
+    "arrow_gate_left": {
+      "growSeconds": 300
+    },
+    "arrow_gate_right": {
+      "growSeconds": 300
+    },
+    "neon_gray": {
+      "growSeconds": 300
+    },
+    "neon_green": {
+      "growSeconds": 300
+    },
+    "neon_red": {
+      "growSeconds": 300
+    },
+    "neon_orange": {
+      "growSeconds": 300
+    },
+    "neon_blue": {
+      "growSeconds": 300
+    },
+    "neon_purple": {
+      "growSeconds": 300
+    },
+    "neon_yellow": {
+      "growSeconds": 300
+    },
+    "neon_white": {
+      "growSeconds": 300
+    },
+    "neon_off": {
+      "growSeconds": 300
+    },
+    "seashell": {
+      "growSeconds": 240
+    },
+    "starfish": {
+      "growSeconds": 240
+    },
+    "sand_castle": {
+      "growSeconds": 300
+    },
+    "tombstone": {
+      "growSeconds": 300
+    },
+    "skull_sign": {
+      "growSeconds": 300
+    },
+    "bent_danger_sign": {
+      "growSeconds": 240
+    },
+    "diving_board": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -3086,15 +3149,6 @@
       "result": "sugar_cane",
       "source": "growtopia",
       "note": "Sugar Cane = Seaweed + Smiley Plaque (growtopiawiki.com)"
-    },
-    {
-      "seeds": [
-        "dirt",
-        "water_bucket"
-      ],
-      "result": "sand",
-      "source": "balbtopia",
-      "note": "Sand = Dirt + Water Bucket (Growtopia Sand can't be spliced)"
     },
     {
       "seeds": [
@@ -5561,6 +5615,195 @@
       "result": "spotlight",
       "source": "balbtopia",
       "note": "spotlight = galaxy_block + neon_lights (Balbtopia recipe, Nov 3 2026)"
+    },
+    {
+      "seeds": [
+        "viney_block",
+        "wooden_platform"
+      ],
+      "result": "hanging_vines",
+      "source": "balbtopia",
+      "note": "hanging_vines = viney_block + wooden_platform (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "arrow_block_up",
+        "neon_lights"
+      ],
+      "result": "arrow_gate_up",
+      "source": "balbtopia",
+      "note": "arrow_gate_up = arrow_block_up + neon_lights (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "arrow_block_down",
+        "neon_lights"
+      ],
+      "result": "arrow_gate_down",
+      "source": "balbtopia",
+      "note": "arrow_gate_down = arrow_block_down + neon_lights (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "arrow_block_left",
+        "neon_lights"
+      ],
+      "result": "arrow_gate_left",
+      "source": "balbtopia",
+      "note": "arrow_gate_left = arrow_block_left + neon_lights (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "arrow_block_right",
+        "neon_lights"
+      ],
+      "result": "arrow_gate_right",
+      "source": "balbtopia",
+      "note": "arrow_gate_right = arrow_block_right + neon_lights (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "grey_block"
+      ],
+      "result": "neon_gray",
+      "source": "balbtopia",
+      "note": "neon_gray = neon_lights + grey_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "green_block"
+      ],
+      "result": "neon_green",
+      "source": "balbtopia",
+      "note": "neon_green = neon_lights + green_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "red_block"
+      ],
+      "result": "neon_red",
+      "source": "balbtopia",
+      "note": "neon_red = neon_lights + red_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "orange_block"
+      ],
+      "result": "neon_orange",
+      "source": "balbtopia",
+      "note": "neon_orange = neon_lights + orange_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "blue_block"
+      ],
+      "result": "neon_blue",
+      "source": "balbtopia",
+      "note": "neon_blue = neon_lights + blue_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "purple_block"
+      ],
+      "result": "neon_purple",
+      "source": "balbtopia",
+      "note": "neon_purple = neon_lights + purple_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "yellow_block"
+      ],
+      "result": "neon_yellow",
+      "source": "balbtopia",
+      "note": "neon_yellow = neon_lights + yellow_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "white_block"
+      ],
+      "result": "neon_white",
+      "source": "balbtopia",
+      "note": "neon_white = neon_lights + white_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "neon_lights",
+        "black_block"
+      ],
+      "result": "neon_off",
+      "source": "balbtopia",
+      "note": "neon_off (Unlit Neon) = neon_lights + black_block (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "sand",
+        "white_block"
+      ],
+      "result": "seashell",
+      "source": "balbtopia",
+      "note": "Seashell = Sand + White Block (beach blocks, Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "orange_block",
+        "sand"
+      ],
+      "result": "starfish",
+      "source": "balbtopia",
+      "note": "Starfish = Sand + Orange Block (beach blocks, Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "sand",
+        "sandstone_bricks"
+      ],
+      "result": "sand_castle",
+      "source": "balbtopia",
+      "note": "Sand Castle = Sand + Sandstone Bricks (beach blocks, Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "rock",
+        "sign"
+      ],
+      "result": "tombstone",
+      "source": "balbtopia",
+      "note": "Tombstone = Rock + Sign (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "danger_sign",
+        "skeleton"
+      ],
+      "result": "skull_sign",
+      "source": "balbtopia",
+      "note": "Skull Sign = Danger Sign + Skeleton (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "danger_sign",
+        "sand"
+      ],
+      "result": "bent_danger_sign",
+      "source": "balbtopia",
+      "note": "Bent Danger Sign = Danger Sign + Sand (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "spring",
+        "wooden_platform"
+      ],
+      "result": "diving_board",
+      "source": "balbtopia",
+      "note": "diving_board = spring + wooden_platform (Balbtopia recipe, Nov 5 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

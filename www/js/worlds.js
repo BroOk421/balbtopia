@@ -453,6 +453,27 @@ setInterval(() => {
     savePlayer();
   }
 }, 4000);
+// (owner, Nov 5 2026: floating coins / items left in a world vanished when he put a new build in and reloaded) a
+// drop that appears or goes away is saved within DROP_SAVE_MS, not at the next 4 s tick, so reloading right after
+// an ATM pay-out or a drop can't lose it; and the save runs as soon as the page starts going away (beforeunload),
+// while the request can still get out
+const DROP_SAVE_MS = 400;
+let dropSig = '';
+setInterval(() => {
+  if (!inWorld) return;
+  let sig = drops.length + ':';
+  for (const d of drops) sig += d.uid + d.qty;
+  if (sig === dropSig) return;
+  dropSig = sig;
+  saveWorld();
+  if (typeof ownLobby === 'function' && ownLobby()) savePlayer();
+}, DROP_SAVE_MS);
+addEventListener('beforeunload', () => {
+  if (inWorld) {
+    saveWorld();
+    savePlayer();
+  }
+});
 addEventListener('pagehide', () => {
   if (inWorld) {
     saveWorld();

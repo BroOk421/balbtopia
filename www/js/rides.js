@@ -27,7 +27,7 @@ const RIDES = [
   // (owner, Nov 4 2026: his picture of a green leaf) you STAND on it, the leaf over your feet, leaves blowing out behind
   { id: 'ride_leaf', name: 'Leaf Glider', kind: 'leaf', cell: 0.58, res: 1, lift: 0, seat: 0, speed: 1.45, gold: 90000, rarity: 'Legendary', ol: null, desc: 'A big red and orange leaf that floats over the ground. Stand on it and glide, a trail of colourful leaves blowing out behind you.' },
   // (owner, Nov 4 2026: "gawa ka ng rides na cloud") you STAND on four little clouds going round under your feet
-  { id: 'ride_cloud', name: 'Cloud Ride', kind: 'cloud', cell: 0.62, res: 1, lift: 0, seat: 0, speed: 1.5, flap: true, gold: 100000, rarity: 'Legendary', ol: '#7d89c4', desc: 'Four little clouds that go round under your feet. Stand on them and fly, with one more jump in the air; moving, the clouds behind you trail off and float back.' },
+  { id: 'ride_cloud', name: 'Cloud Ride', kind: 'cloud', noShop: true, cell: 0.62, res: 1, lift: 0, seat: 0, speed: 1.5, flap: true, gold: 100000, rarity: 'Legendary', ol: '#7d89c4', desc: 'Four little clouds that go round under your feet. Stand on them and fly, with one more jump in the air; moving, the clouds behind you trail off and float back.' },
 ];
 const RIDE_BY_ID = {};
 // the rider's legs (and hips) across, in world px from his middle, facing right: body px 18-90 of the 118 wide sprite
@@ -42,6 +42,9 @@ function rideArmed(c) {
 WEAR_SLOTS.push('ride');
 EQ_SLOTS.splice(EQ_SLOTS.indexOf('hand'), 0, 'ride');
 SLOT_NAME.ride = 'Ride';
+// the ride you are on: the Ride slot, or (owner, Nov 5 2026) the one a worn ring gives (wrist.js ringRide: the Cloud
+// Ring puts you on the Cloud Ride)
+const rideIdOf = (eq) => (eq && (eq.ride || (typeof ringRide === 'function' ? ringRide(eq) : null))) || null;
 if (!('ride' in equipped)) equipped.ride = null;
 {
   const k = SHOP_TABS.findIndex((t) => t.id === 'topup'); // before TOP UP
@@ -51,7 +54,7 @@ for (const r of RIDES) {
   RIDE_BY_ID[r.id] = r;
   ITEMS[r.id] = { name: r.name, kind: 'clothing', slot: 'ride', desc: r.desc + ' Wear it (Ride slot) to ride it.', rarity: r.rarity };
   SHOP_ICON[r.id] = () => rideIcon(r.id);
-  SHOP.push({ id: r.id, gold: r.gold, cat: 'rides' });
+  if (!r.noShop) SHOP.push({ id: r.id, gold: r.gold, cat: 'rides' }); // (Cloud Ride: not sold, it comes with the Cloud Ring)
 }
 
 // ---------- a small pixel painter (ride pixels, x right, y up from the ground = negative) ----------
@@ -609,6 +612,7 @@ function leafTrail(c, r, face, fy) {
           age: -q * 0.06, // a burst comes out one right after the other
           size: Math.floor(rnd() * PETAL_MAPS.length), // which petal (they are all different shapes and sizes)
           col: Math.floor(rnd() * LEAFR.cols.length),
+          lf: Math.floor(rnd() * 15), // (owner, Nov 5 2026) which of HIS autumn leaves (autumn.js FALL_LEAF_BOX), random
           fl: rnd() < 0.5 ? -1 : 1, // mirrored or not
           fr: rnd() < LEAFR.front, // drawn OVER the glider (owner: some must overlap the ride itself), else behind it
           sw: 3 + rnd() * 4, // swing speed (radians a second)
@@ -681,8 +685,21 @@ function drawLeafTrail(c, ox, oy, list, alpha, front) {
     g.setTransform(base);
     g.translate(Math.round(ox + x * Z), Math.round(oy + y * Z));
     g.rotate(s * 0.7 + p.spin * p.age);
-    g.scale(k * p.fl * (Math.cos(p.age * p.sw * 0.7 + p.ph) < -0.6 ? -1 : 1), k); // flips over now and then, like a falling leaf
-    g.drawImage(im, -im.width / 2, -im.height / 2);
+    const flip = p.fl * (Math.cos(p.age * p.sw * 0.7 + p.ph) < -0.6 ? -1 : 1); // flips over now and then, like a falling leaf
+    // (owner, Nov 5 2026: "the leaf ride's leaves like the ones I sent, random, but as big as they were") one of his
+    // autumn leaves (autumn.js), scaled so its longest side is the petal's longest side: same sizes as before
+    const fb = typeof FALL_LEAF_BOX !== 'undefined' && FALL_LEAF_BOX[p.lf % FALL_LEAF_BOX.length],
+      fim = fb && IMG.autumn_fall_leaves;
+    if (fim && fim.width) {
+      const q = (Math.max(im.width, im.height) * k) / Math.max(fb[2], fb[3]);
+      g.scale(flip, 1);
+      g.imageSmoothingEnabled = true;
+      g.drawImage(fim, fb[0], fb[1], fb[2], fb[3], (-fb[2] / 2) * q, (-fb[3] / 2) * q, fb[2] * q, fb[3] * q);
+      g.imageSmoothingEnabled = false;
+    } else {
+      g.scale(k * flip, k);
+      g.drawImage(im, -im.width / 2, -im.height / 2);
+    }
   }
   g.restore();
 }
@@ -718,7 +735,8 @@ function drawLeafRider(c, ox, oy, r) {
   c.rideBase = eq;
   c.realGround = ground; // (the real one, for the Autumn Wings' jump beat: autumn.js)
   c.walking = false;
-  c.ground = true;
+  // (owner, Nov 5 2026: "on a ride the character must jump too, the ride stays") c.ground is left as it is, so in
+  // the air the rider uses the jumping pictures (jump.js) while the leaf / clouds stay under him
   let res;
   try {
     res = rideStanding(c, ox, oy - rise * Z);
@@ -1035,7 +1053,8 @@ function drawCloudRider(c, ox, oy, r) {
   c.rideBase = eq;
   c.realGround = ground; // (the real one, for the Autumn Wings' jump beat: autumn.js)
   c.walking = false;
-  c.ground = true;
+  // (owner, Nov 5 2026: "on a ride the character must jump too, the ride stays") c.ground is left as it is, so in
+  // the air the rider uses the jumping pictures (jump.js) while the leaf / clouds stay under him
   let res;
   try {
     res = rideStanding(c, ox, oy - rise * Z);
@@ -1093,7 +1112,7 @@ function rideIcon(id) {
 
 // ---------- riding ----------
 function rideOf(c) {
-  const id = c && c.equipped && c.equipped.ride,
+  const id = c && rideIdOf(c.equipped),
     r = id && RIDE_BY_ID[id];
   if (!r || c.portrait || c.dead || c.rest) return null;
   if (typeof swimPose === 'function' && inWater(c)) return null;
@@ -1128,6 +1147,9 @@ function drawRideLayer(c, ox, oy, r, pic, layer) {
   g.restore();
 }
 // the rider is drawn `lift` higher; the pet stays on the ground (drawn here, around the rider, instead of inside)
+const RIDE_BACK_EDGE = -4.1; // world px: the back leg's outer edge (body x 31), right next to the back hand (x 14-30)
+const RIDE_HAND_BELOW = 6; // world px under the seat that the back hand may still show
+const RIDE_HAND_ROW = 176; // body picture row just under the hanging hands
 const rideOldDraw = drawCharacter;
 drawCharacter = function (c, ox, oy) {
   const r = rideOf(c);
@@ -1159,11 +1181,23 @@ drawCharacter = function (c, ox, oy) {
     // (owner: the arm and the weapon must lie OVER the ride, whole) the body is cut everywhere below the seat (the
     // free hand goes behind the ride); the arm that holds a tool / weapon is drawn by drawArmWithTool, which in this
     // pass is only noted and drawn afterwards, whole, over the ride
-    lx0 = -1e5,
-    lx1 = 1e5;
+    // (owner, Nov 5 2026: "on every ride the weapon AND the arms must overlap the ride, like the cloud / leaf ride")
+    // only the LEGS' box (RIDE_LEGS, world px from the middle) is cut below the seat, so both arms and hands stay
+    // in front of the ride
+    // (owner, later: "only the back hand: facing right the LEFT hand overlaps, not the right; facing left the other way")
+    // so the cut runs from the legs' back edge to the front side: the front hand stays behind the ride
+    edge = cx + fc * RIDE_BACK_EDGE * Z,
+    lx0 = fc > 0 ? edge : -1e5,
+    lx1 = fc > 0 ? 1e5 : edge;
   g.beginPath();
   g.rect(-1e5, -1e5, 2e5, 2e5);
-  g.rect(Math.floor(lx0), seatY, Math.ceil(lx1 - lx0), 1e5);
+  // the legs' box from the seat down to just under the hands, then the full width below that (the feet, wider than
+  // the legs, never show under the ride)
+  const handY = Math.round(groundY - lift - CHAR_H * Z + (RIDE_HAND_ROW / FR.h) * CHAR_H * Z);
+  // (the horse's seat is low on the rider: his hand hangs below it; the hand row is then measured from the seat)
+  const cutY = Math.max(handY, seatY + Math.round(RIDE_HAND_BELOW * Z));
+  g.rect(Math.floor(lx0), seatY, Math.ceil(lx1 - lx0), cutY - seatY);
+  g.rect(-1e5, cutY, 2e5, 1e5);
   g.clip('evenodd');
   RIDE_PASS = 2;
   // the drop shadow is skipped in this pass too, so the noted arm / weapon has the screen's coordinates
@@ -1194,7 +1228,7 @@ drawCharacter = function (c, ox, oy) {
 };
 // is the local player riding now (not sitting, swimming or dead)
 function rideLocal() {
-  return !!(RIDE_BY_ID[equipped.ride] && !P.dead && !P.rest && !(typeof inWater === 'function' && inWater(P)));
+  return !!(RIDE_BY_ID[rideIdOf(equipped)] && !P.dead && !P.rest && !(typeof inWater === 'function' && inWater(P)));
 }
 // ---------- standing riders (Leaf Glider, Cloud Ride) ----------
 // (owner, Nov 4 2026: "the weapon must overlap the ride, the leaf ride too") the rider is drawn whole, then the ride
@@ -1347,7 +1381,7 @@ drawAuraFront = function (...a) {
 // Harvester: every frame you ride it, ripe trees in the tiles you are in (and the one the reel reaches in front)
 // are harvested like a punch would (punchTree), only where you may build (canEdit, quiet)
 function rideHarvest() {
-  const r = RIDE_BY_ID[equipped.ride];
+  const r = RIDE_BY_ID[rideIdOf(equipped)];
   if (!r || !r.harvest || !rideLocal() || typeof trees === 'undefined') return;
   const front = P.face > 0 ? 10 : -10,
     x0 = Math.floor(Math.min(P.x, P.x + front) / TS),
@@ -1375,13 +1409,13 @@ stepFx = function (dt) {
 // faster on a ride (the higher of the ride and the shoes)
 const rideOldFeet = feetSpeed;
 feetSpeed = function () {
-  const r = RIDE_BY_ID[equipped.ride],
+  const r = RIDE_BY_ID[rideIdOf(equipped)],
     s = rideOldFeet();
   // (`fixed`: the ride's own speed whatever the shoes; the Harvester drives slowly, owner Oct 31 2026)
   return r && rideLocal() ? (r.fixed ? r.speed : Math.max(s, r.speed)) : s;
 };
 // one more jump in the air on a ride that flaps (physics.js asks)
 function rideAirJumps() {
-  const r = RIDE_BY_ID[equipped.ride];
+  const r = RIDE_BY_ID[rideIdOf(equipped)];
   return r && r.flap && rideLocal() ? WING_JUMPS : 0;
 }

@@ -253,11 +253,27 @@ drawWeatherSky = ((prev) =>
     g.fillStyle = gr;
     g.fillRect(0, 0, cv.width, cv.height);
   })(drawWeatherSky);
-// falling leaves (behind the world, like the snow; pinned to the world): the Leaf Glider's petals (rides.js
-// PETAL_MAPS / leafBit), red, orange or green-gold, drifting down, swinging and turning, flipping now and then
+// falling leaves (behind the world, like the snow; pinned to the world): the OWNER'S leaf picture (Nov 5 2026: "use
+// these leaves, random, for the falling ones"; art-source/autumn/fall_leaves_source.png, cut by fall_leaves_cut.py into
+// assets/autumn/fall_leaves.png, one box per leaf in FALL_LEAF_BOX), each leaf a random one of his 15, drifting down,
+// swinging and turning, flipping now and then. Also used by the Autumn Wings' jump leaves (below).
+A.autumn_fall_leaves = 'assets/autumn/fall_leaves.png';
+const FALL_LEAF_BOX = [[0, 0, 93, 101], [93, 0, 39, 35], [132, 0, 63, 74], [195, 0, 104, 86], [299, 0, 83, 96], [382, 0, 79, 109], [461, 0, 91, 89], [552, 0, 75, 68], [627, 0, 46, 69], [673, 0, 85, 74], [758, 0, 66, 84], [824, 0, 55, 43], [879, 0, 80, 75], [959, 0, 64, 49], [1023, 0, 54, 50]];
+const FALL_LEAF_PX = 6; // about how many picture px make one of his art pixels (his sheet is pixel art blown up)
+const fallLeafN = () => Math.floor(Math.random() * FALL_LEAF_BOX.length);
+// draws leaf n centred on the current origin, `k` = screen px per ART pixel (so all leaves keep his relative sizes)
+function drawFallLeaf(n, k) {
+  const im = IMG.autumn_fall_leaves;
+  if (!im || !im.width) return false;
+  const [x, y, w, h] = FALL_LEAF_BOX[n],
+    q = k / FALL_LEAF_PX;
+  g.drawImage(im, x, y, w, h, (-w / 2) * q, (-h / 2) * q, w * q, h * q);
+  return true;
+}
 const FALL_LEAVES = [];
-for (let i = 0; i < 70; i++)
-  FALL_LEAVES.push({ x: Math.random(), y: Math.random(), d: 0.35 + Math.random() * 0.65, ph: Math.random() * 6.28, n: Math.floor(Math.random() * PETAL_MAPS.length), col: Math.floor(Math.random() * 2), spin: (Math.random() - 0.5) * 2 });
+const FALL_COUNT = 30; // (owner, Nov 5 2026: 70 was too many)
+for (let i = 0; i < FALL_COUNT; i++)
+  FALL_LEAVES.push({ x: Math.random(), y: Math.random(), d: 0.35 + Math.random() * 0.65, ph: Math.random() * 6.28, n: fallLeafN(), spin: (Math.random() - 0.5) * 2 });
 let fallLast = 0;
 function drawFall() {
   const dt = Math.min(0.05, Math.max(0, (now - fallLast) / 1000));
@@ -266,24 +282,24 @@ function drawFall() {
     H = cv.height,
     u = Math.max(1, H / 600);
   g.save();
-  g.imageSmoothingEnabled = false;
+  g.imageSmoothingEnabled = true; // his leaves are shrunk a lot: smooth, so they don't sparkle
   for (const f of FALL_LEAVES) {
     f.y += dt * (0.03 + f.d * 0.06);
     f.x += dt * (Math.sin(now / 1100 + f.ph) * 0.02 - 0.006);
     if (f.y > 1.04) {
       f.y = -0.04;
       f.x = Math.random();
+      f.n = fallLeafN(); // a new random leaf each time round
     }
     const sx = (((f.x * W - cam.x * Z) % W) + W) % W,
       sy = (((f.y * H - cam.y * Z) % H) + H) % H,
-      im = leafBit(f.n, f.col),
       k = (0.9 + f.d * 1.6) * u,
       sw = Math.sin(now / 700 + f.ph);
     g.globalAlpha = 0.55 + f.d * 0.45;
     g.setTransform(1, 0, 0, 1, Math.round(sx), Math.round(sy));
     g.rotate(sw * 0.8 + f.spin * (now / 1000));
-    g.scale(k * (Math.cos(now / 900 + f.ph) < -0.7 ? -1 : 1), k);
-    g.drawImage(im, -im.width / 2, -im.height / 2);
+    g.scale(Math.cos(now / 900 + f.ph) < -0.7 ? -1 : 1, 1);
+    if (!drawFallLeaf(f.n, k)) break;
   }
   g.restore();
 }
@@ -459,6 +475,50 @@ jumpLines = ((prev) =>
     P.airJumpT = now;
     return prev(...a);
   })(jumpLines);
+// (owner, Nov 5 2026: "when jumping, autumn leaves come out from under the wings") every beat drops `AUT_SHED.n`
+// of his leaves (FALL_LEAF_BOX, random) from under each wing: they slip out a little sideways, then fall slowly,
+// swinging and turning, and fade. World particles (`parts`), so they stay where they fell out while you fly on.
+const AUT_SHED = { n: 3, art: 0.75, life: [1.1, 1.7], fall: [14, 26], out: [6, 18] };
+function autWingLeaves(c, im) {
+  const sc = CHAR_H / FR.h, // body px -> world px
+    W = AUT_WING.w * AUT_WING.big,
+    up = (AUT_WING.pivL[1] - AUT_WING.img.top) * AUT_WING.big,
+    low = (im.height * AUT_WING.big - up) * 0.55, // the wing's lower edge, below its shoulder
+    x0 = c.x + c.w / 2,
+    y0 = c.y + c.h - CHAR_H + FOOT_SINK;
+  for (const [side, piv] of [[-1, AUT_WING.pivL], [1, AUT_WING.pivR]])
+    for (let k = 0; k < AUT_SHED.n; k++) {
+      const along = 0.15 + Math.random() * 0.6, // where under the wing, root to tip
+        life = AUT_SHED.life[0] + Math.random() * (AUT_SHED.life[1] - AUT_SHED.life[0]);
+      parts.push({
+        x: x0 + (piv[0] - FR.w / 2 + side * W * along) * sc,
+        y: y0 + (piv[1] + low * (0.6 + Math.random() * 0.4)) * sc,
+        vx: side * (AUT_SHED.out[0] + Math.random() * (AUT_SHED.out[1] - AUT_SHED.out[0])),
+        vy: AUT_SHED.fall[0] + Math.random() * (AUT_SHED.fall[1] - AUT_SHED.fall[0]),
+        life,
+        life0: life,
+        plus: true,
+        draw: autWingLeaf,
+        n: fallLeafN(),
+        ph: Math.random() * 6.28,
+        spin: (Math.random() - 0.5) * 3,
+        c: '#000',
+      });
+    }
+}
+function autWingLeaf(p, ox, oy) {
+  const age = p.life0 - p.life,
+    sw = Math.sin(age * 4 + p.ph);
+  p.vx *= 0.94; // the sideways push dies down, then it just falls and swings
+  g.save();
+  g.imageSmoothingEnabled = true;
+  g.globalAlpha = Math.min(1, p.life * 1.5) * Math.min(1, age / 0.08);
+  g.translate(Math.round(ox + (p.x + sw * 2.5) * Z), Math.round(oy + p.y * Z));
+  g.rotate(sw * 0.7 + p.spin * age);
+  g.scale((Math.cos(age * 3 + p.ph) < -0.6 ? -1 : 1) * Math.min(1, 0.4 + age / 0.15), Math.min(1, 0.4 + age / 0.15));
+  drawFallLeaf(p.n, AUT_SHED.art * Z);
+  g.restore();
+}
 function drawAutumnWings(c, top, sc, dy) {
   const im = IMG.autumn_wings2,
     hi = IMG.autumn_wings_hi;
@@ -470,6 +530,10 @@ function drawAutumnWings(c, top, sc, dy) {
   if (!air) AUT_AIR.delete(key);
   else if (!S) AUT_AIR.set(key, (S = { t: now }));
   if (air && !c.id && P.airJumpT > S.t) S.t = P.airJumpT; // you jumped again in the air: another beat
+  if (S && S.shed !== S.t) {
+    S.shed = S.t; // a new beat (leaving the ground or an air jump): leaves drop out from under both wings
+    autWingLeaves(c, im);
+  }
   const kp = sc * Z, // body px -> screen (positions)
     k = kp * AUT_WING.big, // the wing pictures, bigger
     f = air ? Math.floor((now - S.t) / 1000 / AUT_BEAT) : 9, // 0 high, 1 mid, 2 low, then mid
