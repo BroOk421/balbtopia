@@ -32,9 +32,13 @@ const ROCKET_T = 420,
   MOON_SAND_WALL_BG = 43,
   MOON_ROCK_WALL_BG = 44;
 const MOON_WORLD = 'MOON';
+// (owner, Nov 6 2026) ten Moons, 20 seats each: MOON, MOON1 .. MOON9, reached from MOONEVENT (moonevent.js)
+const MOON_WORLDS = [MOON_WORLD, ...Array.from({ length: 9 }, (_, n) => 'MOON' + (n + 1))];
+const isMoonName = (n) => MOON_WORLDS.includes(n);
+const MOON_EVENT_WORLD = 'MOONEVENT';
 for (const t of [ROCKET_T, MOON_SAND_T, MOON_ROCK_T]) if (BLOCK[t]) console.error('moon.js: block number used twice: ' + t);
 for (const b of [MOON_SAND_WALL_BG, MOON_ROCK_WALL_BG]) if (BGS[b]) console.error('moon.js: background number used twice: ' + b);
-if (!NO_MOVE.includes(MOON_WORLD)) NO_MOVE.push(MOON_WORLD);
+for (const n of [...MOON_WORLDS, MOON_EVENT_WORLD]) if (!NO_MOVE.includes(n)) NO_MOVE.push(n);
 
 // ---------- items ----------
 const recName = (rec) => rec.map((r) => (ITEMS[r] ? ITEMS[r].name : r)).join(' + ');
@@ -45,19 +49,23 @@ const recName = (rec) => rec.map((r) => (ITEMS[r] ? ITEMS[r].name : r)).join(' +
     name: 'Rocket Ship',
     kind: 'block',
     block: ROCKET_T,
-    desc: 'A real rocket with its hatch open. Stand inside and click it: the hatch shuts, it blasts off and takes you to the MOON. On the Moon it takes you back home. Rocket Ship = ' + recName(rec) + '.',
+    // (owner, Nov 6 2026) no recipe any more: the Moon is reached by the Moon Event's rockets (moonevent.js); a placed
+    // Rocket Ship only flies the GM to the Moons (to try them) or, for anyone, to the world set with the wrench
+    desc: 'A real rocket with its hatch open. Players fly to the Moons from the MOONEVENT world during the Moon Event. A placed one takes you to the world its wrench sets; only the GM flies one to the Moons.',
     rarity: 'Epic',
   };
   ITEMS.rocket_ship_seed = { name: 'Rocket Ship Seed', kind: 'seed', from: 'rocket_ship', desc: 'Plant it on top of a block to grow a Rocket Ship Tree.', rarity: 'Epic' };
   SEED_COLOR.rocket_ship = ['#e8eaf2', '#d0283a', '#4ae0ff'];
   TREE_TIME.rocket_ship = 900;
   SEED_CHANCE.rocket_ship = 0.3;
-  SPLICE[[...rec].sort().join('+')] = 'rocket_ship';
+  ITEMS.rocket_ship_seed.retired = true; // (Nov 6 2026: recipe removed; old seeds / trees still grow)
 }
 DOOR_IDS.add('rocket_ship');
 BLOCK[MOON_SAND_T] = { id: 'moon_sand', name: 'Moon Sand', hits: 3, art: 'tex', fx: ['#4a4858', '#6a687c', '#2e2c3a'] };
 // (owner: "the asteroid as I gave it, not a square block": drawn as one of the five asteroid pictures, see below)
-BLOCK[MOON_ROCK_T] = { id: 'moon_rock', name: 'Moon Rock', hits: 5, art: 'deco', solid: true, fx: ['#4c4670', '#8a84b4', '#1e1a30'] };
+// (owner, Nov 6 2026: "no square dead space round the asteroid: its collision is its shape") not solid as a tile any
+// more: the collide wrapper at the end of this file stops you on the picture's own outline (rockShape)
+BLOCK[MOON_ROCK_T] = { id: 'moon_rock', name: 'Moon Rock', hits: 5, art: 'deco', solid: false, rockShape: true, fx: ['#4c4670', '#8a84b4', '#1e1a30'] };
 BGS[MOON_SAND_WALL_BG] = { id: 'moon_sand_wall', fx: ['#33313e', '#4a4858', '#22202b'] };
 BGS[MOON_ROCK_WALL_BG] = { id: 'moon_rock_wall', fx: ['#2e2a44', '#4c4670', '#1a1628'] };
 const MOON_ITEMS = [
@@ -144,6 +152,15 @@ const rockImg = (k) => {
 function drawMoonRock(k, X, Y, T, ctx = g) {
   const im = rockImg(MOON_ROCKS[k % MOON_ROCKS.length]);
   if (!im) return false;
+  // (Nov 6 2026, owner: lag) on the game screen the scaled picture is made once per size and reused (no smoothing
+  // resample of every rock every frame)
+  if (ctx === g) {
+    const c = rockTileCanvas(k % MOON_ROCKS.length, Math.round(T));
+    if (c) {
+      ctx.drawImage(c, Math.round(X), Math.round(Y));
+      return true;
+    }
+  }
   const s = Math.min((T * 0.96) / im.width, (T * 0.96) / im.height),
     w = im.width * s,
     h = im.height * s;
@@ -151,6 +168,19 @@ function drawMoonRock(k, X, Y, T, ctx = g) {
   ctx.drawImage(im, X + (T - w) / 2, Y + T - h, w, h);
   ctx.imageSmoothingEnabled = false;
   return true;
+}
+const ROCK_TILE_PICS = new Map();
+function rockTileCanvas(k, T) {
+  const key = k + ':' + T;
+  let c = ROCK_TILE_PICS.get(key);
+  if (c) return c;
+  if (T < 2 || T > 512) return null;
+  if (ROCK_TILE_PICS.size > 40) ROCK_TILE_PICS.clear(); // (zooming makes new sizes)
+  c = document.createElement('canvas');
+  c.width = c.height = T;
+  if (!drawMoonRock(k, 0, 0, T, c.getContext('2d'))) return null;
+  ROCK_TILE_PICS.set(key, c);
+  return c;
 }
 const rockPick = (x, y) => ((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % 5;
 const RK_ICON = {};
@@ -310,13 +340,26 @@ const saveRocketHome = () => {
     localStorage.setItem('balb_rocket_home', JSON.stringify(rocketHome));
   } catch (e) {}
 };
-const moonPadI = () => at(Math.min(WW - 1, door.x + 3), door.y);
-const isMoonPad = (i) => worldName === MOON_WORLD && i === moonPadI() && fg[i] === ROCKET_T;
+// every Moon's landing pad (owner, Nov 6 2026): MOON_PAD_N rockets on Steel Blocks in the middle, one per seat,
+// two tiles apart, standing on the surface row SURF. They take you back to MOONEVENT.
+const MOON_PAD_N = 20;
+const padX = (j) => (WW >> 1) - 19 + 2 * j;
+const padI = (j) => at(padX(j), SURF - 1);
+const moonPadI = () => padI(0);
+const onPadSteel = (x, y) => y === SURF && x >= padX(0) - 1 && x <= padX(MOON_PAD_N - 1) + 1;
+const isMoonPad = (i) => isMoonName(worldName) && fg[i] === ROCKET_T;
+// where a rocket flies. On a Moon: back to MOONEVENT (the GM, if he came by his own rocket: back where he left from).
+// A placed rocket: the world its wrench sets; with none, only the GM flies to the MOON (null = it doesn't fly).
 function rocketDest(i) {
   const d = doorInfo(i);
-  if (d.to && d.to !== worldName) return { w: d.to, at: d.at };
-  if (worldName === MOON_WORLD) return { w: (rocketHome && rocketHome.w && rocketHome.w !== MOON_WORLD && rocketHome.w) || LOBBY_WORLD, at: 0 };
-  return { w: MOON_WORLD, at: 0 };
+  if (isMoonName(worldName)) {
+    const trip = typeof moonTripNow === 'function' ? moonTripNow() : null;
+    if (!trip && isGM() && rocketHome && rocketHome.w && !isMoonName(rocketHome.w)) return { w: rocketHome.w, at: 0 };
+    return { w: MOON_EVENT_WORLD, at: 0 };
+  }
+  if (d.to && d.to !== worldName && !isMoonName(d.to)) return { w: d.to, at: d.at };
+  if (isGM()) return { w: d.to && isMoonName(d.to) ? d.to : MOON_WORLD, at: 0 };
+  return null;
 }
 // a low roar for the engine (Web Audio noise, rising then fading)
 function rocketRoar(ms, up) {
@@ -351,11 +394,11 @@ function freezeMe() {
   P.vx = P.vy = 0;
   P.punch = P.place = null;
 }
-function startRocketTrip(i) {
+function startRocketTrip(i, dest = rocketDest(i)) {
+  if (!dest) return toast('Rocket Ships fly to the Moons from MOONEVENT during the Moon Event');
   freezeMe();
   Object.assign(P, elevStand(i));
-  const dest = rocketDest(i);
-  if (worldName !== MOON_WORLD && dest.w === MOON_WORLD) {
+  if (!isMoonName(worldName) && isMoonName(dest.w)) {
     rocketHome = { w: worldName, i };
     saveRocketHome();
   }
@@ -396,13 +439,18 @@ function rocketGo(tr) {
       return;
     }
     if (atId) toDoorId(atId);
-    // a rocket to land on: the Moon's launch pad, or the rocket you flew from
+    // a rocket to land on: your seat's rocket on the Moon's pad, your rocket in MOONEVENT, or the rocket you flew from
     let li = -1;
-    if (w === MOON_WORLD) li = fg[moonPadI()] === ROCKET_T ? moonPadI() : fg.indexOf(ROCKET_T);
+    const trip = typeof moonTripNow === 'function' ? moonTripNow() : null;
+    if (isMoonName(w)) {
+      const j = trip ? trip.k % MOON_PAD_N : 0;
+      li = fg[padI(j)] === ROCKET_T ? padI(j) : fg.indexOf(ROCKET_T);
+    } else if (w === MOON_EVENT_WORLD && trip && typeof evRocketTile === 'function') li = evRocketTile(trip.k);
     else if (!atId && rocketHome && rocketHome.w === w && fg[rocketHome.i] === ROCKET_T) li = rocketHome.i;
+    if (li >= 0 && fg[li] !== ROCKET_T) li = -1;
     doorFadeT = now;
     if (li >= 0) startRocketLand(li);
-    if (w === MOON_WORLD) toast('Welcome to the MOON!');
+    if (isMoonName(w)) toast('Welcome to the ' + w + '!');
     else toast('Back in ' + w);
   });
 }
@@ -421,15 +469,13 @@ function stepRocket() {
       if (!tr.going) rocketTrip = null;
     } else {
       const t = now - tr.t0;
+      // (owner, Nov 6 2026: no effects on the rocket while you are inside it) no smoke puffs over the rocket any more,
+      // only the engine's roar and flame
       if (t >= RK_CLOSE && !tr.roared) {
         tr.roared = true;
         rocketRoar(RK_IGNITE + RK_LIFT, true);
-        smoke(tr.i % WW, (tr.i / WW) | 0, 10, 1.3);
       }
-      if (t >= RK_CLOSE + RK_IGNITE && !tr.lifted) {
-        tr.lifted = true;
-        smoke(tr.i % WW, (tr.i / WW) | 0, 14, 1.8);
-      }
+      if (t >= RK_CLOSE + RK_IGNITE && !tr.lifted) tr.lifted = true;
       // the camera rises with it for a moment
       const s = tripState(tr);
       if (s.up > 0 && !(typeof inLobby === 'function' && inLobby())) {
@@ -449,11 +495,7 @@ function stepRocket() {
     const t = now - ld.t0;
     Object.assign(P, elevStand(ld.i));
     P.vx = P.vy = 0;
-    if (t >= RK_DESC && !ld.settled) {
-      ld.settled = true;
-      smoke(ld.i % WW, (ld.i / WW) | 0, 14, 1.6);
-      shake = Math.max(shake, 2);
-    }
+    if (t >= RK_DESC && !ld.settled) ld.settled = true; // (Nov 6 2026: no smoke / screen shake on landing)
     if (t >= RK_DESC + RK_SETTLE && !ld.opened) {
       ld.opened = true;
       Sfx.play('door', 0.8);
@@ -469,22 +511,34 @@ const rocketTile = () => (rocketTrip ? rocketTrip.i : rocketLand ? rocketLand.i 
 const rocketNow = () => (rocketTrip ? tripState(rocketTrip) : rocketLand ? landState(rocketLand) : null);
 
 // ---------- the MOON world ----------
-function buildMoon() {
-  const r = rnd(hashName('moon:' + MOON_WORLD)),
+// (owner, Nov 6 2026) every Moon is built again for each Moon Event (seeded by the Moon's name AND the event number
+// `ev`, so the hills and the asteroids are somewhere else each time, and the same on every screen):
+// - gentle hills and craters, Moon Sand all the way down (no asteroids buried in it any more: with their real shape
+//   they'd leave holes in the ground), Moon Sand / Moon Rock Walls behind, the bedrock floor;
+// - the LANDING PAD in the middle: a flat row of Steel Blocks with MOON_PAD_N rockets, one per seat;
+// - a few boulders on the surface and FLOATING ASTEROIDS in the sky, in chains that climb from the ground (each step
+//   within a Moon jump of the last), so every one can be reached. Breaking them is the Moon's loot (ROCK_LOOT).
+// - no main door (noMainDoor): door.x / door.y are only the spot in the middle (the pad's first rocket is the spawn).
+function buildMoon(name = worldName, ev = typeof mevNowInfo === 'function' ? mevNowInfo().ev : 0) {
+  const r = rnd(hashName('moon:' + name + ':' + ev)),
     mid = WW >> 1,
     top = [];
   fg.fill(0);
   bg.fill(0);
   const p1 = r() * 6.28,
     p2 = r() * 6.28,
-    p3 = r() * 6.28;
-  for (let x = 0; x < WW; x++) top.push(1.7 * Math.sin(x * 0.07 + p1) + 1.0 * Math.sin(x * 0.19 + p2) + 0.5 * Math.sin(x * 0.41 + p3));
-  // craters: a bowl with a raised rim, away from the landing area
+    p3 = r() * 6.28,
+    a1 = 1.2 + r() * 1.2,
+    a2 = 0.6 + r() * 0.8;
+  for (let x = 0; x < WW; x++) top.push(a1 * Math.sin(x * 0.07 + p1) + a2 * Math.sin(x * 0.19 + p2) + 0.5 * Math.sin(x * 0.41 + p3));
+  const padL = padX(0) - 3,
+    padR = padX(MOON_PAD_N - 1) + 3;
+  // craters: a bowl with a raised rim, away from the landing pad
   const craters = [];
-  for (let k = 0; k < 40 && craters.length < 7; k++) {
+  for (let k = 0; k < 60 && craters.length < 6; k++) {
     const cx = 4 + Math.floor(r() * (WW - 8)),
       rad = 3 + Math.floor(r() * 3);
-    if (Math.abs(cx - mid) < 11 + rad || craters.some((c) => Math.abs(c.cx - cx) < c.rad + rad + 3)) continue;
+    if ((cx + rad + 2 > padL && cx - rad - 2 < padR) || craters.some((c) => Math.abs(c.cx - cx) < c.rad + rad + 3)) continue;
     craters.push({ cx, rad, dep: 1.6 + r() * 1.6 });
   }
   for (const { cx, rad, dep } of craters)
@@ -494,10 +548,10 @@ function buildMoon() {
       top[x] += d <= 1 ? dep * (1 - d * d) : 0;
       if (d > 0.8) top[x] -= 1; // the rim
     }
-  // flat round the door and the launch pad, easing into the hills
+  // flat round the landing pad, easing into the hills
   for (let x = 0; x < WW; x++) {
-    const d = Math.abs(x - (mid + 1));
-    const k = d <= 7 ? 0 : d >= 11 ? 1 : (d - 7) / 4;
+    const d = x < padL ? padL - x : x > padR ? x - padR : 0;
+    const k = d <= 0 ? 0 : d >= 4 ? 1 : d / 4;
     top[x] = Math.max(SURF - 4, Math.min(SURF + 6, Math.round(SURF + top[x] * k)));
   }
   // no cliffs: neighbouring columns differ by one tile at most (walkable with a jump)
@@ -514,32 +568,48 @@ function buildMoon() {
       if (y < t) continue;
       const k = y - t;
       bg[i] = k < 5 ? MOON_SAND_WALL_BG : MOON_ROCK_WALL_BG;
-      if (y >= FLOOR_ROW) {
-        fg[i] = BEDROCK;
-        continue;
-      }
-      const q = r();
-      // moon dust all the way down, with asteroids buried in it (like rocks in dirt)
-      fg[i] = k >= 3 && q < 0.12 ? MOON_ROCK_T : MOON_SAND_T;
+      // moon dust all the way down with asteroids buried in it (owner, Nov 6 2026: put those back), like rocks in dirt
+      fg[i] = y >= FLOOR_ROW ? BEDROCK : k >= 3 && r() < 0.12 ? MOON_ROCK_T : MOON_SAND_T;
+      if (fg[i] === MOON_ROCK_T) bg[i] = 0; // (owner, Nov 6 2026: the old look, no wall behind an asteroid)
     }
-  // loose boulders on the surface
-  for (let k = 0; k < 10; k++) {
+  // the landing pad: Steel Blocks on the surface, the rockets standing on them
+  const STEEL = ITEMS.steel_block.block;
+  for (let x = padX(0) - 1; x <= padX(MOON_PAD_N - 1) + 1; x++) fg[at(x, SURF)] = STEEL;
+  for (let j = 0; j < MOON_PAD_N; j++) fg[padI(j)] = ROCKET_T;
+  // a few boulders on the surface, away from the pad
+  for (let k = 0; k < 8; k++) {
     const x = Math.floor(r() * WW);
-    if (Math.abs(x - (mid + 1)) < 9) continue;
+    if (x > padL - 2 && x < padR + 2) continue;
     const i = at(x, top[x] - 1);
     if (!fg[i]) fg[i] = MOON_ROCK_T;
   }
-  // the main door in the middle on bedrock, the Moon's rocket 3 tiles to its right
+  // FLOATING ASTEROIDS (moonroids.js): moving, spinning rocks, not tiles. Placed in chains climbing from the ground;
+  // each step 2-4 tiles up and 2-6 across, so every one can be reached with Moon jumps
+  const free = (x, y) => inW(x, y) && y < top[x] - 2 && !fg[at(x, y)] && !(y >= SURF - 3 && x >= padL - 1 && x <= padR + 1);
+  const room = (x, y) => !roids.some((o) => Math.abs(o.hx - (x + 0.5) * TS) < TS * 1.7 && Math.abs(o.hy - (y + 0.5) * TS) < TS * 1.7);
+  roids.length = 0;
+  roidSeq = 1; // (the same ids on every screen)
+  const chains = 9 + Math.floor(r() * 3);
+  for (let c = 0; c < chains; c++) {
+    let x = 3 + Math.floor(r() * (WW - 6)),
+      y = top[x] - 1;
+    for (let step = 0; step < 8; step++) {
+      x = Math.max(2, Math.min(WW - 3, x + (r() < 0.5 ? -1 : 1) * (2 + Math.floor(r() * 5))));
+      y -= 2 + Math.floor(r() * 3);
+      if (y < 4) break;
+      if (!free(x, y) || !room(x, y)) continue;
+      roidNew((x + 0.5) * TS, (y + 0.5) * TS, r);
+    }
+  }
+  // the spot in the middle (no main door is drawn there): on the surface beside the pad
   door.x = mid;
   door.y = SURF - 1;
-  fg[at(door.x, SURF)] = BEDROCK;
-  fg[moonPadI()] = ROCKET_T;
 }
 const _genWorldMoon = genWorld;
 genWorld = function (name) {
   const r = _genWorldMoon(name);
-  if (name === MOON_WORLD) {
-    buildMoon();
+  if (isMoonName(name)) {
+    buildMoon(name);
     worldBg = 'moon';
   }
   return r;
@@ -547,7 +617,10 @@ genWorld = function (name) {
 const _applyWorldMoon = applyWorld;
 applyWorld = function (w, skew) {
   _applyWorldMoon(w, skew);
-  if ((w && w.wbg === 'moon') || worldName === MOON_WORLD) worldBg = 'moon';
+  if ((w && w.wbg === 'moon') || isMoonName(worldName)) worldBg = 'moon';
+  // asteroids in the ground have no wall behind them (owner, Nov 6 2026), also on Moons built before this
+  if (isMoonName(worldName)) for (let i = 0; i < fg.length; i++) if (fg[i] === MOON_ROCK_T) bg[i] = 0;
+  // (a Moon saved before its event's rebuild is built again by moonevent.js moonWorldsFix, called from enterWorldNow)
 };
 // no machine on: the Moon shows space
 const _currentWeatherMoon = currentWeather;
@@ -596,6 +669,58 @@ const MOON_COMET_EVERY = 11000,
   MOON_COMET_MS = 2600;
 const MOON_FAR = nightRidge(53),
   MOON_NEAR = nightRidge(71);
+// (Nov 6 2026, owner: lag) the sky pictures (Milky Way, nebulae, galaxy, planets, the Earth) are drawn into one
+// layer that is only painted again when one of them has drifted a whole pixel sideways (or the screen size changed);
+// going up and down (jumping) just moves the layer with the horizon, as before.
+const MSKY = { cv: null, key: '' },
+  MSKY_TOP = 1.02; // backdrop heights above the horizon that the layer covers
+function drawMoonSky(W, bh, horizon, period) {
+  const hgt = Math.ceil(bh * MSKY_TOP),
+    offs = MOON_SKY.map((s) => Math.round(s[1] * period - cam.x * Z * s[5])),
+    // (owner, Nov 6 2026) the Earth as it was (same picture, same spot top right, drifting a little sideways), but it
+    // goes up and down with the horizon like the other planets (no longer held at the top of the screen)
+    eh = Math.round(bh * 0.24),
+    ex = Math.round(W * 0.72 - cam.x * Z * 0.01),
+    key = W + ',' + hgt + ',' + Math.round(period) + ',' + offs.join(',') + ',' + ex;
+  if (key !== MSKY.key || !MSKY.cv) {
+    const c = (MSKY.cv ||= document.createElement('canvas'));
+    if (c.width !== W || c.height !== hgt) {
+      c.width = W;
+      c.height = hgt;
+    }
+    const x = c.getContext('2d');
+    x.clearRect(0, 0, W, hgt);
+    x.imageSmoothingEnabled = true;
+    let all = true;
+    MOON_SKY.forEach(([k, , uy, hh, al], n) => {
+      const im = moonImg(k);
+      if (!im) return (all = false);
+      const h = bh * hh,
+        w = h * (im.width / im.height),
+        y = hgt - bh * uy - h / 2,
+        x0 = ((offs[n] % period) + period) % period - period;
+      x.globalAlpha = al;
+      for (let px = x0; px < W; px += period) if (px + w > 0) x.drawImage(im, px, y, w, h);
+    });
+    x.globalAlpha = 1;
+    const earth = moonImg('earth');
+    if (!earth) all = false;
+    else {
+      const ew = eh * (earth.width / earth.height),
+        ey = hgt - bh * 0.52, // (top of the Earth half a backdrop above the horizon: in view standing on the ground)
+        cx = ex + ew / 2,
+        cy = ey + eh / 2,
+        gl = x.createRadialGradient(cx, cy, eh * 0.4, cx, cy, eh * 1.1);
+      gl.addColorStop(0, 'rgba(120,190,255,0.35)');
+      gl.addColorStop(1, 'rgba(120,190,255,0)');
+      x.fillStyle = gl;
+      x.fillRect(cx - eh * 1.2, cy - eh * 1.2, eh * 2.4, eh * 2.4);
+      x.drawImage(earth, ex, ey, ew, eh);
+    }
+    MSKY.key = all ? key : ''; // (paint again until every picture has loaded)
+  }
+  g.drawImage(MSKY.cv, 0, Math.round(horizon - hgt));
+}
 function drawMoonBg() {
   const W = cv.width,
     H = cv.height,
@@ -613,21 +738,8 @@ function drawMoonBg() {
   g.fillStyle = gr;
   g.fillRect(0, 0, W, H);
   g.imageSmoothingEnabled = true;
-  const wrapX = (x, w) => ((((x % period) + period) % period) - period);
-  // the sky pictures (far, faint ones first)
-  for (const [k, ux, uy, hh, al, drift] of MOON_SKY) {
-    const im = moonImg(k);
-    if (!im) continue;
-    const h = bh * hh,
-      w = h * (im.width / im.height),
-      y = horizon - bh * uy - h / 2;
-    if (y > H || y + h < 0) continue;
-    const x0 = wrapX(ux * period - cam.x * Z * drift, w);
-    g.globalAlpha = al;
-    for (let x = x0; x < W; x += period) if (x + w > 0) g.drawImage(im, x, y, w, h);
-    for (let x = x0 - period; x + w > 0; x -= period) if (x < W) g.drawImage(im, x, y, w, h);
-  }
-  g.globalAlpha = 1;
+  // the sky pictures (far, faint ones first), from a cached layer (drawMoonSky)
+  drawMoonSky(W, bh, horizon, period);
   // stars, growing and shrinking (drawn over the faint pictures, under the planets' glow is fine)
   const sx0 = -cam.x * Z * 0.015,
     zz = Math.max(1, s * 2);
@@ -677,21 +789,6 @@ function drawMoonBg() {
       g.drawImage(im, x, y, w, h);
       g.globalAlpha = 1;
     }
-  }
-  // Earth: fixed on the screen (like the Night moon), with a soft blue glow
-  const earth = moonImg('earth');
-  if (earth) {
-    const mh = bh * 0.24,
-      mw = mh * (earth.width / earth.height),
-      sp = moonSpot(W, H, mh, mw, horizon, bh),
-      cx = sp.x + mw / 2,
-      cy = sp.y + mh / 2;
-    const glow = g.createRadialGradient(cx, cy, mh * 0.4, cx, cy, mh * 1.1);
-    glow.addColorStop(0, 'rgba(120,190,255,0.35)');
-    glow.addColorStop(1, 'rgba(120,190,255,0)');
-    g.fillStyle = glow;
-    g.fillRect(cx - mh * 1.2, cy - mh * 1.2, mh * 2.4, mh * 2.4);
-    g.drawImage(earth, sp.x, sp.y, mw, mh);
   }
   // glowing nebula clouds along the horizon
   {
@@ -752,18 +849,19 @@ drawBg = ((prev) =>
 act = ((prev) =>
   function () {
     if (rocketBusy()) return;
-    if (worldName === MOON_WORLD && !P.dead && !doorTrip) {
+    if (isMoonName(worldName) && !P.dead && !doorTrip && !isGM()) {
       const t = tileUnder(),
-        i = inW(t.x, t.y) ? at(t.x, t.y) : -1,
-        it = ITEMS[hand];
-      // the Moon belongs to everybody: no locks
-      if (i >= 0 && !fg[i] && it && it.kind === 'block' && (isLockT(it.block) || (typeof isALockT === 'function' && isALockT(it.block))))
-        return toast('The Moon belongs to everybody: no locks here');
-      // the Moon's own rocket can't be broken or changed (it takes everybody home)
-      if (i >= 0 && isMoonPad(i) && doorUnderPlayer() !== i && !isGM() && (hand === 'wrench' || hand === 'fist' || !it || it.kind !== 'block')) {
+        i = inW(t.x, t.y) ? at(t.x, t.y) : -1;
+      // standing in a rocket and clicking it: fly (useDoor)
+      if (i >= 0 && fg[i] === ROCKET_T && doorUnderPlayer() === i) return prev();
+      // the landing pad (its rockets and Steel Blocks) can't be broken: it takes everybody home
+      if (i >= 0 && (isMoonPad(i) || onPadSteel(t.x, t.y))) {
         if (hand !== 'wrench') startPunch(ptr.x, ptr.y);
-        return toast("This is the Moon's rocket: stand in it and click it to fly home");
+        return toast(fg[i] === ROCKET_T ? 'A rocket home: stand in it and click it to fly back to MOONEVENT' : "The landing pad can't be broken");
       }
+      // (owner, Nov 6 2026) nothing can be placed on the Moons, only broken: the fist, a tool or the wrench only
+      const tool = heldTool(hand) && hand !== 'water_bucket';
+      if (!(hand === 'fist' || hand === 'wrench' || tool)) return toast('On the Moon you can only break things, not place them');
     }
     return prev();
   })(act);
@@ -965,3 +1063,237 @@ act = ((prev) =>
     }
     return r;
   })(act);
+// ---------- Nov 6 2026 (owner): no main door, rockets only, low gravity, asteroid shapes ----------
+// "alisin mo yung main door dun, hindi siya searchable at di makakapunta hangga't hindi nakasakay sa rocket ship;
+// gusto ko yung jump may gravity at pag bagsak parang nasa space talaga"
+// - NO MAIN DOOR on the Moons: it isn't drawn (render.js asks `noMainDoor`), clicking its old spot does nothing
+//   special (world.js isDoorTile), and spawning / dying / being sent back puts you in your pad rocket instead.
+// - ROCKETS ONLY: the Moons aren't in the world list or its search; typing one there, a door / Mystery Door to one,
+//   /go, a friend's Go: all refused. Only a rocket on its way (rocketGo: a Moon Event seat, or the GM's own rocket)
+//   gets in. The GM may also type a Moon's name (to try them).
+// - LOW GRAVITY: on a Moon gravity is `MOON_G` of normal and a jump starts at `MOON_JUMP` of the normal speed, so
+//   it goes about 2x as high and stays in the air about 2.4x as long; falling tops out at `MOON_MAX_FALL` px/s, so
+//   you drift down slowly. Other players' in-between guess (net.js) uses the same numbers.
+const MOON_G = 0.35,
+  MOON_JUMP = 0.84,
+  MOON_MAX_FALL = 380;
+const onMoon = () => inWorld && isMoonName(worldName);
+function noMainDoor() {
+  return isMoonName(worldName);
+}
+function worldHidden(name) {
+  return isMoonName(name);
+}
+// how strong gravity is here (1 = normal) and the fastest fall
+function gravK() {
+  return onMoon() ? MOON_G : 1;
+}
+function maxFallNow() {
+  return onMoon() ? MOON_MAX_FALL : MAX_FALL;
+}
+// in your seat's rocket on the landing pad, standing in its doorway
+function moonSpawn() {
+  if (!onMoon()) return false;
+  const trip = typeof moonTripNow === 'function' ? moonTripNow() : null,
+    j = trip ? trip.k % MOON_PAD_N : 0;
+  const i = fg[padI(j)] === ROCKET_T ? padI(j) : fg.indexOf(ROCKET_T);
+  if (i < 0) return false;
+  Object.assign(P, elevStand(i));
+  P.vx = P.vy = 0;
+  return true;
+}
+// a rocket on its way there is the only way in
+let moonByRocket = false;
+const _rocketGoMoon = rocketGo;
+rocketGo = function (tr) {
+  moonByRocket = !!(tr.dest && isMoonName(tr.dest.w));
+  try {
+    return _rocketGoMoon(tr);
+  } finally {
+    // enterWorld has already started (and read the flag) by now
+    setTimeout(() => (moonByRocket = false), 0);
+  }
+};
+const MOON_ONLY_ROCKET = 'The Moons can only be reached by Rocket Ship from MOONEVENT, during the Moon Event';
+enterWorldNow = ((prev) =>
+  async function (name) {
+    if (isMoonName(name) && !moonByRocket && !isGM() && !(inWorld && worldName === name)) {
+      toast(MOON_ONLY_ROCKET);
+      return false;
+    }
+    const ok = await prev(name);
+    if (ok && isMoonName(name)) moonSpawn();
+    return ok;
+  })(enterWorldNow);
+goWorld = ((prev) =>
+  function (raw) {
+    if (worldHidden(String(raw).toUpperCase().trim()) && !isGM()) {
+      $('werr').textContent = MOON_ONLY_ROCKET + '.';
+      return;
+    }
+    return prev(raw);
+  })(goWorld);
+listWorlds = ((prev) =>
+  function () {
+    return prev().filter((w) => !worldHidden(w.name));
+  })(listWorlds);
+rememberWorld = ((prev) =>
+  function (name) {
+    if (worldHidden(name)) return;
+    return prev(name);
+  })(rememberWorld);
+// dying (no Checkpoint) or being sent back to the door: into the rocket, no smoke
+respawn = ((prev) =>
+  function () {
+    const n = puffs.length,
+      r = prev();
+    if (onMoon() && !P.cp && moonSpawn()) puffs.length = Math.min(puffs.length, n); // (the smoke at the old door spot)
+    return r;
+  })(respawn);
+toDoor = ((prev) =>
+  function (msg) {
+    const n = puffs.length,
+      r = prev(msg);
+    if (onMoon() && moonSpawn()) puffs.length = Math.min(puffs.length, n);
+    return r;
+  })(toDoor);
+// low gravity: lighter pull up and down, a slower jump start, a slow top speed when falling
+fallGravity = ((prev) =>
+  function () {
+    return prev() * gravK();
+  })(fallGravity);
+// (owner, Nov 6 2026) UNLIMITED JUMPS on the Moons: every new press jumps again in the air, as often as you like
+// (the wings' air jump, physics.js, never runs out here)
+step = ((prev) =>
+  function (dt) {
+    const moon = onMoon() && !P.dead;
+    if (moon) P.airJ = Math.max(P.airJ || 0, 1);
+    const vy0 = P.vy;
+    const r = prev(dt);
+    if (moon) {
+      // a jump (ground or air) started this frame: a sudden kick upwards. Start it slower.
+      if (P.vy < -120 && P.vy < vy0 - 120) P.vy *= MOON_JUMP;
+      if (P.vy > MOON_MAX_FALL) P.vy = MOON_MAX_FALL;
+    }
+    return r;
+  })(step);
+
+// ---------- the asteroid's own shape (owner, Nov 6 2026) ----------
+// "yung dead space ng asteroid na png alisin mo, dapat hindi siya square: kung ano yung itsura ng asteroid, ganun
+// yung collision niya". A Moon Rock tile isn't solid as a square (BLOCK solid false); instead its picture, drawn
+// exactly as on screen (drawMoonRock at 1 world px = 1 px), gives per column the top and bottom of the rock and per
+// row its left and right edge (`rockShape`, alpha > 110). After the normal collision (collide wrapper) you are
+// stopped on that outline: you land on the rock's real top at your feet's columns, bump your head on its real
+// bottom, and are stopped by its real sides; a lip of up to ROCK_STEP px is stepped up onto while walking.
+const ROCK_SHAPES = {},
+  ROCK_STEP = 6;
+function rockShape(k) {
+  const key = k % MOON_ROCKS.length;
+  if (ROCK_SHAPES[key]) return ROCK_SHAPES[key];
+  if (!rockImg(MOON_ROCKS[key])) return null;
+  const c = document.createElement('canvas');
+  c.width = c.height = TS;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  drawMoonRock(key, 0, 0, TS, x);
+  const d = x.getImageData(0, 0, TS, TS).data,
+    top = new Array(TS).fill(-1),
+    bot = new Array(TS).fill(-1),
+    lft = new Array(TS).fill(-1),
+    rgt = new Array(TS).fill(-1);
+  for (let j = 0; j < TS; j++)
+    for (let i = 0; i < TS; i++)
+      if (d[(j * TS + i) * 4 + 3] > 110) {
+        if (top[i] < 0) top[i] = j;
+        bot[i] = j;
+        if (lft[j] < 0) lft[j] = i;
+        rgt[j] = i;
+      }
+  return (ROCK_SHAPES[key] = { top, bot, lft, rgt });
+}
+// is the box (world px) inside the solid part of any Moon Rock?
+function rockHits(bx, by, bw, bh) {
+  for (let ty = Math.floor(by / TS); ty <= Math.floor((by + bh - 0.01) / TS); ty++)
+    for (let tx = Math.floor(bx / TS); tx <= Math.floor((bx + bw - 0.01) / TS); tx++) {
+      if (!inW(tx, ty) || fg[at(tx, ty)] !== MOON_ROCK_T || rockEmbedded(tx, ty)) continue;
+      const s = rockShape(rockPick(tx, ty));
+      if (!s) continue;
+      const a0 = Math.max(0, Math.floor(bx - tx * TS + 0.01)),
+        a1 = Math.min(TS - 1, Math.ceil(bx + bw - tx * TS - 0.01) - 1),
+        b0 = Math.max(0, Math.floor(by - ty * TS + 0.01)),
+        b1 = Math.min(TS - 1, Math.ceil(by + bh - ty * TS - 0.01) - 1);
+      for (let i = a0; i <= a1; i++) if (s.top[i] >= 0 && s.top[i] <= b1 && s.bot[i] >= b0) return true;
+    }
+  return false;
+}
+function rockCollide(axis, prevBottom) {
+  const x0 = Math.floor(P.x / TS),
+    x1 = Math.floor((P.x + P.w - 0.01) / TS),
+    y0 = Math.floor(P.y / TS),
+    y1 = Math.floor((P.y + P.h - 0.01) / TS);
+  for (let ty = y0; ty <= y1; ty++)
+    for (let tx = x0; tx <= x1; tx++) {
+      if (!inW(tx, ty) || fg[at(tx, ty)] !== MOON_ROCK_T || rockEmbedded(tx, ty)) continue; // (buried: a full solid tile)
+      const s = rockShape(rockPick(tx, ty));
+      if (!s) continue;
+      const ox = tx * TS,
+        oy = ty * TS,
+        a0 = Math.max(0, Math.floor(P.x - ox + 0.01)),
+        a1 = Math.min(TS - 1, Math.ceil(P.x + P.w - ox - 0.01) - 1),
+        b0 = Math.max(0, Math.floor(P.y - oy + 0.01)),
+        b1 = Math.min(TS - 1, Math.ceil(P.y + P.h - oy - 0.01) - 1);
+      if (a0 > a1 || b0 > b1) continue;
+      if (axis === 'y') {
+        if (P.vy > 0) {
+          // landing: the highest rock top under the feet (only where the feet were above it before this move)
+          let best = Infinity;
+          for (let i = a0; i <= a1; i++) {
+            const t = s.top[i];
+            if (t >= 0 && t <= b1 && s.bot[i] >= b0 && prevBottom <= oy + t + 1) best = Math.min(best, t);
+          }
+          if (best < Infinity) {
+            P.y = oy + best - P.h;
+            P.vy = 0;
+            P.ground = true;
+          }
+        } else if (P.vy < 0) {
+          // the head hits the rock's underside
+          const prevTop = prevBottom - P.h;
+          let best = -Infinity;
+          for (let i = a0; i <= a1; i++) {
+            const bt = s.bot[i];
+            if (bt >= 0 && bt >= b0 && s.top[i] <= b1 && prevTop >= oy + bt) best = Math.max(best, bt);
+          }
+          if (best > -Infinity) {
+            P.y = oy + best + 1;
+            P.vy = 0;
+          }
+        }
+      } else if (P.vx) {
+        // the rows where the rock is in the way
+        let hitTop = Infinity,
+          edge = P.vx > 0 ? Infinity : -Infinity;
+        for (let j = b0; j <= b1; j++) {
+          const l = s.lft[j],
+            r = s.rgt[j];
+          if (l < 0 || l > a1 || r < a0) continue;
+          hitTop = Math.min(hitTop, j);
+          edge = P.vx > 0 ? Math.min(edge, l) : Math.max(edge, r);
+        }
+        if (hitTop === Infinity) continue;
+        // a low lip: step up onto it, if there's room
+        const lift = P.y + P.h - (oy + hitTop);
+        if (lift <= ROCK_STEP && !solidAt(Math.floor((P.x + 1) / TS), Math.floor((P.y - lift) / TS)) && !rockHits(P.x, oy + hitTop - P.h, P.w, P.h - 0.5)) {
+          P.y = oy + hitTop - P.h;
+          continue;
+        }
+        P.x = P.vx > 0 ? ox + edge - P.w : ox + edge + 1;
+        P.vx = 0;
+      }
+    }
+}
+collide = ((prev) =>
+  function (axis, prevBottom) {
+    const r = prev(axis, prevBottom);
+    rockCollide(axis, prevBottom);
+    return r;
+  })(collide);

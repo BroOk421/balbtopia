@@ -447,7 +447,7 @@ declare
   mine boolean;
 begin
   -- floating drops, as for any visitor
-  if jsonb_typeof(p_new -> 'drops') = 'array' and jsonb_array_length(p_new -> 'drops') <= 400 then -- MAX_DROPS
+  if jsonb_typeof(p_new -> 'drops') = 'array' and jsonb_array_length(p_new -> 'drops') <= 2000 then -- MAX_DROPS 1200 + room (Nov 6 2026)
     outd := jsonb_set(outd, '{drops}', p_new -> 'drops');
   end if;
   if jsonb_typeof(p_old -> 'al') <> 'array' then return outd; end if;
@@ -517,25 +517,31 @@ revoke all on public.world_moves from anon, authenticated;
 -- that it didn't have). New games send `dt` = the drops they SAW go away (picked up, joined into a bigger coin,
 -- packed, cleared). keep_unseen_drops puts back every saved drop that isn't in the new list and isn't in `dt`.
 -- Old games (no `dt`) are unchanged: their list is taken as before.
+-- (Nov 6 2026, owner: harvested coins left floating for 1-2 hours vanished) the list may now hold up to 2000 (the
+-- game's MAX_DROPS is 1200 and it packs, never cuts; the rest is room for drops another game hasn't seen yet). Uses
+-- jsonb objects as lookup sets, so a big list is quick (the old version compared every drop with every drop).
 create or replace function public.keep_unseen_drops(p_old jsonb, p_new jsonb, p_gone jsonb)
 returns jsonb language plpgsql immutable as $$
 declare
-  outl jsonb;
-  have text[];
-  gone text[];
-  o jsonb;
+  have jsonb;
+  gone jsonb;
+  extra jsonb;
+  room integer;
 begin
   if jsonb_typeof(p_new) is distinct from 'array' then p_new := '[]'::jsonb; end if;
   if jsonb_typeof(p_gone) is distinct from 'array' or jsonb_typeof(p_old) is distinct from 'array' then return p_new; end if;
-  outl := p_new;
-  select coalesce(array_agg(x ->> 0), '{}') into have from jsonb_array_elements(p_new) x where jsonb_typeof(x) = 'array';
-  select coalesce(array_agg(g #>> '{}'), '{}') into gone from jsonb_array_elements(p_gone) g where jsonb_typeof(g) = 'string';
-  for o in select * from jsonb_array_elements(p_old) loop
-    if jsonb_array_length(outl) >= 500 then exit; end if; -- MAX_DROPS 400 + room; the next save packs them again
-    if jsonb_typeof(o) <> 'array' or (o ->> 0) = any (have) or (o ->> 0) = any (gone) then continue; end if;
-    outl := outl || jsonb_build_array(o);
-  end loop;
-  return outl;
+  room := 2000 - jsonb_array_length(p_new);
+  if room <= 0 then return p_new; end if;
+  select coalesce(jsonb_object_agg(x ->> 0, true), '{}'::jsonb) into have
+    from jsonb_array_elements(p_new) x where jsonb_typeof(x) = 'array' and (x ->> 0) is not null;
+  select coalesce(jsonb_object_agg(g #>> '{}', true), '{}'::jsonb) into gone
+    from jsonb_array_elements(p_gone) g where jsonb_typeof(g) = 'string';
+  select coalesce(jsonb_agg(s.o order by s.n), '[]'::jsonb) into extra from (
+    select t.o, t.n from jsonb_array_elements(p_old) with ordinality t(o, n)
+    where jsonb_typeof(t.o) = 'array' and (t.o ->> 0) is not null
+      and not (have ? (t.o ->> 0)) and not (gone ? (t.o ->> 0))
+    order by t.n limit room) s;
+  return p_new || extra;
 end $$;
 revoke execute on function public.keep_unseen_drops(jsonb, jsonb, jsonb) from public, anon, authenticated;
 
@@ -2249,39 +2255,44 @@ $$;
 --   * a saved drop that is still there keeps its SAVED item, amount and place (a visitor can't change it),
 --     except the visitor's own drops (more fell on their pile)
 --   * a new drop is always marked as the visitor's own (by = their name) and can't be dated in the past
---   * at most 400 (MAX_DROPS), anything malformed is skipped
+--   * at most 2000 in all (Nov 6 2026: was 400 = MAX_DROPS, now 1200 + room), anything malformed is skipped
+--   (lookups go through jsonb objects and the list is built as an array, so a big list stays quick)
 create or replace function public.visitor_drops(p_old jsonb, p_new jsonb, p_me text)
 returns jsonb language plpgsql stable as $$
 declare
   nowms numeric := floor(extract(epoch from clock_timestamp()) * 1000);
-  o jsonb; n jsonb; outl jsonb := '[]'::jsonb; seen text[] := '{}'; mine boolean;
+  o jsonb; n jsonb; outa jsonb[] := '{}'; newm jsonb; oldm jsonb; mine boolean;
 begin
   if jsonb_typeof(p_old) is distinct from 'array' then p_old := '[]'; end if;
   if jsonb_typeof(p_new) is distinct from 'array' then p_new := '[]'; end if;
+  -- uid -> the visitor's copy (the first one with that uid), and the uids already saved
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) into newm from (
+    select distinct on (x ->> 0) x ->> 0 as k, x as v from jsonb_array_elements(p_new) with ordinality t(x, pos)
+    where jsonb_typeof(x) = 'array' and (x ->> 0) is not null order by x ->> 0, t.pos) s;
+  select coalesce(jsonb_object_agg(o2 ->> 0, true), '{}'::jsonb) into oldm
+    from jsonb_array_elements(p_old) o2 where jsonb_typeof(o2) = 'array' and (o2 ->> 0) is not null;
   for o in select * from jsonb_array_elements(p_old) loop
     if jsonb_typeof(o) <> 'array' then continue; end if;
-    seen := seen || (o ->> 0);
-    select x into n from jsonb_array_elements(p_new) x where jsonb_typeof(x) = 'array' and x ->> 0 = o ->> 0 limit 1;
+    n := case when (o ->> 0) is null then null else newm -> (o ->> 0) end;
     mine := jsonb_typeof(o -> 6) = 'string' and lower(o ->> 6) = lower(p_me);
     if n is null then
       -- taken: allowed only for a drop this visitor may pick up
-      if not (mine or nowms - public.jnum(o -> 5) >= 15000) then outl := outl || jsonb_build_array(o); end if;
+      if not (mine or nowms - public.jnum(o -> 5) >= 15000) then outa := outa || o; end if;
     elsif mine and public.drop_ok(n) then
-      outl := outl || jsonb_build_array(jsonb_set(n, '{6}', o -> 6));
+      outa := outa || jsonb_set(n, '{6}', o -> 6);
     else
-      outl := outl || jsonb_build_array(o);
+      outa := outa || o;
     end if;
-    n := null;
   end loop;
-  for n in select * from jsonb_array_elements(p_new) loop
-    if jsonb_array_length(outl) >= 400 then exit; end if;
-    if not public.drop_ok(n) or (n ->> 0) = any (seen) then continue; end if;
-    seen := seen || (n ->> 0);
+  for n in select x from jsonb_array_elements(p_new) with ordinality t(x, ord) order by t.ord loop
+    if coalesce(array_length(outa, 1), 0) >= 2000 then exit; end if;
+    if not public.drop_ok(n) or oldm ? (n ->> 0) then continue; end if;
+    oldm := oldm || jsonb_build_object(n ->> 0, true); -- (a uid twice in the new list counts once)
     n := jsonb_set(n, '{6}', to_jsonb(p_me));
     n := jsonb_set(n, '{5}', to_jsonb(least(public.jnum(n -> 5), nowms::bigint)));
-    outl := outl || jsonb_build_array(n);
+    outa := outa || n;
   end loop;
-  return outl;
+  return to_jsonb(outa);
 end $$;
 revoke execute on function public.visitor_drops(jsonb, jsonb, text) from public, anon, authenticated;
 
@@ -2697,3 +2708,80 @@ begin
 end $$;
 revoke execute on function public.my_subscription(), public.player_subs(uuid[]), public.gm_set_sub(text, integer) from public, anon;
 grant execute on function public.my_subscription(), public.player_subs(uuid[]), public.gm_set_sub(text, integer) to authenticated;
+-- ==================== MOON EVENT (Nov 6 2026, owner) ====================
+-- Every 6 hours from 8:00 PM Manila (8 PM, 2 AM, 8 AM, 2 PM), for 2 hours (build d; was every 3 days for 24 h), the 200 rockets in MOONEVENT fly players to MOON, MOON1 .. MOON9
+-- (rocket k -> Moon k / 20). One rocket per player per event, one player per rocket (the game: moonevent.js).
+-- The schedule here must match moonevent.js: anchor Nov 5 2026 12:00 UTC (1793880000000 ms), every 21600000 ms
+-- (6 hours), open the first 7200000 ms (2 h). `ev` counts the 6-hour periods from the anchor.
+create table if not exists public.moon_seats (
+  ev integer not null,
+  rocket integer not null check (rocket between 0 and 199),
+  user_id uuid not null,
+  name text not null,
+  at timestamptz not null default now(),
+  primary key (ev, rocket)
+);
+create unique index if not exists moon_seats_one_each on public.moon_seats (ev, user_id);
+-- (build e) the player has landed on their Moon and is there with the rocket (it shows on that Moon's pad); false
+-- again once they fly back in it
+alter table public.moon_seats add column if not exists arrived boolean not null default false;
+alter table public.moon_seats enable row level security;
+revoke all on public.moon_seats from anon, authenticated;
+
+create or replace function public.moon_event_now()
+returns jsonb language sql stable as $$
+  with t as (select floor(extract(epoch from clock_timestamp()) * 1000)::bigint as now_ms)
+  select jsonb_build_object(
+    'now', now_ms,
+    'ev', floor((now_ms - 1793880000000)::numeric / 21600000)::int,
+    'open', now_ms >= 1793880000000 and (now_ms - 1793880000000) % 21600000 < 7200000)
+  from t
+$$;
+-- { now, ev, open, taken: [rockets used this event], arrived: [rockets on their Moon's pad now], mine: my rocket or null }
+create or replace function public.moon_status()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  e jsonb := public.moon_event_now();
+  cur integer := (e ->> 'ev')::int;
+begin
+  return e || jsonb_build_object(
+    'taken', coalesce((select jsonb_agg(rocket order by rocket) from public.moon_seats where moon_seats.ev = cur), '[]'::jsonb),
+    'arrived', coalesce((select jsonb_agg(rocket order by rocket) from public.moon_seats where moon_seats.ev = cur and arrived), '[]'::jsonb),
+    'mine', (select to_jsonb(rocket) from public.moon_seats where moon_seats.ev = cur and user_id = auth.uid()));
+end $$;
+-- take a seat: { r: 'ok' | 'have' (you already have one: rocket) | 'taken' | 'closed', ev, rocket, now }
+create or replace function public.moon_claim(p_rocket integer)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  e jsonb := public.moon_event_now();
+  cur integer := (e ->> 'ev')::int;
+  me uuid := auth.uid();
+  nm text := public.my_name();
+  have integer;
+begin
+  if me is null or nm is null then raise exception 'Log in first'; end if;
+  if p_rocket is null or p_rocket < 0 or p_rocket > 199 then raise exception 'No such rocket'; end if;
+  if not (e ->> 'open')::boolean then return jsonb_build_object('r', 'closed', 'ev', cur, 'now', e -> 'now'); end if;
+  select rocket into have from public.moon_seats s where s.ev = cur and s.user_id = me;
+  if have is not null then return jsonb_build_object('r', 'have', 'ev', cur, 'rocket', have, 'now', e -> 'now'); end if;
+  begin
+    insert into public.moon_seats (ev, rocket, user_id, name) values (cur, p_rocket, me, nm);
+  exception when unique_violation then
+    select rocket into have from public.moon_seats s where s.ev = cur and s.user_id = me;
+    if have is not null then return jsonb_build_object('r', 'have', 'ev', cur, 'rocket', have, 'now', e -> 'now'); end if;
+    return jsonb_build_object('r', 'taken', 'ev', cur, 'now', e -> 'now');
+  end;
+  delete from public.moon_seats s where s.ev < cur - 12; -- old events (3 days back)
+  return jsonb_build_object('r', 'ok', 'ev', cur, 'rocket', p_rocket, 'now', e -> 'now');
+end $$;
+-- landed on my Moon (p_here true) or flew back from it in my rocket (false); answers moon_status
+create or replace function public.moon_arrive(p_here boolean default true)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  cur integer := (public.moon_event_now() ->> 'ev')::int;
+begin
+  update public.moon_seats s set arrived = coalesce(p_here, true) where s.ev = cur and s.user_id = auth.uid();
+  return public.moon_status();
+end $$;
+revoke execute on function public.moon_event_now(), public.moon_status(), public.moon_claim(integer), public.moon_arrive(boolean) from public, anon;
+grant execute on function public.moon_event_now(), public.moon_status(), public.moon_claim(integer), public.moon_arrive(boolean) to authenticated;

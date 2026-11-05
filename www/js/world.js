@@ -67,7 +67,8 @@ function genWorld(name = START_WORLD) {
   door.y = SURF - 1;
   fg[at(door.x, SURF)] = BEDROCK;
 }
-const isDoorTile = (x, y) => x === door.x && y === door.y; // the main door is one tile
+// the main door is one tile (the MOON has none: moon.js noMainDoor, owner Nov 6 2026)
+const isDoorTile = (x, y) => x === door.x && y === door.y && !(typeof noMainDoor === 'function' && noMainDoor());
 // the bedrock floor: the bottom 6 rows of every world (genWorld; LOBBY / RECIPES stand on the same rows). Nothing is
 // placed in it and it never gets a hole (owner, Oct 24 2026: a moved main door left an empty tile there).
 const FLOOR_ROW = WH - 6;
@@ -81,8 +82,20 @@ const solidAt = (x, y) => {
   const t = fg[at(x, y)];
   if (t !== EMPTY && BLOCK[t].gate) return !gatePass(at(x, y), playerName); // gates.js: shut unless you may pass
   if (t !== EMPTY && BLOCK[t].shut) return BLOCK[t].shut(at(x, y)); // Spike Gate (blocks64b.js): solid while shut
+  if (t !== EMPTY && BLOCK[t].rockShape) return rockEmbedded(x, y); // Moon Rock: solid only when buried (moon.js)
   return t !== EMPTY && BLOCK[t].solid !== false;
 };
+// a Moon Rock with solid ground right above it is buried: a full solid tile drawn in moon dust. One with air above
+// stops you only on its picture's own outline (moon.js rockCollide; owner, Nov 6 2026).
+function rockEmbedded(x, y) {
+  for (let yy = y - 1; yy >= 0; yy--) {
+    const u = fg[at(x, yy)];
+    if (u === EMPTY) return false;
+    if (BLOCK[u].rockShape) continue; // a rock on a rock: look higher
+    return BLOCK[u].solid !== false;
+  }
+  return false;
+}
 function joins(a, b) {
   if (b === EMPTY || BLOCK[b].solid === false) return false;
   if (a === LAVA || b === LAVA) return a === b;

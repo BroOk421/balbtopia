@@ -5819,15 +5819,6 @@
     },
     {
       "seeds": [
-        "elevator",
-        "toy_rocket"
-      ],
-      "result": "rocket_ship",
-      "source": "balbtopia",
-      "note": "Rocket Ship = Elevator + Toy Rocket (Balbtopia recipe, Nov 5 2026)"
-    },
-    {
-      "seeds": [
         "moon_sand",
         "stone_wall"
       ],

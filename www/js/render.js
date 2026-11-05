@@ -901,7 +901,7 @@ function render() {
   // drops
   drawMannequins(ox, oy, T);
   // main door (1 tile), drawn in front of the wall and behind the player
-  g.drawImage(doorSprite(), ox + door.x * T, oy + door.y * T, T, T);
+  if (!(typeof noMainDoor === 'function' && noMainDoor())) g.drawImage(doorSprite(), ox + door.x * T, oy + door.y * T, T, T); // (none on the MOON)
   drawTrees(ox, oy, T);
   // holding the wrench: a wrench on every nearby block the wrench opens (signs.js), drawn here so it is behind the
   // drops and the players (owner, Oct 21 2026)

@@ -538,6 +538,10 @@ const Net = (() => {
       .on('broadcast', { event: 'take' }, ({ payload }) => payload && netTake(payload.u, payload.by))
       // 5 coins on one tile joined into a bigger one (coins.js)
       .on('broadcast', { event: 'merge' }, ({ payload }) => typeof netMerge === 'function' && netMerge(payload))
+      // the Moons' floating asteroids: pushes, breaks and the boss's sync (moonroids.js)
+      .on('broadcast', { event: 'roid' }, ({ payload }) => typeof netRoid === 'function' && netRoid(payload))
+      // the Moon Event: a rocket taken in MOONEVENT, a player landed on a Moon (moonevent.js)
+      .on('broadcast', { event: 'mev' }, ({ payload }) => typeof netMev === 'function' && netMev(payload))
       // someone posted / removed a suggestion on a Suggestion Board (board.js): an open board reloads
       .on('broadcast', { event: 'board' }, ({ payload }) => N.onBoard && N.onBoard(payload))
       // (once the server's chat:NAME is joined, chat sent by players themselves is ignored: its name could be fake)
@@ -793,6 +797,12 @@ const Net = (() => {
   N.sendDrop = (d) => {
     if (N.me)
       send('drop', { s: N.me && N.me.id, u: d.uid, id: d.id, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined, k: d.ck || undefined });
+  };
+  N.sendRoid = (p) => {
+    if (N.me) send('roid', p);
+  };
+  N.sendMev = (p) => {
+    if (N.me) send('mev', p);
   };
   N.sendMoved = () => {
     if (N.me) send('moved', {});
@@ -1125,7 +1135,8 @@ const Net = (() => {
       // (owner's bug, Oct 25 2026: jumping players seemed to go through blocks) the guess falls with gravity like a
       // real jump and stops at solid blocks, one axis at a time, instead of flying on in a straight line
       if (!r.dead && r.vx !== undefined && now - r.posAt < POS_EVERY * 1500) {
-        if (r.vy) r.vy = Math.min(MAX_FALL, r.vy + (r.vy >= 0 ? FALL_GRAVITY : RISE_GRAVITY) * dt);
+        // (the MOON's low gravity: moon.js gravK / maxFallNow)
+        if (r.vy) r.vy = Math.min(maxFallNow(), r.vy + (r.vy >= 0 ? FALL_GRAVITY : RISE_GRAVITY) * gravK() * dt);
         const rw = r.w || P.w,
           rh = r.h || P.h;
         const nx = r.tx + r.vx * dt;

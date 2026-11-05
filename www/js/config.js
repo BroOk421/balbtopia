@@ -779,7 +779,7 @@ const DROP_SIZE = 15; // size of a floating drop in world pixels (was 11; owner 
 // once nobody has collected them for this long (the owner and players with access can always)
 // (owner, Oct 21 2026: 60 s was too long -> 15 s)
 const DROP_LOCK_MS = 15 * 1000;
-const MAX_DROPS = 400; // floating drops kept in a world save
+const MAX_DROPS = 1200; // floating drops kept in a world save (packed into bigger piles past this, never cut: worlds.js savedDrops; schema.sql keeps the same number)
 const WORLD_MAX = 30; // players in one world at a time (owner, Oct 25 2026; worlds.js enterWorldNow)
 // gold coins on one tile: 5 of a kind turn into 1 of the next; gold bars never join
 const COIN_KINDS = [

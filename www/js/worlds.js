@@ -102,7 +102,12 @@ function worldData() {
 // the floating drops as saved: [uid, item, qty, x, y, dropped at (ms), dropped by, coin kind?]. When there are more
 // than `cap` (every coin is its own drop, so a busy world gets there), they are packed instead of cut off:
 // 1. the coins in one tile become one gold pile (same value, no fixed coin kind), 2. the same item from the same
-// player in one tile joins up to DROP_STACK. Only if that still isn't enough are the oldest left out.
+// player in one tile joins up to DROP_STACK.
+// (owner, Nov 6 2026: "coins I harvested at 7 pm and left floating were gone 1-2 hours later") a big farm left
+// floating has more than `cap` tiles with drops, and the OLDEST ones used to be cut off here (and reported as gone,
+// so the server deleted them too). Now nothing is ever left out: if packing per tile isn't enough, it packs over
+// bigger and bigger squares of tiles (2 x 2, 4 x 4, ... up to the whole world): coins into one bigger pile, items
+// into stacks of DROP_STACK. Same total value / amount, just fewer, bigger drops.
 const DROP_Q_MAX = 999999; // the server's limit for one drop's amount (schema.sql drop_ok)
 function savedDrops(cap) {
   let list = drops.map((d) => [d.uid, d.id, d.qty, Math.round(d.x), Math.round(d.y), d.born, d.by || 0, ...(d.ck ? [d.ck] : [])]);
@@ -133,7 +138,12 @@ function savedDrops(cap) {
   };
   list = pack((e) => (e[1] === 'gold' ? 'g' + tileKey(e) : null), DROP_Q_MAX);
   if (list.length > cap) list = pack((e) => (e[1] === 'gold' ? null : e[1] + '|' + e[6] + '|' + tileKey(e)), DROP_STACK);
-  return list.length > cap ? list.slice(-cap) : list;
+  for (let s = 2; list.length > cap && s <= 2 * Math.max(WW, WH); s *= 2) {
+    const area = (e) => Math.floor(e[3] / (TS * s)) + ',' + Math.floor(e[4] / (TS * s));
+    list = pack((e) => (e[1] === 'gold' ? 'g' + area(e) : null), DROP_Q_MAX);
+    if (list.length > cap) list = pack((e) => (e[1] === 'gold' ? null : e[1] + '|' + area(e)), DROP_STACK);
+  }
+  return list; // never cut: every floating coin / item stays until somebody takes it
 }
 // skew: how far our clock is ahead of the clock that wrote w (for the age of drops)
 function applyWorld(w, skew = 0) {
@@ -413,6 +423,8 @@ async function enterWorldNow(name) {
   }
   // the RECIPES world is built by the game, and rebuilt when the recipe list changes
   if (name === RECIPES_WORLD && worldRV !== recipesVersion()) buildRecipesWorld();
+  // MOONEVENT built by the game, and every Moon built again for each Moon Event (moonevent.js)
+  if (typeof moonWorldsFix === 'function') moonWorldsFix(name);
   // the GM's own lobby world: built once (lobby.js; never rebuilt while LOBBY_V stays the same)
   if (name === LOBBY_WORLD && isGM() && worldRV !== LOBBY_V) buildGmLobby();
   dmg.fill(0);
@@ -518,7 +530,7 @@ function renderWorldList() {
   const list = listWorlds().filter((w) => w.name.includes(q));
   const ul = $('wlist');
   ul.innerHTML = '';
-  if (q && !list.some((w) => w.name === q)) {
+  if (q && !list.some((w) => w.name === q) && !(typeof worldHidden === 'function' && worldHidden(q))) { // (the MOON: rocket only)
     const li = document.createElement('li');
     li.innerHTML = `<button class="wrow new" id="wnew"><span class="wn">${q}</span><span class="wt">New world</span></button>`;
     li.firstChild.onclick = () => goWorld(q);
