@@ -1118,7 +1118,7 @@
       "growSeconds": 300
     },
     "moon_rock": {
-      "growSeconds": 360
+      "growSeconds": 180
     },
     "toy_bricks": {
       "growSeconds": 240
@@ -1419,6 +1419,18 @@
     },
     "diving_board": {
       "growSeconds": 360
+    },
+    "rocket_ship": {
+      "growSeconds": 900
+    },
+    "moon_sand": {
+      "growSeconds": 120
+    },
+    "moon_sand_wall": {
+      "growSeconds": 150
+    },
+    "moon_rock_wall": {
+      "growSeconds": 180
     }
   },
   "splices": [
@@ -5804,6 +5816,33 @@
       "result": "diving_board",
       "source": "balbtopia",
       "note": "diving_board = spring + wooden_platform (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "elevator",
+        "toy_rocket"
+      ],
+      "result": "rocket_ship",
+      "source": "balbtopia",
+      "note": "Rocket Ship = Elevator + Toy Rocket (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "moon_sand",
+        "stone_wall"
+      ],
+      "result": "moon_sand_wall",
+      "source": "balbtopia",
+      "note": "Moon Sand Wall = Moon Sand + Stone Wall (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "moon_rock",
+        "stone_wall"
+      ],
+      "result": "moon_rock_wall",
+      "source": "balbtopia",
+      "note": "Moon Rock Wall = Moon Rock + Stone Wall (Balbtopia recipe, Nov 5 2026)"
     }
   ],
   "growtopiaNotInGameYet": [

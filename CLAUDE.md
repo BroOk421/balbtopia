@@ -48,6 +48,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `steel.js` | Steel Beam / Steel Bridge platforms (blocks 162-163, 64 px art via `pix64Canvas`) |
 | `mailbox.js` | Mailbox block (208): flag up while you have unread email / a GM update; wrench = inbox + GM updates (server `announcements`) |
 | `globalchat.js` | Global Chat panel (top left, globe button), Microphone item (2,000 gold, one per broadcast), /go, name pop-up (Message / Add friend / Block 10 min) |
+| `moon.js` | Rocket Ship (door 420: launch / landing animation), the shared MOON world (`buildMoon`), Moon Sand / Moon Rock (421-422), Moon Sand / Rock Walls (bg 43-44), the space backdrop `drawMoonBg` (weather 'moon') |
 | `letters.js` | A-Z, 0-9 and arrow blocks (168-207): `GLYPH_BLOCKS` (id, name, recipe seeds), `FONT57`, `glyphPic` |
 | `ui.js`, `menu.js` | Hotbar, bag (50 slots), item info, gold counter; menu tabs, XP and levels |
 
@@ -2430,3 +2431,36 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   before this build don't get them (a world is generated once). Next free block: 420.
 - Nov 5 2026 (build zj, owner): Sand (145) has no outline / stroke any more: blast.js clears `edge` on its BLOCK and
   NEW_ITEMS entry (world and icon).
+- Nov 5 2026 (build zk, owner: "a Rocket Ship block, door open; click = it shuts and goes to the moon map like the
+  elevator; a moon backdrop from the attached space pictures; the recent Sand made dark; the asteroid made a stone;
+  backgrounds of those; built like the Beach Blast world; small twinkling stars that grow and shrink"): NEW `moon.js`
+  (after graves.js, before camzoom.js). NEW NUMBERS (permanent): blocks 420 Rocket Ship (`rocket_ship`, a door,
+  Elevator + Toy Rocket, 900 s), 421 Moon Sand (HD_TEX: Sand's texture in dark greys, no outline), 422 Moon Rock
+  (64 px asteroid stone, edge outline); backgrounds 43 Moon Sand Wall (Moon Sand + Stone Wall), 44 Moon Rock Wall
+  (Moon Rock + Stone Wall). NEXT FREE BLOCK: 423, NEXT FREE BG: 45. ROCKET: 2 tiles tall (128 px pic drawn from the
+  tile above); stand in it + click (`useDoor` wrapper) = hatch shuts (RK_CLOSE), engine + shake (RK_IGNITE), climbs
+  (RK_LIFT), screen fades, `enterWorld`; on arrival a rocket there (Moon pad, or the one you left from:
+  `rocketHome`, localStorage `balb_rocket_home`) comes down, smoke, hatch opens. Destination: wrench world if set,
+  else MOON, and from the MOON back to rocketHome (else LOBBY). Local animation only (like the elevator). MOON world
+  (`MOON_WORLD` 'MOON', in NO_MOVE): genWorld wrapper `buildMoon` (seeded hills, craters with rims, slope <= 1 tile,
+  Moon Sand over Moon Rock, walls behind, boulders, no lava), main door in the middle, the Moon's rocket at door.x+3
+  (`moonPadI`: nobody but the GM can break / wrench it); no locks on the Moon; saved `wbg: 'moon'` (blast.js
+  worldBg), the name alone also turns it on. Backdrop: weather 'moon' (when no machine is on), `drawMoonBg`: space
+  gradient, 110 small stars that grow and shrink, 9 small pulsing sparkle pictures, the owner's pictures
+  (`www/assets/moon`, cut by `art-source/moon/moon_cut.py` from `space_sheet.png`): Milky Way / nebula bands,
+  galaxy, black hole, Saturn, purple planet, Mars drifting (`MOON_SKY` strip), Earth fixed on screen (moonSpot), a
+  comet every 11 s, nebula clouds on the horizon, two grey lunar ridges. No server change. Tested in Chromium
+  offline: rocket to the Moon and back, landing, backdrop. GAME_BUILD '2026-11-05 zk'.
+- Nov 5 2026 (build zl, owner: "the asteroid as I gave it, not a square block"): Moon Rock (422) is now drawn as one
+  of the owner's five asteroid pictures (`www/assets/moon/rock1..5.png`, cut by moon_cut.py; `drawMoonRock`, picked
+  per tile by `rockPick(x, y)`), standing on the tile's bottom, no square, no outline (BLOCK art 'deco', solid: true;
+  the drawNewBlock wrapper in moon.js draws it). Icon = rock1. The MOON's ground is Moon Sand all the way down with
+  asteroids buried in it (12% below the top 3 rows), like rocks in dirt; worlds already made keep their tiles (they
+  just look like asteroids now). Moon Rock Wall (bg 44) stays the square cratered wall. GAME_BUILD '2026-11-05 zl'.
+- Nov 5 2026 (build zm, owner: "the asteroid when broken: mostly 90% nothing, 3% green acid, 2% green crystal, 2% red
+  crystal, 1.5% white crystal, .5% black crystal"): moon.js `ROCK_LOOT`; breaking a Moon Rock never gives the rock,
+  its seed or coins (breakDrop wrapper returns nothing and keeps `rockPrize`; an act wrapper drops it on the broken
+  tile + toast). The owner's numbers add up to 99%: the missing 1% is nothing too (91% nothing). New items (kind
+  'material', no block number, can't be placed): green_acid (Uncommon, flask), green_crystal / red_crystal (Rare),
+  white_crystal (Epic), black_crystal (Legendary); 64 px art (`paintCrystal` shard cluster on a rock lump,
+  `paintAcid`). Tested: 200,000 rolls match the table; a real break dropped its crystal. GAME_BUILD '2026-11-05 zm'.
