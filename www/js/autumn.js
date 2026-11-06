@@ -475,6 +475,18 @@ jumpLines = ((prev) =>
     P.airJumpT = now;
     return prev(...a);
   })(jumpLines);
+// (owner, Nov 7 2026: "take that effect off when stepping on the Up Arrow, the asteroid too: the wings' effect only
+// when jumping, Space or W") your leaving the ground beats the wings only if you pressed jump just before
+// (`P.jumpPressT`: a new press seen by the physics step: the jump key / touch button fills P.buf); being lifted by an
+// Up Arrow Gate, a Spring, an asteroid... keeps them still. Air jumps always need a press, so they still beat.
+const AUT_PRESS_MS = 300;
+step = ((prev) =>
+  function (dt) {
+    if (P.buf > (P.bufSeen || 0) + 0.001) P.jumpPressT = now; // a fresh press since the last step
+    const r = prev(dt);
+    P.bufSeen = P.buf;
+    return r;
+  })(step);
 // (owner, Nov 5 2026: "when jumping, autumn leaves come out from under the wings") every beat drops `AUT_SHED.n`
 // of his leaves (FALL_LEAF_BOX, random) from under each wing: they slip out a little sideways, then fall slowly,
 // swinging and turning, and fade. World particles (`parts`), so they stay where they fell out while you fly on.
@@ -528,15 +540,18 @@ function drawAutumnWings(c, top, sc, dy) {
     air = (c.realGround !== undefined ? c.realGround : c.ground) === false && !c.portrait;
   let S = AUT_AIR.get(key);
   if (!air) AUT_AIR.delete(key);
-  else if (!S) AUT_AIR.set(key, (S = { t: now }));
-  if (air && !c.id && P.airJumpT > S.t) S.t = P.airJumpT; // you jumped again in the air: another beat
-  if (S && S.shed !== S.t) {
+  else if (!S) AUT_AIR.set(key, (S = { t: now, still: !c.id && !(now - (P.jumpPressT || -1e9) < AUT_PRESS_MS) }));
+  if (air && !c.id && P.airJumpT > S.t) {
+    S.t = P.airJumpT; // you jumped again in the air: another beat
+    S.still = false;
+  }
+  if (S && !S.still && S.shed !== S.t) {
     S.shed = S.t; // a new beat (leaving the ground or an air jump): leaves drop out from under both wings
     autWingLeaves(c, im);
   }
   const kp = sc * Z, // body px -> screen (positions)
     k = kp * AUT_WING.big, // the wing pictures, bigger
-    f = air ? Math.floor((now - S.t) / 1000 / AUT_BEAT) : 9, // 0 high, 1 mid, 2 low, then mid
+    f = air && !S.still ? Math.floor((now - S.t) / 1000 / AUT_BEAT) : 9, // 0 high, 1 mid, 2 low, then mid
     pose = f === 0 && hi && hi.width ? 'hi' : f === 2 ? 'low' : 'mid',
     W = AUT_WING.w,
     H = im.height,

@@ -1135,8 +1135,8 @@ const Net = (() => {
       // (owner's bug, Oct 25 2026: jumping players seemed to go through blocks) the guess falls with gravity like a
       // real jump and stops at solid blocks, one axis at a time, instead of flying on in a straight line
       if (!r.dead && r.vx !== undefined && now - r.posAt < POS_EVERY * 1500) {
-        // (the MOON's low gravity: moon.js gravK / maxFallNow)
-        if (r.vy) r.vy = Math.min(maxFallNow(), r.vy + (r.vy >= 0 ? FALL_GRAVITY : RISE_GRAVITY) * gravK() * dt);
+        // (the MOON's low gravity: moon.js gravK / maxFallNow, for that player: only in the Astronaut Set)
+        if (r.vy) r.vy = Math.min(maxFallNow(r), r.vy + (r.vy >= 0 ? FALL_GRAVITY : RISE_GRAVITY) * gravK(r) * dt);
         const rw = r.w || P.w,
           rh = r.h || P.h;
         const nx = r.tx + r.vx * dt;

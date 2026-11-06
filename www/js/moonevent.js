@@ -5,28 +5,31 @@
 // asteroids somewhere else". Owner's answers: open 24 h from 8:00 PM (Philippine time), every 3 days; each rocket
 // flies ONE player per event; the Rocket Ship recipe is gone and only the GM flies a placed one (to try the Moons).
 // Loaded right after moon.js (uses MOON_WORLDS, MOON_PAD_N, padI, buildMoon, startRocketTrip, drawRocketAt ...).
-// - SCHEDULE (`mevInfo`): event number `ev` counts MEV_PERIOD (6 h since build d) from MEV_ANCHOR (8:00 PM Manila);
-//   open for MEV_OPEN (2 h) at the start of each. Online the server's clock is used (moon_status `now`).
+// - SCHEDULE (`mevInfo`): event number `ev` counts MEV_PERIOD (3 days; 6 h in builds d-e) from MEV_ANCHOR (8:00 PM
+//   Manila); open for MEV_OPEN (24 h) at the start of each. Online the server's clock is used (moon_status `now`).
 // - SEATS: rocket k (0-199) goes to MOON_WORLDS[k / 20], pad rocket k % 20 there. Online the server hands out the
 //   seats (schema.sql MOON EVENT: moon_seats, moon_status, moon_claim): one rocket per player per event and one player
 //   per rocket. Your own seat's rocket keeps flying you (back after a disconnect); every other used rocket shows its
 //   hatch shut. Offline: the same in localStorage. The GM flies any rocket without a seat, open or not.
 // - MOONEVENT world (`buildMoonEvent`, built by the game like RECIPES, locked by the GM, `MOONEVENT_V` as rv):
-//   five tiers of Steel Blocks over the bedrock, joined by stairs of Steel Beam platforms (left, right, ...), two groups of
+//   five tiers of Steel Blocks over the bedrock, joined by holes at both sides with Springs under them (build n), two groups of
 //   20 rockets per tier with a sign at the start of each group: bottom tier MOON (left) and MOON1 (right), up to
 //   MOON8 / MOON9 at the top. Every rocket's bubble says its Moon and seat. Main door bottom right. Desert backdrop.
-//   Always listed in the world list (under LOBBY / RECIPES). Nobody but the GM changes anything there.
-// - The MOONS (moon.js buildMoon) are built again when an event starts (`moonWorldsFix`: rv 'MOONEV:<ev>').
-// - When the event closes, players still on a Moon are flown back to MOONEVENT.
+//   Listed in the world list (under LOBBY / RECIPES) and open ONLY while the event is on (build f); nobody but the GM
+//   changes anything there.
+// - The MOONS (moon.js buildMoon) are built again when an event starts (`moonWorldsFix`: rv 'MOONEV2:<ev>').
+// - When the event closes, players still on a Moon or in MOONEVENT are sent to their LOBBY (build f; was MOONEVENT).
 // ===== moonevent =====
-// (owner, Nov 6 2026, build d: "every 6 hours, not 3 days") a new event every 6 hours from 8:00 PM PH time
-// (8 PM, 2 AM, 8 AM, 2 PM), open MEV_OPEN = 2 hours each (Claude's pick; the owner gave no length). The server's
+// (owner, Nov 6 2026, build f: "back to every 3 days, 24 hours before it ends", as in build b; builds d-e had every
+// 6 hours, open 2 h) a new event every 3 days from 8:00 PM PH time, open MEV_OPEN = 24 hours. The server's
 // schema.sql moon_event_now uses the same three numbers.
-const MEV_ANCHOR = Date.UTC(2026, 10, 5, 12, 0, 0), // Nov 5 2026, 8:00 PM in Manila
-  MEV_PERIOD = 6 * 3600000,
-  MEV_OPEN = 2 * 3600000,
+const MEV_ANCHOR = Date.UTC(2026, 10, 6, 12, 0, 0), // Nov 6 2026, 8:00 PM in Manila
+  MEV_PERIOD = 3 * 86400000,
+  MEV_OPEN = 24 * 3600000,
   MEV_SEATS = MOON_WORLDS.length * MOON_PAD_N, // 200
-  MOONEVENT_V = 'MEV:3'; // (2: the stairs are Steel Beam platforms; 3: signs say every 6 hours)
+  MOONEVENT_V = 'MEV:7'; // (2: the stairs are Steel Beam platforms; 3: signs say every 6 hours; 4: every 3 days again;
+  // 5: steel stalls round every rocket, Air Exhaust walls, no main door; 6: holes + springs up each side;
+  // 7: a steel ceiling with open sky above, Fish Tanks with lids down both sides)
 let mevSkew = 0; // the server's clock minus ours
 function mevInfo(t) {
   const d = t - MEV_ANCHOR,
@@ -38,6 +41,11 @@ const mevNowInfo = () => mevInfo(Date.now() + mevSkew);
 const mevWait = (ms) => fmtLeft(Math.max(1, Math.round(ms / 1000)));
 
 // ---------- the MOONEVENT layout ----------
+const MEV_STALL_H = 3, // steel blocks on each side of a rocket
+  MEV_HOLES = [[2, 3, 96, 97], [5, 6, 93, 94]], // (build n) holes through the shelves at both sides, by shelf (t & 1)
+  MEV_SPRING_H = 6.6 * TS,
+  MEV_TOP = FLOOR_ROW - 1 - 5 * 5, // (= mevFloor(5); build o) the steel ceiling: one shelf above the top rockets, nothing behind it upwards
+  MEV_TANK_X = [[0, 7], [93, WW - 1]]; // (build o) the Fish Tank columns at both sides // bounce.js: a Spring here always throws you this high (one shelf is 5 tiles)
 const mevFloor = (t) => FLOOR_ROW - 1 - 5 * t; // the Steel row of tier t (0 = bottom)
 // rocket k: moon m = k / 20 (tier m / 2, left or right group), seat n = k % 20
 function evRocketXY(k) {
@@ -68,33 +76,52 @@ function buildMoonEvent() {
     BEAM = ITEMS.steel_beam.block, // (owner, Nov 6 2026: the stairs are steel platforms: jump up through them)
     SIGN = ITEMS.sign.block,
     put = (x, y, t) => inW(x, y) && (fg[at(x, y)] = t);
-  // the tiers: 0 the whole width; odd ones x 5-99 (stairs up on the left), even ones x 0-94 (stairs on the right)
-  for (let t = 0; t < 5; t++) {
-    const y = mevFloor(t),
-      x0 = t === 0 ? 0 : t & 1 ? 5 : 0,
-      x1 = t === 0 ? WW - 1 : t & 1 ? WW - 1 : 94;
-    for (let x = x0; x <= x1; x++) put(x, y, STEEL);
-    // the stairs up from the tier below: one tile up per step
-    if (t > 0) {
-      const yb = mevFloor(t - 1);
-      for (let j = 1; j <= 4; j++) put(t & 1 ? j : WW - 1 - j, yb - j, BEAM);
-    }
-  }
+  // the tiers, each the whole width (build n: the Steel Beam stairs are gone, the holes + springs below take you up)
+  for (let t = 0; t < 5; t++) for (let x = 0; x < WW; x++) put(x, mevFloor(t), STEEL);
   // the rockets, and a sign at the start of every group of 20
   for (let m = 0; m < MOON_WORLDS.length; m++) {
     const p = evRocketXY(m * MOON_PAD_N),
       si = at(p.x - 2, p.y);
     fg[si] = SIGN;
-    setSign(si, 'Rockets to ' + MOON_WORLDS[m] + ' (20 seats, one player each). Moon Event: every 6 hours (2 AM, 8 AM, 2 PM, 8 PM PH time), open 2 hours. Stand in a rocket and click it.');
+    setSign(si, 'Rockets to ' + MOON_WORLDS[m] + ' (20 seats, one player each). Moon Event: every 3 days from 8 PM PH time, open 24 hours. Stand in a rocket and click it.');
   }
   for (let k = 0; k < MEV_SEATS; k++) fg[evRocketTile(k)] = ROCKET_T;
-  // the main door bottom right on bedrock, a welcome sign beside it
+  // (owner, Nov 6 2026, build m: "more steel blocks like I did") every rocket stands in its own stall: a column of
+  // MEV_STALL_H Steel Blocks on both sides of it (one tile of air left under the shelf above)
+  for (let m = 0; m < MOON_WORLDS.length; m++) {
+    const p = evRocketXY(m * MOON_PAD_N);
+    for (let n = 0; n <= MOON_PAD_N; n++) for (let h = 1; h <= MEV_STALL_H; h++) put(p.x - 1 + 2 * n, p.y + 1 - h, STEEL);
+  }
+  // (owner, Nov 6 2026, build n: "make a hole in the row at the side so there's a way through, and put a spring")
+  // at both sides (left of the left rockets, right of the right ones) every shelf above the bottom has a 2-tile hole,
+  // and on the shelf below, Springs right under it throw you up through it. The holes take turns between two places
+  // (MEV_HOLES[t & 1]) so each Spring stands on floor, not on the hole of its own shelf.
+  const SPRING = ITEMS.spring.block;
+  for (let t = 1; t < 5; t++)
+    for (const x of MEV_HOLES[t & 1]) {
+      put(x, mevFloor(t), 0);
+      put(x, mevFloor(t - 1) - 1, SPRING);
+    }
+  // (build m) NO main door: you come in standing in a free rocket (mevSpawn). door.x / door.y are only a spot.
   door.x = WW - 4;
   door.y = mevFloor(0) - 1;
-  fg[at(door.x, door.y + 1)] = BEDROCK;
+  // (owner, Nov 6 2026, build o: "from that row up, no background; make that row steel") a Steel ceiling one shelf
+  // above the top rockets (MEV_TOP), the sky open above it
+  for (let x = 0; x < WW; x++) put(x, MEV_TOP, STEEL);
+  // (build m: "fill it with the Air Exhaust background, only where there's no steel") the room's back wall, under the
+  // ceiling only; (build o: "the broken part, straight down: a Fish Tank, with lids at the side") the side areas
+  // outside the rockets (MEV_TANK_X) are one tall Fish Tank each instead
+  for (let y = MEV_TOP + 1; y < mevFloor(0); y++)
+    for (let x = 0; x < WW; x++) {
+      const i = at(x, y);
+      if (fg[i] === STEEL) continue;
+      bg[i] = MEV_TANK_X.some(([a, b]) => x >= a && x <= b) ? AQUA_BG : AIR_EXHAUST_BG;
+    }
+  // a Fish Tank Lid on the outer edge of every shelf, both sides (hold a fish, click the lid: it goes in the tank)
+  for (let t = 0; t < 5; t++) for (const x of [0, WW - 1]) put(x, mevFloor(t) - 1, LID_T);
   const hi = at(WW - 2, door.y);
   fg[hi] = SIGN;
-  setSign(hi, 'MOON EVENT! Every 6 hours: 2 AM, 8 AM, 2 PM, 8 PM (PH time), open 2 hours. 200 rockets, one seat each: MOON and MOON1-9, 20 players per Moon.');
+  setSign(hi, 'MOON EVENT! Every 3 days from 8 PM (PH time), open 24 hours. 200 rockets, one seat each: MOON and MOON1-9, 20 players per Moon.');
   numberDoors(false);
   for (let k = 0; k < MEV_SEATS; k++) {
     const i = evRocketTile(k);
@@ -103,7 +130,7 @@ function buildMoonEvent() {
   // locked by the GM (nobody else changes anything here)
   fg[cornerLockTile()] = LOCK;
   worldOwner = GM_USERS[0];
-  setLockCfg({ desc: 'The Moon Event: rockets to the Moons, every 6 hours (2 AM, 8 AM, 2 PM, 8 PM).' });
+  setLockCfg({ desc: 'The Moon Event: rockets to the Moons, every 3 days from 8 PM PH time, open 24 hours.' });
   worldBg = 'desert';
   worldRV = MOONEVENT_V;
 }
@@ -111,7 +138,7 @@ function buildMoonEvent() {
 function moonWorldsFix(name) {
   if (name === MOON_EVENT_WORLD && (worldRV !== MOONEVENT_V || lc(worldOwner) !== lc(GM_USERS[0]))) buildMoonEvent();
   if (isMoonName(name)) {
-    const v = 'MOONEV:' + mevNowInfo().ev;
+    const v = 'MOONEV2:' + mevNowInfo().ev; // (2: build k, the pad's shelves at the side)
     if (worldRV !== v) {
       trees.clear();
       signs.clear();
@@ -265,9 +292,10 @@ function padSeat(i) {
   const m = MOON_WORLDS.indexOf(worldName),
     x = i % WW,
     y = (i / WW) | 0,
-    j = (x - padX(0)) / 2;
-  if (m < 0 || y !== SURF - 1 || !Number.isInteger(j) || j < 0 || j >= MOON_PAD_N) return -1;
-  return m * MOON_PAD_N + j;
+    c = (x - PAD_X0) / 2,
+    r = (SURF - 1 - y) / PAD_DY; // (build k: 4 shelves of 5 at the left side)
+  if (m < 0 || !Number.isInteger(c) || c < 0 || c >= PAD_COLS || !Number.isInteger(r) || r < 0 || r >= PAD_ROWS) return -1;
+  return m * MOON_PAD_N + r * PAD_COLS + c;
 }
 function padShown(i) {
   if (isGM() || i === rocketTile()) return true;
@@ -381,8 +409,14 @@ listWorlds = ((prev) =>
   })(listWorlds);
 
 // ---------- coming in, and the event closing ----------
+// (owner, Nov 6 2026, build f: "MOONEVENT can't be visited before the event's time") closed = no way in (the GM may)
 enterWorldNow = ((prev) =>
   async function (name) {
+    if (name === MOON_EVENT_WORLD && !isGM() && !mevNowInfo().open && !(inWorld && worldName === name)) {
+      const info = mevNowInfo();
+      toast('MOONEVENT is closed. The next Moon Event starts in ' + mevWait(info.next - info.now));
+      return false;
+    }
     const ok = await prev(name);
     if (ok && name === MOON_EVENT_WORLD) {
       mevRefresh();
@@ -398,11 +432,11 @@ let mevClosing = false;
 setInterval(() => {
   if (!inWorld) return;
   if (worldName === MOON_EVENT_WORLD || isMoonName(worldName)) mevRefresh();
-  // the event is over: everybody but the GM flies back to MOONEVENT
-  if (isMoonName(worldName) && !isGM() && !mevNowInfo().open && !mevClosing && !rocketBusy() && !entering) {
+  // the event is over: everybody but the GM goes to their lobby (MOONEVENT is closed too now)
+  if ((isMoonName(worldName) || worldName === MOON_EVENT_WORLD) && !isGM() && !mevNowInfo().open && !mevClosing && !rocketBusy() && !entering) {
     mevClosing = true;
-    toast('The Moon Event is over: back to MOONEVENT');
-    enterWorld(MOON_EVENT_WORLD).finally(() => (mevClosing = false));
+    toast('The Moon Event is over: back to your lobby');
+    enterWorld(LOBBY_WORLD).finally(() => (mevClosing = false));
   }
 }, 6000);
 // on a Moon you fly back in YOUR rocket (your seat on the pad), not in somebody else's
@@ -419,3 +453,65 @@ useDoor = ((prev) =>
     }
     return prev(x, y);
   })(useDoor);
+
+
+// ---------- coming in: straight into a free rocket (owner, Nov 6 2026, build m) ----------
+// "no main door; coming into the world you go straight to the rockets' doors, one that still has its rocket; one
+// another player already used (gone) is never picked". Your own seat's rocket if you have one this event, else a free
+// one picked at random (so two players coming in together seldom share one); the GM: the first rocket.
+noMainDoor = ((prev) =>
+  function () {
+    return prev() || worldName === MOON_EVENT_WORLD;
+  })(noMainDoor);
+function mevSpawn() {
+  if (worldName !== MOON_EVENT_WORLD) return false;
+  const info = mevNowInfo(),
+    trip = moonTripNow(),
+    mine = mevStatus.ev === info.ev && mevStatus.mine !== null && mevStatus.mine >= 0 ? mevStatus.mine : trip && trip.ev === info.ev ? trip.k : -1;
+  let k = mine;
+  if (k < 0) {
+    const free = [];
+    for (let n = 0; n < MEV_SEATS; n++) if (fg[evRocketTile(n)] === ROCKET_T && !evRocketGone(n) && !(mevStatus.ev === info.ev && mevStatus.taken.has(n))) free.push(n);
+    k = free.length ? free[Math.floor(Math.random() * free.length)] : 0;
+    if (!free.length && !isGM()) toast('Every rocket is taken this event');
+  }
+  const i = evRocketTile(k);
+  if (fg[i] !== ROCKET_T) return false;
+  Object.assign(P, elevStand(i));
+  P.vx = P.vy = 0;
+  return true;
+}
+enterWorldNow = ((prev) =>
+  async function (name) {
+    const ok = await prev(name);
+    if (ok && name === MOON_EVENT_WORLD) {
+      mevSpawn(); // at once, with what is known
+      const before = mevStatus.at;
+      await mevRefresh();
+      // the seats' news came in: if the rocket you stand in turned out to be somebody else's, move
+      if (worldName === MOON_EVENT_WORLD && mevStatus.at !== before) mevReseat();
+    }
+    return ok;
+  })(enterWorldNow);
+respawn = ((prev) =>
+  function () {
+    const n = puffs.length,
+      r = prev();
+    if (worldName === MOON_EVENT_WORLD && !P.cp && mevSpawn()) puffs.length = Math.min(puffs.length, n);
+    return r;
+  })(respawn);
+toDoor = ((prev) =>
+  function (msg) {
+    const n = puffs.length,
+      r = prev(msg);
+    if (worldName === MOON_EVENT_WORLD && mevSpawn()) puffs.length = Math.min(puffs.length, n);
+    return r;
+  })(toDoor);
+// standing in a rocket another player has taken (it is gone): to a free one
+function mevReseat() {
+  if (worldName !== MOON_EVENT_WORLD || P.dead || rocketBusy() || doorTrip || entering) return;
+  const i = doorUnderPlayer(),
+    k = i >= 0 ? evRocketK(i) : -1;
+  if (k >= 0 && evRocketGone(k)) mevSpawn();
+}
+setInterval(() => inWorld && mevReseat(), 2000);

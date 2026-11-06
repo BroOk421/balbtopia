@@ -77,9 +77,21 @@ applyWorld = ((prev) =>
       const o = roidUnpack(e);
       if (o) roids.push(o);
     }
+    roidThin();
     roidSeq = roids.reduce((m, o) => Math.max(m, o.id + 1), 1);
     return r;
   })(applyWorld);
+// (owner, Nov 6 2026, build f: "not too many asteroids, the ground already has a lot") a Moon built before that with
+// more than ROID_MAX keeps an even spread of them (the same ones on every screen: by id)
+const ROID_MAX = 22;
+function roidThin() {
+  if (roids.length <= ROID_MAX) return;
+  const keep = new Set(),
+    ids = roids.map((o) => o.id).sort((a, b) => a - b),
+    stepK = ids.length / ROID_MAX;
+  for (let n = 0; n < ROID_MAX; n++) keep.add(ids[Math.floor(n * stepK)]);
+  for (let n = roids.length - 1; n >= 0; n--) if (!keep.has(roids[n].id)) roids.splice(n, 1);
+}
 genWorld = ((prev) =>
   function (name) {
     roids.length = 0; // (a Moon fills them again in buildMoon, called after this from moon.js's wrapper)
@@ -254,7 +266,7 @@ function breakRoid(o, mine) {
   for (const [k, p] of ROCK_LOOT)
     if ((u -= p) < 0) {
       spawnDrop(k, o.x, o.y);
-      toast('The asteroid broke open: ' + ITEMS[k].name + '!');
+      // (owner, Nov 6 2026, build f: no text pop-up for the drop; the drop itself shows)
       break;
     }
   if (typeof questTick === 'function') questTick('break', 'moon_rock');
@@ -277,6 +289,12 @@ function roidSet(o, e) {
   o.vy = vy;
   o.a = a;
   o.va = va;
+  // its damage (another player is punching it): the cracks show here too
+  const hp = e[7];
+  if (Number.isInteger(hp) && hp >= 0 && hp !== o.hp) {
+    o.hp = hp;
+    o.hitT = now;
+  }
 }
 function netRoid(p) {
   if (!p || !inWorld || !isMoonName(worldName) || p.rv !== worldRV) return;
@@ -327,6 +345,28 @@ function roidPic(k, px) {
   ROID_PICS.set(key, c);
   return c;
 }
+// (owner, Nov 6 2026, build f: "the asteroids break but no crack shows; it should, like under the ground") a hit
+// asteroid shows the same cracks as a block being broken (render.js drawCrack's picture, 3 steps by damage), kept
+// inside the rock's own shape and turning with it; gone when the damage is forgotten (5 s, like blocks)
+const ROID_CRACKS = new Map();
+function roidCracked(o, c) {
+  if (!o.hp || now - (o.hitT || 0) > 5000 || !IMG.cracks || !IMG.cracks.width) return c;
+  const st = Math.min(2, Math.floor((o.hp / ROID_HITS) * 3)),
+    key = o.k + ':' + c.width + ':' + st;
+  let k = ROID_CRACKS.get(key);
+  if (k) return k;
+  if (ROID_CRACKS.size > 200) ROID_CRACKS.clear();
+  k = document.createElement('canvas');
+  k.width = c.width;
+  k.height = c.height;
+  const x = k.getContext('2d');
+  x.drawImage(c, 0, 0);
+  x.globalCompositeOperation = 'source-atop';
+  x.imageSmoothingEnabled = false;
+  x.drawImage(IMG.cracks, st * 32, 0, 32, 32, 0, 0, k.width, k.height);
+  ROID_CRACKS.set(key, k);
+  return k;
+}
 function drawRoids(ox, oy, T) {
   if (!roids.length) return;
   const z = T / TS,
@@ -343,7 +383,7 @@ function drawRoids(ox, oy, T) {
     if (!c) continue;
     g.setTransform(1, 0, 0, 1, X, Y);
     g.rotate(o.a);
-    g.drawImage(c, -c.width / 2, -c.height / 2);
+    g.drawImage(roidCracked(o, c), -c.width / 2, -c.height / 2);
   }
   g.restore();
 }

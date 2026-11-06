@@ -308,6 +308,8 @@ function stepBounce(vy0, dt) {
     let h = Math.max(SPRING_MIN_H * (mush ? MUSH_K : 1), fell * SPRING_K * (mush ? MUSH_K : 1));
     if (jumpHeld) h *= SPRING_HOLD;
     h = Math.min(SPRING_MAX_H, h);
+    // (owner, Nov 6 2026) MOONEVENT's springs under the holes in each shelf: always high enough for the next shelf
+    if (typeof MEV_SPRING_H === 'number' && worldName === MOON_EVENT_WORLD) h = Math.max(h, MEV_SPRING_H);
     P.vy = -Math.sqrt(2 * GRAVITY * SPRING_G * h);
     P.ground = false;
     P.rise = false;

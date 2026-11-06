@@ -2003,30 +2003,25 @@ function fireplaceVol() {
   return 1 - best / FIRE_HEAR;
 }
 
-// A floating item drop (owner, Oct 27 2026, his picture): the item inside a small bevelled light frame; with more than
+// A floating item drop (owner, Oct 27 2026, his picture; Nov 7 2026: a thin rounded dark-magenta box): the item inside; with more than
 // one, the amount in the bottom-right corner (one drop holds at most DROP_STACK, 200; more makes a new drop).
 function drawDropBox(id, qty, x, y, s) {
   const B = Math.round((s + 3) * Z), // the box, in screen px
     p = Math.max(1, Math.round(Z)),
     x0 = Math.round(x - B / 2),
     y0 = Math.round(y - B / 2);
-  g.fillStyle = 'rgba(20,16,28,.38)';
-  g.fillRect(x0, y0, B, B);
-  // frame: dark outline, white / light grey bevel (lit top-left, grey bottom-right)
-  g.fillStyle = '#2a2632';
-  g.fillRect(x0 - p, y0 - p, B + 2 * p, p);
-  g.fillRect(x0 - p, y0 + B, B + 2 * p, p);
-  g.fillRect(x0 - p, y0, p, B);
-  g.fillRect(x0 + B, y0, p, B);
-  g.fillStyle = '#ffffff';
-  g.fillRect(x0, y0, B, p);
-  g.fillRect(x0, y0, p, B);
-  g.fillStyle = '#a8a6b2';
-  g.fillRect(x0, y0 + B - p, B, p);
-  g.fillRect(x0 + B - p, y0, p, B);
-  g.fillStyle = '#d8d6e0';
-  g.fillRect(x0 + p, y0 + p, B - 2 * p, p);
-  g.fillRect(x0 + p, y0 + p, p, B - 2 * p);
+  // (owner, Nov 7 2026: "a thinner border with a radius, in the colour of his neon panel but with no stripes, the red
+  // a bit darker") a rounded box: dark plum see-through inside, a thin dark magenta border
+  const rad = Math.max(2, B * 0.2),
+    lw = Math.max(1, Math.round(Z * 0.5));
+  g.beginPath();
+  if (g.roundRect) g.roundRect(x0 + lw / 2, y0 + lw / 2, B - lw, B - lw, rad);
+  else g.rect(x0 + lw / 2, y0 + lw / 2, B - lw, B - lw);
+  g.fillStyle = 'rgba(43,0,33,.55)';
+  g.fill();
+  g.lineWidth = lw;
+  g.strokeStyle = '#a8287f';
+  g.stroke();
   const ins = (s - 2) * Z;
   drawIcon(id, x - ins / 2, y - ins / 2, ins);
   if (qty > 1) {

@@ -340,13 +340,22 @@ const saveRocketHome = () => {
     localStorage.setItem('balb_rocket_home', JSON.stringify(rocketHome));
   } catch (e) {}
 };
-// every Moon's landing pad (owner, Nov 6 2026): MOON_PAD_N rockets on Steel Blocks in the middle, one per seat,
-// two tiles apart, standing on the surface row SURF. They take you back to MOONEVENT.
-const MOON_PAD_N = 20;
-const padX = (j) => (WW >> 1) - 19 + 2 * j;
-const padI = (j) => at(padX(j), SURF - 1);
+// every Moon's landing pad (owner, Nov 6 2026): MOON_PAD_N rockets, one per seat. They take you back to MOONEVENT.
+// (owner, Nov 6 2026, build k: "not in the middle, on the side; 4 rows, 5 columns") at the LEFT side: PAD_ROWS
+// shelves PAD_DY tiles apart, PAD_COLS rockets each, two tiles apart. The bottom shelf is Steel Blocks on the surface
+// row SURF, the ones above Steel Beam platforms (jump up through them). Seat j: column j % 5, shelf j / 5 (0 = bottom).
+const MOON_PAD_N = 20,
+  PAD_COLS = 5,
+  PAD_ROWS = 4,
+  PAD_DY = 4,
+  PAD_X0 = 4;
+const padX = (j) => PAD_X0 + 2 * (j % PAD_COLS);
+const padFloor = (r) => SURF - PAD_DY * r; // shelf r's floor row
+const padI = (j) => at(padX(j), padFloor(Math.floor(j / PAD_COLS)) - 1);
 const moonPadI = () => padI(0);
-const onPadSteel = (x, y) => y === SURF && x >= padX(0) - 1 && x <= padX(MOON_PAD_N - 1) + 1;
+const PAD_L = PAD_X0 - 1,
+  PAD_R = PAD_X0 + 2 * (PAD_COLS - 1) + 1;
+const onPadSteel = (x, y) => x >= PAD_L && x <= PAD_R && y <= SURF && (SURF - y) % PAD_DY === 0 && (SURF - y) / PAD_DY < PAD_ROWS;
 const isMoonPad = (i) => isMoonName(worldName) && fg[i] === ROCKET_T;
 // where a rocket flies. On a Moon: back to MOONEVENT (the GM, if he came by his own rocket: back where he left from).
 // A placed rocket: the world its wrench sets; with none, only the GM flies to the MOON (null = it doesn't fly).
@@ -515,7 +524,7 @@ const rocketNow = () => (rocketTrip ? tripState(rocketTrip) : rocketLand ? landS
 // `ev`, so the hills and the asteroids are somewhere else each time, and the same on every screen):
 // - gentle hills and craters, Moon Sand all the way down (no asteroids buried in it any more: with their real shape
 //   they'd leave holes in the ground), Moon Sand / Moon Rock Walls behind, the bedrock floor;
-// - the LANDING PAD in the middle: a flat row of Steel Blocks with MOON_PAD_N rockets, one per seat;
+// - the LANDING PAD at the left side: 4 shelves of 5 rockets (MOON_PAD_N, one per seat), Steel Blocks / Steel Beams;
 // - a few boulders on the surface and FLOATING ASTEROIDS in the sky, in chains that climb from the ground (each step
 //   within a Moon jump of the last), so every one can be reached. Breaking them is the Moon's loot (ROCK_LOOT).
 // - no main door (noMainDoor): door.x / door.y are only the spot in the middle (the pad's first rocket is the spawn).
@@ -531,8 +540,8 @@ function buildMoon(name = worldName, ev = typeof mevNowInfo === 'function' ? mev
     a1 = 1.2 + r() * 1.2,
     a2 = 0.6 + r() * 0.8;
   for (let x = 0; x < WW; x++) top.push(a1 * Math.sin(x * 0.07 + p1) + a2 * Math.sin(x * 0.19 + p2) + 0.5 * Math.sin(x * 0.41 + p3));
-  const padL = padX(0) - 3,
-    padR = padX(MOON_PAD_N - 1) + 3;
+  const padL = PAD_L - 2,
+    padR = PAD_R + 2;
   // craters: a bowl with a raised rim, away from the landing pad
   const craters = [];
   for (let k = 0; k < 60 && craters.length < 6; k++) {
@@ -572,9 +581,15 @@ function buildMoon(name = worldName, ev = typeof mevNowInfo === 'function' ? mev
       fg[i] = y >= FLOOR_ROW ? BEDROCK : k >= 3 && r() < 0.12 ? MOON_ROCK_T : MOON_SAND_T;
       if (fg[i] === MOON_ROCK_T) bg[i] = 0; // (owner, Nov 6 2026: the old look, no wall behind an asteroid)
     }
-  // the landing pad: Steel Blocks on the surface, the rockets standing on them
-  const STEEL = ITEMS.steel_block.block;
-  for (let x = padX(0) - 1; x <= padX(MOON_PAD_N - 1) + 1; x++) fg[at(x, SURF)] = STEEL;
+  // the landing pad: shelves (Steel Blocks on the surface, Steel Beams above), the rockets standing on them
+  const STEEL = ITEMS.steel_block.block,
+    BEAM = ITEMS.steel_beam.block;
+  for (let r = 0; r < PAD_ROWS; r++)
+    for (let x = PAD_L; x <= PAD_R; x++) {
+      const i = at(x, padFloor(r));
+      fg[i] = r ? BEAM : STEEL;
+      if (r) bg[i] = 0;
+    }
   for (let j = 0; j < MOON_PAD_N; j++) fg[padI(j)] = ROCKET_T;
   // a few boulders on the surface, away from the pad
   for (let k = 0; k < 8; k++) {
@@ -585,15 +600,16 @@ function buildMoon(name = worldName, ev = typeof mevNowInfo === 'function' ? mev
   }
   // FLOATING ASTEROIDS (moonroids.js): moving, spinning rocks, not tiles. Placed in chains climbing from the ground;
   // each step 2-4 tiles up and 2-6 across, so every one can be reached with Moon jumps
-  const free = (x, y) => inW(x, y) && y < top[x] - 2 && !fg[at(x, y)] && !(y >= SURF - 3 && x >= padL - 1 && x <= padR + 1);
+  const free = (x, y) => inW(x, y) && y < top[x] - 2 && !fg[at(x, y)] && !(y >= padFloor(PAD_ROWS - 1) - 4 && x >= padL - 1 && x <= padR + 1);
   const room = (x, y) => !roids.some((o) => Math.abs(o.hx - (x + 0.5) * TS) < TS * 1.7 && Math.abs(o.hy - (y + 0.5) * TS) < TS * 1.7);
   roids.length = 0;
   roidSeq = 1; // (the same ids on every screen)
-  const chains = 9 + Math.floor(r() * 3);
+  // (owner, Nov 6 2026, build f: fewer of them, the ground has plenty; was 9-11 chains of up to 8)
+  const chains = 4 + Math.floor(r() * 2);
   for (let c = 0; c < chains; c++) {
     let x = 3 + Math.floor(r() * (WW - 6)),
       y = top[x] - 1;
-    for (let step = 0; step < 8; step++) {
+    for (let step = 0; step < 6; step++) {
       x = Math.max(2, Math.min(WW - 3, x + (r() < 0.5 ? -1 : 1) * (2 + Math.floor(r() * 5))));
       y -= 2 + Math.floor(r() * 3);
       if (y < 4) break;
@@ -601,6 +617,7 @@ function buildMoon(name = worldName, ev = typeof mevNowInfo === 'function' ? mev
       roidNew((x + 0.5) * TS, (y + 0.5) * TS, r);
     }
   }
+  roidThin();
   // the spot in the middle (no main door is drawn there): on the surface beside the pad
   door.x = mid;
   door.y = SURF - 1;
@@ -849,16 +866,22 @@ drawBg = ((prev) =>
 act = ((prev) =>
   function () {
     if (rocketBusy()) return;
+    // (owner, Nov 6 2026, build k) on a Moon, Steel (Blocks and Beams) and Rocket Ships can't be broken by ANYONE
+    // (the GM too): the pad takes everybody home
+    if (isMoonName(worldName) && !P.dead && !doorTrip && hand !== 'wrench') {
+      const t = tileUnder(),
+        i = inW(t.x, t.y) ? at(t.x, t.y) : -1,
+        b = i >= 0 ? fg[i] : 0;
+      if (b && (b === ROCKET_T || b === ITEMS.steel_block.block || b === ITEMS.steel_beam.block || onPadSteel(t.x, t.y)) && !(b === ROCKET_T && doorUnderPlayer() === i)) {
+        startPunch(ptr.x, ptr.y);
+        return toast(b === ROCKET_T ? 'A rocket home: stand in it and click it to fly back to MOONEVENT' : "The landing pad can't be broken");
+      }
+    }
     if (isMoonName(worldName) && !P.dead && !doorTrip && !isGM()) {
       const t = tileUnder(),
         i = inW(t.x, t.y) ? at(t.x, t.y) : -1;
       // standing in a rocket and clicking it: fly (useDoor)
       if (i >= 0 && fg[i] === ROCKET_T && doorUnderPlayer() === i) return prev();
-      // the landing pad (its rockets and Steel Blocks) can't be broken: it takes everybody home
-      if (i >= 0 && (isMoonPad(i) || onPadSteel(t.x, t.y))) {
-        if (hand !== 'wrench') startPunch(ptr.x, ptr.y);
-        return toast(fg[i] === ROCKET_T ? 'A rocket home: stand in it and click it to fly back to MOONEVENT' : "The landing pad can't be broken");
-      }
       // (owner, Nov 6 2026) nothing can be placed on the Moons, only broken: the fist, a tool or the wrench only
       const tool = heldTool(hand) && hand !== 'water_bucket';
       if (!(hand === 'fist' || hand === 'wrench' || tool)) return toast('On the Moon you can only break things, not place them');
@@ -981,35 +1004,41 @@ const CRYSTALS = {
 for (const [id, c] of Object.entries(CRYSTALS))
   ITEMS[id] = { name: c.name, kind: 'material', rarity: c.rarity, desc: 'A glowing ' + c.name.toLowerCase() + ' cut out of an asteroid. Found by breaking Moon Rock on the MOON (' + (ROCK_LOOT.find((l) => l[0] === id)[1] * 100) + '%).' };
 ITEMS.green_acid = { name: 'Green Acid', kind: 'material', rarity: 'Uncommon', desc: 'A sealed flask of bubbling green space acid. Found by breaking Moon Rock on the MOON (3%).' };
-// a cluster of crystal shards on a lump of asteroid rock
+// (owner, Nov 6 2026, build l: "one crystal only, standing up, leaning a little; big at the top, going down straight
+// and getting a little smaller") ONE long crystal: a pointed top, widest just under it, straight sides that narrow a
+// little towards a short point at the bottom, leaning CRY_TILT. Facets: lit left face, middle face, dark right face, a
+// bright ridge down the middle and a shine on the top facet.
+const CRY_TILT = 0.17;
 function paintCrystal(a, C) {
-  const shard = (cx, base, w, h, tilt) => {
-    const tip = w * 0.55,
-      cs = Math.cos(tilt),
-      sn = Math.sin(tilt),
-      rot = ([x, y]) => [cx + (x - cx) * cs - (y - base) * sn, base + (x - cx) * sn + (y - base) * cs],
-      pts = [[cx - w / 2, base], [cx - w / 2, base - h + tip], [cx, base - h], [cx + w / 2, base - h + tip], [cx + w / 2, base]].map(rot);
-    a.poly(pts, (i, j) => {
-      // back into the shard's own frame: u -1 (left) .. 1 (right)
-      const dx = i + 0.5 - cx,
-        dy = j + 0.5 - base,
-        x = dx * cs + dy * sn,
-        y = -dx * sn + dy * cs,
-        u = x / (w / 2);
-      if (Math.abs(u) < 0.12) return C[4]; // the lit edge down the middle
-      if (y < -h + tip + 2 && u < 0) return C[4];
-      return u < -0.45 ? C[3] : u < 0.1 ? C[2] : u < 0.6 ? C[1] : C[2];
-    });
-  };
-  // the rock lump
-  a.ell(32, 56, 24, 8, (i, j) => (j < 52 ? AST[5] : (i + j) % 7 ? AST[3] : AST[2]));
-  shard(18, 56, 11, 26, -0.45);
-  shard(46, 56, 11, 28, 0.42);
-  shard(32, 57, 15, 44, 0.02);
-  shard(25, 58, 8, 18, -0.15);
-  shard(40, 58, 8, 16, 0.2);
-  // sparkles
-  for (const [x, y] of [[27, 16], [50, 26], [12, 30]]) {
+  const cx = 32,
+    cy = 32,
+    W2 = 13, // half width at the widest (just under the top)
+    cs = Math.cos(CRY_TILT),
+    sn = Math.sin(CRY_TILT),
+    rot = ([x, y]) => [cx + x * cs - y * sn, cy + x * sn + y * cs],
+    // the outline in the crystal's own frame (x across, y down), top to bottom
+    top = -29,
+    sh = -18, // the shoulders: widest here
+    low = 23, // where the sides end
+    bot = 29,
+    lowW = W2 * 0.68; // narrower at the bottom
+  const pts = [[0, top], [W2, sh], [lowW, low], [0, bot], [-lowW, low], [-W2, sh]].map(rot);
+  a.poly(pts, (i, j) => {
+    const dx = i + 0.5 - cx,
+      dy = j + 0.5 - cy,
+      x = dx * cs + dy * sn,
+      y = -dx * sn + dy * cs,
+      half = y < sh ? (W2 * (y - top)) / (sh - top) : y < low ? W2 + ((lowW - W2) * (y - sh)) / (low - sh) : (lowW * (bot - y)) / (bot - low),
+      u = x / Math.max(1, half); // -1 left edge .. 1 right edge
+    if (y < sh) return u < -0.1 ? C[4] : u < 0.35 ? C[3] : C[2]; // the top facets
+    if (Math.abs(u) < 0.1) return C[4]; // the ridge down the middle
+    if (y > low) return u < 0 ? C[2] : C[1]; // the bottom point
+    return u < -0.55 ? C[3] : u < 0 ? C[2] : u < 0.6 ? C[1] : C[2];
+  });
+  // a shine on the top-left facet and two sparkles
+  const [sx, sy] = rot([-5, -19]);
+  a.rect(Math.round(sx), Math.round(sy), 2, 6, '#ffffff');
+  for (const [x, y] of [[50, 14], [13, 44]]) {
     a.px(x, y, '#ffffff');
     a.px(x - 1, y, C[4]);
     a.px(x + 1, y, C[4]);
@@ -1038,7 +1067,23 @@ function paintAcid(a) {
   a.outline('#0c1a10');
 }
 const LOOT_PICS = {};
-for (const [id, c] of Object.entries(CRYSTALS)) SHOP_ICON[id] = () => (LOOT_PICS[id] ||= pix64Canvas(64, (a) => paintCrystal(a, c.C)));
+// (owner, Nov 6 2026, build m: "give the crystals a glow"; build n: "only a stroke glow") a thin glowing edge that
+// follows the crystal's own outline (shadowBlur of its silhouette in its light colour C[3]), no round halo
+function crystalPic(c) {
+  const pic = pix64Canvas(64, (a) => paintCrystal(a, c.C)),
+    o = document.createElement('canvas');
+  o.width = o.height = 64;
+  const x = o.getContext('2d');
+  x.imageSmoothingEnabled = false;
+  x.shadowColor = c.C[3];
+  x.shadowBlur = 5;
+  for (let n = 0; n < 2; n++) x.drawImage(pic, 0, 0); // twice: a stronger edge
+  x.shadowBlur = 0;
+  x.shadowColor = 'transparent';
+  x.drawImage(pic, 0, 0);
+  return o;
+}
+for (const [id, c] of Object.entries(CRYSTALS)) SHOP_ICON[id] = () => (LOOT_PICS[id] ||= crystalPic(c));
 SHOP_ICON.green_acid = () => (LOOT_PICS.green_acid ||= pix64Canvas(64, paintAcid));
 // the roll: breakDrop gives nothing for a Moon Rock and keeps the prize; act (below) drops it on the broken tile
 let rockPrize = null;
@@ -1059,7 +1104,7 @@ act = ((prev) =>
       const k = rockPrize;
       rockPrize = null;
       spawnDrop(k, t.x * TS + 16, t.y * TS + 16);
-      toast('The asteroid broke open: ' + ITEMS[k].name + '!');
+      // (owner, Nov 6 2026, build f: no text pop-up for the drop; the drop itself shows)
     }
     return r;
   })(act);
@@ -1084,12 +1129,17 @@ function noMainDoor() {
 function worldHidden(name) {
   return isMoonName(name);
 }
-// how strong gravity is here (1 = normal) and the fastest fall
-function gravK() {
-  return onMoon() ? MOON_G : 1;
+// how strong gravity is here (1 = normal) and the fastest fall. (owner, Nov 6 2026) The space jump is the Astronaut
+// Set's (spacesuit.js astroFull): on a Moon without the whole set worn, gravity is normal. c: a player (their
+// `equipped`); none = you.
+function moonSuit(c) {
+  return typeof astroFull === 'function' && astroFull(c ? c.equipped : equipped);
 }
-function maxFallNow() {
-  return onMoon() ? MOON_MAX_FALL : MAX_FALL;
+function gravK(c) {
+  return onMoon() && moonSuit(c) ? MOON_G : 1;
+}
+function maxFallNow(c) {
+  return onMoon() && moonSuit(c) ? MOON_MAX_FALL : MAX_FALL;
 }
 // in your seat's rocket on the landing pad, standing in its doorway
 function moonSpawn() {
@@ -1162,19 +1212,23 @@ fallGravity = ((prev) =>
   function () {
     return prev() * gravK();
   })(fallGravity);
-// (owner, Nov 6 2026) UNLIMITED JUMPS on the Moons: every new press jumps again in the air, as often as you like
-// (the wings' air jump, physics.js, never runs out here)
+// (owner, Nov 6 2026, build c) UNLIMITED JUMPS on the Moons: every new press jumps again in the air.
+// (owner, Nov 6 2026, build f: "normal jump, only 2 jumps on the moon; you need to wear the suit for the jump like
+// now") Only in the full Astronaut Set (spacesuit.js): low gravity + unlimited jumps as before. Without it the jump
+// is the normal one with ONE extra jump in the air (2 in all), given back when you land.
 step = ((prev) =>
   function (dt) {
-    const moon = onMoon() && !P.dead;
-    if (moon) P.airJ = Math.max(P.airJ || 0, 1);
+    const moon = onMoon() && !P.dead,
+      suit = moon && moonSuit(),
+      wasGround = P.ground;
+    if (suit) P.airJ = Math.max(P.airJ || 0, 1);
     const vy0 = P.vy;
     const r = prev(dt);
-    if (moon) {
+    if (suit) {
       // a jump (ground or air) started this frame: a sudden kick upwards. Start it slower.
       if (P.vy < -120 && P.vy < vy0 - 120) P.vy *= MOON_JUMP;
       if (P.vy > MOON_MAX_FALL) P.vy = MOON_MAX_FALL;
-    }
+    } else if (moon && (wasGround || P.ground)) P.airJ = Math.max(P.airJ || 0, 1); // the second jump
     return r;
   })(step);
 
@@ -1297,3 +1351,16 @@ collide = ((prev) =>
     rockCollide(axis, prevBottom);
     return r;
   })(collide);
+
+// (owner, Nov 7 2026, build b: "drops on the Moons, like the floating items: even if one player broke it and the item
+// came out, the others can take it at once; free for all, every item in that event world") on a Moon any player takes
+// any drop at once (no owner, no wait, no Guard Glass), and other players' takes are always accepted
+canTakeDrop = ((prev) =>
+  function (d) {
+    return isMoonName(worldName) ? true : prev(d);
+  })(canTakeDrop);
+takeOk = ((prev) =>
+  function (d, r) {
+    if (isMoonName(worldName)) return !!(r && r.name && remoteNear(r, d.x, d.y, TAKE_REACH));
+    return prev(d, r);
+  })(takeOk);
