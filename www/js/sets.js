@@ -22,7 +22,8 @@ const OUTFIT_SETS = [
   { id: 'set_cat_hoodie', name: 'Cat Hoodie Set', skin: 'peach', eq: { shirt: 'cat_ear_hoodie' } },
 ];
 const SET_BY_ID = {};
-const setPieces = (id) => Object.values(SET_BY_ID[id].eq);
+// (build y) `extra`: items a set also gives that aren't worn (the Astronaut Set's Laser Gun, asteroids.js)
+const setPieces = (id) => [...Object.values(SET_BY_ID[id].eq), ...(SET_BY_ID[id].extra || [])];
 SHOP_TABS.splice(SHOP_TABS.findIndex((t) => t.id === 'pets'), 0, { id: 'sets', label: 'SETS' });
 for (const st of OUTFIT_SETS) {
   SET_BY_ID[st.id] = st;

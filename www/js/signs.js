@@ -391,8 +391,9 @@ let worldRV = null; // which recipe list the RECIPES world was built from (saved
 // L7: items were renamed (Oct 2026); the names are part of the tag so a rename rebuilds the signs too
 // L8 (Oct 22 2026): rebuilt once more so no outfit-set wear is left in an old RECIPES world
 // L13 (Nov 2 2026): rebuilt so the Mystery Door gets its destinations back (they were saved empty, qdoor.js)
+// L14 (Nov 7 2026, build y): the Golden / Flame / Garden / Dark / Furious Scythe recipes are gone (Shop-only)
 const recipesVersion = () =>
-  'L13:' +
+  'L14:' +
   Object.keys(SPLICE).length +
   ':' +
   Object.values(SPLICE).map((id) => (ITEMS[id] || {}).name || id).join('').length +

@@ -54,8 +54,10 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `spacesuit.js` | Astronaut Set (Shop SETS `set_astronaut`): Space Helmet (hat strip, hides face + hair), Space Suit (shirt, repaints the whole body on every pose: `astroPaint`), Space Boots; the full set = the Moon space jump (`astroFull`) |
 | `vacuum.js` | Item Vacuum (423) and Coin Vacuum (424): teleporter-like machines that suck up one chosen block / seed, or every coin, dropped in a locked world; wrench like the Vending Machine; saved as `vac`, synced with `show` k 'vac' |
 | `hologram.js` | Hologram Board (425): the vacuums' base + button with a cyan hologram of the listed items; stand on it = panel of what floats in the world (items, gold); wrench = 8 slots, Gold ON/OFF, ON/OFF; saved as `holo` |
+| `holosign.js` | Hologram Sign (436): a SIGN (`sign: true`) that looks like the Hologram Board but floats a rounded cyan screen with lines of writing; the stand-on bubble is a cyan hologram panel; Shop WORLD 5,000 |
 | `landing.js` | `body.landing` while the log in pop-up (#start) shows: hides hotbar, bag, top-right buttons, globe, pads; the pop-up is see-through |
-| `moonstay.js` | 30-minute stay limit on the Moons (MOON, MOON1-9) per Moon Event: countdown at the top, then your own rocket flies you back to MOONEVENT |
+| `moonstay.js` | At most 200 asteroids per Moon (`MOON_ROCK_MAX`). (The 30-minute stay limit of build g was removed in build y.) |
+| `asteroids.js` | Build y: Laser Gun (Astronaut Set) = the only way to break asteroids on the Moons (1 shot, 15 min charge), the asteroid / laser HUD by the globe, fossils, the Legendary Stone Stove recipe (5%), scythes Shop-only, old Moons MOON / MOON6-9 closed |
 | `portrait.js` | Menu -> Profile's character picture is a canvas redrawn every 70 ms (idle: aura, wings, lightning... move); crop box from 12 sampled moments |
 | `groundhold.js` | `shownGround()`: "on the ground" for drawing / sending stays true 150 ms after the last grounded step (not while rising), so asteroids / Arrow Gates don't flicker the jump / landing pose |
 | `wingsopen.js` | Demon / Dragon / Galaxy / Phoenix / Shadow Wings: folded (original) on the ground, SPREAD (owner's pictures, `wings_<name>_open.png`) the whole time in the air |
@@ -68,7 +70,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js), 209 Mystery Door (qdoor.js), 210 Desert Machine (weather.js), 211-230 64 px splice blocks (blocks64.js), 231-246 more (blocks64b.js; 231 Spike Gate), 247-276 (blocks64c.js; 247 Chest, 248 Stove), 277-306 (blocks64d.js), 307-326 (blocks64e.js), 327-346 (blocks64f.js), 347-366 (blocks64g.js). 367-376 (blocks64h.js: Guard Glass, Checkpoint Tower, 8 platforms). Since build s block numbers go up to 509 (fg is a Uint16Array; saved as the `fg` byte + `fgx`, see worlds.js fgBytes): next free 377. bg / vari are Uint8Arrays; fg is a Uint16Array since build s (blocks up to 509). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js), 209 Mystery Door (qdoor.js), 210 Desert Machine (weather.js), 211-230 64 px splice blocks (blocks64.js), 231-246 more (blocks64b.js; 231 Spike Gate), 247-276 (blocks64c.js; 247 Chest, 248 Stove), 277-306 (blocks64d.js), 307-326 (blocks64e.js), 327-346 (blocks64f.js), 347-366 (blocks64g.js). 367-376 (blocks64h.js: Guard Glass, Checkpoint Tower, 8 platforms). Since build s block numbers go up to 509 (fg is a Uint16Array; saved as the `fg` byte + `fgx`, see worlds.js fgBytes): next free 377 (later builds: 420-425 moon / vacuums / hologram; 426-435 crystal tiles, build zg; 436 Hologram Sign, build zj; NEXT FREE BLOCK 437). bg / vari are Uint8Arrays; fg is a Uint16Array since build s (blocks up to 509). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
@@ -2619,3 +2621,202 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - The Glowing wings' idle now opens and folds smoothly: folded (CW_IDLE_MS) → 3 in-between frames (CW_TWEEN, CW_TWEEN_MS
   70 ms each: the open picture squeezed to 1/4, 2/4, 3/4 of the way from the folded size) → open (CW_IDLE_MS) → the same
   3 back. `cwIdlePhase()` gives 0 / 0.25 / 0.5 / 0.75 / 1.
+
+### Build 2026-11-07 y — Laser Gun, five Moons, no stay limit, fossils, Legendary Stone recipe, Shop scythes
+Owner: "need a laser gun from the astronaut set to break asteroids; breaking them by hand stops working; one shot, then
+every 15 min; sand and walls still break; remove the 30 min per player, unlimited visits during the event (24 h, then 3
+days until the next); only MOON1 to MOON5; top left next to the world chat a placeholder 'asteroid: left / total'; no
+pop-up errors; the laser shows its info and duration, 'ready'; only the normal scythe in the recipes, the others Shop-only;
+the Legendary Stone no longer from asteroids: a Stove recipe, 5% (usually fails, nothing comes out): 5 White Crystals,
+5 Black Crystals, 15 Glowing Stones, 10 Acid; add 3 kinds of fossil dropped by asteroids".
+- NEW `asteroids.js` (after camzoom.js, before main.js; its act / stoveCook wrappers are the outermost).
+  - LASER GUN `laser_gun` (tool, Epic, HDT_ART 32 px blaster, in NO_V_SWING). Not sold alone: the Astronaut Set gives it
+    (`ASTRO_SET.extra`; sets.js `setPieces` now adds a set's `extra` items). Players who already own a set piece and no
+    gun get one once (`laserGrant`, flag `balb_laser_grant:<name>` in localStorage). Its `desc` is a getter that ends
+    with "Status: READY" / "charging, ready in MM:SS".
+  - On a Moon (act wrapper): a floating asteroid or a Moon Rock tile only breaks with the Laser Gun when charged: one
+    shot breaks it at once (floating: `breakRoid(o, true)` within LASER_REACH 6 tiles; tile: dmg set to need - 1, then
+    the normal break with its ROCK_LOOT roll, normal reach). Then LASER_CD 15 min (`balb_laser:<name>` in localStorage;
+    the GM too). Fist / tools / a charging laser on an asteroid do NOTHING (no damage, no toast). Sand / walls as before.
+    Beam: red glow + white core + hit flash, LASER_BEAM_MS 320 (drawSetupBadges wrapper), 'laser' sound.
+  - HUD `#astHud` (right of the Global Chat globe, only on a Moon, hidden while the chat panel is open):
+    "Asteroid: left/total" (left = floating + Moon Rock tiles; total = world `ast0`, set when buildMoon runs; Moons
+    built before have none: MOON_ROCK_MAX) and "Laser Gun: READY / MM:SS / none (Astronaut Set)".
+  - FOSSILS (materials, 64 px art, Claude's chances): Ammonite Fossil (Uncommon, 2%), Fish Fossil (Rare, 1%), Dino Skull
+    Fossil (Epic, 0.5%), pushed onto ROCK_LOOT.
+  - LEGENDARY STONE: removed from ROCK_LOOT (moon.js). Stove recipe (runs before every other Stove recipe): per set
+    5 White + 5 Black Crystals + 15 Glowing Stones + 10 Green Acid, used up every try; 5% (LEGEND_CHANCE) a Legendary
+    Stone floats out, else smoke + "The Stove failed: nothing came out".
+  - SCYTHES: Golden / Flame / Garden / Dark / Furious recipes removed (config.js SPLICE + farming.json, 484 splices
+    now); Iron Scythe (`hand_scythe` = Bolo + Grass) keeps its recipe. Shop TOOLS: Garden 15,000, Golden 30,000, Flame
+    30,000, Dark 60,000, Furious 80,000 (Claude's prices); schema.sql shop_prices rows (tracked false) + keep list:
+    RE-RUN schema.sql. Their seeds are retired (old trees still grow).
+  - Old Moons MOON, MOON6-9 (`MOON_RETIRED`): enterWorldNow refuses them, hidden from the list (GM excepted).
+- moon.js: MOON_WORLDS = MOON1-5 (MOON_WORLD, the GM's default, = MOON1). moonevent.js: MEV_SEATS 100 (rockets 0-99;
+  MOONEVENT_V 'MEV:9' rebuilds MOONEVENT with 100 rockets: the GM enters MOONEVENT once online again); signs say MOON1-5;
+  `mevSeat` folds seat numbers from before (0-199) into 0-99 everywhere they come in (server, localStorage, 'mev').
+- moonstay.js: the 30-minute stay limit is gone (countdown, forced trip back, refused flights). Schedule unchanged:
+  every 3 days from 5 PM Manila, open 24 h.
+- Tested offline in Chromium: 5 Moons, 100 rockets in MOONEVENT, MOON refused, set gives 4 items, fist x10 on an
+  asteroid = no damage, laser = broken in one shot then 15:00 charging (next shot refused), buried rock: fist no, laser
+  yes; sand still breaks by hand; Stove forced 1% roll = 1 Legendary Stone, 90% = nothing left; no error box.
+  GAME_BUILD '2026-11-07 y'.
+
+
+### Build 2026-11-07 z — laser beam that burns, guns held lower, nicer Laser Gun, recharge in the item info
+Owner (screenshot of the gun pointing up, and the HUD): "bend the water gun and the laser gun down; make the gun nicer;
+one click on an asteroid: it cracks little by little and the laser keeps firing until it breaks; the duration under
+Status, counting down; take the laser out of the top-left box and put it in its info".
+- asteroids.js: one click starts a beam (`laserCh`) that burns the asteroid for LASER_CHANNEL 3 s: cracks grow in 3 steps
+  (floating: hp 1-3, sent with 'roid' u so others see them; tile: dmg), sparks / smoke at the spot, the buzz every 0.7 s,
+  the arm held aimed at it (P.punch kept at its aimed moment, `dur` 1e9), a flickering beam with a growing burning spot
+  (drawSetupBadges). Then it breaks (floating: breakRoid; tile: the normal act chain `laserInner` with dmg need-1, so
+  moon.js still rolls the loot) and the 15-min charge starts. Stopped early (gone, out of reach, gun away, dead, rocket)
+  = no charge used, cracks cleared. Clicks while firing are ignored.
+- New Laser Gun picture (HDT_ART): white shell + red stripe, glowing red energy cells with vents, fin sight, dark barrel
+  with two rings, glowing emitter, ribbed grip + trigger guard.
+- Guns (`GUN_IDS`: water_gun, laser_gun) are held pointing down: GUN_HOLD_TURN 1.25 standing (drawArmWithTool wrapper;
+  other tools TOOL_TURN 1.05), GUN_JUMP_TURN 0.9 in the air (drawJumpTool wrapper; others point up at -0.55).
+- HUD `#astHud` shows only "Asteroid: left/total". The Laser Gun's item info has a "Recharge" row under Status
+  (READY in green or MM:SS counting down, `.laserCd` ticked every 250 ms); the Hand-slot pop-up (askUnequip) too.
+  Its description no longer carries the status.
+- Tested offline in Chromium: beam on a floating asteroid (hp 2 halfway, broken at 3 s, 15:00 charge), next click
+  refused; buried rock: dmg 4 halfway, broken at the end; info shows Recharge 14:59 -> 14:58; guns drawn lower; no
+  error box. GAME_BUILD '2026-11-07 z'.
+
+### Build 2026-11-07 za — green radiation pulls the asteroid in, quick green beam on every break, new gun pictures
+Owner, with two reference pictures (a silver ray gun with a green tank and green coils, a blue super soaker): "the water
+gun and laser gun broke: put their angle back; worn, the Laser Gun shows 'Laser Gun: Ready' in the top-left box in any
+world; instead of a laser, green radiation to the asteroid, the asteroid comes to the character in front of the gun and
+breaks, its drop straight / flying into the bag; a quick laser beam when breaking sand or walls, in other worlds too;
+make the guns look like these".
+- Build z's GUN_HOLD_TURN / GUN_JUMP_TURN wrappers are GONE (both guns held and jumping like every other tool again).
+- Gun pictures: `gunSprite64(shape)` draws 64 x 64 (drawArmWithTool scales any size; GRIP stays in 32-px units) from a
+  shape function of (u along the barrel, v across, + down) measured from GRIP x 2, then a 1 px outline. `laserShape`:
+  silver body with vents, a glowing green orb, green tank with caps and posts on top, three dark rings with green
+  coils at the front, green wave crescents out of the tip, red trigger in a guard, ribbed dark grip, a cable.
+  `soakerShape` (water_gun): blue body + dark stripe, big rounded green tank, orange cap / tubes / pump ring / trigger,
+  white nozzle, blue grip. SHOP_ICON for both = the 64 px picture.
+- RADIATION (`laserCh`, LASER_CHANNEL 3 s): the gun stays HELD (no swing; muzzle at LASER_MUZZLE [9, 10] world px from
+  the body's middle, measured); `drawRadiation`: three wavy green streams moving to the target, a bright core, 4
+  travelling ring arcs, glows at the muzzle and round the target (additive). The target is PULLED in front of the gun
+  (`laserDest`: muzzle + face x (radius + 5)) over LASER_PULL 62% of the time (ease out), cracking in 3 steps and
+  spinning faster: a floating asteroid is moved (sent every 150 ms with 'roid' u); a Moon Rock tile is not drawn
+  (drawNewBlock wrapper) while its picture (roidPic + roidCracked) flies there. At the end it bursts there (green
+  burst); the drops of the break are put on the player (`laserLootToBag`, age >= minAge) so the pickup flies them into
+  the bag. Then the 15-min charge. Stopped early = nothing used (a floating one drifts on from where it was let go).
+- QUICK BEAM: every startPunch with the Laser Gun in hand (any world: sand, walls, blocks...) draws a green beam for
+  LASER_QUICK_MS 150 ms from the shoulder towards the spot (`laserFrom`); not for the radiation's own clicks.
+- HUD `#astHud`: "Asteroid: left/total" row only on a Moon; "Laser Gun: READY / MM:SS / FIRING" row (gun icon) whenever
+  the Laser Gun is in the Hand slot, in ANY world. The item info / Hand pop-up Recharge row stays.
+- Tested offline in Chromium: asteroid pulled to 28 px in front, hp 2 halfway, broken at 3 s, drop in the bag, charge
+  15:00; tile lifted out and broken; HUD in LOBBY shows only "Laser Gun: 14:54"; quick beam on an ordinary block; no
+  error box. GAME_BUILD '2026-11-07 za'.
+
+### Build 2026-11-07 zb — radiation rings, bigger held guns, a little bend when idle
+Owner, with a drawing of four ovals growing from small to big: "the radiation is rings animating small to big, the
+asteroid goes inside; more detail on the gun while he holds it; bend the hold a little, only when idle".
+- asteroids.js `drawRadiation(X0, Y0, X1, Y1, z, k, R1)`: RAD_RINGS 5 rings standing across the beam (ellipses, rx =
+  0.32 ry), born small (2.5 px) at the muzzle and growing to 1.25 x the asteroid's radius as they travel out (RAD_MS
+  520 ms a trip, faded in / out at the ends), each a wide see-through green stroke (glow) + green + a thin white line;
+  a soft green cone fills the tunnel; a pulsing big ring round the asteroid; small radial glows. NO shadowBlur (it
+  dropped headless Chrome from 57 to 16 fps, and game time slows with it): 51 fps while firing now. The quick beam
+  lost its shadowBlur too (wide see-through stroke instead).
+- Guns in the hand (`GUN_IDS` water_gun + laser_gun): drawn GUN_BIG 1.4 x the tool size so the 64 px detail shows,
+  round the fist. Our drawArmWithTool wrapper draws the gun itself (same shoulder turn, hand spot, tool turn) and then
+  calls the chain with an empty gun picture (`gunBlank`, toolSprite wrapper -> GUN_BLANK) so the arm and every arm
+  wrapper (sleeves, watches, space suit) still draw over it. Idle (a drawCharacter wrapper sets `gunIdle`: on the
+  ground, not walking / punching / placing / sitting) the hold is turned GUN_IDLE_BEND 0.12 rad further down; walking,
+  swinging, sitting keep TOOL_TURN. In the air (drawJumpTool wrapper): the bigger picture at JUMP_TOOL_TURN.
+- LASER_MUZZLE [12, 14] world px from the body's middle (measured with a marker on the idle, bigger gun).
+- Tested offline: radiation rings from the muzzle to the asteroid, asteroid pulled to ~30 px, broken at 3 s, tile too,
+  LOBBY HUD "Laser Gun: 14:54", quick beam, no error box. GAME_BUILD '2026-11-07 zb'.
+
+### Build 2026-11-07 zc — hand on the guns' grip, ONE rocket per Moon
+Owner (crop of the water gun's grip): "the hand should be there, raise it a little; on the Moon only one rocket ship,
+everyone going to the Moon comes out of it".
+- asteroids.js `gunSprite64`: the shape is sampled `GUN_SHIFT` [-1.5, 7] (u, v, 64-px units) away, so the grip's middle
+  sits in the fist and both guns ride higher. LASER_MUZZLE now [14, 10] (measured again with a marker).
+- moon.js: `moonRocketI()` = the middle of the pad's bottom shelf (x PAD_X0 + 4, row SURF - 1); `moonPadI()` returns it.
+  buildMoon builds only the bottom Steel shelf and that ONE rocket (no Steel Beam shelves, no 20 seat rockets).
+  rocketGo lands and moonSpawn puts everybody in it (fallback: the first rocket in the world).
+- moonevent.js: padShown is always true for it; the "That is another player's rocket" refusal skips it (everybody flies
+  back from it); flying back from a Moon always sends mevArrive(left) for your seat.
+- asteroids.js `moonOneRocket` (applyWorld wrapper): Moons built before keep only that rocket (old pad rockets and
+  upper Steel Beam shelves in the pad area cleared, bottom shelf Steel, the rocket put in its spot).
+- Tested offline: MOON2 has 1 rocket, you arrive standing in it; MOON3: standing in it + click = trip to MOONEVENT;
+  radiation still from the muzzle; no error box. GAME_BUILD '2026-11-07 zc'.
+
+### Build 2026-11-07 zd — MOONEVENT: one rocket too
+Owner: "MOONEVENT too: only one rocket ship, everybody boards it".
+- moonevent.js MOONEVENT_V 'MEV:10' (the GM enters MOONEVENT once online again so the new layout is saved): one room
+  (Steel floor at mevFloor(0), Steel ceiling at mevFloor(2), sky above, Air Exhaust wall), ONE rocket at x EV_ROCKET_X 50
+  on the floor (door label "MOON ROCKET"), a sign on each side (<= 120 characters). The old tiers / 100 rockets / stalls
+  / holes + springs / Fish Tanks are gone from the build (their constants stay for bounce.js etc.).
+- Seats are unchanged (0-99, 20 per Moon, server moon_claim, one per player per event). `evRocketTile(k)` = that one
+  rocket for every k (landing back, mevSpawn); `evRocketK(i)` = `mevPickSeat()` for it: your seat if you have one (server
+  / trip), else a random free seat on the Moon with the most free seats; all taken -> 0 (boarding says "Every seat is
+  taken this event"). The rocket is never hidden as "gone"; closed = hatch shut as before.
+- Tested offline: MOONEVENT has 1 rocket, you come in standing in it; click -> MOON1 seat 13, landed in the Moon's one
+  rocket; click it -> back in MOONEVENT's rocket; no errors. GAME_BUILD '2026-11-07 zd'.
+
+### Build 2026-11-07 ze — MOONEVENT: a small cabin
+Owner: "less size and fewer steel blocks and background in MOONEVENT". moonevent.js MOONEVENT_V 'MEV:11' (the GM enters
+MOONEVENT once online again): only a cabin round the one rocket: Steel floor + roof + walls on x MEV_ROOM [44, 56],
+MEV_ROOM_H 5 tiles tall, Air Exhaust wall only inside it; the desert backdrop everywhere else. Rocket (x 50) and the two
+signs (x 47, 53) unchanged. Tested offline: 1 rocket, round trip MOONEVENT -> MOON1 -> MOONEVENT. GAME_BUILD '2026-11-07 ze'.
+
+### Build 2026-11-07 zf — back to the wavy green beam, without the arcs
+Owner: "the laser from before (build za) was better, not the rings (zb); just take out the wave-like arcs". asteroids.js
+`drawRadiation` is build za's again: three wavy green streams moving to the asteroid, a bright core, glows at the muzzle
+and round the asteroid; the travelling ring arcs and zb's ellipse rings / cone are gone. Still no shadowBlur (a wide
+see-through stroke under each stream instead): 52 fps firing vs 56 idle in headless Chrome. Pull, cracks, break, drops
+to the bag unchanged. GAME_BUILD '2026-11-07 zf'.
+
+### Build 2026-11-07 zg — Moon Museum upstairs in MOONEVENT, crystals as buried tiles that glow
+Owner: "upstairs in MOONEVENT a museum with Mannequins wearing what the Moon Event gives; the crystals can be placed on
+a tile that looks buried in the ground; a glowing crystal in its tile animates its glow, with particles".
+- CRYSTAL TILES (asteroids.js, end). NEW BLOCK NUMBERS (permanent) 426-435 = `CRYSTAL_T0` + n in `CRYSTAL_TILES` order:
+  green, red, blue, white, black crystal, then glowing green, red, blue, white, black. NEXT FREE BLOCK: 436. Those ten
+  items are kind 'block' now (still Stove ingredients as drops; icons unchanged). BLOCK { crystal: true, glow, hits 4,
+  art 'deco', solid }; breakDrop: always itself. Look (`crystalTile`, 64 px, cached): a dark cracked rock square, a dark
+  hole with a lit back rim, the crystal (its icon, 44 px) standing in it with its foot hidden behind the hole's front
+  rim. Glowing ones (drawNewBlock wrapper): an additive radial glow in the crystal's colours breathing over CRY_GLOW_MS
+  1.4 s (phase per tile), and "+" sparkles rising off them (~2 a second per tile on screen).
+- MOON MUSEUM (moonevent.js buildMoonEvent, MOONEVENT_V 'MEV:12': the GM enters MOONEVENT once online again): on the
+  cabin's roof, walls x MEV_MUSEUM [38, 62], MEV_MUSEUM_H 8 tall, Steel floor / walls / ceiling, Moon Rock Wall behind.
+  11 Mannequins on even x 40-60, all in the Astronaut Set: no wings, then the 5 Crystal Wings, then the 5 Glowing
+  Crystal Wings. The museum floor on odd x is the 10 crystal tiles (x MEV_HOLE 45 skipped). 7 Display Boxes under the
+  ceiling (x 44-56): Laser Gun, Green Acid, Glowing Stone, Legendary Stone, 3 fossils. Two signs (x 39, 61). Way up: a
+  Spring in the cabin at x MEV_HOLE under a 1-tile hole in the roof (bounce.js: a Spring in MOONEVENT throws >= 6.6 tiles;
+  measured 6.5 tiles up, the cabin is 5).
+- Tested offline: MOONEVENT 1 rocket, 11 Mannequins, 7 Display Boxes, 10 crystal tiles; the Spring lifts you into the
+  museum; crystal tiles placed in a lobby: buried look, glowing ones pulse with sparkles; no errors. GAME_BUILD '2026-11-07 zg'.
+
+### Build 2026-11-07 zh — crystal tiles: a block with the crystal set in it
+Owner: "ugly; it's a block: cut the crystal's bottom straight across, its tip attached to the top of the block".
+asteroids.js `crystalTile`: no hole any more. A full cracked rock block; the crystal picture (its icon, 64 px, moved up
+2 px so the tip touches the block's top edge) is cut flat at row CRY_CUT 54 (everything below cleared), the last 3 rows
+of it repainted as a flat cut face (C[1], bottom line C[0]); a black copy 2 px down-right at 55% under it as its shadow
+in the stone. Glow centre for glowing tiles at 45% of the tile height. GAME_BUILD '2026-11-07 zh'.
+
+### Build 2026-11-07 zi — crystal tiles: just the crystal
+Owner: "no background, only the crystal itself; push it further down". asteroids.js `crystalTile`: no rock behind, no
+shadow; the crystal picture drawn at 68 px from (-2, 4), cut flat at CRY_CUT 64 (the tile's bottom edge), the last 3 rows
+the dark cut face. Glow centre for glowing tiles at 55% of the tile height. Still a solid block. GAME_BUILD '2026-11-07 zi'.
+
+### Build 2026-11-07 zj — crystal tiles walk-through, Hologram Sign
+Owner: "crystals and glowing crystals: no collision when placed; make a sign that looks like a hologram (copy the
+Hologram Board, but a rounded square hologram with writing inside), it works just like a sign".
+- asteroids.js: the 10 crystal tiles (426-435) are `solid: false` (walk through them like decorations).
+- moonevent.js: the Moon Museum's floor was the crystal tiles (now holes), so the floor is all Steel again and the 10
+  crystals stand ON it at odd x 41-59 between the Mannequins. MOONEVENT_V 'MEV:13' (the GM enters MOONEVENT once
+  online to rebuild it).
+- NEW `holosign.js` (after hologram.js). NEW BLOCK 436 `hologram_sign` (permanent; NEXT FREE BLOCK: 437), Shop WORLD
+  5,000 (price picked by Claude; schema.sql shop_prices row + keep-list: RE-RUN schema.sql). `sign: true`, so wrench /
+  read / save / sync are the normal sign code. Walk-through, always drops itself. Look: `holoBase` + light cone + a
+  floating see-through cyan rounded square (`hsignScreen`) with glowing dash lines of "writing" (2-4 lines from the
+  text, `hsignLines`), blinking cursor when blank; bobs, flickers, scan lines; button green with text, white blank.
+  Stand on it: a cyan hologram panel (drawSignBubble wrapper) with a beam down to the sign.
+- Tested offline: walked through crystal tiles; Hologram Sign shows the screen + hologram bubble; museum rebuilt with
+  10 crystals on a Steel floor (hole at x 45 kept). GAME_BUILD '2026-11-07 zj'.

@@ -31,9 +31,11 @@ const ROCKET_T = 420,
   MOON_ROCK_T = 422,
   MOON_SAND_WALL_BG = 43,
   MOON_ROCK_WALL_BG = 44;
-const MOON_WORLD = 'MOON';
-// (owner, Nov 6 2026) ten Moons, 20 seats each: MOON, MOON1 .. MOON9, reached from MOONEVENT (moonevent.js)
-const MOON_WORLDS = [MOON_WORLD, ...Array.from({ length: 9 }, (_, n) => 'MOON' + (n + 1))];
+// (owner, Nov 7 2026 build y: "fewer Moon worlds: only MOON1 to MOON5, all in that one 24 h event") five Moons, 20
+// seats each, reached from MOONEVENT (moonevent.js). Before build y there were ten (MOON, MOON1 .. MOON9); the old
+// names MOON and MOON6-9 are closed now (asteroids.js `MOON_RETIRED`). MOON_WORLD is the GM's default Moon.
+const MOON_WORLD = 'MOON1';
+const MOON_WORLDS = Array.from({ length: 5 }, (_, n) => 'MOON' + (n + 1));
 const isMoonName = (n) => MOON_WORLDS.includes(n);
 const MOON_EVENT_WORLD = 'MOONEVENT';
 for (const t of [ROCKET_T, MOON_SAND_T, MOON_ROCK_T]) if (BLOCK[t]) console.error('moon.js: block number used twice: ' + t);
@@ -352,7 +354,10 @@ const MOON_PAD_N = 20,
 const padX = (j) => PAD_X0 + 2 * (j % PAD_COLS);
 const padFloor = (r) => SURF - PAD_DY * r; // shelf r's floor row
 const padI = (j) => at(padX(j), padFloor(Math.floor(j / PAD_COLS)) - 1);
-const moonPadI = () => padI(0);
+// (owner, Nov 7 2026 build zc: "one rocket ship on the Moon; everybody going to the Moon comes out of it") ONE rocket
+// per Moon, in the middle of the bottom shelf; every player lands / spawns in it and flies back from it
+const moonRocketI = () => at(PAD_X0 + 4, SURF - 1);
+const moonPadI = () => moonRocketI();
 const PAD_L = PAD_X0 - 1,
   PAD_R = PAD_X0 + 2 * (PAD_COLS - 1) + 1;
 const onPadSteel = (x, y) => x >= PAD_L && x <= PAD_R && y <= SURF && (SURF - y) % PAD_DY === 0 && (SURF - y) / PAD_DY < PAD_ROWS;
@@ -452,8 +457,7 @@ function rocketGo(tr) {
     let li = -1;
     const trip = typeof moonTripNow === 'function' ? moonTripNow() : null;
     if (isMoonName(w)) {
-      const j = trip ? trip.k % MOON_PAD_N : 0;
-      li = fg[padI(j)] === ROCKET_T ? padI(j) : fg.indexOf(ROCKET_T);
+      li = fg[moonRocketI()] === ROCKET_T ? moonRocketI() : fg.indexOf(ROCKET_T); // (build zc: the Moon's one rocket)
     } else if (w === MOON_EVENT_WORLD && trip && typeof evRocketTile === 'function') li = evRocketTile(trip.k);
     else if (!atId && rocketHome && rocketHome.w === w && fg[rocketHome.i] === ROCKET_T) li = rocketHome.i;
     if (li >= 0 && fg[li] !== ROCKET_T) li = -1;
@@ -584,13 +588,9 @@ function buildMoon(name = worldName, ev = typeof mevNowInfo === 'function' ? mev
   // the landing pad: shelves (Steel Blocks on the surface, Steel Beams above), the rockets standing on them
   const STEEL = ITEMS.steel_block.block,
     BEAM = ITEMS.steel_beam.block;
-  for (let r = 0; r < PAD_ROWS; r++)
-    for (let x = PAD_L; x <= PAD_R; x++) {
-      const i = at(x, padFloor(r));
-      fg[i] = r ? BEAM : STEEL;
-      if (r) bg[i] = 0;
-    }
-  for (let j = 0; j < MOON_PAD_N; j++) fg[padI(j)] = ROCKET_T;
+  // (build zc: only the bottom shelf and ONE rocket; the upper shelves and the 20 seat rockets are gone)
+  for (let x = PAD_L; x <= PAD_R; x++) fg[at(x, padFloor(0))] = STEEL;
+  fg[moonRocketI()] = ROCKET_T;
   // a few boulders on the surface, away from the pad
   for (let k = 0; k < 8; k++) {
     const x = Math.floor(r() * WW);
@@ -999,7 +999,8 @@ const ROCK_LOOT = [
   ['blue_crystal', 0.015],
   ['white_crystal', 0.015],
   ['black_crystal', 0.005],
-  ['legendary_stone', 0.00005], // (build t, owner: 0.005%) for Glowing Crystal Wings (crystalwings.js)
+  // (build y, owner: the Legendary Stone is no longer found in asteroids; it comes from a Stove recipe, asteroids.js;
+  // the three fossils are pushed onto this list there too)
 ];
 const CRYSTALS = {
   green_crystal: { name: 'Green Crystal', rarity: 'Rare', C: ['#06301a', '#0e6a34', '#1fae55', '#5ee88a', '#c8ffd8'] },
@@ -1016,7 +1017,7 @@ for (const [id, c] of Object.entries(CRYSTALS)) {
   ITEMS['glowing_' + id] = { name: 'Glowing ' + c.name, kind: 'material', rarity: GLOW_UP[c.rarity] || c.rarity, desc: 'A ' + c.name.toLowerCase() + ' that glows. Made in a Stove: drop 1 ' + c.name + ' and 5 Glowing Stones on an open Stove, punch it shut, punch it open again.' };
 }
 ITEMS.green_acid = { name: 'Green Acid', kind: 'material', rarity: 'Uncommon', desc: 'A sealed flask of bubbling green space acid. Found by breaking Moon Rock on the MOON (3%).' };
-ITEMS.legendary_stone = { name: 'Legendary Stone', kind: 'material', rarity: 'Legendary', desc: 'A golden asteroid core that shines with every colour. Extremely rare: 0.005% from breaking Moon Rock on the MOON. Shut it in a Stove with a pair of Crystal Wings and 20 Glowing Stones to make them glow.' };
+ITEMS.legendary_stone = { name: 'Legendary Stone', kind: 'material', rarity: 'Legendary', desc: 'A golden asteroid core that shines with every colour. Made in a Stove: 5 White Crystals + 5 Black Crystals + 15 Glowing Stones + 10 Green Acid, and only 5% of the time (most tries fail and nothing comes out). Shut it in a Stove with a pair of Crystal Wings and 20 Glowing Stones to make them glow.' };
 ITEMS.glowing_stone = { name: 'Glowing Stone', kind: 'material', rarity: 'Rare', desc: 'A chunk of asteroid with glowing cyan veins running through it. Found by breaking Moon Rock on the MOON (3%).' };
 // (owner, Nov 6 2026, build l: "one crystal only, standing up, leaning a little; big at the top, going down straight
 // and getting a little smaller") ONE long crystal: a pointed top, widest just under it, straight sides that narrow a
@@ -1259,9 +1260,7 @@ function maxFallNow(c) {
 // in your seat's rocket on the landing pad, standing in its doorway
 function moonSpawn() {
   if (!onMoon()) return false;
-  const trip = typeof moonTripNow === 'function' ? moonTripNow() : null,
-    j = trip ? trip.k % MOON_PAD_N : 0;
-  const i = fg[padI(j)] === ROCKET_T ? padI(j) : fg.indexOf(ROCKET_T);
+  const i = fg[moonRocketI()] === ROCKET_T ? moonRocketI() : fg.indexOf(ROCKET_T); // (build zc: the Moon's one rocket)
   if (i < 0) return false;
   Object.assign(P, elevStand(i));
   P.vx = P.vy = 0;

@@ -5171,51 +5171,6 @@
     },
     {
       "seeds": [
-        "hand_scythe",
-        "skeleton"
-      ],
-      "result": "death_scythe",
-      "source": "balbtopia",
-      "note": "Dark Scythe (id death_scythe) = Iron Scythe + Skeleton (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "hand_scythe",
-        "golden_block"
-      ],
-      "result": "golden_scythe",
-      "source": "balbtopia",
-      "note": "Golden Scythe = Iron Scythe + Golden Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "hand_scythe",
-        "lava"
-      ],
-      "result": "flame_scythe",
-      "source": "balbtopia",
-      "note": "Flame Scythe = Iron Scythe + Lava (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "death_scythe",
-        "flame_scythe"
-      ],
-      "result": "furious_scythe",
-      "source": "balbtopia",
-      "note": "Furious Scythe = Dark Scythe + Flame Scythe (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "hand_scythe",
-        "viney_block"
-      ],
-      "result": "garden_scythe",
-      "source": "balbtopia",
-      "note": "Garden Scythe = Iron Scythe + Vine Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
         "rose",
         "spear"
       ],
