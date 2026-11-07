@@ -509,6 +509,8 @@ const Net = (() => {
       // someone changed the lock outside a save (World Key): check the server
       c.on('broadcast', { event: 'lockv' }, () => checkLockV(name));
     } else onBuild(c, true);
+    // a Gold Warp Pod claim by a player on its access list (vacuum.js; anyone here may send it, each game checks it)
+    c.on('broadcast', { event: 'vacc' }, ({ payload }) => N.onVacc && N.onVacc(payload));
     c.on('broadcast', { event: 'p' }, ({ payload }) => onPos(payload))
       .on('broadcast', { event: 'punch' }, ({ payload }) => {
         const r = N.remotes.get(payload.id);
@@ -771,7 +773,7 @@ const Net = (() => {
       y: Math.round(P.y * 10) / 10,
       f: P.face,
       w: P.walkT > 0 ? 1 : 0,
-      g: P.ground ? 1 : 0,
+      g: (typeof shownGround === 'function' ? shownGround() : P.ground) ? 1 : 0,
       h: equipped.hair,
       ft: equipped.feet,
       eq: equipped, // everything worn
@@ -850,6 +852,9 @@ const Net = (() => {
   // a Vending Machine: builders send any change on build:; a visitor's sale goes on world: (others check it)
   N.sendVend = (i, v) => {
     if (N.me) (mayBuild() ? sendB : send)('vend', { i, v });
+  };
+  N.sendVacc = (p) => {
+    if (N.me) send('vacc', p);
   };
   N.sendShow = (i, k, v) => {
     if (N.me) sendB('show', { i, k, v });

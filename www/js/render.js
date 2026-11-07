@@ -930,7 +930,7 @@ function render() {
       style: walkStyle,
       walking: P.walkT > 0,
       walkPh: P.walkPh,
-      ground: P.ground,
+      ground: typeof shownGround === 'function' ? shownGround() : P.ground, // (groundhold.js: no pose flicker on asteroids / Arrow Gates)
       punch: P.punch,
       angry: P.angry,
       hand: shownHand(), // with the Wrench selected: what you held before (ui.js), the wrench is never in the hand

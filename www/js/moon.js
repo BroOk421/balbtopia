@@ -985,25 +985,39 @@ enterWorldNow = ((prev) =>
 
 // ---------- what an asteroid gives when it breaks (owner, Nov 5 2026) ----------
 // Breaking a Moon Rock: 90% nothing, 3% Green Acid, 2% Green Crystal, 2% Red Crystal, 1.5% White Crystal, 0.5% Black
-// Crystal (the owner's numbers add up to 99%: the last 1% is nothing too, so 91% nothing in all). Never the rock or
+// Crystal (the owner's numbers add up to 99%: the last 1% is nothing too, so 91% nothing in all). Build o adds 3%
+// Glowing Stone and 1.5% Blue Crystal: 86.5% nothing. Never the rock or
 // its seed or coins. The prize floats out like a normal drop and a toast names it. The roll is the game's (like every
 // ordinary drop). The five are plain materials (kind 'material': no block, can't be placed; bag, trade, drop).
+// (owner, Nov 7 2026 build o: + a Blue Crystal like the others and a Glowing Stone; the chances are Claude's pick:
+// Glowing Stone 3%, Blue Crystal 1.5%, so 86.5% nothing now)
 const ROCK_LOOT = [
   ['green_acid', 0.03],
+  ['glowing_stone', 0.03],
   ['green_crystal', 0.02],
   ['red_crystal', 0.02],
+  ['blue_crystal', 0.015],
   ['white_crystal', 0.015],
   ['black_crystal', 0.005],
+  ['legendary_stone', 0.00005], // (build t, owner: 0.005%) for Glowing Crystal Wings (crystalwings.js)
 ];
 const CRYSTALS = {
   green_crystal: { name: 'Green Crystal', rarity: 'Rare', C: ['#06301a', '#0e6a34', '#1fae55', '#5ee88a', '#c8ffd8'] },
   red_crystal: { name: 'Red Crystal', rarity: 'Rare', C: ['#3a060c', '#8a1222', '#d0283a', '#ff6a78', '#ffd0d6'] },
+  blue_crystal: { name: 'Blue Crystal', rarity: 'Epic', C: ['#04163a', '#0c3a8a', '#1f6ee0', '#5ab4ff', '#d0ecff'] },
   white_crystal: { name: 'White Crystal', rarity: 'Epic', C: ['#3a4256', '#8a96b0', '#c8d2e6', '#eef3ff', '#ffffff'] },
   black_crystal: { name: 'Black Crystal', rarity: 'Legendary', C: ['#050408', '#15101e', '#2a2140', '#4a3a72', '#a890ff'] },
 };
-for (const [id, c] of Object.entries(CRYSTALS))
-  ITEMS[id] = { name: c.name, kind: 'material', rarity: c.rarity, desc: 'A glowing ' + c.name.toLowerCase() + ' cut out of an asteroid. Found by breaking Moon Rock on the MOON (' + (ROCK_LOOT.find((l) => l[0] === id)[1] * 100) + '%).' };
+// (build p, owner: "separate the crystals: the asteroids drop them WITHOUT a glow; they only glow after a Stove:
+// 1 crystal + 5 Glowing Stones") the dropped crystals are plain; GLOWING_<colour>_CRYSTAL is made in a Stove (below)
+const GLOW_UP = { Rare: 'Epic', Epic: 'Legendary', Legendary: 'Legendary' };
+for (const [id, c] of Object.entries(CRYSTALS)) {
+  ITEMS[id] = { name: c.name, kind: 'material', rarity: c.rarity, desc: 'A ' + c.name.toLowerCase() + ' cut out of an asteroid. Found by breaking Moon Rock on the MOON (' + (ROCK_LOOT.find((l) => l[0] === id)[1] * 100) + '%). Shut it in a Stove with 5 Glowing Stones and it comes out glowing.' };
+  ITEMS['glowing_' + id] = { name: 'Glowing ' + c.name, kind: 'material', rarity: GLOW_UP[c.rarity] || c.rarity, desc: 'A ' + c.name.toLowerCase() + ' that glows. Made in a Stove: drop 1 ' + c.name + ' and 5 Glowing Stones on an open Stove, punch it shut, punch it open again.' };
+}
 ITEMS.green_acid = { name: 'Green Acid', kind: 'material', rarity: 'Uncommon', desc: 'A sealed flask of bubbling green space acid. Found by breaking Moon Rock on the MOON (3%).' };
+ITEMS.legendary_stone = { name: 'Legendary Stone', kind: 'material', rarity: 'Legendary', desc: 'A golden asteroid core that shines with every colour. Extremely rare: 0.005% from breaking Moon Rock on the MOON. Shut it in a Stove with a pair of Crystal Wings and 20 Glowing Stones to make them glow.' };
+ITEMS.glowing_stone = { name: 'Glowing Stone', kind: 'material', rarity: 'Rare', desc: 'A chunk of asteroid with glowing cyan veins running through it. Found by breaking Moon Rock on the MOON (3%).' };
 // (owner, Nov 6 2026, build l: "one crystal only, standing up, leaning a little; big at the top, going down straight
 // and getting a little smaller") ONE long crystal: a pointed top, widest just under it, straight sides that narrow a
 // little towards a short point at the bottom, leaning CRY_TILT. Facets: lit left face, middle face, dark right face, a
@@ -1066,6 +1080,102 @@ function paintAcid(a) {
   a.rect(19, 36, 2, 8, '#ffffff');
   a.outline('#0c1a10');
 }
+// (build o) the Glowing Stone: a lumpy slate-grey rock, lit from the top left, with bright cyan veins cracking through
+// it and a few glowing specks; its picture gets the crystals' glowing edge in cyan (stonePic)
+function paintGlowStone(a) {
+  const S = ['#1a1e2a', '#2e3446', '#4a5268', '#6c7590', '#9aa3bc'],
+    V = ['#0a6a7a', '#18c8d8', '#7ff8ff', '#ffffff'];
+  // the lump: two overlapping round shapes, shaded by height
+  const lump = (i, j) => {
+    const d1 = Math.hypot((i + 0.5 - 30) / 22, (j + 0.5 - 36) / 18),
+      d2 = Math.hypot((i + 0.5 - 38) / 16, (j + 0.5 - 28) / 15);
+    return Math.min(d1, d2);
+  };
+  a.fill((i, j) => {
+    const d = lump(i, j);
+    if (d > 1) return null;
+    const lit = (32 - i) * 0.6 + (30 - j) * 0.8 + (1 - d) * 14;
+    return lit > 22 ? S[4] : lit > 12 ? S[3] : lit > 2 ? S[2] : lit > -8 ? S[1] : S[0];
+  });
+  // glowing veins (thick lines, a bright core)
+  const veins = [
+    [[14, 34], [22, 30], [28, 36], [36, 31], [44, 35]],
+    [[28, 36], [30, 44], [37, 49]],
+    [[36, 31], [39, 23], [46, 20]],
+  ];
+  for (const v of veins)
+    for (let k = 0; k + 1 < v.length; k++) {
+      a.tline(v[k][0], v[k][1], v[k + 1][0], v[k + 1][1], 3.2, (i, j) => (lump(i, j) <= 0.97 ? V[1] : null));
+      a.tline(v[k][0], v[k][1], v[k + 1][0], v[k + 1][1], 1.3, (i, j) => (lump(i, j) <= 0.97 ? V[2] : null));
+    }
+  for (const [x, y] of [[20, 42], [42, 42], [33, 22], [24, 26]]) {
+    a.px(x, y, V[2]);
+    a.px(x + 1, y, V[1]);
+  }
+  a.px(37, 49, V[3]);
+  a.px(44, 35, V[3]);
+  a.outline('#0a0c14');
+}
+function stonePic() {
+  const pic = pix64Canvas(64, paintGlowStone),
+    o = document.createElement('canvas');
+  o.width = o.height = 64;
+  const x = o.getContext('2d');
+  x.shadowColor = '#4ff0ff';
+  x.shadowBlur = 6;
+  x.drawImage(pic, 0, 0);
+  x.shadowBlur = 0;
+  x.shadowColor = 'transparent';
+  x.drawImage(pic, 0, 0);
+  return o;
+}
+// (build t) the Legendary Stone: a dark gold-flecked lump with bright golden veins and a rainbow sheen, gold glow
+function paintLegendStone(a) {
+  const S = ['#1c1408', '#3a2a10', '#5c4418', '#8a6a24', '#c49a3a'],
+    V = ['#a86a00', '#ffc21a', '#fff2a0', '#ffffff'],
+    RB = ['#ff5a7a', '#ffb02a', '#7aff6a', '#4ad8ff', '#b07aff'];
+  const lump = (i, j) => Math.min(Math.hypot((i + 0.5 - 31) / 21, (j + 0.5 - 35) / 18), Math.hypot((i + 0.5 - 37) / 15, (j + 0.5 - 27) / 14));
+  a.fill((i, j) => {
+    const d = lump(i, j);
+    if (d > 1) return null;
+    const lit = (32 - i) * 0.6 + (30 - j) * 0.8 + (1 - d) * 14;
+    return lit > 22 ? S[4] : lit > 12 ? S[3] : lit > 2 ? S[2] : lit > -8 ? S[1] : S[0];
+  });
+  const veins = [
+    [[13, 36], [21, 31], [29, 37], [37, 30], [46, 34]],
+    [[29, 37], [31, 45], [38, 50]],
+    [[37, 30], [41, 22], [48, 19]],
+    [[21, 31], [20, 24]],
+  ];
+  for (const v of veins)
+    for (let k = 0; k + 1 < v.length; k++) {
+      a.tline(v[k][0], v[k][1], v[k + 1][0], v[k + 1][1], 3.4, (i, j) => (lump(i, j) <= 0.97 ? V[1] : null));
+      a.tline(v[k][0], v[k][1], v[k + 1][0], v[k + 1][1], 1.4, (i, j) => (lump(i, j) <= 0.97 ? V[2] : null));
+    }
+  // a rainbow sheen of flecks
+  [[18, 42], [25, 24], [34, 44], [43, 40], [30, 20], [24, 48], [45, 28]].forEach(([x, y], k) => {
+    a.px(x, y, RB[k % RB.length]);
+    a.px(x + 1, y, V[2]);
+  });
+  a.px(38, 50, V[3]);
+  a.px(46, 34, V[3]);
+  a.px(48, 19, V[3]);
+  a.outline('#120c04');
+}
+function legendPic() {
+  const pic = pix64Canvas(64, paintLegendStone),
+    o = document.createElement('canvas');
+  o.width = o.height = 64;
+  const x = o.getContext('2d');
+  x.shadowColor = '#ffd23f';
+  x.shadowBlur = 8;
+  x.drawImage(pic, 0, 0);
+  x.drawImage(pic, 0, 0);
+  x.shadowBlur = 0;
+  x.shadowColor = 'transparent';
+  x.drawImage(pic, 0, 0);
+  return o;
+}
 const LOOT_PICS = {};
 // (owner, Nov 6 2026, build m: "give the crystals a glow"; build n: "only a stroke glow") a thin glowing edge that
 // follows the crystal's own outline (shadowBlur of its silhouette in its light colour C[3]), no round halo
@@ -1083,8 +1193,13 @@ function crystalPic(c) {
   x.drawImage(pic, 0, 0);
   return o;
 }
-for (const [id, c] of Object.entries(CRYSTALS)) SHOP_ICON[id] = () => (LOOT_PICS[id] ||= crystalPic(c));
+for (const [id, c] of Object.entries(CRYSTALS)) {
+  SHOP_ICON[id] = () => (LOOT_PICS[id] ||= pix64Canvas(64, (a) => paintCrystal(a, c.C))); // plain (no glow)
+  SHOP_ICON['glowing_' + id] = () => (LOOT_PICS['glowing_' + id] ||= crystalPic(c)); // with the glowing edge
+}
 SHOP_ICON.green_acid = () => (LOOT_PICS.green_acid ||= pix64Canvas(64, paintAcid));
+SHOP_ICON.glowing_stone = () => (LOOT_PICS.glowing_stone ||= stonePic());
+SHOP_ICON.legendary_stone = () => (LOOT_PICS.legendary_stone ||= legendPic());
 // the roll: breakDrop gives nothing for a Moon Rock and keeps the prize; act (below) drops it on the broken tile
 let rockPrize = null;
 breakDrop = ((prev) =>
@@ -1364,3 +1479,58 @@ takeOk = ((prev) =>
     if (isMoonName(worldName)) return !!(r && r.name && remoteNear(r, d.x, d.y, TAKE_REACH));
     return prev(d, r);
   })(takeOk);
+
+
+// ---------- GLOWING CRYSTALS in a Stove (owner, Nov 7 2026 build p) ----------
+// Drop 1 crystal (Green / Red / Blue / White / Black) and 5 Glowing Stones on an OPEN Stove, punch it shut (they go
+// inside, blocks64c.js), punch it open: they come out as 1 Glowing <colour> Crystal. Several sets at once work (2
+// crystals + 10 stones = 2), colours in the order of `CRYSTALS`. Not enough (a crystal and 4 stones, or stones only)
+// = everything comes out as it went in. Only the drops that were inside count, and only the player who opened it
+// does the cooking (the drops' changes go to everyone as usual: Net.sendDrop / Net.takeDrop). A Chest never cooks.
+const STOVE_STONES = 5;
+function stoveCook(i, inside) {
+  const have = (id) => inside.reduce((n, d) => n + (d.id === id && drops.includes(d) ? d.qty : 0), 0);
+  // take k of item id out of the drops that were inside
+  const take = (id, k) => {
+    for (const d of inside) {
+      if (k <= 0) break;
+      if (d.id !== id || !drops.includes(d)) continue;
+      const n = Math.min(k, d.qty);
+      d.qty -= n;
+      k -= n;
+      if (d.qty <= 0) {
+        drops.splice(drops.indexOf(d), 1);
+        Net.takeDrop(d.uid);
+      } else Net.sendDrop(d);
+    }
+  };
+  let stones = have('glowing_stone'),
+    made = [];
+  for (const id of Object.keys(CRYSTALS)) {
+    const n = Math.min(have(id), Math.floor(stones / STOVE_STONES));
+    if (n <= 0) continue;
+    take(id, n);
+    take('glowing_stone', n * STOVE_STONES);
+    stones -= n * STOVE_STONES;
+    const x = (i % WW) * TS + 16,
+      y = Math.floor(i / WW) * TS + 14;
+    spawnDrop('glowing_' + id, x, y, n);
+    made.push(n + ' ' + ITEMS['glowing_' + id].name);
+    burst(i % WW, Math.floor(i / WW), CRYSTALS[id].C.slice(2), 14);
+  }
+  if (made.length) {
+    Sfx.play('pickup');
+    Native.haptic('medium');
+    setTimeout(() => toast('The Stove made ' + made.join(', ') + '!'), 30);
+    saveWorld();
+  }
+}
+toggleStore = ((prev) =>
+  function (i) {
+    const cook = BLOCK[fg[i]] && BLOCK[fg[i]].id === 'stove' && storeShut(i),
+      inside = cook ? drops.filter((d) => dropTile(d) === i && d.stored && !d.mg) : null;
+    const r = prev(i);
+    if (inside && inside.length && !storeShut(i)) stoveCook(i, inside);
+    return r;
+  })(toggleStore);
+if (ITEMS.stove) ITEMS.stove.desc += ' Cooking: 1 crystal + 5 Glowing Stones inside = 1 Glowing crystal.';

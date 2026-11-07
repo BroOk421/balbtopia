@@ -5,7 +5,7 @@
 // asteroids somewhere else". Owner's answers: open 24 h from 8:00 PM (Philippine time), every 3 days; each rocket
 // flies ONE player per event; the Rocket Ship recipe is gone and only the GM flies a placed one (to try the Moons).
 // Loaded right after moon.js (uses MOON_WORLDS, MOON_PAD_N, padI, buildMoon, startRocketTrip, drawRocketAt ...).
-// - SCHEDULE (`mevInfo`): event number `ev` counts MEV_PERIOD (3 days; 6 h in builds d-e) from MEV_ANCHOR (8:00 PM
+// - SCHEDULE (`mevInfo`): event number `ev` counts MEV_PERIOD (3 days; 6 h in builds d-e) from MEV_ANCHOR (5:00 PM since build d; was 8:00 PM
 //   Manila); open for MEV_OPEN (24 h) at the start of each. Online the server's clock is used (moon_status `now`).
 // - SEATS: rocket k (0-199) goes to MOON_WORLDS[k / 20], pad rocket k % 20 there. Online the server hands out the
 //   seats (schema.sql MOON EVENT: moon_seats, moon_status, moon_claim): one rocket per player per event and one player
@@ -17,19 +17,21 @@
 //   MOON8 / MOON9 at the top. Every rocket's bubble says its Moon and seat. Main door bottom right. Desert backdrop.
 //   Listed in the world list (under LOBBY / RECIPES) and open ONLY while the event is on (build f); nobody but the GM
 //   changes anything there.
-// - The MOONS (moon.js buildMoon) are built again when an event starts (`moonWorldsFix`: rv 'MOONEV2:<ev>').
+// - The MOONS (moon.js buildMoon) are built again when an event starts (`moonWorldsFix`: rv 'MOONEV3:<ev>').
 // - When the event closes, players still on a Moon or in MOONEVENT are sent to their LOBBY (build f; was MOONEVENT).
 // ===== moonevent =====
 // (owner, Nov 6 2026, build f: "back to every 3 days, 24 hours before it ends", as in build b; builds d-e had every
-// 6 hours, open 2 h) a new event every 3 days from 8:00 PM PH time, open MEV_OPEN = 24 hours. The server's
-// schema.sql moon_event_now uses the same three numbers.
-const MEV_ANCHOR = Date.UTC(2026, 10, 6, 12, 0, 0), // Nov 6 2026, 8:00 PM in Manila
+// 6 hours, open 2 h) a new event every 3 days, open MEV_OPEN = 24 hours. (owner, Nov 7 2026, build d: "the event
+// always starts at 5 PM; for now take it off, it starts tomorrow; not for the GM") MEV_ANCHOR = the first event,
+// Nov 7 2026 5:00 PM Manila (09:00 UTC); before it there is none (ev -1, closed). The server's schema.sql
+// moon_event_now uses the same three numbers.
+const MEV_ANCHOR = Date.UTC(2026, 10, 7, 9, 0, 0), // Nov 7 2026, 5:00 PM in Manila
   MEV_PERIOD = 3 * 86400000,
   MEV_OPEN = 24 * 3600000,
   MEV_SEATS = MOON_WORLDS.length * MOON_PAD_N, // 200
-  MOONEVENT_V = 'MEV:7'; // (2: the stairs are Steel Beam platforms; 3: signs say every 6 hours; 4: every 3 days again;
+  MOONEVENT_V = 'MEV:8'; // (2: the stairs are Steel Beam platforms; 3: signs say every 6 hours; 4: every 3 days again;
   // 5: steel stalls round every rocket, Air Exhaust walls, no main door; 6: holes + springs up each side;
-  // 7: a steel ceiling with open sky above, Fish Tanks with lids down both sides)
+  // 7: a steel ceiling with open sky above, Fish Tanks with lids down both sides; 8: signs say 5 PM)
 let mevSkew = 0; // the server's clock minus ours
 function mevInfo(t) {
   const d = t - MEV_ANCHOR,
@@ -83,7 +85,7 @@ function buildMoonEvent() {
     const p = evRocketXY(m * MOON_PAD_N),
       si = at(p.x - 2, p.y);
     fg[si] = SIGN;
-    setSign(si, 'Rockets to ' + MOON_WORLDS[m] + ' (20 seats, one player each). Moon Event: every 3 days from 8 PM PH time, open 24 hours. Stand in a rocket and click it.');
+    setSign(si, 'Rockets to ' + MOON_WORLDS[m] + ' (20 seats, one player each). Moon Event: every 3 days from 5 PM PH time, open 24 hours. Stand in a rocket and click it.');
   }
   for (let k = 0; k < MEV_SEATS; k++) fg[evRocketTile(k)] = ROCKET_T;
   // (owner, Nov 6 2026, build m: "more steel blocks like I did") every rocket stands in its own stall: a column of
@@ -121,7 +123,7 @@ function buildMoonEvent() {
   for (let t = 0; t < 5; t++) for (const x of [0, WW - 1]) put(x, mevFloor(t) - 1, LID_T);
   const hi = at(WW - 2, door.y);
   fg[hi] = SIGN;
-  setSign(hi, 'MOON EVENT! Every 3 days from 8 PM (PH time), open 24 hours. 200 rockets, one seat each: MOON and MOON1-9, 20 players per Moon.');
+  setSign(hi, 'MOON EVENT! Every 3 days from 5 PM (PH time), open 24 hours. 200 rockets, one seat each: MOON and MOON1-9, 20 players per Moon.');
   numberDoors(false);
   for (let k = 0; k < MEV_SEATS; k++) {
     const i = evRocketTile(k);
@@ -130,7 +132,7 @@ function buildMoonEvent() {
   // locked by the GM (nobody else changes anything here)
   fg[cornerLockTile()] = LOCK;
   worldOwner = GM_USERS[0];
-  setLockCfg({ desc: 'The Moon Event: rockets to the Moons, every 3 days from 8 PM PH time, open 24 hours.' });
+  setLockCfg({ desc: 'The Moon Event: rockets to the Moons, every 3 days from 5 PM PH time, open 24 hours.' });
   worldBg = 'desert';
   worldRV = MOONEVENT_V;
 }
@@ -138,7 +140,7 @@ function buildMoonEvent() {
 function moonWorldsFix(name) {
   if (name === MOON_EVENT_WORLD && (worldRV !== MOONEVENT_V || lc(worldOwner) !== lc(GM_USERS[0]))) buildMoonEvent();
   if (isMoonName(name)) {
-    const v = 'MOONEV2:' + mevNowInfo().ev; // (2: build k, the pad's shelves at the side)
+    const v = 'MOONEV3:' + mevNowInfo().ev; // (2: build k, the pad's shelves at the side; 3: build l, at most 200 asteroids, moonstay.js)
     if (worldRV !== v) {
       trees.clear();
       signs.clear();
@@ -515,3 +517,89 @@ function mevReseat() {
   if (k >= 0 && evRocketGone(k)) mevSpawn();
 }
 setInterval(() => inWorld && mevReseat(), 2000);
+
+// ---------- the world list during / outside the event (owner, Nov 7 2026, build c) ----------
+// "MOONEVENT: tapping it in the list / search while the event isn't on must not even try to go in; while it is on it
+// stays at the TOP of the list, highlighted, with a green countdown 24:00:00 -> 00:00:00 instead of the owner's
+// name; once over it disappears from the list and the search until the next event". The GM can still type it.
+const mevOpenNow = () => mevNowInfo().open;
+listWorlds = ((prev) =>
+  function () {
+    const l = prev().filter((w) => w.name !== MOON_EVENT_WORLD);
+    if (mevOpenNow()) l.unshift({ name: MOON_EVENT_WORLD, owner: GM_USERS[0], visited: 0, mevent: true });
+    else if (isGM()) l.unshift({ name: MOON_EVENT_WORLD, owner: GM_USERS[0], visited: 0 }); // (build d: the GM always sees it)
+    return l;
+  })(listWorlds);
+worldHidden = ((prev) =>
+  function (name) {
+    return prev(name) || (name === MOON_EVENT_WORLD && !mevOpenNow() && !isGM());
+  })(worldHidden);
+goWorld = ((prev) =>
+  function (raw) {
+    if (String(raw).toUpperCase().trim() === MOON_EVENT_WORLD && !mevOpenNow() && !isGM()) {
+      const info = mevNowInfo();
+      $('werr').textContent = 'The Moon Event is not on. The next one starts in ' + mevWait(info.next - info.now) + '.';
+      return;
+    }
+    return prev(raw);
+  })(goWorld);
+const mevClock = (ms) => {
+  const s = Math.max(0, Math.floor(ms / 1000)),
+    p = (n) => String(n).padStart(2, '0');
+  return p(Math.floor(s / 3600)) + ':' + p(Math.floor(s / 60) % 60) + ':' + p(s % 60);
+};
+function mevListRow() {
+  const b = document.getElementById('w_' + MOON_EVENT_WORLD);
+  if (!b || !mevOpenNow()) return;
+  b.classList.add('mevrow');
+  const info = mevNowInfo(),
+    txt = mevClock(info.end - info.now);
+  let t = b.querySelector('.mevclock');
+  if (!t) {
+    const old = b.querySelector('.wt:not(.here)');
+    if (old) old.remove();
+    if (b.querySelector('.wt.here')) return; // you are in it: "You are here" stays
+    t = document.createElement('span');
+    t.className = 'wt mevclock';
+    b.appendChild(t);
+  }
+  if (t.textContent !== txt) t.textContent = txt;
+}
+renderWorldList = ((prev) =>
+  function () {
+    const r = prev();
+    mevListRow();
+    return r;
+  })(renderWorldList);
+setInterval(() => {
+  if ($('worlds').hidden) return;
+  // the event ended / started while the list is open: draw it again, else just tick the clock
+  const b = document.getElementById('w_' + MOON_EVENT_WORLD);
+  if (!!b !== (mevOpenNow() || isGM()) || (b && !!b.classList.contains('mevrow') !== mevOpenNow())) renderWorldList();
+  else mevListRow();
+}, 1000);
+
+// ---------- Leave (was "Exit World"; owner renamed it, build '11-07 e'), under Settings in the menu (build c) ----------
+(() => {
+  const tabs = document.querySelector('#menu .tabs');
+  if (!tabs) return;
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.id = 'exitWorld';
+  b.textContent = 'Leave';
+  b.onclick = () => {
+    closeMenu();
+    if (!inWorld || worldName === LOBBY_WORLD) return toast('You are in your lobby');
+    if (typeof exitToLobby === 'function') exitToLobby();
+    else enterWorld(LOBBY_WORLD);
+  };
+  tabs.appendChild(b);
+  const st = document.createElement('style');
+  st.textContent =
+    '#menu .tabs #exitWorld{background:#7a1a2a;color:#ffe0e4;border-color:#c23a50}' +
+    '#menu .tabs #exitWorld:hover{background:#9a2236}' +
+    '.wrow.mevrow{background:linear-gradient(90deg,#1d3a2a,#2a1d4a);border-color:#3ee07a;box-shadow:0 0 0 1px #3ee07a inset}' +
+    '.wrow.mevrow .wn{color:#9affc0}' +
+    '.wrow .wt.mevclock{color:#3ee07a;font-variant-numeric:tabular-nums;font-weight:bold}';
+  document.head.appendChild(st);
+})();

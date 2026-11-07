@@ -43,22 +43,22 @@ function toast(msg) {
     setTimeout(() => (t.hidden = true), 250);
   }, 1500);
 }
-// Hotbar (owner, Nov 2 2026): slot 1 is the wrench (fixed); there is no fist / weapon slot any more. Tools and
-// weapons stay in the bag like everything else and are held from the bag or a hotbar slot; tapping the slot you
-// hold again puts it away (bare fist).
-// Slots 2-0 hold what YOU put there: click an item in the bag, then click one of those slots. The stack then
+// Hotbar (owner, Nov 7 2026): slot 1 is the PUNCH (fist icon, fixed), slot 2 the Wrench (fixed). Picking slot 1
+// lets go of what you hold (a block, a seed...) and holds the empty hand: `bareHand()`, i.e. the weapon / tool worn in
+// the Hand slot if there is one (it stays worn), else the bare fist. Tapping the slot you hold again does the same.
+// Slots 3-0 hold what YOU put there: click an item in the bag, then click one of those slots. The stack then
 // leaves the bag (its bag slot closes up) and lives on the hotbar (`hb` = hotbar index 2-9 on the stack in `inv`,
 // saved with the bag). Nothing is put there by itself. With the bag open and nothing picked, clicking a filled
 // slot 3-0 puts it back in the bag.
 let bagPick = null; // picking an item from the bag: { note, ok(id), bad(id), cb(id) } (pickFromBag below)
 const HOTBAR_SIZE = 10,
-  HB_FIRST = 1; // first free slot (index; key "2")
+  HB_FIRST = 2; // first free slot (index; key "3"): 1 = punch, 2 = wrench
 const hbStack = (k) => inv.find((s) => s.hb === k);
-// stacks shown in the bag grid (not on the hotbar, and not the wrench, which is always hotbar slot 1)
+// stacks shown in the bag grid (not on the hotbar, and not the wrench, which is always hotbar slot 2)
 const inBag = (s) => !s.hb && s.id !== 'wrench';
 const bagCount = () => inv.reduce((n, s) => n + (inBag(s) ? 1 : 0), 0);
 function hotbarList() {
-  const list = [inv.some((s) => s.id === 'wrench') ? 'wrench' : null];
+  const list = ['fist', inv.some((s) => s.id === 'wrench') ? 'wrench' : null];
   for (let k = HB_FIRST; k < HOTBAR_SIZE; k++) {
     const s = hbStack(k);
     list.push(s ? s.id : null);
@@ -69,7 +69,7 @@ function hotbarList() {
 function toHotbar(i, k) {
   const s = inv[i];
   if (!s || k < HB_FIRST || k >= HOTBAR_SIZE) return;
-  if (s.id === 'wrench') return toast('The Wrench always has slot 1');
+  if (s.id === 'wrench') return toast('The Wrench always has slot 2');
   const old = hbStack(k);
   if (old && old !== s) delete old.hb;
   s.hb = k;
@@ -88,7 +88,7 @@ function fromHotbar(k) {
   savePlayer();
   toast(ITEMS[s.id].name + ' is back in the bag');
 }
-// (owner, Nov 2 2026) the Wrench is only SELECTED, never held: picking slot 1 turns the wrench on (`hand` =
+// (owner, Nov 2 2026) the Wrench is only SELECTED, never held: picking its slot (2) turns the wrench on (`hand` =
 // 'wrench', so clicks wrench things as before) but the character keeps holding what it held before
 // (`wrenchKeep`: drawn, and sent to other players, through `shownHand()`). Tapping the Wrench again goes back to it.
 // Any hotbar slot can be selected, empty ones too (`hbSel`): an empty slot = the bare fist.
@@ -105,6 +105,14 @@ const shownHand = () =>
         ? wrenchKeep
         : bareHand();
 function selectHand(id, k) {
+  // slot 1, the punch (owner, Nov 7 2026): drop what you hold, keep the worn weapon (bareHand)
+  if (id === 'fist') {
+    hand = bareHand();
+    hbSel = 0;
+    renderBars();
+    savePlayer();
+    return;
+  }
   // clothes go into their Wearing slot, tools / weapons into the Hand slot (owner, Nov 3 2026)
   const sl = slotOf(id);
   if (sl) {
@@ -116,7 +124,7 @@ function selectHand(id, k) {
     if (hand === 'wrench') {
       // the Wrench again: back to what you hold
       hand = shownHand();
-      hbSel = hand === bareHand() ? -1 : hotbarList().indexOf(hand);
+      hbSel = hand === bareHand() ? 0 : hotbarList().indexOf(hand);
     } else {
       wrenchKeep = hand;
       hand = 'wrench';
@@ -125,7 +133,7 @@ function selectHand(id, k) {
   } else if (hand === id) {
     // tapping the slot you already hold puts it away: back to the empty hand (the Hand slot's weapon, else the fist)
     hand = bareHand();
-    hbSel = -1;
+    hbSel = 0;
     toast(hand === 'fist' ? 'Fist' : ITEMS[hand].name);
   } else {
     hand = id;
@@ -264,10 +272,12 @@ function renderBars() {
   const hb = $('hotbar');
   hb.innerHTML = '';
   const list = hotbarList(),
-    selOk = hbSel >= 0 && hbSel < list.length && (list[hbSel] ? list[hbSel] === hand : hand === bareHand());
+    // slot k matches what is held? (the punch slot and empty slots = the empty hand, `bareHand()`)
+    holds = (k) => (list[k] && list[k] !== 'fist' ? list[k] === hand : hand === bareHand()),
+    selOk = hbSel >= 0 && hbSel < list.length && holds(hbSel);
   list.forEach((id, k) => {
     const b = document.createElement('button');
-    b.className = 'hb' + ((selOk ? k === hbSel : id && hand === id) ? ' on' : '') + (id ? '' : ' empty');
+    b.className = 'hb' + ((selOk ? k === hbSel : id === 'fist' ? holds(0) : id && hand === id) ? ' on' : '') + (id ? '' : ' empty');
     if (!id) {
       b.setAttribute('aria-label', 'Empty slot ' + ((k + 1) % 10));
       b.tabIndex = -1;
@@ -926,7 +936,7 @@ function ready() {
 // ---------- portrait of a character, exactly as it looks in the world (skin, clothes, hair, wings, aura, tool) ----------
 // Drawn with the game's own drawCharacter on a corner of the game canvas (the next frame paints over it anyway),
 // copied out and trimmed to the drawing. c: { skin, equipped } (you, or another player).
-function charPortrait(c) {
+function charPortrait(c, raw) {
   const k = Math.max(2, Math.min(6, cv.height / (CHAR_H * 2.1), cv.width / (CHAR_H * 1.6))), // pixels per world px
     W = Math.ceil(CHAR_H * 1.5 * k),
     H = Math.ceil(CHAR_H * 2 * k);
@@ -971,6 +981,7 @@ function charPortrait(c) {
   out.getContext('2d').drawImage(cv, 0, 0, W, H, 0, 0, W, H);
   g.putImageData(back, 0, 0);
   g.restore();
+  if (raw) return out; // the whole box, not trimmed (portrait.js draws it every frame)
   // trim the empty edges
   const d = out.getContext('2d').getImageData(0, 0, W, H).data;
   let x0 = W,

@@ -448,7 +448,10 @@ function spawnDrop(id, x, y, qty = 1, minAge = 0.25, by = null) {
     here = drops.filter((d) => d.id === id && !d.ck && !d.stored && (d.by || null) === by && sameSpot(d)); // (ATM coins `ck` stay single)
   // gold has no cap: one pile per tile, shown as coins (5 of a kind join into the next kind, see coinParts)
   const cap = id === 'gold' ? Infinity : DROP_STACK;
-  for (const d of here) {
+  // (owner, Nov 7 2026 build q) what a PLAYER drops from the bag never joins the drops already lying there: every
+  // drop stays its own on the floor (it only stacks again in the bag). Drops out of blocks / trees still join.
+  const tops = by && id !== 'gold' ? [] : here;
+  for (const d of tops) {
     if (qty <= 0) break;
     const k = Math.min(qty, cap - d.qty);
     if (k <= 0) continue;
