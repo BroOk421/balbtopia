@@ -2878,3 +2878,9 @@ leaves 1 to 3, gone at the 4th, only 15 px apart; just his look in rainbow, no f
   reaper) and pets, last 1.3 s, up to 7, and are left in the air too (still never moving).
 - (owner: "include the aura, stay longer, on the carpet jumping = idle") copies keep the aura, last 2 s; drawCarpetRider
   sets c.ground = true for the rider (standing picture in the air too), and the copies use the same pose.
+
+### Build 2026-11-08 c — Display Box dark gray frame
+- (owner: "the Display Box border dark gray instead of white") hd/misc.js `DISP_PIX.pal`: every white / light-grey frame
+  colour (208-255) mapped to a dark grey 52-82 (same order, so the bevel shading stays); the outline `b` 118 grey -> 28
+  so it still shows around the darker frame. The glass colours (g, h, k, s) are unchanged. Shop icon uses the same art.
+  GAME_BUILD '2026-11-08 c'.
