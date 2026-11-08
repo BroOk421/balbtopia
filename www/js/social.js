@@ -313,7 +313,7 @@ $('pmAccess').onclick = () => {
 $('pmPull').onclick = () => {
   const o = other();
   closePlayerMenu();
-  if (!o || !isOwner()) return;
+  if (!o || !canBoss(o)) return;
   if (!Net.remotes.has(o.id)) return toast(o.name + ' already left');
   Net.sendKick(o.id, 'pull', Math.round(P.x), Math.round(P.y)).then((err) => toast(err || 'Pulled ' + o.name + ' here'));
 };
@@ -321,12 +321,15 @@ $('pmPull').onclick = () => {
 $('pmSpawn').onclick = () => {
   const o = other();
   closePlayerMenu();
-  if (!o || !isOwner()) return;
+  if (!o || !canBoss(o)) return;
   if (!Net.remotes.has(o.id)) return toast(o.name + ' already left');
   askKick(o.id, 'spawn');
 };
 // Ban from this world (owner, Oct 22 2026): kicked out now and kept out for the time picked (server: world_bans).
 // Lifted in the Gold Lock window (Banned players).
+// may I pull / spawn / kick / ban player o here? The owner: anyone but themself. A co-owner (access list, lock.js
+// isAdmin): anyone who isn't the owner or another co-owner. (The server checks the same: kick_player / ban_from_world.)
+const canBoss = (o) => !!(o && worldOwner && isAdmin() && lc(o.name) !== lc(playerName) && (isOwner() || !isAdminName(o.name)));
 const BAN_TIMES = [
   [10, '10 minutes'],
   [60, '1 hour'],
@@ -337,7 +340,7 @@ const BAN_TIMES = [
 $('pmBan').onclick = () => {
   const o = other();
   closePlayerMenu();
-  if (!o || !isOwner()) return;
+  if (!o || !canBoss(o)) return;
   askBan(o);
 };
 // the BAN? pop-up for player o ({ id, name }); also used by /ban in the chat
@@ -348,14 +351,14 @@ function askBan(o) {
      <label class="lfield" for="banFor">How long
        <select id="banFor">${BAN_TIMES.map(([m, t]) => `<option value="${m}"${m === 60 ? ' selected' : ''}>${t}</option>`).join('')}</select>
      </label>
-     <p class="mnote">You can lift it any time: wrench your Gold Lock.</p>`,
+     <p class="mnote">You can lift it any time: wrench the World Lock.</p>`,
     [
       { label: 'Cancel', cls: 'ghost', run: () => {} },
       {
         label: 'Ban',
         cls: 'danger',
         run: async (b) => {
-          if (!isOwner()) return;
+          if (!canBoss(o)) return;
           const m = +b.querySelector('#banFor').value,
             err = await Net.banFromWorld(o.id, m || null);
           if (err) return toast(err), false;
@@ -371,10 +374,11 @@ const _openPM = openPlayerMenu;
 openPlayerMenu = function (o) {
   _openPM(o);
   // Pull: owner of a locked world, the player is in this world, and a server that checks it
-  $('pmPull').hidden = !(o && isOwner() && worldOwner && Net.secure && Net.remotes.has(o.id));
-  // Spawn and Ban: owner of a locked world (Ban needs the server's world_bans: Net.secure)
-  $('pmSpawn').hidden = !(o && isOwner() && worldOwner && Net.remotes.has(o.id));
-  $('pmBan').hidden = !(o && isOwner() && worldOwner && Net.secure && worldName !== LOBBY_WORLD);
+  // (co-owners too: players on the access list, lock.js isAdmin; never on the owner or another co-owner: canBoss)
+  $('pmPull').hidden = !(o && canBoss(o) && Net.secure && Net.remotes.has(o.id));
+  // Spawn and Ban: owner / co-owner of a locked world (Ban needs the server's world_bans: Net.secure)
+  $('pmSpawn').hidden = !(o && canBoss(o) && Net.remotes.has(o.id));
+  $('pmBan').hidden = !(o && canBoss(o) && Net.secure && worldName !== LOBBY_WORLD);
   const b = $('pmAccess');
   b.hidden = !(o && isOwner());
   if (o) b.textContent = lockCfg.access.includes(lc(o.name)) ? 'Remove building access' : 'Allow building here';
@@ -979,9 +983,10 @@ function chatCommand(text) {
   }
   if (!arg) return toast('Type /' + cmd + ' and the player\'s name (' + CHAT_CMDS[cmd] + ')'), false;
   if (!Net.online) return toast('/' + cmd + ' works when playing online'), false;
-  if (!worldOwner || !isOwner()) return toast('Only the owner of this locked world can use /' + cmd), false;
+  if (!worldOwner || !isAdmin()) return toast('Only the owner of this locked world (or players with access) can use /' + cmd), false;
   const o = chatPlayer(arg);
   if (!o) return toast('No player called "' + arg + '" in this world'), false;
+  if (!canBoss(o)) return toast("You can't /" + cmd + ' ' + o.name + ': they have access here too'), false;
   if (cmd === 'pull') {
     if (!Net.secure) return toast('Pull needs the new server setup (supabase/schema.sql)'), false;
     Net.sendKick(o.id, 'pull', Math.round(P.x), Math.round(P.y)).then((err) => toast(err || 'Pulled ' + o.name + ' here'));

@@ -27,6 +27,8 @@ const RIDES = [
   // (owner, Nov 4 2026: his picture of a green leaf) you STAND on it, the leaf over your feet, leaves blowing out behind
   { id: 'ride_leaf', name: 'Leaf Glider', kind: 'leaf', cell: 0.58, res: 1, lift: 0, seat: 0, speed: 1.45, gold: 90000, rarity: 'Legendary', ol: null, desc: 'A big red and orange leaf that floats over the ground. Stand on it and glide, a trail of colourful leaves blowing out behind you.' },
   // (owner, Nov 4 2026: "gawa ka ng rides na cloud") you STAND on four little clouds going round under your feet
+  // (owner, Nov 8 2026: his picture of a carpet, 4 frames; "ikaw na magpangalan") you STAND on it, it waves under you
+  { id: 'ride_carpet', name: "Sultan's Flying Carpet", kind: 'carpet', cell: 1, res: 1, lift: 0, seat: 0, speed: 1.45, flap: true, gold: 95000, rarity: 'Legendary', ol: null, desc: 'A red woven carpet with tasselled ends that ripples in the wind. Stand on it and fly: faster, and one more jump in the air.' },
   { id: 'ride_cloud', name: 'Cloud Ride', kind: 'cloud', noShop: true, cell: 0.62, res: 1, lift: 0, seat: 0, speed: 1.5, flap: true, gold: 100000, rarity: 'Legendary', ol: '#7d89c4', desc: 'Four little clouds that go round under your feet. Stand on them and fly, with one more jump in the air; moving, the clouds behind you trail off and float back.' },
 ];
 const RIDE_BY_ID = {};
@@ -1070,7 +1072,98 @@ function drawCloudRider(c, ox, oy, r) {
   if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
   return res;
 }
-const RIDE_PAINT = { horse: paintHorse, car: paintCar, truck: paintTruck, harvester: paintHarvester, leaf: paintLeaf, cloud: paintCloud };
+// ---------- Sultan's Flying Carpet (owner, Nov 8 2026) ----------
+// The owner's 4 frames (art-source/rides/flying_carpet_source.png, cut by flying_carpet_cut.py to the art's own pixels:
+// assets/rides/flying_carpet.png, 4 frames of CARPET.fw x CARPET.fh side by side, the woven body's middle on row 14).
+// You STAND on it like the Leaf Glider: the rider whole, the carpet over the soles, rippling through the frames.
+A.ride_carpet = 'assets/rides/flying_carpet.png';
+const CARPET = {
+  fw: 132, // one frame (picture px)
+  fh: 27,
+  frames: 4,
+  px: 0.34, // world px per picture px (~45 world px long)
+  feet: 14, // picture row the soles stand on: the body's middle (rows 8-20). (owner: "the feet in the middle of the
+  // carpet, the character OVER the carpet") the carpet is drawn first, the rider over it
+  bottom: 20, // picture row of the body's underside
+  hover: 4, // world px between the ground and the body's underside
+  bob: 1.1, // world px up and down while floating
+  bobMs: 480,
+  ms: [130, 85], // ms a frame standing / moving (it ripples faster when you go)
+};
+function carpetIcon() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const draw = () => {
+    const im = IMG.ride_carpet;
+    if (!im || !im.width) return setTimeout(draw, 300);
+    const x = c.getContext('2d'),
+      s = 62 / CARPET.fw;
+    x.imageSmoothingEnabled = false;
+    x.drawImage(im, 0, 0, CARPET.fw, CARPET.fh, 1, Math.round((64 - CARPET.fh * s) / 2), 62, Math.round(CARPET.fh * s));
+  };
+  draw();
+  return c;
+}
+SHOP_ICON.ride_carpet = carpetIcon;
+function drawCarpetRider(c, ox, oy, r) {
+  const face = c.face || 1,
+    moving = !!c.walking || c.ground === false,
+    t = now + (c.blink || 0),
+    f = Math.floor(t / CARPET.ms[moving ? 1 : 0]) % CARPET.frames,
+    bob = Math.sin(t / CARPET.bobMs) * CARPET.bob,
+    under = CARPET.hover + bob, // world px from the ground to the carpet's underside
+    rise = under + (CARPET.bottom - CARPET.feet) * CARPET.px, // world px the soles go up
+    eq = c.equipped;
+  let alpha = 1;
+  if (c.hurt > 0 && Math.floor(now / 80) % 2) alpha = 0.55;
+  if (c.spawnT > 0) alpha *= 1 - c.spawnT / SPAWN_FADE;
+  if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'big');
+  const X = Math.round(ox + (c.x + c.w / 2) * Z),
+    Yg = Math.round(oy + (c.y + c.h + FOOT_SINK) * Z);
+  // shadow on the ground
+  g.save();
+  g.globalAlpha = 0.2 * alpha;
+  g.fillStyle = '#000';
+  g.beginPath();
+  g.ellipse(X, Yg, (CARPET.fw / 2) * CARPET.px * 0.8 * Z, 1.6 * Z, 0, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+  // the carpet, under the rider
+  const im = IMG.ride_carpet;
+  if (im && im.width) {
+    g.save();
+    g.imageSmoothingEnabled = false;
+    g.globalAlpha *= alpha;
+    g.translate(X, Math.round(Yg - under * Z));
+    g.scale(face * CARPET.px * Z, CARPET.px * Z);
+    g.drawImage(im, f * CARPET.fw, 0, CARPET.fw, CARPET.fh, -CARPET.fw / 2, -CARPET.bottom, CARPET.fw, CARPET.fh);
+    g.restore();
+  }
+  // the rider, standing on it, over it (jumping pictures in the air, like the Leaf Glider)
+  const walking = c.walking,
+    ground = c.ground;
+  c.equipped = { ...eq, pet: null };
+  c.rideBase = eq;
+  c.realGround = ground;
+  c.walking = false;
+  // (owner, Nov 8 2026: "jumping on the carpet he should just stay idle, not the jumping look") on the carpet the rider
+  // keeps the standing picture in the air too
+  c.ground = true;
+  let res;
+  try {
+    res = rideStanding(c, ox, oy - rise * Z);
+  } finally {
+    c.equipped = eq;
+    c.walking = walking;
+    c.ground = ground;
+    delete c.realGround;
+    delete c.rideBase;
+  }
+  rideArmsNow(); // the arm with the weapon
+  if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
+  return res;
+}
+const RIDE_PAINT = { horse: paintHorse, car: paintCar, truck: paintTruck, harvester: paintHarvester, leaf: paintLeaf, cloud: paintCloud, carpet: () => ({ back: new Map(), front: new Map(), bob: 0 }) };
 const RIDE_PICS = {};
 function ridePic(r, state, f) {
   const k = r.id + ':' + state + ':' + f;
@@ -1156,6 +1249,7 @@ drawCharacter = function (c, ox, oy) {
   if (!r) return rideOldDraw(c, ox, oy);
   if (r.kind === 'leaf') return drawLeafRider(c, ox, oy, r);
   if (r.kind === 'cloud') return drawCloudRider(c, ox, oy, r);
+  if (r.kind === 'carpet') return drawCarpetRider(c, ox, oy, r);
   const { st, f } = rideState(c, r),
     pic = ridePic(r, st, f),
     eq = c.equipped,
@@ -1226,6 +1320,15 @@ drawCharacter = function (c, ox, oy) {
   if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
   return res;
 };
+// world px the rider's soles are over the ground on his ride (prismtrail.js draws his copies at that height)
+function rideRiseOf(c) {
+  const r = rideOf(c);
+  if (!r) return 0;
+  if (r.kind === 'carpet') return CARPET.hover + (CARPET.bottom - CARPET.feet) * CARPET.px;
+  if (r.kind === 'leaf') return LEAFR.hover + (LEAF_MAP.length - LEAFR.feet) * r.cell;
+  if (r.kind === 'cloud') return CLOUDR.hover;
+  return r.lift || 0;
+}
 // is the local player riding now (not sitting, swimming or dead)
 function rideLocal() {
   return !!(RIDE_BY_ID[rideIdOf(equipped)] && !P.dead && !P.rest && !(typeof inWater === 'function' && inWater(P)));

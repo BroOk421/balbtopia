@@ -228,35 +228,80 @@ function hdVendArt() {
 NEWART.vend = hdVendArt();
 SHOP_ICON.vending_machine = () => hdVendArt();
 
-// ---------- Display Box: wooden frame and base around clear glass (the item shows at 21%-79% of the tile) ----------
+// ---------- Display Box (owner, Nov 8 2026, his picture): a thin silver frame round see-through teal glass.
+// The item fills the whole glass, edge to edge (DISP_IN: cells 3-28 of 32). Painted from the owner's 32x32 picture.
+const DISP_PIX = {
+  pal: {
+    a: 'rgba(0,0,0,0)',
+    b: 'rgba(118,118,118,1)',
+    c: 'rgba(254,254,254,1)',
+    d: 'rgba(255,255,255,1)',
+    e: 'rgba(253,253,253,1)',
+    f: 'rgba(216,217,217,0.988)',
+    g: 'rgba(39,83,89,0.459)',
+    h: 'rgba(46,107,116,0.459)',
+    i: 'rgba(230,231,231,0.996)',
+    j: 'rgba(250,250,250,1)',
+    k: 'rgba(52,131,139,0.459)',
+    l: 'rgba(244,244,244,1)',
+    m: 'rgba(242,242,242,1)',
+    n: 'rgba(235,235,235,1)',
+    o: 'rgba(234,234,234,1)',
+    p: 'rgba(226,226,226,1)',
+    q: 'rgba(217,217,217,1)',
+    r: 'rgba(246,246,246,1)',
+    s: 'rgba(57,166,181,0.459)',
+    t: 'rgba(237,237,237,1)',
+    u: 'rgba(229,229,229,1)',
+    v: 'rgba(221,221,221,1)',
+    w: 'rgba(219,220,220,0.988)',
+    x: 'rgba(234,234,234,0.996)',
+    y: 'rgba(208,208,208,1)',
+    z: 'rgba(225,225,225,1)',
+    A: 'rgba(233,233,233,1)',
+    B: 'rgba(241,241,241,1)',
+    C: 'rgba(248,248,248,1)',
+  },
+  rows: [
+    'abbbbbbbbbbbbbbbbbbbbbbbbbbbbbba',
+    'bbcdddddddddddddddddddddddddddbb',
+    'bebeeeeeeeeeeddddddddddddddddbdb',
+    'beefggggggggghhhhhhhhhhhhhhhiddb',
+    'bjeggggggggghhhhhhhhhhhhhhhkkddb',
+    'blegggggggghhhhhhhhhhhhhhhkkkddb',
+    'bleggggggghhhhhhhhhhhhhhhkkkkddb',
+    'blegggggghhhhhhhhhhhhhhhkkkkkddb',
+    'bmeggggghhhhhhhhhhhhhhhkkkkkkddb',
+    'bnegggghhhhhhhhhhhhhhhkkkkkkkddb',
+    'bneggghhhhhhhhhhhhhhhkkkkkkkkddb',
+    'bnegghhhhhhhhhhhhhhhkkkkkkkkkddb',
+    'boeghhhhhhhhhhhhhhhkkkkkkkkkkddb',
+    'bpehhhhhhhhhhhhhhhkkkkkkkkkkkddb',
+    'bqehhhhhhhhhhhhhhkkkkkkkkkkkkcdb',
+    'bqrhhhhhhhhhhhhhkkkkkkkkkkkkkedb',
+    'bqlhhhhhhhhhhhhkkkkkkkkkkkkksedb',
+    'bqlhhhhhhhhhhhkkkkkkkkkkkkkssedb',
+    'bqlhhhhhhhhhhkkkkkkkkkkkkksssedb',
+    'bqthhhhhhhhhkkkkkkkkkkkkkssssedb',
+    'bqnhhhhhhhhkkkkkkkkkkkkksssssedb',
+    'bqnhhhhhhhkkkkkkkkkkkkkssssssedb',
+    'bqnhhhhhhkkkkkkkkkkkkksssssssedb',
+    'bquhhhhhkkkkkkkkkkkkkssssssssedb',
+    'bqphhhhkkkkkkkkkkkkksssssssssedb',
+    'bqphhhkkkkkkkkkkkkkssssssssssedb',
+    'bqphhkkkkkkkkkkkkksssssssssssedb',
+    'bqvhkkkkkkkkkkkkkssssssssssssedb',
+    'bqqwkkkkkkkkkkkkssssssssssssxecb',
+    'bqbqvpppunnnleeeeeeeeeeeeeeeebeb',
+    'bbyyyyyyyyyyyyyqqqqzpppAnnnBlCbb',
+    'abbbbbbbbbbbbbbbbbbbbbbbbbbbbbba',
+  ],
+};
 function hdDispArt() {
-  return hdCanvas((x, { P, R }) => {
-    R(0, 0, 32, 32, K);
-    hdWood(P, 1, 1, 30, 30, ['#8a5a2b', '#6b4420', '#a8743c']);
-    R(1, 1, 30, 1, '#c08a4a');
-    R(1, 1, 1, 30, '#a8743c');
-    R(30, 1, 1, 30, '#5a3818');
-    // glass opening (px 6-25 x 6-23): see-through
-    R(4, 4, 24, 22, K);
-    R(5, 5, 22, 20, '#d29a56'); // inner trim
-    R(5, 5, 22, 1, '#f0c890');
-    R(26, 5, 1, 20, '#a8743c');
-    x.clearRect(6, 6, 20, 18);
-    R(6, 6, 20, 18, 'rgba(191,232,255,0.26)');
-    R(6, 6, 20, 1, 'rgba(255,255,255,0.4)');
-    R(6, 6, 1, 18, 'rgba(255,255,255,0.25)');
-    for (let k = 0; k < 4; k++) P(8 + k, 10 - k, 'rgba(255,255,255,0.7)');
-    for (let k = 0; k < 3; k++) P(10 + k, 11 - k, 'rgba(255,255,255,0.45)');
-    // base
-    R(1, 26, 30, 5, '#b07a3c');
-    R(1, 26, 30, 1, '#e0aa66');
-    R(1, 30, 30, 1, '#7a5228');
-    for (let i = 3; i < 29; i++) if (hdNoise(i, 28, 7) < 0.15) P(i, 28, '#9a6a32');
-    // brass corners
-    for (const [i, j] of [[2, 2], [28, 2], [2, 27], [28, 27]]) {
-      R(i, j, 2, 2, '#c98a12');
-      P(i, j, '#fff4b8');
-    }
+  return hdCanvas((x, { P }) => {
+    DISP_PIX.rows.forEach((r, j) => {
+      for (let i = 0; i < 32; i++) if (r[i] !== 'a') P(i, j, DISP_PIX.pal[r[i]]);
+    });
   });
 }
 NEWART.disp = hdDispArt();

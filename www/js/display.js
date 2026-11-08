@@ -260,10 +260,12 @@ function drawDisplayBox(x, y, px, py, T) {
   g.drawImage((NEWART.disp ||= cells(DISP_ART)), px, py, T, T);
   const id = displays.get(at(x, y));
   if (!id) return;
-  drawFitted(px + T * 0.21, py + T * 0.2, T * 0.58, id);
-  // glass shine over the item
-  g.fillStyle = 'rgba(255,255,255,0.16)';
-  g.fillRect(px + T * 0.19, py + T * 0.19, T * 0.62, T * 0.1);
+  // (owner, Nov 8 2026) the item fills the whole glass, touching the frame on the left, right, top and bottom
+  // (the glass is cells 3-28 of the 32-cell picture, hd/misc.js DISP_PIX). Kept in proportion, so a long item
+  // touches two sides and is centred between the other two.
+  const a = (T * 3) / 32,
+    s = (T * 26) / 32;
+  drawFitted(px + a, py + a, s, id);
 }
 // the Mannequin's body: the player's body (so clothes fit the same way) turned into a smooth, faceless dummy
 const MANN_BODY = new Map();

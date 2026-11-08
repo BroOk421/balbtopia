@@ -15,6 +15,16 @@ function setLockCfg(c) {
   };
 }
 const isOwner = () => !!worldOwner && lc(worldOwner) === lc(playerName);
+// CO-OWNERS (owner, Nov 8 2026): a player on a locked world's access list (Gold / Diamond / any World Lock) gets the
+// owner's powers in that world while they are on it: drops at once, kick / spawn / pull / ban / unban, Vending Machines,
+// Warp Pods, Door Mover, deleting board posts... Taking them off the list makes them a normal visitor again.
+// Still ONLY the real owner: the lock window's settings (description, access list, open), breaking the World Lock,
+// the World Key, Clear World, moving / renaming the world, Red / Blue Lock areas, the owner's song list and mailbox.
+// "Everyone can build" (open) does NOT make everyone a co-owner: only names on the list.
+const isAdminName = (name) =>
+  !!worldOwner && !!name && !(typeof ownLobby === 'function' && ownLobby()) && (lc(worldOwner) === lc(name) || lockCfg.access.includes(lc(name)));
+const isAdmin = () => isOwner() || isAdminName(playerName);
+const isCoOwner = () => !isOwner() && isAdminName(playerName);
 const worldAccess = (name) => !worldOwner || lc(worldOwner) === lc(name) || lockCfg.open || lockCfg.access.includes(lc(name));
 // i (optional): the tile. A tile inside a Red / Blue Lock's area (alocks.js) follows THAT lock's rules instead of
 // the world's: its owner, the players it lists (even without access to the world), open, empty air, the world's owner.
@@ -66,8 +76,13 @@ function renderLockWin() {
     el.innerHTML = `
       <p class="ldesc">${lockCfg.desc ? esc(lockCfg.desc) : '<i>No description</i>'}</p>
       <p class="lstate ${me ? 'ok' : ''}">${lockCfg.open ? 'Everyone can build here' : me ? 'You can build here' : "You can't build here"}</p>
-      ${!lockCfg.open && lockCfg.access.length ? `<p class="mlabel">Can build <span>${lockCfg.access.length}</span></p><ul class="lacc">${lockCfg.access.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}`;
+      ${!lockCfg.open && lockCfg.access.length ? `<p class="mlabel">Can build <span>${lockCfg.access.length}</span></p><ul class="lacc">${lockCfg.access.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+      ${isCoOwner() ? `<p class="lstate ok">You have access: you can use the owner's tools here</p>${kickHtml()}<div id="lBans"></div>` : ''}`;
     $('lockSave').hidden = true;
+    if (isCoOwner()) {
+      loadBans();
+      el.querySelectorAll('[data-kick]').forEach((b) => (b.onclick = () => askKick(b.dataset.kick, b.dataset.k)));
+    }
     return;
   }
   $('lockSave').hidden = false;
@@ -131,7 +146,8 @@ function renderLockWin() {
 }
 // ---------- kick: the owner sends players back to the door (Spawn) or out of the world (Kick) ----------
 function kickHtml() {
-  const list = [...Net.remotes.values()].filter((r) => r.name && lc(r.name) !== lc(playerName));
+  // a co-owner can't kick the owner or other co-owners (lock.js Net.onKick / server kick_player)
+  const list = [...Net.remotes.values()].filter((r) => r.name && lc(r.name) !== lc(playerName) && (isOwner() || !isAdminName(r.name)));
   return `<p class="mlabel">Players in this world <span>${list.length}</span></p>
     ${
       list.length
@@ -149,7 +165,7 @@ function kickHtml() {
 async function loadBans() {
   const list = await Net.worldBanList();
   const box = $('lBans');
-  if (!box || !list || !isOwner()) return;
+  if (!box || !list || !isAdmin()) return;
   const left = (u) => {
     if (!u) return 'until you lift it';
     const m = Math.max(1, Math.round((Date.parse(u) - Date.now()) / 60000));
@@ -171,7 +187,7 @@ async function loadBans() {
   );
 }
 function askKick(to, k) {
-  if (!isOwner()) return;
+  if (!isAdmin()) return;
   const all = to === '*',
     r = all ? null : Net.remotes.get(to);
   if (!all && !r) return toast('That player already left'), renderLockWin();
@@ -186,7 +202,7 @@ function askKick(to, k) {
         label: out ? 'Kick' : 'Spawn',
         cls: out ? 'danger' : '',
         run: () => {
-          if (!isOwner()) return;
+          if (!isAdmin()) return;
           Net.sendKick(to, out ? 'out' : 'spawn').then((err) => {
             // Spawn: the owner hears the spike sound too, like the player who is sent back (owner, Oct 26 2026)
             if (!err && !out) Sfx.play('ouch');
@@ -201,7 +217,9 @@ function askKick(to, k) {
 // server checked it (claim_kick in net.js), which also allows a GM's kick
 Net.onKick = (p) => {
   if (!inWorld || !Net.me || (p.to !== '*' && p.to !== Net.me.id)) return;
-  if (isOwner() || (!p.verified && (!worldOwner || lc(p.n) !== lc(worldOwner)))) return;
+  if (isOwner() || (!p.verified && !isAdminName(p.n))) return;
+  // a co-owner can't be kicked / pulled by another co-owner: only by the real owner or a GM (the server checks it too)
+  if (isCoOwner() && lc(p.n) !== lc(worldOwner) && !GM_USERS.some((g) => lc(g) === lc(p.n))) return;
   // pulled: to the owner's spot (only server-checked pulls exist)
   if (p.k === 'pull') {
     if (!p.verified || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return;

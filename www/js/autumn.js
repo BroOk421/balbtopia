@@ -379,8 +379,9 @@ stepToolFx = ((prev) =>
 toolSparkles = ((prev) =>
   function (t, x, y, n = 1, spread = 14) {
     if (t !== TOOLS.autumn_scythe) return prev(t, x, y, n, spread);
-    const sx = P.x + P.w / 2,
-      sy = P.y + P.h * 0.4,
+    const W = fxBody(), // you, or the other player whose hit this is (remotefx.js)
+      sx = W.x + W.w / 2,
+      sy = W.y + W.h * 0.4,
       d = Math.hypot(x - sx, y - sy) || 1,
       reach = Math.min(d, 13);
     if (Math.random() < 0.5) autLeafFx(sx + ((x - sx) / d) * reach, sy + ((y - sy) / d) * reach, 1); // (half the hits, one leaf)
@@ -576,12 +577,22 @@ drawBehind = ((prev) =>
     const eq = c.equipped || {},
       wings = eq.back === 'autumn_wings' && !autSwim(c),
       pass = typeof RIDE_PASS !== 'undefined' ? RIDE_PASS : 0;
-    prev(wings ? { ...c, equipped: { ...eq, back: null } } : c, top, sc, dy);
+    const cw = WEAR_BY_ID[eq.cape],
+      cape = !!(cw && cw.strip && !autSwim(c));
+    if (!wings && !cape) return prev(c, top, sc, dy);
+    // (owner, Nov 8 2026: long hair was cut off by the Autumn Wings / Cape) back to front: the aura, the back item
+    // (other wings), the Autumn Wings, the Autumn Cape, THEN the back of long hair, so the hair is never covered
+    const only = (e) => {
+      const c2 = Object.create(c);
+      c2.equipped = e;
+      return c2;
+    };
+    prev(only({ aura: eq.aura, back: wings ? null : eq.back }), top, sc, dy);
     // on a seated ride (rides.js two passes) things behind the body go on the real canvas in pass 1, uncut by the
     // seat, and are skipped in pass 2, like the aura / wings there
-    if (pass === 2) return;
-    if (pass === 1) return rideOnReal(() => autBehind(c, top, sc, dy, wings));
-    autBehind(c, top, sc, dy, wings);
+    if (pass === 1) rideOnReal(() => autBehind(c, top, sc, dy, wings));
+    else if (pass !== 2) autBehind(c, top, sc, dy, wings);
+    prev(only({ ...eq, aura: null, back: null }), top, sc, dy);
   })(drawBehind);
 function autBehind(c, top, sc, dy, wings) {
   {

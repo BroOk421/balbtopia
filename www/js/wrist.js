@@ -71,6 +71,8 @@ for (const w of WRISTBANDS) {
 // by cleanInv as unknown items.)
 const RINGS = [
   { id: 'cloud_ring', name: 'Cloud Ring', gold: 100000, rarity: 'Legendary', ride: 'ride_cloud', metal: ['#ffffff', '#c8d4f0', '#7d89c4'], gem: ['#ffffff', '#e8f0ff', '#a8b8e8'], desc: 'A ring with a little cloud in it. Wear it and you ride a cloud: faster, and one more jump in the air.' },
+  // (owner, Nov 8 2026) dark after-images of you while you move: prismtrail.js (id kept from its first, rainbow version)
+  { id: 'prism_ring', name: 'Phantom Ring', gold: 85000, rarity: 'Legendary', trail: 'phantom', metal: ['#ffffff', '#c8ccd8', '#5a6070'], gem: ['#b8a0ff', '#5a3ab8', '#22104a'], desc: 'A silver ring with a dark violet stone. Wear it and dark copies of yourself follow close behind you as you move, up to five at a time.' },
 ];
 function ringRide(eq) {
   const w = eq && WEAR_BY_ID[eq.ring];

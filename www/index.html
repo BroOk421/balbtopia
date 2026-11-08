@@ -51,6 +51,18 @@
         <header>
           <h2>INVENTORY</h2>
           <span class="count" id="count"></span>
+          <!-- phones / Android: a magnifier beside the Trash that shows the bag's search box (owner, Nov 8 2026) -->
+          <button class="searchbtn" id="bagSearchBtn" type="button" title="Search your bag" aria-label="Search your bag">
+            <svg viewBox="0 0 16 16" width="22" height="22" shape-rendering="crispEdges" aria-hidden="true">
+              <rect x="4" y="1" width="5" height="1" fill="#14101c" /><rect x="2" y="2" width="2" height="1" fill="#14101c" /><rect x="9" y="2" width="2" height="1" fill="#14101c" />
+              <rect x="1" y="3" width="1" height="5" fill="#14101c" /><rect x="11" y="3" width="1" height="5" fill="#14101c" />
+              <rect x="2" y="8" width="2" height="1" fill="#14101c" /><rect x="9" y="8" width="2" height="1" fill="#14101c" /><rect x="4" y="9" width="5" height="1" fill="#14101c" />
+              <rect x="4" y="2" width="5" height="7" fill="currentColor" /><rect x="2" y="3" width="9" height="5" fill="currentColor" />
+              <rect x="4" y="3" width="2" height="1" fill="rgba(255,255,255,.75)" /><rect x="3" y="4" width="1" height="2" fill="rgba(255,255,255,.75)" />
+              <rect x="10" y="9" width="2" height="2" fill="#14101c" /><rect x="11" y="10" width="2" height="2" fill="#14101c" /><rect x="12" y="11" width="2" height="2" fill="#14101c" /><rect x="13" y="12" width="2" height="3" fill="#14101c" /><rect x="12" y="13" width="2" height="2" fill="#14101c" />
+              <rect x="11" y="10" width="1" height="1" fill="#c98a12" /><rect x="12" y="11" width="1" height="1" fill="#c98a12" /><rect x="13" y="12" width="1" height="2" fill="#c98a12" />
+            </svg>
+          </button>
           <button class="trashbtn" id="trashBtn" type="button" title="Trash: click it, then click an item to throw it away" aria-label="Trash">
             <!-- pixel-art bin: lid with a handle, body with three ribs -->
             <svg viewBox="0 0 16 16" width="22" height="22" shape-rendering="crispEdges" aria-hidden="true">
@@ -343,6 +355,7 @@
     <script src="js/jump.js"></script>
     <script src="js/shadow.js"></script>
     <script src="js/scythes.js"></script>
+    <script src="js/reaperscythe.js"></script>
     <script src="js/rides.js"></script>
     <script src="js/dyes.js"></script>
     <script src="js/letters.js"></script>
@@ -390,6 +403,9 @@
     <script src="js/crystalwings.js"></script>
     <script src="js/camzoom.js"></script>
     <script src="js/asteroids.js"></script>
+    <script src="js/remotefx.js"></script>
+    <script src="js/scarfreaper.js"></script>
+    <script src="js/prismtrail.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

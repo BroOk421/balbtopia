@@ -1585,6 +1585,10 @@ function noBackArm(skin) {
   return armParts(IMG['skin_' + skin + '_open'], 'skin_' + skin + '_open').noArm;
 }
 // sparkles: little "+" stars (like on the icons) that drift up very slowly and twinkle out
+// whose hit the next toolSparkles call is for (remotefx.js sets it to another player for their hits; null = you).
+// Wrappers that throw the effect off the tool itself (scythes.js, autumn.js) start it from this character.
+let fxWho = null;
+const fxBody = () => fxWho || P;
 function toolSparkles(t, x, y, n = 1, spread = 14) {
   if (!t || !t.sparkle) return;
   for (let k = 0; k < n; k++) {

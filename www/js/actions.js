@@ -519,7 +519,8 @@ function canTakeDrop(d) {
   if (worldName === LOBBY_WORLD) return canEdit(true);
   // on a Guard Glass (blocks64h.js): nobody without access to that tile takes it, not even the one who dropped it
   if (dropGuarded(d) && !isOwner() && !hasAccess(playerName, at(Math.floor(d.x / TS), Math.floor(d.y / TS)))) return false;
-  return !worldOwner || isOwner() || (!!d.by && lc(d.by) === lc(playerName)) || Date.now() - d.born >= DROP_LOCK_MS;
+  // (co-owners on the access list take drops at once like the owner: lock.js isAdmin, owner Nov 8 2026)
+  return !worldOwner || isAdmin() || (!!d.by && lc(d.by) === lc(playerName)) || Date.now() - d.born >= DROP_LOCK_MS;
 }
 // is drop d lying on a Guard Glass? (guardAt is in blocks64h.js)
 const dropGuarded = (d) => typeof guardAt === 'function' && guardAt(Math.floor(d.x / TS), Math.floor(d.y / TS));
@@ -567,8 +568,8 @@ const TAKE_REACH = 4; // tiles
 function takeOk(d, r) {
   if (!r || !r.name || !remoteNear(r, d.x, d.y, TAKE_REACH)) return false;
   if (worldName === LOBBY_WORLD || !worldOwner) return true;
-  // a locked world: the owner, the one who dropped it, or after the owner-only time (a little early, for lag)
-  return lc(r.name) === lc(worldOwner) || (!!d.by && lc(d.by) === lc(r.name)) || Date.now() - d.born >= DROP_LOCK_MS - 1500;
+  // a locked world: the owner or a co-owner (access list), the one who dropped it, or after the owner-only time (a little early, for lag)
+  return isAdminName(r.name) || (!!d.by && lc(d.by) === lc(r.name)) || Date.now() - d.born >= DROP_LOCK_MS - 1500;
 }
 function netTake(u, by) {
   const k = drops.findIndex((d) => d.uid === u);

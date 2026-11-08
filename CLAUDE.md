@@ -60,6 +60,9 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `asteroids.js` | Build y: Laser Gun (Astronaut Set) = the only way to break asteroids on the Moons (1 shot, 15 min charge), the asteroid / laser HUD by the globe, fossils, the Legendary Stone Stove recipe (5%), scythes Shop-only, old Moons MOON / MOON6-9 closed |
 | `portrait.js` | Menu -> Profile's character picture is a canvas redrawn every 70 ms (idle: aura, wings, lightning... move); crop box from 12 sampled moments |
 | `groundhold.js` | `shownGround()`: "on the ground" for drawing / sending stays true 150 ms after the last grounded step (not while rising), so asteroids / Arrow Gates don't flicker the jump / landing pose |
+| `reaperscythe.js` | Nocturn Scythe (id `reaper_scythe`; Shop TOOLS 100,000, Legendary, tracked): owner's animated GIF; handle + blade body frozen from frame 0, only the green flames animate (`art-source/items/reaper_scythe_build.py` -> `assets/items/reaper_scythe.png`, 10 frames of 288 px in scythes.js picture space); hooks `scythePic` / `scyFrame` / `scyDraw`; glow and rising flames; NO crescent slash: every swing shoots the Laser Gun's asteroid-breaking radiation (`drawRadiation`, squeezed across its line: width thins full -> nothing over `NOCT_BEAM.ms`); comes out of the blade's TIP (`NOCT_TIP`, tracked every frame through `drawBehind`'s transform -> `noctTips`; riding, the arm is drawn on the screen canvas, so the canvas point is kept), started in `startPunch` (you, held OR worn in the Hand slot) / `stepToolFx` (others' punches), drawn from `drawWater` over everything. Loaded right after scythes.js |
+| `scarfreaper.js` | Royal Silk Scarf: a green-flame reaper (owner's 4 frames, `assets/items/reaper_scarf.png`, cut by `art-source/items/reaper_cut.py`, then `reaper_freeze.py`: its scythe is frame 0's in every frame, or it looked like two scythes) FLIES with you like the flying dragon pets (trails behind at head height, leans, faces the way it flies); stays BEHIND you (`REAPER.back` 36, no idle passes: crossing over you looked like two reapers on dark worlds); fades in on wear, out on unwear (per player name). Drawn via `drawPetOf(...,'big')` (NOT in rides.js's own rider passes: `RIDE_PASS` / `c.rideBase`, or it showed twice), grows shadow.js `petBox`; Profile picture / Mannequin keep a still version in `drawBehind`. Loaded last before main.js |
+| `prismtrail.js` | Phantom Ring (id `prism_ring`, ring slot, `trail` in wrist.js RINGS): wherever he goes (ground or air), every `PRISM.gap` 15 world px a copy of the CHARACTER WITH HIS AURA (stripped copy drawn a second time by `prismSnap`: no pet / flying dragon, ride, ring, neck scarf (Royal Silk Scarf's reaper), punch, name tag, drop shadow; box widened for the aura with `auraHalfW`; riding, at the ride's height `rideRiseOf` in rides.js and in the rider's pose: standing rides don't walk, on the carpet not even jumping) is LEFT on that spot and never moves; it lives `PRISM.life` 2 s, starts in his own colours, darkens towards `PRISM.tint` and fades. Max `PRISM.max` 7 (an 8th pushes out the oldest). Note: a copy frame draws the character twice (particles a drawCharacter wrapper spawns may double then). Loaded LAST before main.js (outermost drawCharacter wrapper) |
 | `wingsopen.js` | Demon / Dragon / Galaxy / Phoenix / Shadow Wings: folded (original) on the ground, SPREAD (owner's pictures, `wings_<name>_open.png`) the whole time in the air |
 | `crystalwings.js` | Crystal Wings in 5 colours (Blue = the old `crystal_wings`; red / green / white / black new, recoloured), spread in the air; made in a Stove: 20 crystals of the colour + 10 Green Acid + 5 White Crystals |
 | `letters.js` | A-Z, 0-9 and arrow blocks (168-207): `GLYPH_BLOCKS` (id, name, recipe seeds), `FONT57`, `glyphPic` |
@@ -156,6 +159,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   layout tag like `L6:`, saved as `rv`) and always shows in the world list. One sign per item made (`recipeList`:
   an item with two recipes, like Grass, gets one sign with both, "A + B or C + D"), sorted A to Z by name: the
   bottom shelf starts at A (left to right) and each shelf up carries on, Z at the top.
+- Bag search on phones / Android (Nov 8 2026): a magnifier `#bagSearchBtn` beside the Trash (touch only) shows the hidden `#bagQ` (`#inv.searching`, ui.js `bagSearchShow`); tapping it again or closing the bag hides and clears it.
+- Display Box art (Nov 8 2026, owner's picture): thin silver frame + see-through teal glass (`DISP_PIX` in hd/misc.js); the item fills the whole glass edge to edge (cells 3-28 of 32, in proportion).
 - Display Box (Shop, 1,000 gold, solid): wrench to put one item from the bag in or take it out (anyone with access).
   The item is drawn cropped to fit (`iconFit`/`drawFitted`), so small things still fill the glass.
 - Mannequin (Shop, 2,500 gold, walk-through): wrench to put clothes on, one per wear slot, or take them off. Its body
@@ -2820,3 +2825,56 @@ Hologram Board, but a rounded square hologram with writing inside), it works jus
   Stand on it: a cyan hologram panel (drawSignBubble wrapper) with a beam down to the sign.
 - Tested offline: walked through crystal tiles; Hologram Sign shows the screen + hologram bubble; museum rebuilt with
   10 crystals on a Steel floor (hole at x 45 kept). GAME_BUILD '2026-11-07 zj'.
+
+### Build 2026-11-08 a — co-owners, wings behind long hair, other players' hit effects
+Owner: "a player given access to a world (Gold / Diamond Lock) should have the owner's functions, like they own it
+too; access taken away = a normal visitor again. Long hair breaks with wings: wings behind the hair, the aura behind the
+wings. Breaking / laser gun / other effects of one player aren't seen by the others: show them, for every weapon".
+- CO-OWNERS (lock.js `isAdminName(name)`, `isAdmin()`, `isCoOwner()`): names on `lockCfg.access` of a LOCKED world
+  (not "everyone can build", not your lobby). They get: drops at once (canTakeDrop / takeOk), Spawn / Kick / Pull /
+  Ban / Unban + the ban list (player wrench menu, /pull /kick /ban, and the Players / Banned lists in the World Lock
+  window's non-owner view), Vending Machines, Item / Gold Warp Pods (vacuum.js), Door Mover (`ownWorldOnly(what, coOk)`),
+  removing Suggestion Board posts. A co-owner can't do any of it to the owner or another co-owner (`canBoss` in
+  social.js; Net.onKick ignores a co-owner's kick on a co-owner). OWNER ONLY still: the lock window's settings (access
+  list, description, open), "Allow building here", breaking the World Lock, World Key, Clear World, moving / renaming,
+  Red / Blue Lock areas, the owner's song list, mailbox. Server (schema.sql, RE-RUN IT): `world_admin(owner, data, me)`;
+  kick_player / ban_from_world / unban_from_world / world_ban_list allow it and refuse a co-owner acting on the owner
+  or another co-owner (checked in a local Postgres).
+- LAYERS: the base drawBehind already was aura -> back item -> back of long hair. autumn.js drew the Autumn Wings and
+  the Autumn Cape AFTER all of it (over the long hair): now aura + other back item, Autumn Wings, Autumn Cape, then the
+  back of the hair (prev called in two parts, like capes.js).
+- NEW `remotefx.js` (after asteroids.js): net.js calls `Net.onPunchFx(r, payload)` on every remote punch: block bits,
+  smoke and a growing crack (`rCrack`, drawn in a drawSetupBadges wrapper, heals like yours) when that player may break
+  there; the held tool's sparks via toolSparkles with `fxWho` = them (wear.js `fxWho` / `fxBody()`; scythes.js and
+  autumn.js throw their flames / leaves from fxBody()); punch sparks on a player; the Laser Gun's quick beam; the
+  RADIATION on the Moons (asteroids.js sends 'shot' k 'rad' { o | tl } on laserStart and 'radx' when it ends;
+  `N.sendShot` takes an extra-fields object). Water Gun punches make no block effects.
+- GAME_BUILD '2026-11-08 a'.
+
+### Build 2026-11-08 b — Sultan's Flying Carpet, Prism Ring
+Owner: "add this carpet as a ride, you name it; and a ring that leaves an animated see-through rainbow shadow; walking
+leaves 1 to 3, gone at the 4th, only 15 px apart; just his look in rainbow, no face".
+- rides.js: `ride_carpet` "Sultan's Flying Carpet" (kind 'carpet', 95,000 gold, speed x1.45, `flap` = one more air
+  jump; names / price picked by Claude). The owner's 4 frames (`art-source/rides/flying_carpet_source.png`) cut by
+  `flying_carpet_cut.py` (4.6 source px per art px, white background flood-filled away, frames lined up on the body's
+  middle) into `www/assets/rides/flying_carpet.png` (4 frames 132 x 27). `drawCarpetRider` = the Leaf Glider's way: the
+  rider standing (`rideStanding`), the carpet over his soles (`CARPET`: px 0.34 world px a picture px, soles on row 12 (owner: higher up the feet),
+  underside row 20 hovering 4 px + bob), ripples through the frames (130 ms idle, 85 ms moving). Icon `carpetIcon`.
+- NEW `prismtrail.js` + `prism_ring` in wrist.js RINGS (85,000 gold, Legendary, icon = the ring with a rainbow stone).
+- schema.sql: shop_prices rows + keep-list for `ride_carpet`, `prism_ring` (RE-RUN schema.sql).
+- (owner, same day) carpet higher up the feet (soles row 12); copies follow 2 px apart so only ~10% of each shows.
+- Tested offline (Playwright): carpet ride idle / walking, 3 rainbow copies trailing, fading one by one after
+  stopping, with and without the carpet; no errors. GAME_BUILD '2026-11-08 b'.
+- (owner, later the same day) carpet: soles on row 14 (the carpet's middle), the carpet drawn FIRST and the rider over
+  it. Ring: no rainbow any more, renamed Phantom Ring (id `prism_ring` kept): 5 dark copies of the character only (no
+  ride: `prismGrab` hooks in rides.js rideStanding / pass 2), 9 world px apart (50% of the body). Tested again offline.
+- (owner, his screenshot of the first build: "that distance, a little more to the left; appear frame by frame, go one by
+  one") copies `first` 19 + 15 apart behind him; one shows per 0.07 s beat while moving, one goes per beat when still
+  (checked frame by frame: 1, 2, 3, 4, 5 then 4, 3, 2, 1, 0). Still the dark look, not the rainbow.
+- (owner's recording: the copies followed him when he jumped and were dark at once) copies are LEFT on the spot of his
+  last step (ground only), start in his own colours, darken and fade over 0.65 s; character only (no aura / pet / ride).
+  The `prismGrab` hooks in rides.js were removed again (replaced by `rideRiseOf`).
+- (owner: "no scarf or dragon; stay longer or 2 more; left in the air too") copies leave out the neck slot (scarf +
+  reaper) and pets, last 1.3 s, up to 7, and are left in the air too (still never moving).
+- (owner: "include the aura, stay longer, on the carpet jumping = idle") copies keep the aura, last 2 s; drawCarpetRider
+  sets c.ground = true for the rider (standing picture in the air too), and the copies use the same pose.

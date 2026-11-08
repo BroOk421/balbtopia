@@ -77,7 +77,8 @@ function openVend(x, y) {
     v = vends.get(i);
   // an empty machine (owner, Oct 25 2026): no Confirm / Cancel any more, the bag opens at once; tapping an item
   // closes it and opens the machine's pop-up with that item, ready for how many and the price
-  if (isOwner()) return v && (v.n > 0 || v.e > 0) ? vendOwner(i) : vendPick(i);
+  // (co-owners too: players on the access list, lock.js isAdmin)
+  if (isAdmin()) return v && (v.n > 0 || v.e > 0) ? vendOwner(i) : vendPick(i);
   if (!worldOwner) return toast('Lock this world with a Gold Lock to use a Vending Machine');
   if (!v || !v.id || v.n <= 0) return toast('This Vending Machine is empty');
   vendBuyer(i);
@@ -86,7 +87,7 @@ function vendPick(i) {
   pickFromBag(
     'Tap the item to sell in the Vending Machine',
     (id) => sellable(id) && countItem(id) > 0,
-    (id) => isVendT(fg[i]) && isOwner() && vendOwner(i, id),
+    (id) => isVendT(fg[i]) && isAdmin() && vendOwner(i, id),
     (id) => (ITEMS[id] && ITEMS[id].kind === 'tool' ? "Tools can't be sold in a Vending Machine" : "This can't be sold in a Vending Machine"),
   );
 }

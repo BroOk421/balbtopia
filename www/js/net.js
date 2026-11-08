@@ -525,6 +525,8 @@ const Net = (() => {
           r.angry = ANGRY_TIME;
           // a Red Visor / Laser Eyes punch nearby: hear the laser (quieter than your own)
           if (laserFace(r.equipped) && Math.hypot(r.tx - P.x, r.ty - P.y) < TS * 12) Sfx.play('laser', 0.55);
+          // the hit's effects on the block, tool sparks, the Laser Gun's beam... like your own (remotefx.js)
+          if (N.onPunchFx) N.onPunchFx(r, payload);
         }
       })
       .on('broadcast', { event: 'hit' }, ({ payload }) => {
@@ -986,8 +988,9 @@ const Net = (() => {
   N.sendFly = (from, to, items) => send('fly', { from, to, items });
   // you punched another player: they get knocked back on their screen
   // a shot from a hand item (water from the Water Gun, an arrow from the Heartbow; handfx.js): others only see it fly
-  N.sendShot = (k, x, y, tx, ty) => {
-    if (N.me) send('shot', { id: N.me.id, k, x: Math.round(x), y: Math.round(y), tx: Math.round(tx), ty: Math.round(ty) });
+  // ex: extra fields for that kind of shot (remotefx.js: the Laser Gun's radiation sends the asteroid's id)
+  N.sendShot = (k, x, y, tx, ty, ex) => {
+    if (N.me) send('shot', { ...(ex || {}), id: N.me.id, k, x: Math.round(x), y: Math.round(y), tx: Math.round(tx), ty: Math.round(ty) });
   };
   N.hit = (r, dir) => {
     if (!N.me) return;

@@ -224,8 +224,8 @@ function openVacuum(x, y) {
     v = vacuums.get(i),
     name = BLOCK[t].name;
   if (!worldOwner) return toast('Lock this world with a Gold Lock to use the ' + name);
-  if (!isOwner() && t === VAC_COIN_T && vacHasAccess(i)) return vacWin(i);
-  if (!isOwner()) {
+  if (!isAdmin() && t === VAC_COIN_T && vacHasAccess(i)) return vacWin(i);
+  if (!isAdmin()) {
     if (t === VAC_COIN_T) return toast(name + ': ' + ((v && v.n) || 0).toLocaleString() + ' gold inside (only ' + worldOwner + ' can collect it)');
     return toast(v && v.id ? name + ': ' + v.n.toLocaleString() + ' ' + ITEMS[v.id].name + ' inside' : 'This ' + name + " isn't set up yet");
   }
@@ -237,7 +237,7 @@ function vacPick(i) {
     'Tap the block or seed the Item Warp Pod should collect',
     (id) => vacuumable(id),
     (id) => {
-      if (fg[i] !== VAC_ITEM_T || !isOwner() || vacBusy(i)) return;
+      if (fg[i] !== VAC_ITEM_T || !isAdmin() || vacBusy(i)) return;
       const v = vacuums.get(i) || {};
       setVac(i, { id, n: 0, off: v.off });
       vacPulse.set(i, now);
@@ -275,7 +275,7 @@ function vacWin(i) {
     id = coin ? null : v.id,
     n = v.n | 0,
     on = !v.off,
-    own = isOwner();
+    own = isAdmin();
   const body = dialog(
     BLOCK[t].name.toUpperCase(),
     `<div class="vacwin">
@@ -369,11 +369,11 @@ function vacCollect(i) {
   const cur = vacuums.get(i),
     g0 = (cur && cur.n) || 0;
   if (!g0) return toast('No gold inside yet');
-  if (!isOwner() && !vacHasAccess(i)) return toast('You have no access to this gold');
+  if (!isAdmin() && !vacHasAccess(i)) return toast('You have no access to this gold');
   const c = (cur.c | 0) + 1;
   setVac(i, { ...cur, n: 0, c });
   Wallet.earn(g0);
-  if (isOwner()) vacChanged(i);
+  if (isAdmin()) vacChanged(i);
   else {
     // an access player (maybe not a builder): the claim goes out on the world channel, everyone checks it (N.onVacc)
     if (Net.sendVacc) Net.sendVacc({ i, a: g0, c, s: Net.me && Net.me.id });
@@ -700,7 +700,7 @@ HD_DECO.coin_vacuum = (x) => x.drawImage(vacIcon(VAC_COIN_T), 0, 0, 32, 32);
 // later messages carry the new count; older ones (lower `c`) don't overwrite the amount (Net.onShow above).
 const vacHasAccess = (i) => {
   const v = vacuums.get(i);
-  return !!(v && fg[i] === VAC_COIN_T && worldOwner && (lc(playerName) === lc(worldOwner) || (v.acc || []).includes(lc(playerName))));
+  return !!(v && fg[i] === VAC_COIN_T && worldOwner && (isAdminName(playerName) || (v.acc || []).includes(lc(playerName))));
 };
 Net.onVacc = (p) => {
   if (!p || !Number.isInteger(p.i) || p.i < 0 || p.i >= fg.length || fg[p.i] !== VAC_COIN_T) return;
@@ -708,7 +708,7 @@ Net.onVacc = (p) => {
     r = Net.remotes && Net.remotes.get(p.s),
     a = Math.floor(+p.a || 0);
   if (!v || !r || !r.name || a < 1 || a > v.n || (p.c | 0) !== (v.c | 0) + 1) return;
-  if (lc(r.name) !== lc(worldOwner || '') && !(v.acc || []).includes(lc(r.name))) return;
+  if (!isAdminName(r.name) && !(v.acc || []).includes(lc(r.name))) return; // owner, co-owner or the pod's list
   setVac(p.i, { ...v, n: v.n - a, c: p.c | 0 });
   if (vacBossMe()) vacSaveSoon();
 };

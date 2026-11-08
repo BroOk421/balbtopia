@@ -713,6 +713,22 @@ $('bagQ').oninput = () => {
   closePop();
   renderInv();
 };
+// (owner, Nov 8 2026) phones / Android: the magnifier beside the Trash shows the search box (hidden there otherwise);
+// tapping it again hides it and clears the search
+function bagSearchShow(on) {
+  $('inv').classList.toggle('searching', on);
+  $('bagSearchBtn').classList.toggle('on', on);
+  if (on) setTimeout(() => $('bagQ').focus(), 0);
+  else if ($('bagQ').value) {
+    $('bagQ').value = '';
+    renderInv();
+  }
+}
+$('bagSearchBtn').onclick = (e) => {
+  e.stopPropagation();
+  closePop();
+  bagSearchShow(!$('inv').classList.contains('searching'));
+};
 // ---------- pick an item straight from the bag (owner, Oct 22 2026) ----------
 // Used by the Red / Blue Lock's Shrink Block and an empty Vending Machine / Display Box: after a confirm pop-up the
 // bag opens with a note on top; tapping an item closes the bag and calls back with its id. Items that can't be
@@ -754,6 +770,8 @@ function toggleInv() {
     bagPick = null; // closing the bag cancels picking
     if (bp && bp.onClose) bp.onClose();
     $('bagQ').value = ''; // the search starts empty next time
+    $('inv').classList.remove('searching'); // (and hidden again on phones)
+    $('bagSearchBtn').classList.remove('on');
     closePop();
     $('info').hidden = true;
   }

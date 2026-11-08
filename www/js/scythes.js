@@ -722,8 +722,9 @@ toolSparkles = ((prev) =>
     if (!kind) return prev(t, x, y, n, spread);
     // a hit (actions.js gives the block's middle): ONE flame, off the scythe itself, not out of the block (owner):
     // on the way from your shoulder to the block, about where the blade is when it lands
-    const sx = P.x + P.w / 2,
-      sy = P.y + P.h * 0.4,
+    const W = fxBody(), // you, or the other player whose hit this is (remotefx.js)
+      sx = W.x + W.w / 2,
+      sy = W.y + W.h * 0.4,
       d = Math.hypot(x - sx, y - sy) || 1,
       reach = Math.min(d, 13);
     scyFlameFx(kind, sx + ((x - sx) / d) * reach, sy + ((y - sy) / d) * reach, 1, 4, 4);

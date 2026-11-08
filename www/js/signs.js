@@ -358,7 +358,7 @@ function needsSetup(i) {
   }
   if (isVendT(t)) {
     const v = vends.get(i);
-    return isOwner() && (!v || !v.id);
+    return isAdmin() && (!v || !v.id);
   }
   return false;
 }

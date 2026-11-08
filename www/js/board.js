@@ -79,7 +79,7 @@ function boardAgo(ms) {
   if (s < 86400) return Math.floor(s / 3600) + 'h ago';
   return Math.floor(s / 86400) + 'd ago';
 }
-const boardCanRemove = (p) => lc(p.n || '') === lc(playerName) || isOwner() || isGM();
+const boardCanRemove = (p) => lc(p.n || '') === lc(playerName) || isAdmin() || isGM();
 function openBoard(i) {
   boardAt = i;
   const body = dialog(

@@ -403,12 +403,18 @@ function laserStart(ch) {
   P.punch = null; // (the gun stays held, pointing forward: the radiation comes out of its muzzle)
   laserCh = { ...ch, sx: t.x, sy: t.y, px: t.x, py: t.y, t0: now, face: P.face, step: 0, sfx: now, fx: 0 };
   if (!ch.o) laserCh.k = rockPick(ch.x, ch.y);
+  // the others see the radiation too (remotefx.js): from your gun to the asteroid (its id) or the Moon Rock tile
+  if (Net.online && Net.sendShot) Net.sendShot('rad', P.x + P.w / 2, P.y + P.h / 2, t.x, t.y, ch.o ? { o: ch.o.id } : { tl: [ch.x, ch.y] });
   Sfx.play('laser');
   Native.haptic('medium');
+}
+function laserRadEnd() {
+  if (Net.online && Net.sendShot) Net.sendShot('radx', P.x, P.y, P.x, P.y); // the others' radiation of yours stops
 }
 function laserStop() {
   const ch = laserCh;
   laserCh = null;
+  if (ch) laserRadEnd();
   P.punch = null;
   if (ch && ch.o && roids.includes(ch.o)) {
     ch.o.hp = 0;
@@ -463,6 +469,7 @@ function laserDone(ch) {
   }
   laserCh = null;
   P.punch = null;
+  laserRadEnd();
   if (!broke) return;
   burst(t.x / TS - 0.5, t.y / TS - 0.5, ['#3ef05a', '#9dff9a', '#eaffe8', '#4c4670'], 18);
   laserLootToBag(before);
@@ -923,6 +930,7 @@ const SCYTHE_SHOP = [
   ['flame_scythe', 30000],
   ['death_scythe', 60000],
   ['furious_scythe', 80000],
+  ['reaper_scythe', 100000], // (Nov 8 2026, owner's picture: reaperscythe.js; price picked by Claude)
 ]; // (prices picked by Claude; schema.sql shop_prices has the same)
 for (const [id, gold] of SCYTHE_SHOP) {
   if (!ITEMS[id]) continue;

@@ -287,6 +287,15 @@ returns boolean language sql immutable as $$
     or (jsonb_typeof(p_data -> 'lock' -> 'access') = 'array' and p_data -> 'lock' -> 'access' ? lower(p_me))
   )
 $$;
+-- (Nov 8 2026, owner) CO-OWNERS: a locked world's owner, or a player on its access list (data.lock.access), may
+-- kick / spawn / pull / ban / unban there. A co-owner can't do it to the owner or to another co-owner. GMs always.
+create or replace function public.world_admin(p_owner text, p_data jsonb, p_me text)
+returns boolean language sql immutable as $$
+  select p_me is not null and p_owner is not null and (
+    lower(p_owner) = lower(p_me)
+    or (jsonb_typeof(p_data -> 'lock' -> 'access') = 'array' and p_data -> 'lock' -> 'access' ? lower(p_me))
+  )
+$$;
 -- lockv counts changes of a world's owner or lock (access list, open). The realtime build channel's topic carries
 -- it (build:NAME:LOCKV), so a player who was allowed to build and joined before a change can't keep sending after
 -- it: the others move to the new topic, which checks the rights again.
@@ -691,8 +700,13 @@ declare r public.worlds; me text := public.my_name(); k bigint;
 begin
   select * into r from public.worlds where name = p_world;
   if me is null or public.is_banned() or not found or r.owner is null
-     or not (public.is_gm() or lower(r.owner) = lower(me)) then
+     or not (public.is_gm() or public.world_admin(r.owner, r.data, me)) then
     raise exception 'Only the owner of this world can do that' using errcode = '42501';
+  end if;
+  -- a co-owner (not the owner, not a GM) can't send the owner or another co-owner anywhere
+  if not public.is_gm() and lower(r.owner) <> lower(me) and p_to <> '*' and exists (
+       select 1 from public.usernames u where u.id::text = p_to and public.world_admin(r.owner, r.data, u.name)) then
+    raise exception 'You can''t do that to a player with access here' using errcode = 'P0001';
   end if;
   if p_kind = 'pull' and (p_to = '*' or p_x is null or p_y is null) then raise exception 'Pull one player to a spot'; end if;
   delete from public.world_kicks where created_at < now() - interval '1 hour';
@@ -840,10 +854,13 @@ declare r public.worlds; me text := public.my_name(); tn text; k bigint;
 begin
   select * into r from public.worlds where name = p_world;
   if me is null or public.is_banned() or not found or r.owner is null
-     or not (public.is_gm() or lower(r.owner) = lower(me)) then
+     or not (public.is_gm() or public.world_admin(r.owner, r.data, me)) then
     raise exception 'Only the owner of this world can do that' using errcode = '42501';
   end if;
   select name into tn from public.usernames where id = p_to;
+  if tn is not null and not public.is_gm() and lower(r.owner) <> lower(me) and public.world_admin(r.owner, r.data, tn) then
+    raise exception 'You can''t ban a player with access here' using errcode = 'P0001';
+  end if;
   if tn is null then raise exception 'No such player' using errcode = 'P0001'; end if;
   if p_to = auth.uid() or lower(tn) = lower(r.owner) then
     raise exception 'You can''t ban the owner of this world' using errcode = 'P0001';
@@ -868,7 +885,7 @@ declare r public.worlds; me text := public.my_name();
 begin
   select * into r from public.worlds where name = p_world;
   if me is null or public.is_banned() or not found or r.owner is null
-     or not (public.is_gm() or lower(r.owner) = lower(me)) then
+     or not (public.is_gm() or public.world_admin(r.owner, r.data, me)) then
     raise exception 'Only the owner of this world can do that' using errcode = '42501';
   end if;
   delete from public.world_bans where world = p_world and lower(name) = lower(p_name);
@@ -881,7 +898,7 @@ returns table (name text, until timestamptz) language plpgsql stable security de
 declare r public.worlds; me text := public.my_name();
 begin
   select * into r from public.worlds w where w.name = p_world;
-  if me is null or not found or r.owner is null or not (public.is_gm() or lower(r.owner) = lower(me)) then
+  if me is null or not found or r.owner is null or not (public.is_gm() or public.world_admin(r.owner, r.data, me)) then
     raise exception 'Only the owner of this world can do that' using errcode = '42501';
   end if;
   return query select b.name, b.until from public.world_bans b
@@ -1109,6 +1126,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('gold_bracelet', 1, 12000, true, 0),
   -- the Cloud Ring (wrist.js, Nov 5 2026): wearing it = the Cloud Ride, which is no longer sold
   ('cloud_ring', 1, 100000, true, 0),
+  ('prism_ring', 1, 85000, true, 0), -- Phantom Ring (prismtrail.js, Nov 8 2026): dark after-images
   ('denim_shorts', 1, 3000, true, 0),
   ('black_shorts', 1, 3000, true, 0),
   ('track_shorts', 1, 4000, true, 0),
@@ -1127,6 +1145,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('ride_car', 1, 70000, true, 0),
   ('ride_harvester', 1, 75000, true, 0),
   ('ride_leaf', 1, 90000, true, 0), -- Leaf Glider (Nov 4 2026)
+  ('ride_carpet', 1, 95000, true, 0), -- Sultan's Flying Carpet (Nov 8 2026)
   ('autumn_chest', 1, 10000, true, 0), -- Autumn event chest (autumn.js; sold Nov 4 - Dec 4 2026 only, see shop_buy)
   -- girls' clothes (clothes.js) and styled hair (hairstyles.js), Oct 31 2026
   ('pink_sundress', 1, 6000, true, 0),
@@ -1204,6 +1223,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('flame_scythe', 1, 30000, false, 0),
   ('death_scythe', 1, 60000, false, 0),
   ('furious_scythe', 1, 80000, false, 0),
+  ('reaper_scythe', 1, 100000, true, 0), -- reaperscythe.js (Nov 8 2026): Shop-only from the start, so tracked
   ('set_stage', 1, 20000, false, 0), -- concert.js: Stage Set
   ('set_fishing', 1, 10000, false, 0), -- fish.js: Fish Tank Set (basket, lid, water bucket, 20 Fish Tanks)
   -- pets (pets.js): Shop-only, tracked
@@ -1241,7 +1261,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_jade_dragon', 1, 100000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('halo', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('red_knit_scarf', 1), ('blue_striped_scarf', 1), ('red_bandana', 1), ('big_orange_scarf', 1), ('big_black_scarf', 1), ('big_striped_scarf', 1), ('black_scarf', 1), ('candy_stripe_scarf', 1), ('green_plaid_scarf', 1), ('snowflake_scarf', 1), ('pink_fluffy_scarf', 1), ('rainbow_scarf', 1), ('royal_silk_scarf', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('vampire_face', 1), ('vampire_eyes', 1), ('sailor_shirt', 1), ('flower_shirt', 1), ('camo_shirt', 1), ('red_flannel', 1), ('heart_tee', 1), ('star_tee', 1), ('ball_jersey', 1), ('sunset_tee', 1), ('white_tee', 1), ('red_tee', 1), ('blue_tee', 1), ('green_tee', 1), ('yellow_tee', 1), ('black_tee', 1), ('striped_tee', 1), ('ringer_tee', 1), ('navy_polo', 1), ('pink_polo', 1), ('green_polo', 1), ('white_polo', 1), ('red_polo', 1), ('black_polo', 1), ('yellow_polo', 1), ('striped_polo', 1), ('sky_polo', 1), ('aloha_polo', 1), ('hawaiian_polo', 1), ('hawaiian_polo_red', 1), ('gold_watch', 1), ('silver_watch', 1), ('diamond_watch', 1), ('black_watch', 1), ('red_wristband', 1), ('blue_wristband', 1), ('black_wristband', 1), ('white_wristband', 1), ('rainbow_wristband', 1), ('gold_bracelet', 1), ('cloud_ring', 1), ('denim_shorts', 1), ('black_shorts', 1), ('track_shorts', 1), ('board_shorts', 1), ('camo_shorts', 1), ('blue_slippers', 1), ('pink_slippers', 1), ('green_slippers', 1), ('gold_slippers', 1), ('red_sneakers', 1), ('black_sneakers', 1), ('blue_sneakers', 1), ('gold_sneakers', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('autumn_chest', 1), ('pink_sundress', 1), ('flower_dress', 1), ('red_party_dress', 1), ('blue_polka_dress', 1), ('sailor_dress', 1), ('lavender_gown', 1), ('ruffle_blouse', 1), ('bow_top', 1), ('pink_skirt', 1), ('plaid_skirt', 1), ('denim_skirt', 1), ('pink_flats', 1), ('red_flats', 1), ('white_flats', 1), ('lilac_slippers', 1), ('fire_quiff', 1), ('frosted_quiff', 1), ('pink_ombre_long_hair', 1), ('rainbow_long_hair', 1), ('blue_streak_spikes', 1), ('galaxy_spikes', 1), ('sunset_ponytail', 1), ('mint_ponytail', 1), ('lavender_swept_hair', 1), ('blue_streak_swept_hair', 1), ('cotton_candy_bun', 1), ('galaxy_bun', 1), ('blue_tip_bob', 1), ('red_streak_bob', 1), ('gold_tip_top_bun', 1), ('mint_top_bun', 1), ('purple_ombre_long_hair', 1), ('silver_streak_long_hair', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('set_astronaut', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_raptor', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('halo', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('red_knit_scarf', 1), ('blue_striped_scarf', 1), ('red_bandana', 1), ('big_orange_scarf', 1), ('big_black_scarf', 1), ('big_striped_scarf', 1), ('black_scarf', 1), ('candy_stripe_scarf', 1), ('green_plaid_scarf', 1), ('snowflake_scarf', 1), ('pink_fluffy_scarf', 1), ('rainbow_scarf', 1), ('royal_silk_scarf', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('vampire_face', 1), ('vampire_eyes', 1), ('sailor_shirt', 1), ('flower_shirt', 1), ('camo_shirt', 1), ('red_flannel', 1), ('heart_tee', 1), ('star_tee', 1), ('ball_jersey', 1), ('sunset_tee', 1), ('white_tee', 1), ('red_tee', 1), ('blue_tee', 1), ('green_tee', 1), ('yellow_tee', 1), ('black_tee', 1), ('striped_tee', 1), ('ringer_tee', 1), ('navy_polo', 1), ('pink_polo', 1), ('green_polo', 1), ('white_polo', 1), ('red_polo', 1), ('black_polo', 1), ('yellow_polo', 1), ('striped_polo', 1), ('sky_polo', 1), ('aloha_polo', 1), ('hawaiian_polo', 1), ('hawaiian_polo_red', 1), ('gold_watch', 1), ('silver_watch', 1), ('diamond_watch', 1), ('black_watch', 1), ('red_wristband', 1), ('blue_wristband', 1), ('black_wristband', 1), ('white_wristband', 1), ('rainbow_wristband', 1), ('gold_bracelet', 1), ('cloud_ring', 1), ('prism_ring', 1), ('denim_shorts', 1), ('black_shorts', 1), ('track_shorts', 1), ('board_shorts', 1), ('camo_shorts', 1), ('blue_slippers', 1), ('pink_slippers', 1), ('green_slippers', 1), ('gold_slippers', 1), ('red_sneakers', 1), ('black_sneakers', 1), ('blue_sneakers', 1), ('gold_sneakers', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('pink_sundress', 1), ('flower_dress', 1), ('red_party_dress', 1), ('blue_polka_dress', 1), ('sailor_dress', 1), ('lavender_gown', 1), ('ruffle_blouse', 1), ('bow_top', 1), ('pink_skirt', 1), ('plaid_skirt', 1), ('denim_skirt', 1), ('pink_flats', 1), ('red_flats', 1), ('white_flats', 1), ('lilac_slippers', 1), ('fire_quiff', 1), ('frosted_quiff', 1), ('pink_ombre_long_hair', 1), ('rainbow_long_hair', 1), ('blue_streak_spikes', 1), ('galaxy_spikes', 1), ('sunset_ponytail', 1), ('mint_ponytail', 1), ('lavender_swept_hair', 1), ('blue_streak_swept_hair', 1), ('cotton_candy_bun', 1), ('galaxy_bun', 1), ('blue_tip_bob', 1), ('red_streak_bob', 1), ('gold_tip_top_bun', 1), ('mint_top_bun', 1), ('purple_ombre_long_hair', 1), ('silver_streak_long_hair', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('set_astronaut', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_raptor', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,

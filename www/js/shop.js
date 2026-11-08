@@ -522,15 +522,16 @@ $('shopBtn').onclick = () => ($('shop').hidden ? openShop() : closeShop());
 $('shopx').onclick = closeShop;
 
 // ---------- using what you bought ----------
-function ownWorldOnly(what) {
+// coOk: co-owners (access list, lock.js isAdmin) may use it too: Door Mover yes, Clear World no (owner only)
+function ownWorldOnly(what, coOk) {
   if (ownLobby()) return toast("You can't use a " + what + ' in your lobby'), false;
-  if (isOwner()) return true;
+  if (isOwner() || (coOk && isAdmin())) return true;
   toast(worldOwner ? 'Only ' + worldOwner + ' can use a ' + what + ' here' : 'Lock this world with a Gold Lock first, then use the ' + what);
   return false;
 }
 // Door Mover: the door goes to tile (x, y), its bedrock to (x, y + 1)
 function moveDoor(x, y) {
-  if (!ownWorldOnly('Door Mover')) return;
+  if (!ownWorldOnly('Door Mover', true)) return;
   if (isDoorTile(x, y)) return toast('The door is already here');
   if (y < 1 || y + 1 >= WH - 1 || isFloorRow(y)) return toast("The door can't go there");
   const i = at(x, y),
