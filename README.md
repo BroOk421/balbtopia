@@ -1,6 +1,6 @@
 # Balbtopia
 
-Growtopia-style na 2D block world. Plain HTML, CSS at JavaScript sa `www/`, at naka-wrap bilang Android app gamit ang [Capacitor](https://capacitorjs.com).
+Isang 2D sandbox block world. Plain HTML, CSS at JavaScript sa `www/`, at naka-wrap bilang Android app gamit ang [Capacitor](https://capacitorjs.com).
 
 ## Ilagay sa GitHub (BroOk421)
 
@@ -33,7 +33,7 @@ npm run apk           # o gumawa ng APK: android/app/build/outputs/apk/debug/app
 
 Tuwing may babaguhin sa `www/`, patakbuhin ulit ang `npm run sync` bago mag-build.
 
-## Mobile functions (`www/js/native.js`)
+## Mobile functions (`www/js/core/native.js`)
 
 Gumagana lang kapag nasa app; sa browser, walang ginagawa ang mga ito.
 
@@ -51,36 +51,36 @@ Para sa Google Play, kailangan ng signed release build (`./gradlew bundleRelease
 ## Ayos ng mga file
 
 ```
-www/index.html          ang page: canvas, HUD, inventory, start screen
-www/css/style.css       lahat ng itsura ng UI (kulay sa :root sa itaas)
-www/js/assets.js        listahan ng lahat ng image at ang idle timing ng mata
-www/js/config.js        laki ng block/world, BLOCK (tigas ng block), ITEMS (lahat ng item)
-www/js/world.js         paggawa ng world (lupa, bato, lava, bedrock) at autotile
-www/js/player.js        player, skin, inventory
-www/js/input.js         keyboard, mouse/touch, on-screen buttons
-www/js/actions.js       pagsuntok, pagsira at paglalagay ng block
-www/js/physics.js       lakad, talon, banggaan, lava, drops
-www/js/render.js        pag-drawing: parallax background, blocks, character, effects
-www/js/ui.js            inventory, hotbar, pop-up (Use/Drop/Info), start screen
-www/js/worlds.js        pag-save at pag-load (localStorage), pagpasok sa world, World Lock, listahan ng worlds sa pinto
-www/js/auth.js          login at register: online gamit ang Supabase, o local sa device kapag walang key
-www/js/net.js           online: Supabase accounts, cloud saves, at ibang player sa world (realtime)
-www/js/lock.js          World Lock: description, sino ang pwedeng mag-build, at ang lock window
-www/js/social.js        trade, friends, message, email at gift (galing sa wrench)
-www/js/online-config.js Supabase URL at anon key; ginagawa ng `npm run config` mula sa `.env` (wala sa git)
-.env.example            kopyahin bilang `.env` at ilagay ang Supabase URL at key
-scripts/make-config.js  gumagawa ng online-config.js mula sa `.env` o sa GitHub Secrets
-www/js/vendor/          Supabase library
-supabase/schema.sql     tables at security rules na ipe-paste sa Supabase SQL Editor
-www/js/farming.js       pagtatanim ng seeds, paglaki ng puno, splicing, pag-ani
-www/data/farming.json   oras ng paglaki ng bawat puno at lahat ng splice na kombinasyon
-www/js/native.js        mga function para sa mobile app (Capacitor)
-www/js/main.js          game loop; huling nilo-load, at ito ang nagsisimula ng lahat
-www/assets/             ang mga image na ginagamit ng game
-art-source/         malalaking orihinal na image, para sa pag-edit ng art
+www/                      ang mismong game (ito ang nilalagay ng Capacitor sa Android app)
+  index.html              ang page: canvas, HUD, inventory, start screen, at ang listahan ng mga <script>
+  css/style.css           lahat ng itsura ng UI (kulay sa :root sa itaas)
+  data/farming.json       oras ng paglaki ng bawat puno at lahat ng splice na kombinasyon
+  assets/                 ang mga image at tunog na ginagamit ng game
+  js/
+    core/                 simula at ubod ng game: errors, assets, config (ITEMS, BLOCK), input, sound, main (game loop)
+    online/               Supabase: net, auth (login/register), loginguard (3 maling login = wait), economy,
+                          social, globalchat, keys, rename, subscriber, gmwatch, online-config
+    world/                world generation, save/load ng worlds, lobby, World Lock, area locks, weather, signs
+    events/               Autumn event, Moon, Moon Event, asteroids
+    player/               player at inventory, physics, punch/break/place (actions), jump, levels, AFK, upo/tulog
+    gameplay/             farming at splicing, fishing, coins, Beach Blast, quests, Piano, concert
+    blocks/               lahat ng block at ang art nila (blocks, blocks64*, art64), machines, gates, signs, doors
+    wear/                 damit, buhok, wings, auras, sets, at iba pang sinusuot
+    items/                hawak sa kamay (tools, weapons, scythes), pets at rides
+    render/               pag-drawing: tiles, character, anino, profile portrait, effects ng ibang player
+    ui/                   hotbar, bag, menu, Shop, pop-ups, landing screen, flags
+    art/                  hand-drawn pixel art tables (dating `hd/`)
+    vendor/               Supabase library
+scripts/make-config.js    gumagawa ng www/js/online/online-config.js mula sa `.env` o sa GitHub Secrets
+supabase/schema.sql       tables at security rules na ipe-paste sa Supabase SQL Editor
+supabase/functions/       Edge Functions: signup (3 account bawat IP) at password-reset
+supabase/admin/           isang beses na SQL (rename ng GM, pagbura ng non-GM accounts)
+art-source/               malalaking orihinal na image at mga Python script na gumagawa ng assets
+android/                  Android project ng Capacitor
+.env.example              kopyahin bilang `.env` at ilagay ang Supabase URL at key
 ```
 
-Iisa ang global scope ng mga JS file at mahalaga ang pagkakasunod sa `index.html`. Kapag nagdagdag ka ng bagong file, ilagay ito bago ang `main.js`.
+Iisa ang global scope ng mga JS file at mahalaga ang pagkakasunod sa `index.html`. Kapag nagdagdag ka ng bagong file, ilagay ito sa tamang folder sa loob ng `www/js/` at idagdag ang `<script>` nito sa `index.html` bago ang `js/core/main.js`.
 
 ## Mga madalas baguhin
 
@@ -192,12 +192,12 @@ SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
 SUPABASE_ANON_KEY=sb_publishable_...
 ```
 
-6. **Gawin ang config:** `npm run config`. Gagawin nito ang `www/js/online-config.js` mula sa `.env`. Kusa na rin itong tumatakbo sa `npm run serve`, `npm run sync` at `npm run apk`. Kapag binago mo ang `.env`, patakbuhin ulit.
+6. **Gawin ang config:** `npm run config`. Gagawin nito ang `www/js/online/online-config.js` mula sa `.env`. Kusa na rin itong tumatakbo sa `npm run serve`, `npm run sync` at `npm run apk`. Kapag binago mo ang `.env`, patakbuhin ulit.
 7. **Para sa GitHub Pages at APK sa Actions:** sa GitHub repo, pumunta sa *Settings → Secrets and variables → Actions → New repository secret* at gumawa ng dalawa: `SUPABASE_URL` at `SUPABASE_ANON_KEY`. Doon na kukunin ng Actions ang config tuwing magpu-push ka.
 
-**Tungkol sa security.** Hindi isinasama sa GitHub ang `.env` at `www/js/online-config.js` (nasa `.gitignore`), kaya hindi makikita ang key sa repo mo. Pero dahil sa browser tumatakbo ang game, nasa files pa rin ng game ang anon/publishable key, at makikita ito ng sinumang mag-inspect. Normal ito sa Supabase. Ang talagang nagpoprotekta ay ang mga patakaran sa `supabase/schema.sql`. **Huwag kailanman ilagay ang secret o service_role key** sa `.env` ng game; tatanggihan iyon ng `npm run config`.
+**Tungkol sa security.** Hindi isinasama sa GitHub ang `.env` at `www/js/online/online-config.js` (nasa `.gitignore`), kaya hindi makikita ang key sa repo mo. Pero dahil sa browser tumatakbo ang game, nasa files pa rin ng game ang anon/publishable key, at makikita ito ng sinumang mag-inspect. Normal ito sa Supabase. Ang talagang nagpoprotekta ay ang mga patakaran sa `supabase/schema.sql`. **Huwag kailanman ilagay ang secret o service_role key** sa `.env` ng game; tatanggihan iyon ng `npm run config`.
 
-Kung naka-commit na dati ang `www/js/online-config.js` na may key, alisin ito sa git: `git rm --cached www/js/online-config.js`, tapos i-commit.
+Kung naka-commit na dati ang `www/js/online/online-config.js` na may key, alisin ito sa git: `git rm --cached www/js/online/online-config.js`, tapos i-commit.
 
 ### Limitasyon: 3 account bawat IP address (laban sa spam)
 
@@ -225,7 +225,7 @@ computer shop), kaya 3 lang din ang kaya nila lahat; ang `MAX_PER_IP` sa functio
 | Mga world | table na `worlds`; sine-save tuwing ilang segundo kapag may nagbago |
 | Ibang player sa world | Supabase Realtime: channel na `world:PANGALAN` (posisyon mga 10 beses bawat segundo, suntok, at pagbabago sa blocks) |
 
-Ang code ay nasa `www/js/net.js` (lahat ng online), `www/js/auth.js` (login screen) at `www/js/online-config.js` (URL at key, ginagawa ng `scripts/make-config.js` mula sa `.env`). Kasama sa `www/js/vendor/supabase.js` ang Supabase library (v2.110.0), kaya hindi na ito kailangang i-download mula sa CDN.
+Ang code ay nasa `www/js/online/net.js` (lahat ng online), `www/js/online/auth.js` (login screen) at `www/js/online/online-config.js` (URL at key, ginagawa ng `scripts/make-config.js` mula sa `.env`). Kasama sa `www/js/vendor/supabase.js` ang Supabase library (v2.110.0), kaya hindi na ito kailangang i-download mula sa CDN.
 
 ### Paglalaro kasama ang iba
 
@@ -264,6 +264,23 @@ Pagkatapos nito:
   - Pag-unban: `delete from bans where id = (select id from usernames where lower(name) = lower('pangalan'));`
 - **Cheat log:** Sa *Table Editor → cheat_log* makikita ang mga save na biglang tumaas ang gold (higit 100,000) o items (higit 3,000) sa isang save. Hindi nito pinipigilan ang save; listahan lang ito ng titingnan, at ikaw ang magpapasya kung iba-ban.
 - **Backups:** Ang daily backups ay depende sa plan mo sa Supabase (tingnan ang *Database → Backups*). Kung wala, mag-export paminsan-minsan.
+
+### Security (Nobyembre 2026): dagdag na proteksyon
+
+**Ginawa na sa code:**
+
+- **3 maling login = wait.** Pagkatapos ng 3 maling username/password, naka-lock ang LOG IN at may countdown ("WAIT 0:29"). Humahaba ang wait bawat lock: 30 seg, 1 min, 5 min, 15 min, tapos 30 min. Nawawala kapag tama ang login, at bumabalik sa 30 seg pagkalipas ng isang araw na walang mali. Hindi ito nalulusutan ng pag-reload (`www/js/online/loginguard.js`).
+- **Iisang mensahe para sa maling username at maling password** ("Wrong username or password"), para hindi mahulaan kung aling pangalan ang may account.
+- **Content-Security-Policy** sa `www/index.html`: sariling scripts lang ng game ang puwedeng tumakbo, at sa Supabase lang puwedeng kumonekta. Kahit makalusot ang HTML sa chat o sign, hindi ito tatakbo.
+- **Edge Functions:** ang `_` at `%` sa pangalan ay hindi na wildcard sa paghahanap (dati, ang `a_c` ay puwedeng tumugma sa `abc`).
+
+**Gawin mo sa Supabase dashboard (mahalaga):**
+
+1. **Authentication → Rate Limits:** babaan ang limit ng sign-in. Ito ang tunay na harang sa server: ang game lock sa itaas ay nasa device lang, kaya ang script na hindi dumadaan sa game ay dito tatamaan. Kapag tumama ang limit, naka-lock din ang LOG IN sa game nang 5 minuto.
+2. **Authentication → Password security:** gawing **8** ang minimum length at i-on ang leaked-password protection (Pro plan). Kapag binago mo, palitan din ang `PASS_MIN` sa `www/js/online/auth.js` at ang `pass.length < 6` sa `supabase/functions/signup/index.ts`.
+3. **Password Verification Hook** (Team plan pataas lang): kung mag-upgrade ka, ito ang paraan para i-lock ang mismong account sa server pagkatapos ng ilang maling password.
+4. **I-on ang 2FA** sa sarili mong Supabase at GitHub account. Ang may hawak ng dashboard ang may hawak ng lahat.
+5. **Huwag i-share ang `.env` at ang service_role key.** Kung napunta sa iba ang zip ng project na may `.env`, ayos lang ang anon key (public talaga iyon), pero i-rotate agad ang key kapag secret/service_role ang naisama.
 
 ### Gold at Shop sa server (Oktubre 2026)
 
@@ -320,7 +337,7 @@ Oo, pero dalawang magkaibang bagay ang "online".
 
 Kapag walang Supabase key, sariling world sa sariling device ang makukuha ng bawat player.
 
-**2. Multiplayer na parang Growtopia (sabay-sabay sa iisang world).** Mayroon na nito gamit ang Supabase (tingnan sa itaas). Para sa mas seryosong public na game, ito ang kailangan:
+**2. Multiplayer (sabay-sabay sa iisang world).** Mayroon na nito gamit ang Supabase (tingnan sa itaas). Para sa mas seryosong public na game, ito ang kailangan:
 - **Game server**, halimbawa Node.js na may WebSocket (Socket.IO o Colyseus). Ito ang may hawak ng world at nagpapasa ng galaw ng bawat player sa lahat.
 - **Database** para sa world, inventory at account, halimbawa PostgreSQL, MongoDB o Supabase.
 - **Hosting na kayang magpatakbo ng server**, tulad ng Railway, Render o Fly.io. Hindi ito kaya ng Netlify o GitHub Pages lang.

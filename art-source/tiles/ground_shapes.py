@@ -3,7 +3,7 @@
 #  - dirt_0..2: the pebbles and the holes are taken out; the mottled dirt itself (two tones, small specks) is kept
 #    (owner: "don't remove these designs on the dirt"). Grey pebble pixels and the dark holes (with their light rim
 #    and shadow) are refilled from the dirt round them.
-#  - stone: a boulder drawn like the owner's rock picture (see below); the same in all 16 frames. www/js/ground.js
+#  - stone: a boulder drawn like the owner's rock picture (see below); the same in all 16 frames. www/js/world/ground.js
 #    draws it on dirt / dark rock / the sky depending on what is next to each tile.
 # usage: python3 ground_shapes.py <art-source/tiles dir> <www/assets/tiles dir>
 import sys, math, random, numpy as np

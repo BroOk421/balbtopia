@@ -2,10 +2,10 @@
   "_help": [
     "Balbtopia farming: how long each tree takes to grow, and which two seeds splice into a new tree.",
     "Splicing: plant a seed, then plant a second seed on the young tree (before it is ripe).",
-    "seeds and result use item ids (dirt, cave, rock, lava, grass, dark_cave, door, sign, wood_block, ...). The new ones are listed in js/blocks.js.",
+    "seeds and result use item ids (dirt, cave, rock, lava, grass, dark_cave, door, sign, wood_block, ...). The new ones are listed in js/blocks/blocks.js.",
     "The order of the two seeds doesn't matter. A result needs a tree of its own (listed in trees).",
-    "source: growtopia = the real Growtopia recipe, balbtopia = only in this game.",
-    "growtopiaNotInGameYet: real Growtopia recipes that use our seeds but make an item the game doesn't have yet.",
+    "source: classic = a classic recipe, balbtopia = only in this game.",
+    "notInGameYet: classic recipes that use our seeds but make an item the game doesn't have yet.",
     "The game ignores that list. When you add the item (with its seed and tree), move its line up into splices.",
     "Edit this file, then reload the game. Bad lines are skipped and shown in the browser console."
   ],
@@ -1431,6 +1431,129 @@
     },
     "moon_rock_wall": {
       "growSeconds": 180
+    },
+    "dark_pastel_pink_bg": {
+      "growSeconds": 300
+    },
+    "dark_pastel_peach_bg": {
+      "growSeconds": 300
+    },
+    "dark_pastel_yellow_bg": {
+      "growSeconds": 300
+    },
+    "dark_pastel_mint_bg": {
+      "growSeconds": 300
+    },
+    "dark_pastel_aqua_bg": {
+      "growSeconds": 300
+    },
+    "dark_pastel_blue_bg": {
+      "growSeconds": 300
+    },
+    "dark_pastel_lavender_bg": {
+      "growSeconds": 300
+    },
+    "dark_pastel_cream_bg": {
+      "growSeconds": 300
+    },
+    "pastel_check_bg": {
+      "growSeconds": 300
+    },
+    "candy_stripe_bg": {
+      "growSeconds": 300
+    },
+    "polka_dot_bg": {
+      "growSeconds": 300
+    },
+    "argyle_bg": {
+      "growSeconds": 300
+    },
+    "starry_wall_bg": {
+      "growSeconds": 300
+    },
+    "heart_wall_bg": {
+      "growSeconds": 300
+    },
+    "dusk_brick_bg": {
+      "growSeconds": 300
+    },
+    "wave_wall_bg": {
+      "growSeconds": 300
+    },
+    "plain_rose_bg": {
+      "growSeconds": 300
+    },
+    "plain_coral_bg": {
+      "growSeconds": 300
+    },
+    "plain_apricot_bg": {
+      "growSeconds": 300
+    },
+    "plain_butter_bg": {
+      "growSeconds": 300
+    },
+    "plain_sage_bg": {
+      "growSeconds": 300
+    },
+    "plain_teal_bg": {
+      "growSeconds": 300
+    },
+    "plain_sky_bg": {
+      "growSeconds": 300
+    },
+    "plain_periwinkle_bg": {
+      "growSeconds": 300
+    },
+    "plain_lilac_bg": {
+      "growSeconds": 300
+    },
+    "plain_mauve_bg": {
+      "growSeconds": 300
+    },
+    "plain_sand_bg": {
+      "growSeconds": 300
+    },
+    "plain_slate_bg": {
+      "growSeconds": 300
+    },
+    "plain_charcoal_bg": {
+      "growSeconds": 300
+    },
+    "plain_graphite_bg": {
+      "growSeconds": 300
+    },
+    "plain_dark_gray_bg": {
+      "growSeconds": 300
+    },
+    "plain_iron_gray_bg": {
+      "growSeconds": 300
+    },
+    "plain_gray_bg": {
+      "growSeconds": 300
+    },
+    "plain_ash_gray_bg": {
+      "growSeconds": 300
+    },
+    "plain_warm_gray_bg": {
+      "growSeconds": 300
+    },
+    "plain_blue_gray_bg": {
+      "growSeconds": 300
+    },
+    "blue_umbrella": {
+      "growSeconds": 360
+    },
+    "dice_block": {
+      "growSeconds": 240
+    },
+    "colour_roll_block": {
+      "growSeconds": 240
+    },
+    "roulette_block": {
+      "growSeconds": 420
+    },
+    "rainbow_shift_block": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -1440,7 +1563,7 @@
         "rock"
       ],
       "result": "grass",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Grass = Dirt + Rock"
     },
     {
@@ -1449,7 +1572,7 @@
         "dirt"
       ],
       "result": "door",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Door = Dirt + Cave Background"
     },
     {
@@ -1458,7 +1581,7 @@
         "rock"
       ],
       "result": "sign",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Sign = Cave Background + Rock"
     },
     {
@@ -1467,7 +1590,7 @@
         "lava"
       ],
       "result": "lava_rock",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Lava Rock = Cave Background + Lava"
     },
     {
@@ -1476,7 +1599,7 @@
         "lava"
       ],
       "result": "wood_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Wood Block = Dirt + Lava"
     },
     {
@@ -1485,7 +1608,7 @@
         "rock"
       ],
       "result": "glass_pane",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Glass Pane = Rock + Lava"
     },
     {
@@ -1494,7 +1617,7 @@
         "rock"
       ],
       "result": "bricks",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Bricks = Grass + Rock"
     },
     {
@@ -1503,7 +1626,7 @@
         "grass"
       ],
       "result": "daisy",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Daisy = Dirt + Grass"
     },
     {
@@ -1512,7 +1635,7 @@
         "grass"
       ],
       "result": "mushroom",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Mushroom = Cave Background + Grass"
     },
     {
@@ -1521,7 +1644,7 @@
         "lava"
       ],
       "result": "rose",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Rose = Grass + Lava"
     },
     {
@@ -1530,7 +1653,7 @@
         "door"
       ],
       "result": "crappy_sign",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Old Sign = Dirt + Door"
     },
     {
@@ -1539,7 +1662,7 @@
         "door"
       ],
       "result": "happy_joy_plaque",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Smiley Plaque = Cave Background + Door"
     },
     {
@@ -1548,7 +1671,7 @@
         "rock"
       ],
       "result": "rock_background",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Rock Background = Door + Rock"
     },
     {
@@ -1557,7 +1680,7 @@
         "grass"
       ],
       "result": "wooden_background",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Wooden Background = Door + Grass"
     },
     {
@@ -1566,7 +1689,7 @@
         "sign"
       ],
       "result": "torch",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Torch = Lava + Sign"
     },
     {
@@ -1575,7 +1698,7 @@
         "glass_pane"
       ],
       "result": "amber_glass",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Amber Glass = Dirt + Glass Pane"
     },
     {
@@ -1584,7 +1707,7 @@
         "dirt"
       ],
       "result": "brown_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Brown Block = Dirt + Bricks"
     },
     {
@@ -1593,7 +1716,7 @@
         "cave"
       ],
       "result": "black_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Black Block = Cave Background + Bricks"
     },
     {
@@ -1602,7 +1725,7 @@
         "grass"
       ],
       "result": "green_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Green Block = Grass + Bricks"
     },
     {
@@ -1611,7 +1734,7 @@
         "lava"
       ],
       "result": "red_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Red Block = Lava + Bricks"
     },
     {
@@ -1620,7 +1743,7 @@
         "rock"
       ],
       "result": "grey_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Grey Block = Rock + Bricks"
     },
     {
@@ -1629,7 +1752,7 @@
         "dirt"
       ],
       "result": "mud_glob",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Mud Block = Dirt + Daisy"
     },
     {
@@ -1638,7 +1761,7 @@
         "sign"
       ],
       "result": "super_crate_box",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Crate = Dirt + Sign"
     },
     {
@@ -1647,7 +1770,7 @@
         "sign"
       ],
       "result": "pointy_sign",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Arrow Sign = Door + Sign"
     },
     {
@@ -1656,7 +1779,7 @@
         "wood_block"
       ],
       "result": "wooden_platform",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Wooden Platform = Grass + Wood Block"
     },
     {
@@ -1665,7 +1788,7 @@
         "rock"
       ],
       "result": "stone_wall",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Stone Wall = Rock + Grey Block"
     },
     {
@@ -1674,7 +1797,7 @@
         "lava"
       ],
       "result": "evil_bricks",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Dark Bricks = Lava + Black Block"
     },
     {
@@ -1692,7 +1815,7 @@
         "mushroom"
       ],
       "result": "white_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "White Block = Bricks + Mushroom"
     },
     {
@@ -1701,7 +1824,7 @@
         "daisy"
       ],
       "result": "yellow_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Yellow Block = Bricks + Daisy"
     },
     {
@@ -1719,7 +1842,7 @@
         "bricks"
       ],
       "result": "brick_background",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Brick Background = Black Block + Bricks"
     },
     {
@@ -1728,7 +1851,7 @@
         "wooden_platform"
       ],
       "result": "wooden_table",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Wooden Table = Wood Block + Wooden Platform"
     },
     {
@@ -1746,7 +1869,7 @@
         "wooden_background"
       ],
       "result": "flowery_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Flowery Wallpaper = Daisy + Wooden Background"
     },
     {
@@ -1755,7 +1878,7 @@
         "rose"
       ],
       "result": "poppy",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Poppy = Daisy + Rose"
     },
     {
@@ -1764,7 +1887,7 @@
         "stone_wall"
       ],
       "result": "grimstone",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Mossy Stone = Grass + Stone Wall"
     },
     {
@@ -1791,7 +1914,7 @@
         "crappy_sign"
       ],
       "result": "toilet",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Toilet = Brown Block + Old Sign"
     },
     {
@@ -1800,7 +1923,7 @@
         "rose"
       ],
       "result": "bush",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Bush = Poppy + Rose"
     },
     {
@@ -1809,7 +1932,7 @@
         "rose"
       ],
       "result": "romantic_bushes",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Romantic Bushes = Bush + Rose"
     },
     {
@@ -1818,7 +1941,7 @@
         "poppy"
       ],
       "result": "orange_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Orange Block = Bricks + Poppy"
     },
     {
@@ -1827,7 +1950,7 @@
         "mushroom"
       ],
       "result": "blueberry",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Blueberry = Bush + Mushroom"
     },
     {
@@ -1836,7 +1959,7 @@
         "bricks"
       ],
       "result": "blue_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Blue Block = Blueberry + Bricks"
     },
     {
@@ -1881,7 +2004,7 @@
         "wooden_background"
       ],
       "result": "wooden_window",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Wooden Window = Window + Wooden Background"
     },
     {
@@ -1890,7 +2013,7 @@
         "green_block"
       ],
       "result": "stripey_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Stripey Wallpaper = Aqua Block + Green Block"
     },
     {
@@ -1944,7 +2067,7 @@
         "orange_block"
       ],
       "result": "tiger_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Tiger Block = Black Block + Orange Block"
     },
     {
@@ -1998,7 +2121,7 @@
         "white_block"
       ],
       "result": "bathtub",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Bathtub = Toilet + White Block"
     },
     {
@@ -2007,7 +2130,7 @@
         "white_block"
       ],
       "result": "polka_dot_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Polka Dot Block = Orange Block + White Block"
     },
     {
@@ -2043,7 +2166,7 @@
         "toilet"
       ],
       "result": "water_bucket",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Water Bucket = Aqua Block + Toilet"
     },
     {
@@ -2061,7 +2184,7 @@
         "poppy"
       ],
       "result": "orange",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Orange = Bush + Poppy"
     },
     {
@@ -2088,7 +2211,7 @@
         "dark_red_block"
       ],
       "result": "cherry",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Cherry = Blueberry + Dark Red Block"
     },
     {
@@ -2106,7 +2229,7 @@
         "blue_block"
       ],
       "result": "blue_star_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Blue Star Wallpaper = Amber Glass + Blue Block"
     },
     {
@@ -2115,7 +2238,7 @@
         "window"
       ],
       "result": "dungeon_door",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Dungeon Door = Door + Window"
     },
     {
@@ -2133,7 +2256,7 @@
         "wooden_platform"
       ],
       "result": "staircase",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Staircase = Red Wood Wall + Wooden Platform"
     },
     {
@@ -2187,7 +2310,7 @@
         "orange_block"
       ],
       "result": "dreamstone_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Sparkle Block = Bed + Orange Block"
     },
     {
@@ -2196,7 +2319,7 @@
         "dreamstone_block"
       ],
       "result": "cloudstone_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Cloud Block = Aqua Block + Sparkle Block"
     },
     {
@@ -2205,7 +2328,7 @@
         "toilet"
       ],
       "result": "ceramic_tile",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Ceramic Tile = Sparkle Block + Toilet"
     },
     {
@@ -2250,7 +2373,7 @@
         "dungeon_door"
       ],
       "result": "house_entrance",
-      "source": "growtopia",
+      "source": "classic",
       "note": "House Entrance = Door + Dungeon Door"
     },
     {
@@ -2259,7 +2382,7 @@
         "rainbow_block"
       ],
       "result": "bookcase",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Bookcase = Dresser + Rainbow Block"
     },
     {
@@ -2268,7 +2391,7 @@
         "rainbow_block"
       ],
       "result": "magic_bacon_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Wavy Wallpaper = House Entrance + Rainbow Block"
     },
     {
@@ -2286,7 +2409,7 @@
         "picket_fence"
       ],
       "result": "rustic_fence",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Rustic Fence = Old Sign + Picket Fence"
     },
     {
@@ -2304,7 +2427,7 @@
         "cloudstone_block"
       ],
       "result": "checkpoint",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Checkpoint = Bubble Wrap + Cloud Block"
     },
     {
@@ -2313,7 +2436,7 @@
         "green_block"
       ],
       "result": "plumbing",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Plumbing = Bathtub + Green Block"
     },
     {
@@ -2322,7 +2445,7 @@
         "plumbing"
       ],
       "result": "copper_plumbing",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Copper Plumbing = Orange Block + Plumbing"
     },
     {
@@ -2331,7 +2454,7 @@
         "plumbing"
       ],
       "result": "streetlamp",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Streetlamp = Neon Lights + Plumbing"
     },
     {
@@ -2340,7 +2463,7 @@
         "magic_bacon_wallpaper"
       ],
       "result": "aqua_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Aqua Wallpaper = Aqua Block + Wavy Wallpaper"
     },
     {
@@ -2349,7 +2472,7 @@
         "magic_bacon_wallpaper"
       ],
       "result": "black_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Black Wallpaper = Black Block + Wavy Wallpaper"
     },
     {
@@ -2367,7 +2490,7 @@
         "magic_bacon_wallpaper"
       ],
       "result": "brown_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Brown Wallpaper = Brown Block + Wavy Wallpaper"
     },
     {
@@ -2376,7 +2499,7 @@
         "magic_bacon_wallpaper"
       ],
       "result": "green_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Green Wallpaper = Green Block + Wavy Wallpaper"
     },
     {
@@ -2385,7 +2508,7 @@
         "magic_bacon_wallpaper"
       ],
       "result": "grey_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Grey Wallpaper = Grey Block + Wavy Wallpaper"
     },
     {
@@ -2394,7 +2517,7 @@
         "orange_block"
       ],
       "result": "orange_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Orange Wallpaper = Orange Block + Wavy Wallpaper"
     },
     {
@@ -2421,7 +2544,7 @@
         "white_block"
       ],
       "result": "white_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "White Wallpaper = White Block + Wavy Wallpaper"
     },
     {
@@ -2430,7 +2553,7 @@
         "yellow_block"
       ],
       "result": "yellow_wallpaper",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Yellow Wallpaper = Yellow Block + Wavy Wallpaper"
     },
     {
@@ -2439,7 +2562,7 @@
         "rose"
       ],
       "result": "hanging_guytrap",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Hanging Snap Plant = Wavy Wallpaper + Rose"
     },
     {
@@ -2448,7 +2571,7 @@
         "magic_bacon_wallpaper"
       ],
       "result": "venus_guytrap",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Snap Plant = Daisy + Wavy Wallpaper"
     },
     {
@@ -2457,7 +2580,7 @@
         "lattice_background"
       ],
       "result": "screen_door",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Screen Door = Door + Lattice Background"
     },
     {
@@ -2475,7 +2598,7 @@
         "door"
       ],
       "result": "barn_door",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Barn Door = Barn Block + Door"
     },
     {
@@ -2484,7 +2607,7 @@
         "pointy_sign"
       ],
       "result": "big_old_sideways_arrow",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Big Arrow = Orange Block + Arrow Sign"
     },
     {
@@ -2493,7 +2616,7 @@
         "wood_block"
       ],
       "result": "secret_passage",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Secret Passage = Big Arrow + Wood Block"
     },
     {
@@ -2511,7 +2634,7 @@
         "water_bucket"
       ],
       "result": "seaweed",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Seaweed = Bush + Water Bucket"
     },
     {
@@ -2529,7 +2652,7 @@
         "pointy_sign"
       ],
       "result": "danger_sign",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Danger Sign = Lava + Arrow Sign"
     },
     {
@@ -2538,7 +2661,7 @@
         "orange_block"
       ],
       "result": "biohazard_sign",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Biohazard Sign = Danger Sign + Orange Block"
     },
     {
@@ -2547,7 +2670,7 @@
         "rock_background"
       ],
       "result": "death_spikes",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Death Spikes = Danger Sign + Rock Background"
     },
     {
@@ -2556,7 +2679,7 @@
         "death_spikes"
       ],
       "result": "cactus",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Cactus = Bush + Death Spikes"
     },
     {
@@ -2565,7 +2688,7 @@
         "death_spikes"
       ],
       "result": "stalactite",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Stalactite = Dark Cave + Death Spikes"
     },
     {
@@ -2592,7 +2715,7 @@
         "yellow_block"
       ],
       "result": "golden_block",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Golden Block = Steel Block + Yellow Block"
     },
     {
@@ -2601,7 +2724,7 @@
         "steel_block"
       ],
       "result": "boombox",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Boombox = Black Block + Steel Block"
     },
     {
@@ -2610,7 +2733,7 @@
         "mushroom"
       ],
       "result": "shallot_mustache",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Curly Mustache = Grass + Mushroom"
     },
     {
@@ -2619,7 +2742,7 @@
         "lava"
       ],
       "result": "santa_pants",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Santa Pants = Grey Block + Lava"
     },
     {
@@ -2628,7 +2751,7 @@
         "red_block"
       ],
       "result": "hot_head",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Fire Head = Lava + Red Block"
     },
     {
@@ -2637,7 +2760,7 @@
         "mushroom"
       ],
       "result": "top_hat",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Top Hat = Black Block + Mushroom"
     },
     {
@@ -2646,7 +2769,7 @@
         "red_block"
       ],
       "result": "red_riding_hood",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Red Riding Hood = Mushroom + Red Block"
     },
     {
@@ -2664,7 +2787,7 @@
         "grass"
       ],
       "result": "biker_stache",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Long Mustache = Brown Block + Grass"
     },
     {
@@ -2682,7 +2805,7 @@
         "mushroom"
       ],
       "result": "ski_cap",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Ski Cap = Blue Block + Mushroom"
     },
     {
@@ -2691,7 +2814,7 @@
         "yellow_block"
       ],
       "result": "flashlight",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Flashlight = Black Block + Yellow Block"
     },
     {
@@ -2700,7 +2823,7 @@
         "yellow_block"
       ],
       "result": "pencil",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Pencil = Wood Block + Yellow Block"
     },
     {
@@ -2709,7 +2832,7 @@
         "yellow_block"
       ],
       "result": "rooster_hat",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Rooster Hat = White Block + Yellow Block"
     },
     {
@@ -2727,7 +2850,7 @@
         "white_block"
       ],
       "result": "white_beard",
-      "source": "growtopia",
+      "source": "classic",
       "note": "White Beard = Bush + White Block"
     },
     {
@@ -2736,7 +2859,7 @@
         "bush"
       ],
       "result": "froghat",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Frog Hat = Aqua Block + Bush"
     },
     {
@@ -2745,7 +2868,7 @@
         "white_block"
       ],
       "result": "santa_vest",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Santa Vest = Lava + White Block"
     },
     {
@@ -2754,7 +2877,7 @@
         "window"
       ],
       "result": "cyclopean_visor",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Red Visor = Red Block + Window"
     },
     {
@@ -2763,7 +2886,7 @@
         "red_block"
       ],
       "result": "just_one_boxing_glove",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Boxing Glove = Blueberry + Red Block"
     },
     {
@@ -2772,7 +2895,7 @@
         "super_crate_box"
       ],
       "result": "backpack",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Backpack = Bed + Crate"
     },
     {
@@ -2781,7 +2904,7 @@
         "wood_block"
       ],
       "result": "tv_head",
-      "source": "growtopia",
+      "source": "classic",
       "note": "TV Head = Old Radio + Wood Block"
     },
     {
@@ -2790,7 +2913,7 @@
         "olde_timey_radio"
       ],
       "result": "old_timey_hat",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Old-Timey Hat = Brown Block + Old Radio"
     },
     {
@@ -2799,7 +2922,7 @@
         "white_wallpaper"
       ],
       "result": "smarty_pants",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Rainbow Pants = Rainbow Block + White Wallpaper"
     },
     {
@@ -2808,7 +2931,7 @@
         "white_wallpaper"
       ],
       "result": "wedding_dress",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Wedding Dress = Rose + White Wallpaper"
     },
     {
@@ -2817,7 +2940,7 @@
         "rock_background"
       ],
       "result": "sword",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Sword = Death Spikes + Rock Background"
     },
     {
@@ -2826,7 +2949,7 @@
         "steel_block"
       ],
       "result": "jetpack",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Jetpack = Lava + Steel Block"
     },
     {
@@ -2844,7 +2967,7 @@
         "purple_block"
       ],
       "result": "purple_thong",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Purple Thong = Danger Sign + Purple Block"
     },
     {
@@ -2853,7 +2976,7 @@
         "portcullis"
       ],
       "result": "pickaxe",
-      "source": "growtopia",
+      "source": "classic",
       "note": "Pickaxe = Cave Background + Portcullis"
     },
     {
@@ -2890,7 +3013,7 @@
       ],
       "result": "dark_cave",
       "source": "balbtopia",
-      "note": "Two cave walls make it darker (Dark Cave can't be spliced in Growtopia)"
+      "note": "Two cave walls make it darker (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2899,7 +3022,7 @@
       ],
       "result": "laser_eyes",
       "source": "balbtopia",
-      "note": "Laser Eyes = Red Visor + Neon Lights (not in Growtopia)"
+      "note": "Laser Eyes = Red Visor + Neon Lights (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2908,7 +3031,7 @@
       ],
       "result": "marble_block",
       "source": "balbtopia",
-      "note": "Marble Block = Rock + White Block (not in Growtopia)"
+      "note": "Marble Block = Rock + White Block (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2917,7 +3040,7 @@
       ],
       "result": "honeycomb_block",
       "source": "balbtopia",
-      "note": "Honeycomb Block = Amber Glass + Yellow Block (not in Growtopia)"
+      "note": "Honeycomb Block = Amber Glass + Yellow Block (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2926,7 +3049,7 @@
       ],
       "result": "lantern",
       "source": "balbtopia",
-      "note": "Lantern = Glass Pane + Torch (not in Growtopia)"
+      "note": "Lantern = Glass Pane + Torch (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2935,7 +3058,7 @@
       ],
       "result": "flower_pot",
       "source": "balbtopia",
-      "note": "Flower Pot = Brown Block + Daisy (not in Growtopia)"
+      "note": "Flower Pot = Brown Block + Daisy (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2944,7 +3067,7 @@
       ],
       "result": "sunflower",
       "source": "balbtopia",
-      "note": "Sunflower = Daisy + Yellow Block (not in Growtopia)"
+      "note": "Sunflower = Daisy + Yellow Block (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2953,7 +3076,7 @@
       ],
       "result": "notice_board",
       "source": "balbtopia",
-      "note": "Notice Board = Sign + Wood Block (not in Growtopia)"
+      "note": "Notice Board = Sign + Wood Block (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2962,7 +3085,7 @@
       ],
       "result": "fish_tank",
       "source": "balbtopia",
-      "note": "Fish Tank = Blue Block + Glass Pane (not in Growtopia)"
+      "note": "Fish Tank = Blue Block + Glass Pane (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2971,7 +3094,7 @@
       ],
       "result": "magic_mushroom",
       "source": "balbtopia",
-      "note": "Magic Mushroom = Mushroom + Torch (not in Growtopia)"
+      "note": "Magic Mushroom = Mushroom + Torch (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2980,7 +3103,7 @@
       ],
       "result": "lava_lamp",
       "source": "balbtopia",
-      "note": "Lava Lamp = Glass Pane + Lava (not in Growtopia)"
+      "note": "Lava Lamp = Glass Pane + Lava (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2989,7 +3112,7 @@
       ],
       "result": "cherry_blossom",
       "source": "balbtopia",
-      "note": "Cherry Blossom = Grass + Rainbow Block (not in Growtopia)"
+      "note": "Cherry Blossom = Grass + Rainbow Block (Balbtopia original)"
     },
     {
       "seeds": [
@@ -2997,8 +3120,8 @@
         "wooden_background"
       ],
       "result": "painting_dink_duck",
-      "source": "growtopia",
-      "note": "Duck Painting = Yellow Block + Wooden Background (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Duck Painting = Yellow Block + Wooden Background (classic recipe)"
     },
     {
       "seeds": [
@@ -3006,8 +3129,8 @@
         "wooden_background"
       ],
       "result": "painting_yerfdog",
-      "source": "growtopia",
-      "note": "Dog Painting = White Block + Wooden Background (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Dog Painting = White Block + Wooden Background (classic recipe)"
     },
     {
       "seeds": [
@@ -3015,8 +3138,8 @@
         "grey_block"
       ],
       "result": "air_duct",
-      "source": "growtopia",
-      "note": "Air Exhaust (was Air Duct) = Dark Grey Block + Grey Block (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Air Exhaust (was Air Duct) = Dark Grey Block + Grey Block (classic recipe)"
     },
     {
       "seeds": [
@@ -3024,8 +3147,8 @@
         "grass"
       ],
       "result": "viney_wallpaper",
-      "source": "growtopia",
-      "note": "Vine Wallpaper = Dark Aqua Block + Grass (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Vine Wallpaper = Dark Aqua Block + Grass (classic recipe)"
     },
     {
       "seeds": [
@@ -3042,8 +3165,8 @@
         "sidewalk"
       ],
       "result": "street_sign",
-      "source": "growtopia",
-      "note": "Street Sign = Arrow Sign + Sidewalk (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Street Sign = Arrow Sign + Sidewalk (classic recipe)"
     },
     {
       "seeds": [
@@ -3069,8 +3192,8 @@
         "dark_green_block"
       ],
       "result": "jade_block",
-      "source": "growtopia",
-      "note": "Jade Block = Dark Aqua Block + Dark Green Block (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Jade Block = Dark Aqua Block + Dark Green Block (classic recipe)"
     },
     {
       "seeds": [
@@ -3078,8 +3201,8 @@
         "grass"
       ],
       "result": "viney_block",
-      "source": "growtopia",
-      "note": "Vine Block = Dark Green Block + Grass (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Vine Block = Dark Green Block + Grass (classic recipe)"
     },
     {
       "seeds": [
@@ -3087,8 +3210,8 @@
         "death_spikes"
       ],
       "result": "iron_bars",
-      "source": "growtopia",
-      "note": "Iron Bars = Plumbing + Death Spikes (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Iron Bars = Plumbing + Death Spikes (classic recipe)"
     },
     {
       "seeds": [
@@ -3096,8 +3219,8 @@
         "dirt"
       ],
       "result": "sandstone",
-      "source": "growtopia",
-      "note": "Sandstone = Cactus + Dirt (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Sandstone = Cactus + Dirt (classic recipe)"
     },
     {
       "seeds": [
@@ -3159,8 +3282,8 @@
         "happy_joy_plaque"
       ],
       "result": "sugar_cane",
-      "source": "growtopia",
-      "note": "Sugar Cane = Seaweed + Smiley Plaque (growtopiawiki.com)"
+      "source": "classic",
+      "note": "Sugar Cane = Seaweed + Smiley Plaque (classic recipe)"
     },
     {
       "seeds": [
@@ -5789,9 +5912,378 @@
       "result": "moon_rock_wall",
       "source": "balbtopia",
       "note": "Moon Rock Wall = Moon Rock + Stone Wall (Balbtopia recipe, Nov 5 2026)"
+    },
+    {
+      "seeds": [
+        "grey_block",
+        "red_block"
+      ],
+      "result": "dark_pastel_pink_bg",
+      "source": "balbtopia",
+      "note": "Dark Pastel Pink Background = red_block + grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "grey_block",
+        "orange_block"
+      ],
+      "result": "dark_pastel_peach_bg",
+      "source": "balbtopia",
+      "note": "Dark Pastel Peach Background = orange_block + grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "grey_block",
+        "yellow_block"
+      ],
+      "result": "dark_pastel_yellow_bg",
+      "source": "balbtopia",
+      "note": "Dark Pastel Yellow Background = yellow_block + grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "green_block",
+        "grey_block"
+      ],
+      "result": "dark_pastel_mint_bg",
+      "source": "balbtopia",
+      "note": "Dark Pastel Mint Background = green_block + grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "aqua_block",
+        "grey_block"
+      ],
+      "result": "dark_pastel_aqua_bg",
+      "source": "balbtopia",
+      "note": "Dark Pastel Aqua Background = aqua_block + grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "grey_block"
+      ],
+      "result": "dark_pastel_blue_bg",
+      "source": "balbtopia",
+      "note": "Dark Pastel Blue Background = blue_block + grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "grey_block",
+        "purple_block"
+      ],
+      "result": "dark_pastel_lavender_bg",
+      "source": "balbtopia",
+      "note": "Dark Pastel Lavender Background = purple_block + grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "brown_block",
+        "white_block"
+      ],
+      "result": "dark_pastel_cream_bg",
+      "source": "balbtopia",
+      "note": "Dark Pastel Cream Background = white_block + brown_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "checker_wallpaper",
+        "green_block"
+      ],
+      "result": "pastel_check_bg",
+      "source": "balbtopia",
+      "note": "Pastel Checker Wall = checker_wallpaper + green_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "stripey_wallpaper",
+        "yellow_block"
+      ],
+      "result": "candy_stripe_bg",
+      "source": "balbtopia",
+      "note": "Candy Stripe Wall = stripey_wallpaper + yellow_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "polka_dot_block"
+      ],
+      "result": "polka_dot_bg",
+      "source": "balbtopia",
+      "note": "Polka Dot Wall = polka_dot_block + black_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "blue_block"
+      ],
+      "result": "argyle_bg",
+      "source": "balbtopia",
+      "note": "Argyle Wall = blue_block + black_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "blue_star_wallpaper"
+      ],
+      "result": "starry_wall_bg",
+      "source": "balbtopia",
+      "note": "Starry Wall = blue_star_wallpaper + black_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "dark_red_block",
+        "flowery_wallpaper"
+      ],
+      "result": "heart_wall_bg",
+      "source": "balbtopia",
+      "note": "Heart Wall = flowery_wallpaper + dark_red_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "bricks",
+        "dark_grey_block"
+      ],
+      "result": "dusk_brick_bg",
+      "source": "balbtopia",
+      "note": "Dusk Brick Wall = bricks + dark_grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "aqua_block",
+        "glass_pane"
+      ],
+      "result": "wave_wall_bg",
+      "source": "balbtopia",
+      "note": "Pastel Wave Wall = glass_pane + aqua_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "white_block"
+      ],
+      "result": "plain_rose_bg",
+      "source": "balbtopia",
+      "note": "Rose Plain Background = red_block + white_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "orange_block"
+      ],
+      "result": "plain_coral_bg",
+      "source": "balbtopia",
+      "note": "Coral Plain Background = orange_block + glass_pane (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "brown_block",
+        "orange_block"
+      ],
+      "result": "plain_apricot_bg",
+      "source": "balbtopia",
+      "note": "Apricot Plain Background = orange_block + brown_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "yellow_block"
+      ],
+      "result": "plain_butter_bg",
+      "source": "balbtopia",
+      "note": "Butter Plain Background = yellow_block + glass_pane (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "green_block",
+        "white_block"
+      ],
+      "result": "plain_sage_bg",
+      "source": "balbtopia",
+      "note": "Sage Plain Background = green_block + white_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "aqua_block",
+        "white_block"
+      ],
+      "result": "plain_teal_bg",
+      "source": "balbtopia",
+      "note": "Teal Plain Background = aqua_block + white_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "white_block"
+      ],
+      "result": "plain_sky_bg",
+      "source": "balbtopia",
+      "note": "Sky Plain Background = blue_block + white_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "marble_block"
+      ],
+      "result": "plain_periwinkle_bg",
+      "source": "balbtopia",
+      "note": "Periwinkle Plain Background = blue_block + marble_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "purple_block",
+        "white_block"
+      ],
+      "result": "plain_lilac_bg",
+      "source": "balbtopia",
+      "note": "Lilac Plain Background = purple_block + white_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "purple_block",
+        "red_block"
+      ],
+      "result": "plain_mauve_bg",
+      "source": "balbtopia",
+      "note": "Mauve Plain Background = red_block + purple_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "brown_block",
+        "yellow_block"
+      ],
+      "result": "plain_sand_bg",
+      "source": "balbtopia",
+      "note": "Sand Plain Background = yellow_block + brown_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "grey_block"
+      ],
+      "result": "plain_slate_bg",
+      "source": "balbtopia",
+      "note": "Slate Plain Background = grey_block + glass_pane (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "dark_grey_block"
+      ],
+      "result": "plain_charcoal_bg",
+      "source": "balbtopia",
+      "note": "Charcoal Plain Background = black_block + dark_grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "grey_block"
+      ],
+      "result": "plain_graphite_bg",
+      "source": "balbtopia",
+      "note": "Graphite Plain Background = black_block + grey_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "dark_grey_block",
+        "glass_pane"
+      ],
+      "result": "plain_dark_gray_bg",
+      "source": "balbtopia",
+      "note": "Dark Gray Plain Background = dark_grey_block + glass_pane (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "dark_grey_block",
+        "white_block"
+      ],
+      "result": "plain_iron_gray_bg",
+      "source": "balbtopia",
+      "note": "Iron Gray Plain Background = dark_grey_block + white_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "grey_block",
+        "white_block"
+      ],
+      "result": "plain_gray_bg",
+      "source": "balbtopia",
+      "note": "Gray Plain Background = grey_block + white_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "grey_block",
+        "marble_block"
+      ],
+      "result": "plain_ash_gray_bg",
+      "source": "balbtopia",
+      "note": "Ash Gray Plain Background = grey_block + marble_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "brown_block",
+        "grey_block"
+      ],
+      "result": "plain_warm_gray_bg",
+      "source": "balbtopia",
+      "note": "Warm Gray Plain Background = grey_block + brown_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "dark_grey_block"
+      ],
+      "result": "plain_blue_gray_bg",
+      "source": "balbtopia",
+      "note": "Blue Gray Plain Background = dark_grey_block + blue_block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "katana",
+        "paper_umbrella"
+      ],
+      "result": "blue_umbrella",
+      "source": "balbtopia",
+      "note": "Blue Umbrella = paper_umbrella + katana (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "white_block"
+      ],
+      "result": "dice_block",
+      "source": "balbtopia",
+      "note": "Dice Block = White Block + Black Block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "blue_block",
+        "red_block"
+      ],
+      "result": "colour_roll_block",
+      "source": "balbtopia",
+      "note": "Colour Roll Block = Red Block + Blue Block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "dice_block",
+        "red_block"
+      ],
+      "result": "roulette_block",
+      "source": "balbtopia",
+      "note": "Roulette Block = Dice Block + Red Block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "rainbow_block"
+      ],
+      "result": "rainbow_shift_block",
+      "source": "balbtopia",
+      "note": "Rainbow Shift Block = Rainbow Block + Glass Pane (Balbtopia recipe, Nov 9 2026)"
     }
   ],
-  "growtopiaNotInGameYet": [
+  "notInGameYet": [
     {
       "seeds": [
         "super_crate_box",

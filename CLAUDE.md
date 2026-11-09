@@ -1,19 +1,54 @@
 # Balbtopia: notes for Claude
 
-A Growtopia-style 2D block world. Plain HTML/CSS/JS in `www/` (no build step, no framework),
+A 2D sandbox block world. Plain HTML/CSS/JS in `www/` (no build step, no framework),
 wrapped as an Android app with Capacitor. Online play uses Supabase (accounts, saves, realtime).
 The owner writes in Tagalog/Taglish: answer in the same language, keep code comments in English.
 
 ## Run and check
 
 - Play: open `www/index.html`, or `npm run serve` (http://localhost:8080). `npm run sync` before an Android build.
-- `www/js/online-config.js` is made from `.env` by `npm run config`. To test offline, serve a blank
+- `www/js/online/online-config.js` is made from `.env` by `npm run config`. To test offline, serve a blank
   `SUPABASE_URL` / `SUPABASE_ANON_KEY` (the game then keeps everything in localStorage).
-- Syntax check: `for f in www/js/*.js; do node --check $f; done`
+- Syntax check: `find www/js -name '*.js' -not -path '*/vendor/*' -exec node --check {} \;`
 - The scripts are classic `<script>` tags sharing one global scope, in the order listed in
   `www/index.html`. Top-level code may only use what earlier files define; functions can call anything.
 - Test in headless Chromium (Playwright): register an account, press PLAY, then drive the game with
   `page.evaluate` (globals like `P`, `inv`, `fg`, `drops`, `addItem`, `die`, `openShop` are reachable).
+
+## Folders (www/js, Nov 9 2026)
+
+The scripts are grouped in folders; the table below gives bare file names, each lives in one of these
+(`index.html` lists the full paths, in load order). A new file goes in the folder that fits and gets its
+`<script src="js/<folder>/<file>.js">` in index.html before `js/core/main.js`.
+
+| Folder | Files |
+|---|---|
+| `core/` | errors, assets, config, native, input, sound, camzoom, main |
+| `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, gmwatch, subscriber, rename, social, globalchat, keys |
+| `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, signs |
+| `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids |
+| `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
+| `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
+| `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit |
+| `wear/` | wear, clothes, tees, capes, scarves, hairstyles, diaper, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
+| `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides |
+| `render/` | render, shadow, portrait, remotefx |
+| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags |
+| `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
+| `vendor/` | supabase.js |
+
+The old copies at the project root (`js/`, `css/`, `assets/`, from before www/) were removed; the root `index.html`
+only redirects to `www/`. One-off SQL is in `supabase/admin/`.
+
+Naming rule (owner, Nov 9 2026): never write the name of the game this one is inspired by, in code, comments, data or
+docs. Recipes from it are `"source": "classic"` in farming.json; the not-yet-made list is `notInGameYet`.
+
+Login guard (`online/loginguard.js`, owner Nov 9 2026): 3 wrong logins in a row (`LOGIN_MAX_TRIES`) lock LOG IN with a
+countdown (`showLoginWait`), waits `LOGIN_WAITS` 30 s / 1 min / 5 min / 15 min / 30 min, saved in localStorage
+`balbtopia.loginGuard`; a right login clears it; Register is never locked. Wrong name and wrong password give the same
+message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in rate limit (429) locks it 5 min (net.js
+`N.signIn`). index.html has a Content-Security-Policy: no inline scripts or `on...=` attributes, network only to
+*.supabase.co (add a domain there if the game ever needs one).
 
 ## Files (www/js)
 
@@ -40,6 +75,9 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 | `social.js` | `dialog()` pop-up helper, trade/friends/messages/email/gifts, world chat (CHAT button) |
 | `weather.js` | Snow Weather Machine block and the snowy weather: winter backdrop, falling snow, white flash |
 | `rest.js` | Sitting on chairs and sleeping in beds (pose, Zzz, 3 s wait, one player per bed / seat tile) |
+| `emotes.js` | Chat emotes `/thumbsup`, `/love`, `/omg`, `/sleep` (owner, Nov 9 2026; `emoteCommand` from social.js chatCommand). State `P.emo = { k, t }` (`EMO_MS` lengths; /sleep until you move or type it again; thumbsup / omg / sleep stop on walk, jump, punch, place). Sent as `em` in the position message (1-4; net.js sets remote `emo` / `emoT`). render.js hooks: `emoArmPose` (body with the raised arm(s) cut off by their shape on the porcelain idle frame, from the DRESSED picture: `emoMasks` / `emoCut`; thumbsup raises the back = weapon arm, a held weapon goes up with the arm, held the normal way (TOOL_TURN), bare hand shows a thumb; omg raises both, shaking) and `drawEmoFace` (love: beating heart eyes; omg: wide eyes, raised brows, O mouth; sleep: snore). /sleep uses the closed-eye frame, sways and floats Zzz; /love floats spinning pixel hearts (`EMO_HEARTS`, drawLiveFx). Arms work on rides too (build 2026-11-09 c) |
+| `hatfit.js` | Hats on hair (owner, Nov 9 2026): with a hairstyle worn the hat is lifted onto the hair's top (`hairLift`: the hair drawn alone through drawWorn on a small canvas, its highest row over columns `HAT_FIT_COLS` vs the bald head's, cached per hair, max `HAT_FIT_MAX` 24 = the Pink Ombre Long Hair look, owner); Golden Spike Hair (`HAT_NO_HAIR`) shows no hat even if worn; hairs with a ponytail / bun on top (`HAT_ON_TAIL`) with a hat: the ponytail is cut off (hair clipped `HAT_TAIL_CUT` under its top, under the brim) and the hat is `HAT_TAIL_SIZE` 1.25x, moved / leaning towards the ponytail's side with the head's curve (`HAT_TAIL_SHIFT`, `HAT_TAIL_LEAN`; side from `hairTip`); `hideHair` hats / shirts unchanged. Outermost drawWorn wrapper, loaded right before main.js. Nocturn Scythe is drawn `REAPER_SCY_BIG` 1.3x round its grip (reaperscythe.js) |
+| `bath.js` | Bathtub (block 73): animated (`NEW_ANIM.bathtub` 8 frames: bubbles bob, water shimmer, tap drip, a bubble rising and popping; `HD_DECO.bathtub` repainted by `paintBathtub`). Stand still in it 3 s = rest kind `'bath'` (rest.js `BATHS`, synced in `rs` like beds): upright like a bed, the BARE body (no clothes / costume), only head items show (`BATH_KEEP`: hair, hat, face, mask, mouth, stache, ear; no neck items, back, aura, weapon; the Royal Silk Scarf's reaper STAYS (build 2026-11-09 c), every other effect removed: `bathEq` / `bathDropFx`), only the head over the water and foam (`bathFront(f)` drawn over the body), eyes shut, head rocking, soap bubble particles (`drawBathBubble`) |
 | `beds.js` | Bed / Hospital Bed pictures (the owner's bed picture, recoloured) and the sleeping look (wraps `drawResting`) |
 | `lobby.js` | Every player's OWN LOBBY: an 11 x 6 room round the main door, bedrock everywhere else, saved in the player save (`lobby`) |
 | `gates.js` | Gates (Portcullis, Iron Bars), water from the Water Bucket (swimming), Death Spikes / Stalactite kill on touch |
@@ -73,18 +111,18 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
   Every `NEW_ITEMS` entry has a fixed `t` (block) or `bgId` (background). Never renumber; new items take the
   next free number. Used: blocks 1–8 (config.js), 9–55 and 60–116 (blocks.js), 56–57 jammers, 58–59 Diamond /
-  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 Growtopia items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js), 209 Mystery Door (qdoor.js), 210 Desert Machine (weather.js), 211-230 64 px splice blocks (blocks64.js), 231-246 more (blocks64b.js; 231 Spike Gate), 247-276 (blocks64c.js; 247 Chest, 248 Stove), 277-306 (blocks64d.js), 307-326 (blocks64e.js), 327-346 (blocks64f.js), 347-366 (blocks64g.js). 367-376 (blocks64h.js: Guard Glass, Checkpoint Tower, 8 platforms). Since build s block numbers go up to 509 (fg is a Uint16Array; saved as the `fg` byte + `fgx`, see worlds.js fgBytes): next free 377 (later builds: 420-425 moon / vacuums / hologram; 426-435 crystal tiles, build zg; 436 Hologram Sign, build zj; NEXT FREE BLOCK 437). bg / vari are Uint8Arrays; fg is a Uint16Array since build s (blocks up to 509). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
+  Black Diamond Lock (shop.js), 117 Vending Machine (vend.js), 118 Display Box, 119 Mannequin (display.js), 120 Snow Weather Machine, 121 Sunny Weather Machine (weather.js), 122–131 Balbtopia-only splices (blocks.js), 132–144 classic items (Oct 2026; 132 Street Sign … 144 Sugar Cane), 145 Sand, 146 Rain Machine (weather.js), 147–148 Duck / Dog Painting (were bg 27–28), 149–153 old music notes (retired), 154 Piano (music.js), 155 Genie Teapot (quests.js), 156-157 Sponge / Wet Sponge (sponge.js), 158-159 Hedge / Rose Hedge (bushes.js), 160 Couch, 161 Foliage (furniture.js), 162 Steel Beam, 163 Steel Bridge (steel.js), 164 Red Lock, 165 Blue Lock (alocks.js), 166 ATM Machine (atm.js), 167 Left Arrow Board (blocks.js), 168-193 A-Z Blocks, 194-203 0-9 Blocks, 204-207 Up / Down / Left / Right Arrow Blocks (letters.js), 208 Mailbox (mailbox.js), 209 Mystery Door (qdoor.js), 210 Desert Machine (weather.js), 211-230 64 px splice blocks (blocks64.js), 231-246 more (blocks64b.js; 231 Spike Gate), 247-276 (blocks64c.js; 247 Chest, 248 Stove), 277-306 (blocks64d.js), 307-326 (blocks64e.js), 327-346 (blocks64f.js), 347-366 (blocks64g.js). 367-376 (blocks64h.js: Guard Glass, Checkpoint Tower, 8 platforms). Since build s block numbers go up to 509 (fg is a Uint16Array; saved as the `fg` byte + `fgx`, see worlds.js fgBytes): next free 377 (later builds: 420-425 moon / vacuums / hologram; 426-435 crystal tiles, build zg; 436 Hologram Sign, build zj; NEXT FREE BLOCK 437). bg / vari are Uint8Arrays; fg is a Uint16Array since build s (blocks up to 509). Block 12 = old Glass Pane (now bg 32), kept for old saves. Backgrounds 1 (cave), 2–3, 5–26, 27–31 and 32 Glass Pane (blocks.js), 4 = old Stone Wall background
   (Stone Wall is a block now, 4 stays for old saves).
 - **Recipes** live in `www/data/farming.json` (`splices`). `SPLICE` in config.js is a fallback copy for when the
   JSON can't load (opening the HTML as a file); keep the two the same. A recipe only works when both seeds and
   the result have a tree (`TREE_TIME`, `SEED_COLOR` and an `<id>_seed` item); bad lines are skipped with a console warning.
-  `growtopiaNotInGameYet` lists real Growtopia recipes whose result isn't in the game yet (mostly clothing,
+  `notInGameYet` lists classic recipes whose result isn't in the game yet (mostly clothing,
   which needs its own sprite on the character); the game ignores that list.
-- Growtopia recipes are taken from growtopiawiki.com. Mark Balbtopia-only ones `"source": "balbtopia"`.
-  Currently 228 splices (148 Growtopia, 80 Balbtopia; 64 Growtopia recipes were remixed in Oct 2026 so the list isn't an
+- Classic recipes are the "source": "classic" ones. Mark Balbtopia-only ones `"source": "balbtopia"`.
+  Currently 228 splices (148 classic, 80 Balbtopia; 64 classic recipes were remixed in Oct 2026 so the list isn't an
   exact copy: one seed swapped for a similar item of about the same rarity, e.g. Fireplace = Golden Block + Red Bricks;
   they are marked source balbtopia in farming.json. Basic ones (result rarity <= 8) were left alone.
-  Older Balbtopia ones: Sand = Dirt + Water Bucket (Growtopia Sand can't be spliced), dirt+dirt, rock+rock, cave+cave = Dark Cave,
+  Older Balbtopia ones: Sand = Dirt + Water Bucket (classic Sand can't be spliced), dirt+dirt, rock+rock, cave+cave = Dark Cave,
   Cyclopean Visor + Neon Lights = Laser Eyes, and the 10 below; Princess Hair = Long Brown Hair + Yellow Block was removed with those hairs on Oct 30 2026).
   Oct 2026 Balbtopia splices (blocks 122–131, art at the end of blocks.js): Marble Block = Rock + White Block,
   Honeycomb Block = Amber Glass + Yellow Block, Lantern = Glass Pane + Torch, Flower Pot = Brown Block + Daisy,
@@ -160,7 +198,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   an item with two recipes, like Grass, gets one sign with both, "A + B or C + D"), sorted A to Z by name: the
   bottom shelf starts at A (left to right) and each shelf up carries on, Z at the top.
 - Bag search on phones / Android (Nov 8 2026): a magnifier `#bagSearchBtn` beside the Trash (touch only) shows the hidden `#bagQ` (`#inv.searching`, ui.js `bagSearchShow`); tapping it again or closing the bag hides and clears it.
-- Display Box art (Nov 8 2026, owner's picture): thin silver frame + see-through teal glass (`DISP_PIX` in hd/misc.js); the item fills the whole glass edge to edge (cells 3-28 of 32, in proportion).
+- Display Box art (Nov 8 2026, owner's picture): thin silver frame + see-through teal glass (`DISP_PIX` in art/misc.js); the item fills the whole glass edge to edge (cells 3-28 of 32, in proportion).
 - Display Box (Shop, 1,000 gold, solid): wrench to put one item from the bag in or take it out (anyone with access).
   The item is drawn cropped to fit (`iconFit`/`drawFitted`), so small things still fill the glass.
 - Mannequin (Shop, 2,500 gold, walk-through): wrench to put clothes on, one per wear slot, or take them off. Its body
@@ -198,7 +236,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Every pair gives `WING_JUMPS` (1) extra jump in the air; it comes back only when you land.
   Wings only flap in the air (jumping/falling); on the ground they stay still and open (frame 0). (Since Oct 30 2026
   Angel / Tiny Angel are pixel strips that flap all the time: see "Pixel wings, pixel hats, Halo" at the end.) Prices were picked by Claude (owner gave none). Wear art canvases have `ART_PAD` (110 px) room around the body so wings are never cut off.
-- Cyclopean Visor and Laser Eyes (`LASER_FACE`): punches become a laser and reach one tile further (in Growtopia
+- Cyclopean Visor and Laser Eyes (`LASER_FACE`): punches become a laser and reach one tile further (in classic
   the Cyclopean Visor changes the punch and adds a tile of reach). Neither is sold in the Shop any more; the long
   hairs aren't either (all recipes now).
 - Bag: TRASH button bottom right under the slots (a red pixel-art bin icon, inline SVG, no text): click it, click an
@@ -364,13 +402,13 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   there the same way; the owner has a checklist page of what is detailed and what isn't.
 
 - Hand-drawn 1 px textures for blocks/backgrounds: `HD_TEX` (blocks.js; `texCanvas` uses it instead of `TEX` + `hdPass`).
-  The HD art lives in `www/js/hd/` (loaded right after blocks.js in index.html): `colors.js` (every plain coloured
+  The HD art lives in `www/js/art/` (loaded right after blocks.js in index.html): `colors.js` (every plain coloured
   `*_block` and coloured `*_wallpaper`, one drawing each from the item's `color`: `hdColorBlock`, `hdWallpaper`),
   `blocks_a.js` / `blocks_b.js` (all other TEX blocks, backgrounds, wallpapers), `deco_c.js` (plants, food, lamps) and
   `deco_d.js` (signs, doors, fences, hazards, weather machines, jammers) add to `HD_TEX` / `HD_DECO`. Animated ones keep
   their frames (`f`). Only Wooden Chair, Toilet, Bed, Hospital Bed, Wooden Platform and Staircase still use the old 2 px
   DECO art (+ `hdPass`), on purpose (rest.js and platform code depend on their shapes).
-- Override files loaded LAST (after every game file, before main.js) in `www/js/hd/`: `misc.js` (redeclares `lockSprite`,
+- Override files loaded LAST (after every game file, before main.js) in `www/js/art/`: `misc.js` (redeclares `lockSprite`,
   `paintDoor`/`doorSprite`/`woodDoorSprite`, `grassTuft`, `grassTop`, `darkTile`; new Vending / Display Box art on
   `NEWART.vend` / `NEWART.disp` + `SHOP_ICON`, same glass areas; Mannequin icon stand; Door Mover / Clear World icons),
   `tools.js` (redeclares `wrenchSprite`, `toolSprite`: wrench, sword, flashlight, pencil, boxing glove; same 32x32 canvas
@@ -380,7 +418,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   frames). Shirts/pants/feet recolour the body picture and were left as they are. A later `function x(){}` in these
   files replaces the global; consts can't be redeclared, so mutate objects instead.
 
-- Growtopia items added Oct 2026 (recipes checked on each item's growtopiawiki.com page, `/w/<Name>`): Painting: Dink Duck
+- classic items added Oct 2026 (recipes checked on each item's wiki page, `/w/<Name>`): Painting: Dink Duck
   (bg 27) = Yellow Block + Wooden Background, Painting: Yerfdog (bg 28) = White Block + Wooden Background, Air Duct (bg 29) =
   Dark Grey Block + Grey Block, Viney Wallpaper (bg 30) = Dark Aqua Block + Grass, Evil Brick Background (bg 31) = Evil Bricks
   + Red Wallpaper, Street Sign (132, sign) = Pointy Sign + Sidewalk, Arrow Placard (133, sign) = Big Old Sideways Arrow +
@@ -388,8 +426,8 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   solid, see-through art) = Plumbing + Death Spikes, Sandstone (137) = Cactus + Dirt, Fireplace (138, 2-frame fire) = Evil
   Bricks + Golden Block, Ice Sculptures (139) = Ice + Glass Block, Fishbowl (140) = Ice + Wooden Window, Snowy Rocks (141) =
   Ice + Rock, Disco Ball (142, 2 frames) = Window + Boombox, Skeleton (143) = Grey Wallpaper + Ice, Sugar Cane (144) = Seaweed
-  + Happy Joy Plaque. Grow time = 60 + 8 x Growtopia rarity seconds (Growtopia's real times are hours/days). They have
-  no TEX/DECO: their art is only in `js/hd/growtopia_tex.js` / `growtopia_deco.js` (`newIcon` accepts HD_TEX too).
+  + Happy Joy Plaque. Grow time = 60 + 8 x classic rarity seconds (the classic real times are hours/days). They have
+  no TEX/DECO: their art is only in `js/art/classic_tex.js` / `classic_deco.js` (`newIcon` accepts HD_TEX too).
   Next ones these unlock (need one more new item each): Granite Block / Diving Board / Wall Like An Egyptian (Sandstone),
   Jail Door (Iron Bars), Chandelier / Campfire (Fireplace), Air Vent (Air Duct), For Sale / Open Sign (Street Sign),
   Chalkboard (Painting: Yerfdog), Tangram Block (Checker Wallpaper), Mystery Block (Disco Ball).
@@ -403,13 +441,13 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   drop back when they leave. The animation is drawn per client; `stepGates()` runs at the start of `render()`.
 - Death Spikes and Stalactite have `kill: true` (instant death on touching their tile, `die('spikes')`); Cactus still
   `hurt`s like lava.
-- Water (Growtopia style): holding the Water Bucket and clicking a tile puts water there (bit `WATER`, uses one bucket; not
+- Water (classic style): holding the Water Bucket and clicking a tile puts water there (bit `WATER`, uses one bucket; not
   on solid blocks; walk-through blocks keep it). Clicking water with the bucket removes it and gives the bucket back
   (`WATER_KEEP` 90%). In water (`inWater`: the body's middle) you move at 60% speed, sink at most 140 px/s and every jump is
   a swim stroke up (-300), with splashes. Water is drawn see-through over the world and players (`drawWater`, wavy surface
   where the tile above is dry). The Water Bucket block itself still exists for old worlds.
 
-- Names (Oct 2026, to stay clear of Growtopia's own coined names; the item ids did NOT change, so saves are fine):
+- Names (Oct 2026, to stay clear of other games' coined names; the item ids did NOT change, so saves are fine):
   World Lock -> Gold Lock, Diamond Lock -> Crystal Lock, Black Diamond Lock -> Shadow Lock, Happy Joy Plaque -> Smiley
   Plaque, Magic Bacon Wallpaper -> Wavy Wallpaper, Venus Guytrap -> Snap Plant, Hanging Guytrap -> Hanging Snap Plant,
   Olde Timey Radio -> Old Radio, Big Old Sideways Arrow -> Big Arrow, Das Red Balloon -> Red Balloon, Cyclopean Visor ->
@@ -422,7 +460,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Fire Head, Blonde Bombshell -> Long Blonde Hair, Messy Auburn Tresses -> Messy Red Hair, Hot Pink Highlights -> Pink
   Streak Hair, Unicorn Hair -> Pastel Hair, Super Saiyan Hair -> Golden Spike Hair, Punch Jammer -> Punch Blocker, Snow /
   Sunny Weather Machine -> Snow / Sun Machine, Ice Sculptures -> Ice Star, Viney Block / Wallpaper -> Vine Block /
-  Wallpaper, Froghat -> Frog Hat. Rule: new names are short and describe the look; never put "Growtopia", its coined
+  Wallpaper, Froghat -> Frog Hat. Rule: new names are short and describe the look; never put another game's name, its coined
   names, its characters or its flavour text in anything the player sees (comments and data notes are fine). The RECIPES
   world tag is `L7:` and includes the item names, so a rename rebuilds its signs.
 
@@ -464,7 +502,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 
 - Paid top-ups (TOP UP tab is ready, SOON): a Philippine provider (PayMongo / Xendit; Stripe doesn't take PH
   businesses): an Edge Function that creates the checkout and a webhook that adds the gold to `wallets`.
-- Clothing items from `growtopiaNotInGameYet` (need sprites and more equip slots: shirt, pants, face, hat, back).
+- Clothing items from `notInGameYet` (need sprites and more equip slots: shirt, pants, face, hat, back).
 - Moving GM checks and purchases to the server so they can't be faked.
 
 - Oct 19 2026 (owner's requests):
@@ -537,7 +575,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   play if it is on screen (+1 tile). Pitch by row: `noteStep(y)` = (WH-1-y) mod 14 on the major scale (`SCALE`, base
   `BASE_HZ`), letter drawn on each note (`drawMusic`); drum rows cycle kick / snare / hi-hat (K S H). Sounds are Web Audio
   synths (`playNote`, uses `Sfx.ctx()`), chords share loudness (1/sqrt n). Placing a note plays it (`previewNote`).
-  Notes pop and glow when they play (`noteFlash`). Respects Settings -> Sound. Our own design; no Growtopia names/art.
+  Notes pop and glow when they play (`noteFlash`). Respects Settings -> Sound. Our own design; no names/art from other games.
 - Music notes grow from seeds too (Balbtopia recipes, farming.json + config.js SPLICE): Piano Note = Note Block + White
   Block, Bass Note = Note Block + Purple Block, Drum Note = Note Block + Barrel, Bell Note = Note Block + Golden Block,
   Flute Note = Note Block + Green Block (trees 300 s, Bell 420 s; seeds/trees set in music.js). Notes have `easy: true`
@@ -545,7 +583,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Sounds: a swing with a tool (`heldTool(hand)`) plays 'break' instead of 'punch'; placing a block, background, seed
   (plant) or splice plays 'pickup' (music notes play their own note instead).
 - Oct 20 2026: the placed music notes were REPLACED by the Piano + song maker (owner's design, to stay clear of
-  Growtopia's sheet music). `music.js` now: Piano (block 154, walk-through, 4 hits, HD upright-piano art; Piano = Note
+  other games' sheet music). `music.js` now: Piano (block 154, walk-through, 4 hits, HD upright-piano art; Piano = Note
   Block + White Block, tree 360 s; not in the Shop). Stand on it and click (`usePiano`, from `act` after `useDoor`) ->
   SONG MAKER window (`#songwin`, built in JS): name box, note list (28 chips: C4-C6 every semitone + KICK/SNARE/HAT;
   each chip is the Note Block icon with a colour stripe per letter, darker for sharps: `notePic`), PLAY/STOP, tempo
@@ -582,7 +620,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `gmFillBag` removes `retired` items from the GM bag. Test with OLD inventories, not only fresh accounts.
 - `errors.js` (loaded FIRST in index.html): `GAME_BUILD` (bump it on every delivery; shown in Menu -> Settings ->
   Version and in the console) and a red box at the bottom of the screen listing script errors and game files that
-  failed to load ("Missing file: js/music.js"); tap to close. A missing music.js breaks the bag and pop-ups (render.js
+  failed to load ("Missing file: js/gameplay/music.js"); tap to close. A missing music.js breaks the bag and pop-ups (render.js
   calls stepMusic every frame), which matches what the owner saw: always replace the WHOLE www folder.
 - Oct 20 2026 (later 2): Song maker notes completed (47): note numbers are permanent (saved in songs): 0-24 piano
   C4-C6, 25-27 kick/snare/hi-hat, 28-39 piano C3-B3, 40-46 low/mid/high tom, clap, open hi-hat, ride, crash (`DRUMS`,
@@ -786,7 +824,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     look) for every block, not in the top-right corner: players tapped the corner badge instead of the block.
   - No shade on backgrounds any more: render.js used to darken a background tile's top (block above) and left / right
     edges (block beside it) with rgba(8,4,2,.32). Removed; walls look the same next to blocks. (That was the only
-    such shadow; checked render.js, blocks.js, hd/.)
+    such shadow; checked render.js, blocks.js, art/.)
   - Rain: no splash rings; streaks fall on past the bottom of the screen and come back in at the top (`drawRain`).
   - Portcullis sound: `assets/sfx/portcullis.mp3` = owner's file (art-source/sfx/portcullis-original.mp3, 2.04 s) with
     the silence cut (-45 dB, 5 ms fade in / 30 ms fade out, mono 128 kbps, 0.94 s). `Sfx.play('portcullis')` in
@@ -917,7 +955,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     `send_chat` refuse; realtime policies refuse world:/build:/chat: of that world (`world_banned`). Gold Lock window
     lists "Banned players" with Unban (`world_ban_list`, `unban_from_world`; `loadBans` in lock.js).
   - Red Lock (164, 10 tiles, 50 gold) and Blue Lock (165, 48 tiles, 200 gold): area locks, `alocks.js` (loaded
-    after the hd/ files, before main.js). Only in worlds without a Gold Lock (not LOBBY / RECIPES). The placer's
+    after the art/ files, before main.js). Only in worlds without a Gold Lock (not LOBBY / RECIPES). The placer's
     game works out the area once (`alockClaim`: breadth-first from the lock, up/left/right/down, skipping the main
     door, unbreakable blocks, locks and other areas) and stores it: world save `al` = [[lock tile, { k, o, t, acc,
     open, air }]], synced in the tiles message (`msg.al`, `snapAL` in net.js). `canEdit(quiet, i)` /
@@ -1451,7 +1489,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
     inside the head's outline, used by `jokeFace` and `blankFace`, so no piece of the old brows / eyes shows on any
     frame (owner saw a small stray mark beside the /facejoke eye). `face_joke_cut.py` also drops loose specks
     (< 8 px) from face_joke.png.
-  - Blue Fire Eyes (`fire_eyes.js`, loaded after hd/wear_face_back.js; WEAR entry in wear.js, face slot, `blank: true`,
+  - Blue Fire Eyes (`fire_eyes.js`, loaded after art/wear_face_back.js; WEAR entry in wear.js, face slot, `blank: true`,
     Shop WEAR 200 Balb Coins, price picked by Claude; shop_prices row tracked, re-run schema.sql): the face is wiped
     (`blankFace(skin)`, `blankFaceOn(c)`: no brows, eyes, mouth, no talking mouth or angry face; standing, walking,
     sitting (rest.js), swimming (gates.js)) and two glowing blue eyes the size of the normal ones (`FE_EYES` boxes in
@@ -1705,7 +1743,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Oct 26 2026 (build y, owner: "is there really a line in the pillar? it should be continuous; make wearable weapons"):
   - The lines in the pillar preview were only gaps in Claude's test picture; in the game a stack is seamless
     (checked with 4 stacked in a world). No code change.
-  - `weapons.js` (after blocks64g.js; uses hd/tools.js `hdtSprite` / `hdtSeg` / `hdtDisc` / `HDT_ART`): 10 hand
+  - `weapons.js` (after blocks64g.js; uses art/tools.js `hdtSprite` / `hdtSeg` / `hdtDisc` / `HDT_ART`): 10 hand
     weapons added to TOOLS (`weapon: true`, `blade: true`, bonus 0, just for show; hold in the hotbar or the Hand slot,
     swung when you punch). Fire / Ice / Golden / Plasma Sword have `sparkle` colours, so hits throw sparks
     (toolSparkles). 32 px 1 px art, grip at the bottom left like the Sword. Balbtopia recipes (360 s trees):
@@ -1831,10 +1869,10 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   `/gunban NAME` (`gmBanCommand`, social.js -> `Net.gmBan` -> schema.sql `gm_ban`, which now refuses banning yourself or
   another GM). Only `isGM()` players can run them; for others they are "Unknown command" and the /help list never
   shows them. A player banned while playing is signed out within ~20 s (`banCheck` in net.js, `am_i_banned` on every
-  hello). Forgot password username is shown / sent in capitals. `supabase/delete_non_gm_accounts.sql`: preview, then
+  hello). Forgot password username is shown / sent in capitals. `supabase/admin/delete_non_gm_accounts.sql`: preview, then
   delete every auth user except the names in `gms` (refuses if no GM would be left), then their worlds (not
   LOBBY / RECIPES). Re-run schema.sql (gm_ban change).
-- Oct 27 2026 (build v, owner): the GM account is renamed tae123 -> anTz. `supabase/rename_gm.sql` (run once): gms,
+- Oct 27 2026 (build v, owner): the GM account is renamed tae123 -> anTz. `supabase/admin/rename_gm.sql` (run once): gms,
   usernames, players, world owners / lock lists / area locks, keys, bans, mail. Login e-mail stays
   tae123@players.balbtopia.app (login_email finds it by the new name). `GM_USERS = ["anTz"]`; `isGM` compares
   ignoring case. schema.sql seeds gms with anTz only when no tae123 account exists.
@@ -1856,7 +1894,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   - Eyes / face-slot items are drawn LAST in `drawWorn` (photo_wear.js wrapper): over the hair, the hood's bangs and the
     hat, so long bangs no longer hide them (render.js still has the old face line, but the wrapper passes face: null).
   - Snap Plant and Hanging Snap Plant have an idle animation: 16 frames of 110 ms (`snapPose` / `SNAP_OPEN` in
-    hd/deco_d.js: jaws breathe open / shut then snap, head bobs, stem / vine sways); every placed one runs on its own beat
+    art/deco_d.js: jaws breathe open / shut then snap, head bobs, stem / vine sways); every placed one runs on its own beat
     and pops in when placed (liven.js `drawSnap`, `LIVE_DRAW`; the hanging one grows down). Frame 0 = the bag icon.
   - GAME_BUILD '2026-10-27 x'.
 - Oct 27 2026 (build y, owner's sketch): Red / Blue Fire Eyes are BIGGER (near eye 11 x 14 cells, far eye 7 x 14,
@@ -2021,7 +2059,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   Sources: `art-source/items/wings_px/` (cherub.py, bats.py, vampire2.py). Shop: Vampire 20,000 gold,
   Tiny Devil / Tiny Vampire 10,000 gold (prices picked by Claude), also in supabase/schema.sql `shop_prices`.
   The owner turned down: rounded wing ends, wings folded down while standing, a separate idle animation.
-- Hats: `www/js/hd/wear_pixel_hats.js` (loaded after wear_face_back.js) replaces every hat's WEAR_ART with pixel
+- Hats: `www/js/art/wear_pixel_hats.js` (loaded after wear_face_back.js) replaces every hat's WEAR_ART with pixel
   cells (palette + "i,j,colour" per frame) and sets each hat's `iconBox`. Made by `art-source/items/hats_px/hats.py`
   (shapes rasterised on the cells, shaded from the top left, game outline). Caps sit 3 cells lower than before so
   they cover the top of the head. Fire Head: 4 frames (ANIM_N 120 ms).
@@ -2033,7 +2071,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 
 ## Guard Glass, Checkpoint Tower, more platforms, GM bag height (Oct 30 2026, owner; GAME_BUILD '2026-10-30 a')
 
-- Guard Glass (367 = Glass Pane + Iron Bars, `www/js/blocks64h.js`): walk-through glass pane with a 5 px RED border
+- Guard Glass (367 = Glass Pane + Iron Bars, `www/js/blocks/blocks64h.js`): walk-through glass pane with a 5 px RED border
   (panes next to each other join, border only round the outside). A drop lying on its tile: `canTakeDrop`
   (actions.js, `dropGuarded`) says no unless the player is the world owner or has access to THAT tile
   (`hasAccess(name, i)`: the Gold Lock's list / open world, or a Red / Blue Lock's rules on its area). The one who
@@ -2062,7 +2100,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
   round the standing neck `from` (62, 110) onto the swimmer's neck `to` (30, 106) and lays it back on the SCARF_CELL grid
   (crisp). WEAR_ART `<id>:swim_tail` / `<id>:swim_wrap`; `swimScarf(eq, top, sc, part)` is called by `drawSwimming`
   (gates.js): tails before the body (behind it), wrap + knot after it, and drawWorn then skips the neck item.
-- Golden Wings outline softer (owner: the stroke was too strong): `wingPair(..., soft)` (hd/wear_face_back.js) skips
+- Golden Wings outline softer (owner: the stroke was too strong): `wingPair(..., soft)` (art/wear_face_back.js) skips
   the dark smooth stroke and draws feather lines in the middle gold; goldwings.js pixel outline is one ring of
   `GW_OUTLINE` (#9a6410, was #3a2404).
 - Scarf pins (owner, GAME_BUILD '2026-10-31 j'): `pin` on a SCARF_STYLES entry puts a 5 x 5-cell brooch in the middle of
@@ -2206,7 +2244,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 
 - Nov 1 2026 (build '2026-11-01 a', owner): sitting keeps the held weapon / tool (it used to disappear). rest.js `drawSitTool`: the tool (hand item, else the Hand slot) is gripped in the hand resting on the knees (`SIT_HAND` sit.png px [80, 144]; screen left when facing right, mirrored when facing left), drawn with `drawArmWithTool` (no arm) so every weapon keeps its standing look / size / turn, WHOLE and in front of the body and legs (owner: covering the feet is fine); then the hand (skin + outline in `SIT_HAND_BOX`, `sitHandMask` / `sitHandPic`) is drawn again over the handle.
 - Nov 1 2026 (build '2026-11-01 b', owner): breaking while sitting with a weapon / tool in hand swings THAT weapon (rest.js `drawResting`: `swinging` like render.js; `drawToolSwing` with the seat's face after the body, so scythe slashes and other swing effects show) instead of the bare-fist `drawPunch`; the fist punch is only for an empty hand (and the placing arm). The resting-hand weapon (`drawSitTool`) is hidden during the swing.
-- Nov 1 2026 (build '2026-11-01 c', owner): 5 FLYING dragon pets (Shop PETS, 100,000 gold, Legendary; schema.sql shop_prices rows, re-run it): Shadow, Bone, Glacier (ice blue), Pearl (white), Jade (green) Dragon (`pet_<id>_dragon`; names ours, not Growtopia's). Art: the owner's sheets `art-source/pets/sky_dragons_sheet.png` (4 dragons x 3 wing beats), `shadow_dragon_sheet.png` (3 beats) and `shadow_dragon_roar.png` (his fire-breathing pose), cut by `sky_dragons_cut.py` (art px 4 / 5, roar resampled at 12.5 to the same length; background keyed by flood fill, Shadow gets a 1 px outline back; frames lined up on the snout, the roar on the eye) into `www/assets/pets/<id>.png`: 12 frames, 0-8 = each of his 3 beats 3 times (owner: duplicate each to 3 frames), 9-11 = breathing fire (Shadow: his roar x3; the others: frame 0 with the jaw turned down 12/20/26 deg, `open_jaw`). pets.js: `sky: true` on a `move: 'big'` pet (drawn behind you like the big ones) -> `drawSky`: flies behind you hovering over your feet line (`SKY.hover`, bob), flaps every `SKY.flapMs` 80 ms; when you hit a block / background / seed it turns to it, plays the roar frames over `SKY.roarMs` 420 ms and at `SKY.fireAt` 150 ms breathes the Fire Dragon's fireball (`pet_flame_ball`, same `breaths` / smoke / one hit less as the Fire Dragon). Size: `SKY.len` 84 world px tail to snout (`petScale`, per-pet `len`). shadow.js `petBox` up 110 for them. The unused flame_dragon / frost_dragon / *_fx pictures in assets/pets are still unused.
+- Nov 1 2026 (build '2026-11-01 c', owner): 5 FLYING dragon pets (Shop PETS, 100,000 gold, Legendary; schema.sql shop_prices rows, re-run it): Shadow, Bone, Glacier (ice blue), Pearl (white), Jade (green) Dragon (`pet_<id>_dragon`; names ours, not the classic). Art: the owner's sheets `art-source/pets/sky_dragons_sheet.png` (4 dragons x 3 wing beats), `shadow_dragon_sheet.png` (3 beats) and `shadow_dragon_roar.png` (his fire-breathing pose), cut by `sky_dragons_cut.py` (art px 4 / 5, roar resampled at 12.5 to the same length; background keyed by flood fill, Shadow gets a 1 px outline back; frames lined up on the snout, the roar on the eye) into `www/assets/pets/<id>.png`: 12 frames, 0-8 = each of his 3 beats 3 times (owner: duplicate each to 3 frames), 9-11 = breathing fire (Shadow: his roar x3; the others: frame 0 with the jaw turned down 12/20/26 deg, `open_jaw`). pets.js: `sky: true` on a `move: 'big'` pet (drawn behind you like the big ones) -> `drawSky`: flies behind you hovering over your feet line (`SKY.hover`, bob), flaps every `SKY.flapMs` 80 ms; when you hit a block / background / seed it turns to it, plays the roar frames over `SKY.roarMs` 420 ms and at `SKY.fireAt` 150 ms breathes the Fire Dragon's fireball (`pet_flame_ball`, same `breaths` / smoke / one hit less as the Fire Dragon). Size: `SKY.len` 84 world px tail to snout (`petScale`, per-pet `len`). shadow.js `petBox` up 110 for them. The unused flame_dragon / frost_dragon / *_fx pictures in assets/pets are still unused.
 - Nov 1 2026 (build '2026-11-01 d', owner: the black dragon was ugly / not accurate, outline too thick): the owner's dragon PNGs are SEE-THROUGH (the dark / gradient background was only the viewer; the glow is half see-through), so `sky_dragons_cut.py` now takes the dragon from the alpha channel (median alpha >= 128 per art pixel) instead of keying colours, and adds no outline: exactly his pixels and outline (all 5 dragons re-cut). The Shadow Dragon's roar is his picture at its own pixels (7 sheet px, `www/assets/pets/shadow_dragon_roar.png`, 3 frames) instead of resampled coarser into the strip: pets.js `roarImg` / `roar` { eye, mouth, len } and `eye` (strip): drawSky draws it at SKY.len / roar.len, its eye on the wing-beat frames' eye, and the fireball leaves from `roar.mouth`. Frames 9-11 of shadow_dragon.png are unused copies of frame 0.
 - Nov 1 2026 (build '2026-11-01 e', owner: "that size: not a pet, make it a RIDE, sitting on top of the dragon; fine if the wing covers a little"): the 5 flying dragons are RIDES now, not pets (pets.js back to its committed version, shadow.js petBox line back; pictures moved to `www/assets/rides/`; schema.sql rows renamed `ride_<x>_dragon`, re-run it). rides.js `kind: 'sky'` (`skyRide` / `drawSkyRide` / `skyRideIcon`, `SKYR`): 80 world px tail to snout (per-ride `len`), its lowest leg row (`foot`) hovers `SKYR.hover` 3 px (+ bob) over the ground, flapping frames 0-8 every 80 ms; the rider sits with his hip on `saddle` (picture px, top of the back) sunk `SKYR.sink` 2 px, cut below it like other rides (the dragon is drawn whole behind him, no front layer). Hitting a block / background / seed: roar (frames 9-11, Shadow: its roar strip lined up on `eye`) and the Fire Dragon's fireball (`breaths`, pets.js) from the mouth; `petHitBonus` wrapped so the ride also takes one hit off (at most 1 with a Fire Dragon pet). speed x1.4, `flap` (one more air jump), 100,000 gold, Legendary. Tested live: all 5, both ways, roar + fireball + smoke.
 - Nov 1 2026 (build '2026-11-01 f', owner: "the front wing must overlap the character"): dragon rides draw the NEAR wing again over the rider (after pass 2, before the held arm / weapon): per wing-beat frame `front` [x at the top, x at the saddle's height] = a line between the near wing (left) and the far wing; `wingCut` keeps what is left of it and above the back (`skyFront`, cached; roar frames use frame 0's line; Shadow's roar picture `roar.front` [x top, x bottom, y], `skyRoarFront`). The rider's head box (`SKYR.headW/headUp/headH`) is clipped out of that front layer so the wing covers body and arms but not the face. Saddles moved 4 px back (towards the wing root).
@@ -2216,12 +2254,12 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Nov 1 2026 (build '2026-11-01 j', owner: "match the dragons' fire to their colour"): each flying dragon pet breathes the Fire Dragon's fireball recoloured to it (`www/assets/pets/flame_ball_<shadow|bone|glacier|pearl|jade>.png`, made by `art-source/pets/dragon_balls.py`: brightness ^0.6 onto a 5-stop ramp, alpha kept): Shadow purple, Bone magenta (its eyes), Glacier ice blue, Pearl white / pale blue, Jade green. Same head / dir as flame_ball.
 - Nov 1 2026 (build '2026-11-01 k', owner: swimming up to the top of the water should jump out, half a normal jump): physics.js `step`: when the body's middle leaves the water (`inWater` was true last step, `P.wasSwim`) while rising with jump held, vy = -JUMP_V x `SWIM_OUT` (sqrt 1/2 = half the height), `P.rise` set so letting go cuts it like any jump, jump sound 0.7. Measured in the game: normal jump 94 px, out of the water ~48 px (feet 36 px over the surface).
 - Nov 1 2026 (build '2026-11-01 l', owner's video: at the top of the water he only bobbed, the feet never came out): build k's jump was too low (JUMP_V x sqrt 1/2 at normal GRAVITY = ~31 px, since a normal jump rises on the lighter RISE_GRAVITY) and needed jump held at that moment. Now: leaving the water's top while rising (held or not) sets vy = -sqrt(2 x GRAVITY x `SWIM_OUT_H` 47) = half the ~94 px normal jump, `P.rise` false, and `P.swimOut` stops the keyup cut (input.js) until it starts falling. Measured with real key presses in a 7 x 4 pool: feet 33 px over the surface (they start ~13 px under it).
-- Nov 1 2026 (build '2026-11-01 m', owner): ground tiles. DIRT is plain (no pebbles / holes): `art-source/tiles/ ground_shapes.py` rewrites `www/assets/tiles/dirt_0..2.png` from the sheets kept in `art-source/tiles/before_nov1/` (edge bands of open sides kept, the rest base brown + faint grain). ROCK and LAVA are shaped in the game by the new `www/js/ground.js` (loaded right before main.js, wraps `drawTileBlock`, caches per sheet + frame + cut in `GROUND_PICS`), from their unchanged sheets: rock is its own stone, outlined wherever the next tile is air or dirt, every corner whose two sides are both air (cut to the sky) or both dirt (cut filled with plain dirt) is a curve (`GROUND_R.rock` 11); a corner between air and dirt stays square. Lava: top corners rounded where the top and that side are air (`GROUND_R.lava` 9); bottom over air = sky-island underside (`lavaUnder`: dark crust band `CRUST` with 3 hanging points per tile, same in every tile so rows join, tapering up at an air side). Lava on dirt etc. is drawn as before. Collisions unchanged (visual only).
+- Nov 1 2026 (build '2026-11-01 m', owner): ground tiles. DIRT is plain (no pebbles / holes): `art-source/tiles/ ground_shapes.py` rewrites `www/assets/tiles/dirt_0..2.png` from the sheets kept in `art-source/tiles/before_nov1/` (edge bands of open sides kept, the rest base brown + faint grain). ROCK and LAVA are shaped in the game by the new `www/js/world/ground.js` (loaded right before main.js, wraps `drawTileBlock`, caches per sheet + frame + cut in `GROUND_PICS`), from their unchanged sheets: rock is its own stone, outlined wherever the next tile is air or dirt, every corner whose two sides are both air (cut to the sky) or both dirt (cut filled with plain dirt) is a curve (`GROUND_R.rock` 11); a corner between air and dirt stays square. Lava: top corners rounded where the top and that side are air (`GROUND_R.lava` 9); bottom over air = sky-island underside (`lavaUnder`: dark crust band `CRUST` with 3 hanging points per tile, same in every tile so rows join, tapering up at an air side). Lava on dirt etc. is drawn as before. Collisions unchanged (visual only).
   (same build, owner while it was being made: "keep these designs on the dirt" + a picture of a faceted grey boulder for the rock): dirt keeps its mottled two-tone texture and specks, only the grey pebbles and the dark holes (with their light rim / shadow) are refilled from the dirt round them. `stone.png` is now a NEW faceted rock made by ground_shapes.py: 4 big flat faces per tile (wrapped Voronoi, so it tiles), neutral greys, dark cracks, each face lit on its top-left edge, shaded bottom-right and lighter towards its top-left; open sides keep outline / light line / shadow. ground.js rock corners radius 12 with the new greys.
 - Nov 1 2026 (build '2026-11-01 n', owner):
   - Rock corners are ANGULAR now ("like that drawing, not the one with a radius"): ground.js `rockCut` / `ROCK_CUTS` (a straight slanted facet per corner, each a little different) instead of the round cut; lava keeps its round top.
   - Bag: the Wearing column beside the bag is hidden (CSS `#inv .wearing` display none; the phone layout's extra left room for it removed). The slots still exist: what you wear / hold shows at the START of the bag grid as `.cell.worn` (gold frame + check, ui.js renderInvNow, not counted as bag slots, follows the search / GM tab); tap = `askUnequip`.
-  - 8 pastel backgrounds, bg 33-40 (next free bg: 41): `pastel_<pink|peach|yellow|mint|aqua|blue|lavender|cream>_bg` (blocks.js NEW_ITEMS after the wallpapers, Common, 300 s trees; art `hdPastel` at the end of hd/colors.js: plain soft colour + faint grain). Recipes (balbtopia): White Wallpaper + Red / Orange / Yellow / Green / Aqua / Blue / Purple / Wood Block (farming.json trees + splices, config.js SPLICE).
+  - 8 pastel backgrounds, bg 33-40 (next free bg: 41): `pastel_<pink|peach|yellow|mint|aqua|blue|lavender|cream>_bg` (blocks.js NEW_ITEMS after the wallpapers, Common, 300 s trees; art `hdPastel` at the end of art/colors.js: plain soft colour + faint grain). Recipes (balbtopia): White Wallpaper + Red / Orange / Yellow / Green / Aqua / Blue / Purple / Wood Block (farming.json trees + splices, config.js SPLICE).
 - Nov 1 2026 (build '2026-11-01 o', owner, his rock picture again: "still not like that"): ROCK is now a BOULDER (our own drawing in the style of his picture: lumpy outline `SIL`, 8 flat slabs `FACES` split by dark cracks, each slab lighter to its top-left, a light edge past each crack, lit top rim / shaded underside) in ground_shapes.py; all 16 frames of stone.png are that boulder. ground.js `rockTile`: each quarter of the tile is first filled with what its two sides touch (air on either = nothing, dirt = plain dirt, rock / other = dark `ROCK_GAP`), then the boulder on top, so rock in dirt is a boulder in the dirt and a patch of rock is a pile of boulders. The angular `rockCut` of build n is gone.
 - Nov 1 2026 (build '2026-11-01 p', owner): the boulder's bottom-left is curved too (`SIL` / last face in ground_shapes.py), and a rock tile is ONLY the boulder: no dirt / dark fill in its corners, they are see-through (owner: transparent is fine; underground the backdrop shows there, since no background is drawn behind sheet blocks). ground.js `rockTile` just returns stone.png.
 - Nov 1 2026 (build '2026-11-01 q', owner): the boulder's bottom-RIGHT is curved like its bottom-left (`SIL` and the last-but-one face in ground_shapes.py).
@@ -2415,7 +2453,7 @@ The owner writes in Tagalog/Taglish: answer in the same language, keep code comm
 - Nov 5 2026 (build '2026-11-05 x', owner: "the ring needs no look, it's just there, but rings give effects; with one ring you wear the Cloud Ride; take the Cloud Ride out of the Shop, leave only one ring"): wrist.js RINGS = only the CLOUD RING (`cloud_ring`, 100,000 gold, Legendary, `ride: 'ride_cloud'`); the other rings of build t are gone (cleanInv drops them from old bags). Rings draw nothing (`rg = null`, no paintRing / star). `ringRide(eq)`; rides.js `rideIdOf(eq)` = eq.ride || ringRide(eq), used everywhere the ride was read (rideOf, rideLocal, harvester, feetSpeed, rideAirJumps), so wearing the ring = riding the cloud (speed 1.5, one more air jump) for you and for others (they get eq.ring); the Ride slot wins if something is in it. Cloud Ride `noShop: true` (not in the Shop; owned ones still work). schema.sql: cloud_ring row added, ride_cloud and the 6 old ring rows removed (RE-RUN schema.sql). GAME_BUILD '2026-11-05 x'.
 - Nov 5 2026 (build '2026-11-05 y', owner: "take the zoom / far out of Settings; desktop: the scroll wheel zooms in and out; mobile: two fingers; smooth, no big jumps"): Menu -> Settings has no Camera slider any more (menu.js; `ZOOM_MAX` / `settings.zoom` only read once to start `zoomF`). NEW `camzoom.js` (loaded right before main.js): render.js resize() asks `camZ(far, near)` (far = the old farthest view, near = ~4 tiles tall); the goal `camGoal` is set by the mouse WHEEL on the canvas (x exp(-delta x `CAM_WHEEL` 0.0012), wheel ignored on the log in screen) or a TWO-FINGER PINCH (window capture pointer listeners: from the second touch the game never sees that finger, `ptr.down` is let go, goal = start x finger distance ratio); a render wrapper glides Z to it (`CAM_EASE` 10 / s) on 1/32 steps (tile = whole px, no seams) keeping the screen's middle on the same world point. Saved as `settings.zoomF` (0 far .. 1 near) 1.5 s after the last change. Own LOBBY keeps its fixed zoom. GAME_BUILD '2026-11-05 y'.
 - Nov 5 2026 (build '2026-11-05 z', owner: "floating coins / items (ATM coins, dropped items) left in my world vanish when I put a new zip in and reload"): two causes fixed. (1) A drop was only saved at the next 4 s tick, so reloading right after an ATM pay-out / a drop lost it: worlds.js now saves the world within `DROP_SAVE_MS` 400 ms whenever the drop list changes (uid + qty signature; own LOBBY: the player save) and also on `beforeunload` (earlier than pagehide, while the request can still go out). (2) An OLD build still open somewhere (another tab, the phone app, a cached page) saved without `dt`, and the server took its drop list as it was, wiping drops it never had: schema.sql save_world now treats a missing `dt` as "nothing went away" (keep_unseen_drops with '[]'), for builders and visitors, so old builds can add drops but never remove them (a pickup made by an old build may come back: update every device). RE-RUN schema.sql. Tested offline: drops made 0.9 s before a reload are still there. GAME_BUILD '2026-11-05 z'.
-- Nov 5 2026 (build '2026-11-05 za', owner: "more blocks: vines that work like a platform but look like a block; arrow blocks, cyberpunk style: an arrow pointing left moves you one tile left and you can't come back (collision), up / down / left / right; more Neon Lights in gray / green / red / orange or other colours, same function"): NEW `cyberblocks.js` (after the hd/ files, before camzoom.js / main.js). Blocks 399-411 (NEXT FREE BLOCK: 412): 399 Hanging Vines (`hanging_vines`, plat + walk-through, a whole tile of vines that join neighbours) = Vine Block + Wooden Platform; 400-403 Up / Down / Left / Right Arrow Gate (`arrow_gate_*`, BLOCK.arrow = [dx, dy], walk-through; dark panel, magenta frame, 3 neon chevrons running the arrow's way, 6 frames x 110 ms) = that Arrow Block + Neon Lights; 404-411 Gray / Green / Red / Orange / Blue / Purple / Yellow / White Neon (`neon_<colour>`, solid, joinblocks.js neonPic in other colours: `NEON_COLORS` outer / inner tube, panel, rim) = Neon Lights + that colour block. All trees 300 s; recipes in farming.json (trees + splices) and SPLICE. ARROWS: a step() wrapper pushes the player (body middle inside the gate) `ARROW_PUSH` 300 px/s the arrow's way (up: vy -420, down: vy +300) until the middle is out = one tile on; a collide() wrapper makes the gate solid only when ENTERING it against the arrow (left gate: moving right with the right edge outside the tile before the step, `arrowPrev`), so up = a floor from above, down = a ceiling from below. Local player only (others are drawn where they say they are). Tested in the game: walked into a left gate, pushed one tile left, blocked walking back; up gate lifts you and holds you from above. GAME_BUILD '2026-11-05 za'.
+- Nov 5 2026 (build '2026-11-05 za', owner: "more blocks: vines that work like a platform but look like a block; arrow blocks, cyberpunk style: an arrow pointing left moves you one tile left and you can't come back (collision), up / down / left / right; more Neon Lights in gray / green / red / orange or other colours, same function"): NEW `cyberblocks.js` (after the art/ files, before camzoom.js / main.js). Blocks 399-411 (NEXT FREE BLOCK: 412): 399 Hanging Vines (`hanging_vines`, plat + walk-through, a whole tile of vines that join neighbours) = Vine Block + Wooden Platform; 400-403 Up / Down / Left / Right Arrow Gate (`arrow_gate_*`, BLOCK.arrow = [dx, dy], walk-through; dark panel, magenta frame, 3 neon chevrons running the arrow's way, 6 frames x 110 ms) = that Arrow Block + Neon Lights; 404-411 Gray / Green / Red / Orange / Blue / Purple / Yellow / White Neon (`neon_<colour>`, solid, joinblocks.js neonPic in other colours: `NEON_COLORS` outer / inner tube, panel, rim) = Neon Lights + that colour block. All trees 300 s; recipes in farming.json (trees + splices) and SPLICE. ARROWS: a step() wrapper pushes the player (body middle inside the gate) `ARROW_PUSH` 300 px/s the arrow's way (up: vy -420, down: vy +300) until the middle is out = one tile on; a collide() wrapper makes the gate solid only when ENTERING it against the arrow (left gate: moving right with the right edge outside the tile before the step, `arrowPrev`), so up = a floor from above, down = a ceiling from below. Local player only (others are drawn where they say they are). Tested in the game: walked into a left gate, pushed one tile left, blocked walking back; up gate lifts you and holds you from above. GAME_BUILD '2026-11-05 za'.
 - Nov 5 2026 (build '2026-11-05 zb', owner: "the vine platform: just one vine, as big as a block"): Hanging Vines redrawn (`vinePic`, joinMask bits 2 / 8 only): a leafy branch along the top (what you stand on; side-by-side ones join into one branch, open ends rounded) and ONE thick vine (5 px, swaying) hanging down the whole tile with leaves on alternate sides; the rest see-through. Still a platform. GAME_BUILD '2026-11-05 zb'.
 - Nov 5 2026 (build '2026-11-05 zc', owner: "nicer, professional; the top leaves too, not straight: two leaves facing opposite ways; the vine a bit fatter"): Hanging Vines repainted: two big shaded leaves (`vineLeaf`: pointed, lit half up, midrib, veins, dark outline) spread left and right from a bud on the vine's head to the tile's edges (the standing surface; a row reads as one leafy line), and one 8 px vine (outlined, lit left, twisted bands) with 4 smaller leaves on alternate sides. GAME_BUILD '2026-11-05 zc'.
 - Nov 5 2026 (build '2026-11-05 zd', owner: "fatter leaves; stacked ones must join; like a ladder / stairs: holding W or Space you go up"): Hanging Vines: `vinePic` uses all 4 joinMask bits: a vine ABOVE = the vine runs on from the top edge with no top leaves (an extra small leaf instead), a vine BELOW = it runs on to the bottom edge (no end cap), so a column is one long vine with the two big leaves only on its top block. Leaves fatter (top 9.5, small 5.6 wide, 15 long). CLIMBING (cyberblocks.js step wrapper, `inVine`: the body's middle column touches a vine tile): holding Space / W / Up (the phone jump button) climbs at `VINE_UP` 150 px/s, S / Down goes down at `VINE_DOWN` 220, otherwise you slide down slowly (`VINE_SLIDE` 45); at the top you step onto the leaves (still a platform). Tested: a 5-tall column climbed in 1.5 s, standing on top. GAME_BUILD '2026-11-05 zd'.
@@ -2880,7 +2918,330 @@ leaves 1 to 3, gone at the 4th, only 15 px apart; just his look in rainbow, no f
   sets c.ground = true for the rider (standing picture in the air too), and the copies use the same pose.
 
 ### Build 2026-11-08 c — Display Box dark gray frame
-- (owner: "the Display Box border dark gray instead of white") hd/misc.js `DISP_PIX.pal`: every white / light-grey frame
+- (owner: "the Display Box border dark gray instead of white") art/misc.js `DISP_PIX.pal`: every white / light-grey frame
   colour (208-255) mapped to a dark grey 52-82 (same order, so the bevel shading stays); the outline `b` 118 grey -> 28
   so it still shows around the darker frame. The glass colours (g, h, k, s) are unchanged. Shop icon uses the same art.
   GAME_BUILD '2026-11-08 c'.
+
+### Build 2026-11-09 c — Bathtub on/off, bath effects, emotes on rides, Leaf Glider colours, Arrow Gates, Stage, block fit
+Owner (Taglish): "the bathtub must have on and off; in the bath remove the other effects (weapon, boots...), keep only the
+scarf's; /omg on a ride doesn't work; the leaf ride: 2 more autumn colours, green and yellow"; then "the arrow blocks:
+push further, you must end up in the middle of the tile; in a row of them you sometimes come out through a solid block;
+the Stage like a Wooden Platform; the Bone Platform's bar at the top, still a bone; blocks whose picture doesn't reach
+the tile's bottom must reach it; platforms with extras on top (Candy Platform): the bar flush with the tile's top, the
+extras sticking out above".
+- bath.js: Bathtub ON / OFF = one punch (like the Campfire: `ANIM_TOGGLE` + bit `ANIM_OFF` of `vari`, blocks.js
+  `toggleAnim`, saved and synced with the tile, toast "Bathtub: off / on"); hits 2 -> 3. Off = `BATH_OFF` picture
+  (`paintBathtub(..., off)`: empty tub, no water / foam / bubbles / drip), and `bathOn(i)` is false: rest.js won't let
+  you get in (updateRest, restFromNet) and a bather gets out at once. A new tub is on.
+- bath.js: in the bath only the Royal Silk Scarf's reaper stays. A drawCharacter wrapper draws a bather with
+  `bathEq(eq)` (BATH_KEEP head items minus `BATH_NO_FX` Fire Eyes, plus the scarf) and no hand item / pet; particles
+  made for a bather (stepToolFx wrapper: scythe flames, tool sparkles, autumn leaves; or while he is drawn) are removed
+  by `bathDropFx`, except the soap bubbles. `c.bathBase` keeps the real equipped (the local player's bubble timer).
+  scarfreaper.js `reaperOn` no longer hides the reaper in a bath.
+- emotes.js: `emoArmPose` no longer refuses riders (`c.rideBase`): /omg and /thumbsup raise the arms on every ride
+  (seated rides cut only below the seat; a held weapon goes through drawArmWithTool, drawn over the ride).
+- rides.js: `ride_leaf_green` "Green Leaf Glider" and `ride_leaf_yellow` "Yellow Leaf Glider" (90,000 each, Legendary,
+  same as the red one; `pal` -> `LEAF_PALS` green = the leaf's original colours, yellow golden; `paintLeaf(state, f, r)`,
+  `ridePic` passes the ride). autumn.js `AUTUMN_RIDES`: all three in the AUTUMN tab, event only. schema.sql: shop_prices
+  rows + keep list, `shop_buy` autumn-window check for both: RE-RUN schema.sql.
+- cyberblocks.js Arrow Gates: a left / right gate pushes you until your middle is at the MIDDLE of the next tile
+  (`arrowRun`, target x, gives up after `ARROW_RUN_MAX` 0.8 s or at a wall); a row of gates chains (each new gate sets a
+  new target). Up / down gates also slide you to the middle of the column. The push moves through `arrowMoveX` (4 px
+  steps, P.vx set to the push's direction for collide('x')): before, collide('x') snapped by the sign of P.vx, so standing
+  still (vx 0) a push went into a wall and out the other side. Tested: 1 / 3 gates end at x.50; with a wall after them
+  you stop against it, never inside.
+- concert.js: Stage (388) is `solid: false, plat: true` (Wooden Platform behaviour); picture unchanged.
+- NEW `blocks/blockfit.js` (right before main.js, outermost drawNewBlock wrapper): measures each deco block once
+  (drawn alone at 64 px on a small canvas) and moves only its DRAWING: platforms up by their bar's top row (first row
+  >= `FIT_BAR` 70% full), so the bar is flush with the tile's top and gumdrops / bone knuckles / cloud puffs / leaves
+  stick out over the tile above (the Bone Platform's shaft is now at the top); other walk-through decos down by the
+  empty rows under them (at most `FIT_DOWN_MAX` 25%) so they stand on the tile. `FIT_KEEP`: whole-tile / bouncing
+  platforms, vines, the Stage, and things that hang or float (disco ball, baby mobile, clouds, AC, tank lid, music
+  notes, Big Arrow...). Collisions, icons and saves unchanged.
+- Tested offline (Playwright): tub off / on by punching, getting in only when on; bath with scythe / pet / wings / fire
+  eyes / scarf shows only the head and the reaper; /omg on horse, car, leaf, carpet, cloud; the three Leaf Gliders; Arrow
+  Gate rows; jumping up through a Stage and landing on it; every block 9-436 drawn with no errors. GAME_BUILD '2026-11-09 c'.
+
+### Build 2026-11-09 d — Esc menu, Leave zoom, more backgrounds
+Owner: "Esc should pop up the menu; clicking Leave must zoom the camera like clicking the main door, onto the character
+himself; add more background blocks in dark pastel colours and other designs".
+- input.js: Escape with nothing open (no dialog, Shop, trade, lock window, world list) opens the menu; Escape again
+  closes it (it already did). Escape also closes the Shop now.
+- liven.js `exitToLobby` (main door click AND the menu's Leave button): the doorTrip zoom goes into the PLAYER's middle
+  instead of the main door's tile (Leave from far away zoomed into a door off the screen). Standing in the main door
+  it looks the same as before.
+- NEW `blocks/backgrounds2.js` (before blockfit.js): backgrounds 45-60 (permanent; NEXT FREE BG: 61). 45-52 Dark Pastel
+  Pink / Peach / Yellow / Mint / Aqua / Blue / Lavender / Cream Background (`dark_pastel_<c>_bg`, plain deep pastel +
+  grain) = <colour> Block + Grey Block (cream: White + Brown Block); 53 Pastel Checker Wall (`pastel_check_bg`) =
+  Checker Wallpaper + Green Block; 54 Candy Stripe Wall = Stripey Wallpaper + Yellow Block; 55 Polka Dot Wall = Polka Dot
+  Block + Black Block; 56 Argyle Wall = Blue Block + Black Block; 57 Starry Wall = Blue Star Wallpaper + Black Block;
+  58 Heart Wall = Flowery Wallpaper + Dark Red Block; 59 Dusk Brick Wall = Bricks + Dark Grey Block; 60 Pastel Wave
+  Wall = Glass Pane + Aqua Block. Cheap block recipes on purpose: the pastel walls are rarity 108+, so recipes on top of
+  them would grow for days. 32 px seamless HD_TEX art (`BG2_PAINT`), SHOP_ICON = the texture. Recipes in SPLICE and
+  data/farming.json (trees + splices).
+- Line endings: rides.js, autumn.js, cyberblocks.js, concert.js, liven.js, input.js and schema.sql are CRLF files;
+  build c's edits had turned them to LF, they are CRLF again (farming.json too).
+- Tested offline: Esc opens / closes the menu; Leave from 7 tiles away zooms into the character and lands in the lobby;
+  the 16 walls tile without seams; recipes resolve (rarity 15-51). GAME_BUILD '2026-11-09 d'.
+
+### Build 2026-11-09 e — Plain dark-pastel backgrounds
+Owner: "add plain colours too, pastel colours that are a bit dark".
+- backgrounds2.js: backgrounds 61-72 (permanent; NEXT FREE BG: 73), `plain_<c>_bg` "<Name> Plain Background": ONE
+  flat colour (`BG2_PAINT.flat`, no grain / pattern), medium-dark pastels: Rose #b07a8c = Red + White Block, Coral
+  #b8806e = Orange Block + Glass Pane, Apricot #b8946a = Orange + Brown Block, Butter #b0a46a = Yellow Block + Glass Pane,
+  Sage #8aa88a = Green + White Block, Teal #6fa8a0 = Aqua + White Block, Sky #7a9cc0 = Blue + White Block, Periwinkle
+  #8a8cc0 = Blue + Marble Block, Lilac #a088b8 = Purple + White Block, Mauve #a87a9e = Red + Purple Block, Sand #a89a84
+  = Yellow + Brown Block, Slate #7e8a98 = Grey Block + Glass Pane (rarity 14-53). SPLICE + data/farming.json.
+- Tested offline: all 12 draw, recipes resolve, no errors. GAME_BUILD '2026-11-09 e'.
+
+### Build 2026-11-09 f — Plain greys, Samurai Umbrella
+Owner: "I meant dark grey / gray, things like that; add an umbrella to the weapons: worn it is closed, jump and in the air
+it opens and you come down slowly; a samurai look"; then, on seeing a second open umbrella drawn over the head: "corny:
+the one he is HOLDING must open, don't make a new one".
+- backgrounds2.js: backgrounds 73-80 (permanent; NEXT FREE BG: 81), flat plain greys `plain_<name>_bg`: Charcoal
+  #2c2d31 = Black + Dark Grey Block, Graphite #393b40 = Black + Grey Block, Dark Gray #46484d = Dark Grey Block + Glass
+  Pane, Iron Gray #55585e = Dark Grey + White Block, Gray #6a6c71 = Grey + White Block, Ash Gray #85878b = Grey + Marble
+  Block, Warm Gray #5b5550 = Grey + Brown Block, Blue Gray #4b5560 = Dark Grey + Blue Block. (The 12 pastel plain ones
+  of build e stay.)
+- NEW `items/umbrella.js` (after emotes.js, before bath.js): `samurai_umbrella` "Samurai Umbrella" (REPLACED in build g by `blue_umbrella`; Epic hand item,
+  TOOLS like weapons2.js; recipe Oil-paper Umbrella + Katana, SPLICE + farming.json, 360 s tree). Closed picture
+  `HDT_ART.samurai_umbrella`: katana-like, red / black diamond-wrapped grip, round gold guard, black folded canopy with
+  red rib lines and a gold tie band, gold finial. In the AIR (`umbOpenFor`: held or Hand slot, not riding / swimming /
+  resting / dead, c.ground false) the held one opens IN THE FIST: a drawJumpTool wrapper draws, at jump.js's own place
+  and turn for the held tool (JUMP_HAND, JUMP_TOOL_TURN, + 45 deg = along the closed picture), the shaft (closed length,
+  wrapped grip, bamboo with gold nodes) and the canopy unfolding at its tip (`umbOpenPic(n)`: black lacquer dome, red
+  rim and scalloped red underside, 14 ribs, white mon with three commas, gold finial; `UMB_STEPS` 6 widths, `umbAmount`
+  per player over `UMB.openMs`, reset closed after 250 ms not drawn). Slow fall (you): a step wrapper eases P.vy down to
+  `UMB.fall` 62 px/s while it is open (tested: a jump stays in the air 1.4 s instead of 0.46 s). The first try (a
+  separate open umbrella on a long shaft over the head, closed one hidden) was removed on the owner's word.
+- GAME_BUILD '2026-11-09 f'.
+
+### Build 2026-11-09 g — the umbrella is the owner's Blue Umbrella
+Owner sent his picture (blue umbrella, closed and open, golden hook handles): "use this instead, held by the yellow
+handle".
+- umbrella.js rewritten: id `blue_umbrella` "Blue Umbrella" (the build-f `samurai_umbrella` was never released; its
+  recipe in farming.json renamed; still Oil-paper Umbrella + Katana). Pictures: `art-source/items/umbrella_source.png`
+  cut by `umbrella_cut.py` (cells of 13.2 source px, most common colour per cell) into `www/assets/items/
+  umbrella_closed.png` (19 x 59) and `umbrella_open.png` (66 x 59), drawn at `UMB.cell` 0.36 world px per picture px,
+  held at the yellow handle (`UMB_GRIP` closed [12.5, 8], open [33.5, 49.5]).
+- Ground / Hand slot / sitting / rides: the closed one, via a coded drawArmWithTool id ('umb|hand,turn,toolTurn,lift')
+  that the toolSprite wrapper paints in that draw's transform (rides.js still notes and replays the arm) and answers
+  with a blank picture; the bag / shop icon is the closed picture across a 64 px square (`UMB_ICON`).
+- Air: the drawJumpTool wrapper draws the held one in the raised fist: closed first, then the open picture widening
+  (`umbAmount`, 280 ms); slow fall unchanged (`UMB.fall` 62 px/s; tested 1.43 s in the air vs 0.46 s).
+- GAME_BUILD '2026-11-09 g'.
+
+### Build 2026-11-09 h — umbrella in the fist, Crystal Blocks / Walls, Moon Museum recipes, MOON1-9, Moons reset after the event
+Owner: "don't show this (the hook's stem next to the fist) so it looks held; a bit right and down"; "don't remove the
+yellow at the end"; "flip it when jumping like the other weapons"; "add crystal blocks and crystal backgrounds (the
+Moon's); in MOONEVENT a Mannequin, a hologram with the recipes and the blocks in Display Boxes, the other things from
+the Moon"; then (asked what removing the event means): "don't delete MOONEVENT, the players go there when the event
+starts, every 3 days; after its 24 hours the world they went to and broke must reset for the next event; remove the
+MOON world, keep MOON1-9"; refill "after the event, after the 24 hours it is open".
+- umbrella.js: in the air the hook's straight STEM is cleared from the picture (`UMB_STEM` boxes, `umbFistPic`), so the
+  shaft goes into the fist and the curled yellow end shows under it; moved `UMB.fistX` / `fistY` 1.5 world px forward /
+  down; MIRRORED (`g.scale(-1, 1)` before the turn) so it leans back like the other weapons when jumping.
+- NEW `events/mooncrystals.js` (after asteroids.js): blocks 437-441 `<colour>_crystal_block` (green, red, blue, white,
+  black; solid tex, faceted toroidal-Voronoi crystal in `CRYSTALS[..].C`; NEXT FREE BLOCK: 442) and backgrounds 81-85
+  `<colour>_crystal_wall` (dark Moon stone with that colour's crystal shards; NEXT FREE BG: 86). Stove (wrapper before
+  the older recipes): 2 crystals + 5 Moon Rock = 5 Crystal Blocks; 1 crystal + 5 Moon Rock Wall = 5 Crystal Walls.
+  breakDrop: always themselves. Tested: 5 blue + 12 Moon Rock -> 10 blocks, 1 left + 2 rock left.
+- moon.js `MOON_WORLDS` = MOON1 .. MOON9 again (180 seats; schema.sql allows rockets 0-199, no server change);
+  asteroids.js `MOON_RETIRED` = ['MOON'] only.
+- moonevent.js MOONEVENT_V 'MEV:14' (the GM enters MOONEVENT once to rebuild it): museum ceiling = one row of 21 Display
+  Boxes (Laser Gun, Green Acid, Glowing / Legendary Stone, 3 fossils, Moon Sand / Rock, both Moon walls, the 5 Crystal
+  Blocks + 5 Crystal Walls); the museum's two signs and 4 new ones on the cabin floor (x 46, 48, 52, 54) are Hologram
+  Signs with the recipes (Glowing Crystal, Crystal Wings, Glowing Crystal Wings, Legendary Stone, Crystal Blocks /
+  Walls). Mannequins unchanged (11, Astronaut Set + the wings).
+- Moons reset after the event: `moonWorldsFix` key is 'MOONEV3:<ev>' while open and 'MOONEV3:<ev>:c' once closed, and
+  buildMoon is seeded with that, so the first entry after the 24 hours rebuilds the Moon (broken blocks back, asteroids
+  in new random places), and the next event's start does it again. Tested: closed build differs from the open one.
+- GAME_BUILD '2026-11-09 h'.
+
+### Build 2026-11-09 i — new umbrella picture (whole), gem Crystal Blocks that sparkle, MOONEVENT labels, no rebuild
+Owner: new umbrella picture (straight yellow handle, no hook); "the crystal blocks / walls are ugly, change them"; his
+screenshot of the Moon Museum as HE decorated it in MOONEVENT: "the design must be like this, just put holograms under
+them with the name and recipe; raise the space if it is small"; then "the first one was better, the whole umbrella as in
+your first answer, but with this umbrella; the crystal blocks must sparkle, animated".
+- Umbrella: `art-source/items/umbrella_source.png` is his new picture, cut again by umbrella_cut.py (closed 15 x 58,
+  open 66 x 58); grips at the middle of the yellow handle (`UMB_GRIP` closed [7.5, 6], open [33, 51]). In the air the
+  WHOLE picture is drawn again (no cut stem, no shift, no mirror: `UMB_FISTGRIP` / `UMB_STEM` / inFist are unused now).
+- mooncrystals.js: new look. Crystal Block = a cut gem: bevelled frame, octagonal table, 8 facets lit from the top left,
+  shine; animated in a drawNewBlock wrapper: a light band sweeping across every `MC_SHINE_MS` 2.6 s (phase per tile,
+  'lighter') + two four-point twinkles. Crystal Wall = a dark seamless pattern of small cut-crystal diamonds (black:
+  one tone lighter).
+- moonevent.js `moonWorldsFix`: MOONEVENT is only built when it isn't the GM's built world yet (owner not the GM or rv
+  not 'MEV:...'). A new MOONEVENT_V NO LONGER rebuilds it, so the GM's own decoration stays. (Build h's 'MEV:14' would
+  have rebuilt it: if build h was used and the GM entered MOONEVENT, his design was replaced; it can't be brought back
+  by the game.)
+- NEW `events/mevlabels.js` (after mooncrystals.js): once per MOONEVENT (rv + ':L1') every Mannequin (its back /
+  shirt / hat item), Display Box, crystal tile and Crystal Block gets a Hologram Sign with its name + how to get it
+  (`mevLabelText`, <= 120 chars) in the first empty tile of the 3 under it (through platforms, stopping at a solid
+  floor, never just above a Mannequin); on the floor with no room under it: next to it. Neighbours (<= 2 tiles) with
+  the same text get one. Only empty tiles are used. The GM's save keeps it (saveWorld 1.5 s after, GM only). Tested on
+  a copy of his layout (truss shelf of Mannequins in pairs, Display Boxes on the wall, crystals on the floor): 12 signs,
+  none missed.
+- GAME_BUILD '2026-11-09 i'.
+
+### Build 2026-11-09 j — Crystal Blocks in the owner's designs, no Crystal Walls
+Owner sent a sheet of 12 crystal block pictures (+ a background picture): "like these but in the colours of the game's
+crystals; leave the background one out, blocks only, no backgrounds".
+- NEW `art-source/items/crystal_blocks_source.png` + `crystal_blocks_cut.py`: the 12 blocks (4 x 3 on the left) cut to
+  32 x 32 (most common colour per cell) and recoloured by brightness into each crystal's 5 tones (outline -> C[0],
+  quantiles -> C[1..4], brightest 3% -> white) -> `www/assets/items/crystal_blocks_<colour>.png` (12 frames each).
+- mooncrystals.js: each placed Crystal Block draws one of the 12 designs picked by its tile (hash of x, y), then the
+  sparkle (light band + twinkles, unchanged). Icon = design 0. The gem painter stays only as the fallback before the
+  pictures load. Crystal Walls (bg 81-85) REMOVED (items, art, Stove recipe, museum Display Boxes, labels); NEXT FREE BG
+  back to 81. Museum sign text updated.
+- GAME_BUILD '2026-11-09 j'.
+
+### Build 2026-11-09 k — Crystal Walls from the block designs, brighter blocks, MOONEVENT crystals, Furious Scythe beam
+Owner: "make backgrounds of them, the same as the blocks but dark; add them to MOONEVENT with the recipes"; "the
+Furious Scythe: the same effects as the Nocturn Scythe, but the break effect dark red"; "make the blocks' colours
+brighter".
+- crystal_blocks_cut.py: block tones shifted up one step (outline C[0], then C[2], C[2]/C[3], C[3], C[4], white; 1.25x
+  saturation). Also writes `crystal_walls_<colour>.png`: the same 12 frames over the darkest tone (corners filled),
+  x 0.42 brightness.
+- mooncrystals.js: backgrounds 81-85 `<colour>_crystal_wall` again (NEXT FREE BG: 86), one of the 12 dark designs per
+  tile: render.js now calls `bgImage(bg[i], i)` (tile index added) and a bgImage wrapper picks the frame. Stove: 1
+  crystal + 5 Moon Rock Wall = 5 Crystal Walls (Crystal Blocks unchanged).
+- mevlabels.js ':L2' (once, on entering MOONEVENT): `mevAddCrystals` puts Display Boxes for the 5 Crystal Blocks + 5
+  Crystal Walls the museum doesn't show yet in the first free run of 12 tiles inside the Moon Rock Wall background with
+  an empty row under it; then `mevLabel` (now skips items that already have their sign under / next to them) adds their
+  Hologram Signs. Fresh builds (buildMoonEvent) list them too.
+- Furious Scythe (reaperscythe.js): `NOCT_BEAMERS` { reaper_scythe: green, furious_scythe: `RAD_DARKRED` }: every
+  swing shoots the radiation beam from its blade tip (`FUR_TIP` [47, 40.5] in the 72-unit picture, noted in a scyDraw
+  wrapper), no crescent slash, dark red flames rising off it (SCY_FLAME_COL.furious_scythe). asteroids.js
+  `drawRadiation(..., pal)` takes a palette (`RAD_GREEN` default; a non-object 7th argument, which one caller passes,
+  is ignored as before).
+- GAME_BUILD '2026-11-09 k'.
+
+### Build 2026-11-09 l — round-bottomed flames on the Nocturn and Furious Scythes
+Owner (crop of a green flame): "curve the bottom of the Nocturn Scythe's effect, the Furious Scythe's too".
+scythes.js `scyFlame`: kinds in `SCY_FLAME_ROUND_KINDS` (reaper_scythe, furious_scythe) use `SCY_FLAME_ROUND` = the
+4 flame maps with the last two rows '.OMWMO.' / '..OOO..' (a round bottom) instead of the flat 'OMLWWMO' / '.OOOOO.'.
+Other flame scythes unchanged. GAME_BUILD '2026-11-09 l'.
+
+### Build 2026-11-09 m — the umbrella works on every ride
+Owner: "on rides too: wearing a ride, the umbrella's effects must still work; every ride".
+umbrella.js: `umbOpenFor` / the slow-fall step no longer skip riders. A drawCharacter wrapper (outside rides.js's) works
+out `UMB_CUR` { u, sway } once per draw from the REAL ground state; drawJumpTool (seated rides and the Leaf Glider /
+Cloud Ride use the jump pose in the air) reads it; drawArmWithTool adds u / sway to the coded 'umb|' id, so poses that
+keep the rider standing in the air (Sultan's Flying Carpet) draw it OPEN straight up from the hand, lifted `UMB.stand`
+14 world px on a longer grey shaft so the canopy is over the head. Tested: horse, car, Leaf Glider, Cloud Ride, carpet:
+open in the air, ~1.4 s in the air each (slow fall). GAME_BUILD '2026-11-09 m'.
+
+### Build 2026-11-09 n — on the carpet the umbrella arm is raised
+Owner: "on the carpet too, just the hand holding the umbrella raised". umbrella.js wraps emotes.js `emoArmPose`: while
+the umbrella is open (UMB_CUR.u >= 0.3) in a pose drawn standing (the carpet rider in the air), the back arm is cut off
+the dressed body (emoCut) and turned up `EMO_WEAPON_TURN` (eased in) round its shoulder, the umbrella in its hand via
+drawArmWithTool; the coded open umbrella sees turn > 1 and is held right in the hand (no `UMB.stand` shaft). Tested on
+the carpet: arm up, open umbrella over the head, slow fall. GAME_BUILD '2026-11-09 n'.
+
+### Build 2026-11-09 o — carpet umbrella arm flipped
+Owner: "can you just flip the arm?" (answered: the same arm, bent the other way). umbrella.js emoArmPose wrapper: the
+raised arm (and the umbrella in it) is mirrored round its shoulder (scale -1 at SHOULDER x) and turned `UMB.armTurn`
+2.7, so it goes up beside the head with the hand over it instead of out to the side. GAME_BUILD '2026-11-09 o'.
+
+### Build 2026-11-09 p — crystal blocks / walls really placed in the GM's museum
+Owner: "you haven't added the crystal blocks and backgrounds with their recipes to MOONEVENT yet". Cause: build k's
+`mevAddCrystals` wanted 12 free tiles in a row and his museum has none, so nothing was added (and ':L2' then marked it
+done). mevlabels.js `MEV_CRYSTALS_V` ':L3' (runs again once): the museum = the box round its Display Boxes and
+Mannequins (+3 tiles each side, +2 up); row by row from the top, a slot is a free tile with a background, a free tile
+under it (the label) and not just above a Mannequin; the 10 Display Boxes go in pairs (block + wall of one colour side
+by side when two slots touch) with a gap between pairs; then mevLabel adds the Hologram Signs (name + Stove recipe).
+Tested on a copy of his museum from his screenshot: all 10 in the top row round his two fossil boxes, every one
+labelled. GAME_BUILD '2026-11-09 p'.
+
+### Build 2026-11-09 q — the museum grouped: blocks left, glowing middle, wings / wearables right
+Owner: "put them together: from the left the blocks, on the right side the normal wings and wearables, in the middle
+the glowing ones". mevlabels.js ':L4' (once, on entering MOONEVENT; also does ':L3' first if it never ran): the auto
+labels are taken off (`mevUnlabel`: only signs whose text is exactly one `mevLabelText` writes), then `mevArrange`
+shuffles what the museum's slots hold, per kind of slot (Display Boxes, Mannequin outfits, crystal tiles / Crystal
+Blocks standing in the museum's box), nothing of the building moves: `mevAssign` puts the glowing things (id
+glowing_...) into the slots nearest the museum's middle, then the blocks / materials into the leftmost others and the
+wings / tools (ITEMS kind clothing / tool) into the rest; inside a group by kind then colour (`mevSortKey`). Then
+mevLabel writes the labels again. Mannequins hold no blocks: glowing in the middle of their row, normal wings round
+it. GAME_BUILD '2026-11-09 q'.
+
+### Build 2026-11-09 r — MOON is a normal world
+Owner (screenshot of the old MOON world): "take this Moon world away: a normal default world, like when you search a
+random world". asteroids.js: `MOON_RETIRED` is empty (MOON is no longer closed / hidden); a moonWorldsFix wrapper:
+entering MOON while it still holds the old Moon (worldBg 'moon' or rv 'MOON...') replaces it with exactly what a world
+nobody saved yet gets (genWorld('MOON'), trees / signs / vends / songs / displays / mannequins / drops cleared, no
+owner, no lock settings, worldBg null, rv null) and saves it. The Moons are MOON1-9 only. Tested: after the fix the
+tiles equal a fresh genWorld('MOON'). GAME_BUILD '2026-11-09 r'.
+
+### Build 2026-11-09 s — thinner outlines on the backdrop mountains and clouds
+Owner (screenshot of the sunset backdrop): "the weathers with these mountain and cloud assets: less stroke".
+art-source/autumn/fall_backdrop.py `unstroke(img, dark, edge)`: outline pixels (brightness < dark) more than `edge` px
+inside the shape are filled with the nearest non-outline colour, so only a thin line stays on the outside; now used
+for the clouds too (dark 0.62, edge 1.5) and the mountains (dark 0.42, edge 1.5). Re-run, it rewrote
+www/assets/autumn/fall_clouds.png, fall_mountains.png (Sunset, Fall Machine; Desert uses the clouds) and
+www/assets/background/clouds_plain.png, mountains.png (Sun and Snow Machines). GAME_BUILD '2026-11-09 s'.
+
+### Build 2026-11-09 t — crystal blocks / walls drop nothing, the world list as bricks
+Owner: "the crystal blocks and backgrounds: no drop and no seed when broken, just blocks and backgrounds"; and, with a
+screenshot of WORLDS: "take the owner's name off the right; smaller and a bit wider; the list like windows / bricks;
+your own worlds light blue; about 5 random worlds that have at least 1 player show too; keep the scroll but at most
+10 worlds".
+- mooncrystals.js breakDrop: Crystal Blocks / Walls give NOTHING when broken (no block, seed or gold).
+- NEW `ui/worldgrid.js` (after blockfit.js, before main.js): `renderWorldList` replaced: a 2-column grid of bricks
+  (raised, light top-left / dark bottom-right edges), name only (no owner / "Unlocked" / "You are here"); your own
+  worlds (`wgMine`: lock owner = you) light blue, the one you are in outlined, a green dot + count where players are
+  (Net.people). The list = listWorlds() + up to `WG_LIVE` 5 random worlds with players (picked once per opening,
+  `wgLive`, openWorlds wrapper), at most `WG_MAX` 10, still scrolling; a typed name filters, "New world" first;
+  mevListRow still adds MOONEVENT's countdown. Pop-up 500 px wide, list max min(34vh, 250 px). GAME_BUILD '2026-11-09 t'.
+
+### Build 2026-11-09 u — yellow own worlds, soft green MOONEVENT, no PLAY box, NEWS papers
+Owner: "your own worlds yellow instead of blue, the event green but not bright; take away the welcome / PLAY box: after
+logging in, loading, then straight to the lobby; for the GM a news paper: when players log in and are in the lobby
+the news pops up with updates / events and a picture; a GM-only button to fill one in with Cancel and Broadcast; a
+button under the menu button with a white scroll icon listing the past news; tapping one opens the paper; its Back
+closes it and opens the scroll list again".
+- worldgrid.js: `.mine` bricks yellow; MOONEVENT always a soft green brick (`.mevbrick`; not `.mevrow`, which
+  moonevent.js's 1 s check uses to know the event state).
+- NEW `ui/news.js` (after worldgrid.js, before main.js):
+  - showPlayBox wrapper: the box is hidden and PLAY is pressed for you (the world LOADING box shows while the lobby
+    loads); if entering fails the box shows again.
+  - PAPER `#newsPaper` (cream newspaper: BALBTOPIA NEWS masthead, UPDATE (blue) / EVENT (green) stamp, date, title,
+    picture, text; Close, or Back from the list = back to the list). The newest paper you haven't seen pops up when
+    you come into your LOBBY (enterWorldNow wrapper, 1.2 s) and on the 60 s check while there (`newsSeen`, localStorage
+    `balb_news_seen:<name>`).
+  - `#newsBtn`: white scroll icon (inline SVG) placed under the menu button (`newsPlace`, from #burger's box), a
+    count badge for unseen papers; opens `#newsList` (newest first, stamp + title + date, unseen outlined). The GM gets
+    "+ NEW" (`#newsEdit`: title 60, Update / Event, text 1500, picture: scaled to <= 640 px wide JPEG, <= 380k chars;
+    Cancel / Broadcast) and an x per paper (dialog to confirm).
+- net.js `N.newsList` (no pictures, `has_img`), `N.newsImg(id)`, `N.newsPost`, `N.newsDelete`.
+- schema.sql: table `news` (title, body, kind update / event, img data URL, has_img generated, by_name, created_at;
+  everyone signed in reads) + `post_news(p_title, p_body, p_kind, p_img)` / `delete_news(p_id)` (GM only; picture must
+  be a data:image/jpeg|png|webp base64 URL <= 400,000 chars). RE-RUN schema.sql. Offline: localStorage
+  `balbtopia.news`.
+- Tested offline as the GM: login -> straight into LOBBY; + NEW with a picture -> Broadcast -> list -> paper -> Back ->
+  list; an unseen paper pops up on coming back into the lobby. GAME_BUILD '2026-11-09 u'.
+
+## Chat bar + red news number (build 2026-11-09 v)
+- `www/js/ui/chatbar.js` (loaded after ui/news.js): top left is now [bar][globe]. Closed, the bar (`#gTick`) shows the
+  newest world-chat line from social.js `chatLog` (polled every 400 ms) and opens `openChat()` when tapped.
+  The globe opens the Global Chat: `gShow` is wrapped to move globalchat.js's own `#gText` into the bar (Enter = gSend,
+  same handler) and the old panel drops down under the row (scaleY animation from the top). The panel's own form is
+  hidden (`.gform-moved`); the globe stays visible while open and toggles it closed; `#gMin` still works.
+- News button badge now uses the same red number tag as `.gchat .gbadge`.
+- Build w: the chat column is as wide as the old panel (bar fills it next to the globe). Open, the panel sits ON TOP
+  (`order:-1`, full width) and grows down (max-height animation), sliding the bar + globe below it.
+- Build x: tapping the chat bar now opens the Global Chat too (same as the globe), not the world CHAT pop-up.
+
+## Game blocks (build 2026-11-09 x) — `www/js/blocks/gameblocks.js` (after blockfit.js)
+- Blocks 442 Dice Block, 443 Colour Roll Block, 444 Roulette Block, 445 Rainbow Shift Block. NEXT FREE BLOCK: 446.
+- A punch rolls (they're in ANIM_TOGGLE, and toggleAnim is wrapped to `gbRoll`); hits 5. The result + a flip bit are
+  packed into the tile's `vari` bits except WATER (8) (`gbRaw`/`gbSetRaw`), so tiles sync and everyone sees the roll.
+  Each client notices a raw change per tile (`gbSeen`, cleared on world change, reset if the block type changes)
+  and plays the animation: dice/colour flick 1.3 s fast-to-slow; roulette spins 3.2 s (ease-out, 4 extra turns, real
+  European order), then the wheel dims to 45% while the number fades in, holds 1.5 s, fades out, wheel back to full.
+- Build y (owner didn't want the bevel look): Dice = a real rounded white die (`gbDice`, vector); Roulette = only the
+  round wheel filling the tile; Colour Game Block (id `colour_roll_block`, renamed) and Rainbow Shift use `gbGem`, a
+  64 px cut-gem picture like the owner's pink sample (square table + 4 facets). Rainbow Shift = 36 neon hue gems
+  (`GB_RAINBOW`) cross-faded (`gbRainbow`, hue pos now/220 + (x+y)*1.4) plus a soft 'lighter' glow.
+- Recipes: Dice = White + Black Block; Colour Roll = Red + Blue Block; Roulette = Dice + Red Block;
+  Rainbow Shift = Rainbow Block + Glass Pane (farming.json + SPLICE).

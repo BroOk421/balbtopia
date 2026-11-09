@@ -13,6 +13,8 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+// (Nov 9 2026, security) ilike treats _ and % as wildcards: 'a_c' would also match 'abc'. Escape them.
+const likeExact = (s: string) => s.replace(/[\\%_]/g, (c) => '\\' + c);
 const reply = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
@@ -58,7 +60,7 @@ Deno.serve(async (req) => {
     return reply(429, { error: `Only ${MAX_PER_IP} accounts can be made from one connection` });
 
   // a name someone already uses (also one taken with Change Name, whose login e-mail is still the first name's)
-  const { data: taken } = await db.from('usernames').select('id').ilike('name', user).limit(1);
+  const { data: taken } = await db.from('usernames').select('id').ilike('name', likeExact(user)).limit(1);
   if (taken && taken.length) return reply(409, { error: 'That name is taken' });
   const { data, error } = await db.auth.admin.createUser({
     email: user.toLowerCase() + '@players.balbtopia.app',

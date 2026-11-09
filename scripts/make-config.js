@@ -1,4 +1,4 @@
-// Writes www/js/online-config.js from .env (or from environment variables, e.g. GitHub Secrets).
+// Writes www/js/online/online-config.js from .env (or from environment variables, e.g. GitHub Secrets).
 // Run it with: npm run config   (serve, sync and apk run it for you)
 // The key ends up in the game's files, because the browser needs it to talk to Supabase.
 // What .env does is keep it out of git; what keeps the data safe is the rules in supabase/schema.sql.
@@ -7,7 +7,7 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const envFile = path.join(root, '.env');
-const out = path.join(root, 'www', 'js', 'online-config.js');
+const out = path.join(root, 'www', 'js', 'online', 'online-config.js');
 
 // tiny .env reader: KEY=value lines, # comments, optional quotes, optional "export "
 function readEnv(file) {

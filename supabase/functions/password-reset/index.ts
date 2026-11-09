@@ -16,6 +16,8 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+// (Nov 9 2026, security) ilike treats _ and % as wildcards: 'a_c' would also match 'abc'. Escape them.
+const likeExact = (s: string) => s.replace(/[\\%_]/g, (c) => '\\' + c);
 const reply = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 async function sha256(s: string) {
@@ -46,7 +48,7 @@ Deno.serve(async (req) => {
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false },
   });
-  const { data: un } = await db.from('usernames').select('id, name').ilike('name', user).limit(1);
+  const { data: un } = await db.from('usernames').select('id, name').ilike('name', likeExact(user)).limit(1);
   const id = un && un[0] && un[0].id;
   if (!id) return reply(404, { error: 'No account with that username' });
 

@@ -1,0 +1,351 @@
+// Sitting and sleeping: stand still on a chair (or toilet) and you sit down on it (the owner's sitting pose); stand
+// still on a bed and you lie down in it, eyes shut, with Zzz floating up. Walking, jumping or punching gets you up.
+// Other players see it too (the `rs` field of the position message).
+// ===== rest =====
+// seat / mattress height: the cell (of 16, 2 world px each) of the furniture's top surface
+const SEATS = { wooden_chair: 9, toilet: 8 };
+const BEDS = {
+  bed: { top: 9, blanket: ['#3a6ad0', '#8aa8ff', '#24469a'] },
+  hospital_bed: { top: 8, blanket: ['#9fc0e8', '#c8dcf5', '#6a8ab8'] },
+};
+// bathtubs (bath.js): stand still in one and you get in, only your head over the water, eyes shut
+const BATHS = { bathtub: 1 };
+const REST_DELAY = 3; // seconds of standing still on the chair / bed before you sit or lie down (owner: was 5, too slow)
+// the sitting picture: 40 px of room on each side of our 118 px frame; the row it sits on; clothes rows on it
+const SIT_MOUTH_Y = 96; // the mouth line on the old sitting face (not used: the standing head is used now)
+// Sitting keeps the normal standing face (owner, Oct 22 2026): the sitting picture's head (rows above SIT_HEAD_CUT,
+// fitted onto the standing head) is replaced by the standing frame's head, with its blinking; so talking uses MOUTH_Y.
+const SIT_HEAD_CUT = 104;
+const SIT_HEADS = {};
+function sitWithHead(skinName, fr) {
+  const k = skinName + ':' + fr;
+  if (SIT_HEADS[k]) return SIT_HEADS[k];
+  const base = sitBody(skinName),
+    head = IMG['skin_' + skinName + '_' + fr] || IMG['skin_' + skinName + '_open'];
+  if (!base || !head || !head.width) return base;
+  const c = document.createElement('canvas');
+  c.width = base.width;
+  c.height = base.height;
+  const x = c.getContext('2d');
+  x.drawImage(base, 0, 0);
+  x.clearRect(0, 0, c.width, SIT_HEAD_CUT);
+  x.drawImage(head, 0, 0, FR.w, SIT_HEAD_CUT, SIT_PAD, 0, FR.w, SIT_HEAD_CUT);
+  return (SIT_HEADS[k] = c);
+}
+const SIT_PAD = 40,
+  SIT_SEAT_ROW = 183,
+  SIT_BANDS = { shirt: [100, 139], pants: [140, 200], feet: 145, pose: 'sit' };
+// the sitting picture in a skin tone: skin pixels scaled from the picture's (porcelain) skin to that tone
+const SITS = {};
+function sitBody(skinName) {
+  if (SITS[skinName]) return SITS[skinName];
+  const im = IMG.sit_body;
+  if (!im || !im.width) return null;
+  const c = document.createElement('canvas');
+  c.width = im.width;
+  c.height = im.height;
+  const x = c.getContext('2d');
+  x.drawImage(im, 0, 0);
+  // the sitting picture's own skin is a warmer orange than the standing frames (owner: the colour changed when
+  // sitting down), so every skin tone, porcelain too, is matched to the standing face's most common colour
+  const stand = IMG['skin_' + skinName + '_open'];
+  if (stand && stand.width)
+    try {
+      const d = x.getImageData(0, 0, c.width, c.height),
+        p = d.data,
+        isSkin = (r, gg, bb) => r > 120 && r - bb > 30 && r - bb < 150 && gg < r && bb > 50,
+        a = commonColor(p, (r, gg, bb) => isSkin(r, gg, bb)),
+        b = faceColor(stand),
+        kk = [0, 1, 2].map((i) => b[i] / a[i]);
+      for (let i = 0; i < p.length; i += 4) {
+        const r = p[i],
+          gg = p[i + 1],
+          bb = p[i + 2];
+        if (!p[i + 3] || !(r > 120 && r - bb > 30 && r - bb < 150 && gg < r && bb > 50)) continue; // skin and its shades
+        p[i] = Math.min(255, r * kk[0]);
+        p[i + 1] = Math.min(255, gg * kk[1]);
+        p[i + 2] = Math.min(255, bb * kk[2]);
+      }
+      x.putImageData(d, 0, 0);
+    } catch (e) {}
+  return (SITS[skinName] = c);
+}
+// the most common colour among the pixels that pass ok (rgba data)
+function commonColor(p, ok) {
+  const n = new Map();
+  let best = [253, 207, 172],
+    most = 0;
+  for (let i = 0; i < p.length; i += 4) {
+    if (p[i + 3] < 200 || !ok(p[i], p[i + 1], p[i + 2])) continue;
+    const k = (p[i] << 16) | (p[i + 1] << 8) | p[i + 2],
+      v = (n.get(k) || 0) + 1;
+    n.set(k, v);
+    if (v > most) (most = v), (best = [p[i], p[i + 1], p[i + 2]]);
+  }
+  return best;
+}
+// the skin colour of a standing frame: the most common colour on the face (not the outline, eyes or eye whites)
+function faceColor(im) {
+  const c = document.createElement('canvas');
+  c.width = im.width;
+  c.height = im.height;
+  const x = c.getContext('2d');
+  x.drawImage(im, 0, 0);
+  const p = x.getImageData(Math.round(im.width * 0.25), Math.round(im.height * 0.14), Math.round(im.width * 0.5), Math.round(im.height * 0.3)).data;
+  return commonColor(p, (r, gg, bb) => r + gg + bb > 150 && !(r > 235 && gg > 235 && bb > 235));
+}
+let stillT = 0,
+  stillAt = -1;
+// called every step (physics.js): sit or lie down when standing still on a seat or bed
+function updateRest(dt) {
+  const dir = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
+  // punching or placing from a chair / couch keeps you sitting (owner, Oct 23 2026); in a bed it still wakes you
+  const seated = P.rest && P.rest.k === 'sit';
+  const still = P.ground && !dir && !P.dead && (seated || (!P.punch && !P.place)) && Math.abs(P.vx) < 4 && P.kbT <= 0;
+  if (!still) return (stillT = 0), (P.rest = null);
+  const tx = Math.floor((P.x + P.w / 2) / TS),
+    ty = Math.floor((P.y + P.h - 1) / TS);
+  const b = inW(tx, ty) && BLOCK[fg[at(tx, ty)]],
+    kind = b && (SEATS[b.id] !== undefined ? 'sit' : BEDS[b.id] ? 'sleep' : BATHS[b.id] && bathOn(at(tx, ty)) ? 'bath' : null);
+  if (!kind) return (stillT = 0), (P.rest = null);
+  // the REST_DELAY count only runs while you stand still on this very chair / bed
+  if (stillAt !== at(tx, ty)) (stillAt = at(tx, ty)), (stillT = 0);
+  stillT += dt;
+  if (stillT >= REST_DELAY && !(P.rest && P.rest.tx === tx && P.rest.ty === ty)) {
+    // someone else is already lying in this bed (or sitting on this chair): you stay standing
+    if (restTaken(tx, ty)) {
+      if (takenToastAt !== at(tx, ty)) {
+        takenToastAt = at(tx, ty);
+        toast(kind === 'sleep' ? 'Someone is already sleeping here' : kind === 'bath' ? 'Someone is already in this bath' : 'Someone is already sitting here');
+      }
+      return (P.rest = null);
+    }
+    takenToastAt = -1;
+    P.rest = { k: kind, tx, ty, id: b.id };
+    // on a chair / couch you turn the way it faces (right-facing couch: right, left-facing: left), and you keep
+    // facing that way when you get up
+    // (flipped, owner Oct 22 2026: a couch / chair turned left seats you facing right, and the other way round)
+    if (typeof faceLeftAt === 'function' && FACING.has(fg[at(tx, ty)])) P.face = faceLeftAt(at(tx, ty)) ? 1 : -1;
+  }
+}
+let takenToastAt = -1;
+// is another player resting on this tile?
+function restTaken(tx, ty) {
+  if (typeof Net === 'undefined' || !Net.remotes) return false;
+  for (const r of Net.remotes.values()) if (r.rest && r.rest.tx === tx && r.rest.ty === ty) return true;
+  return false;
+}
+// the rest of a remote player, from its message (checked against our own copy of the world)
+function restFromNet(rs) {
+  if (!Array.isArray(rs)) return null;
+  const [k, tx, ty] = rs,
+    b = inW(tx, ty) && BLOCK[fg[at(tx, ty)]];
+  if (!b) return null;
+  if (k === 'sit' && SEATS[b.id] !== undefined) return { k, tx, ty, id: b.id };
+  if (k === 'sleep' && BEDS[b.id]) return { k, tx, ty, id: b.id };
+  if (k === 'bath' && BATHS[b.id] && bathOn(at(tx, ty))) return { k, tx, ty, id: b.id }; // (off: bath.js)
+  return null;
+}
+
+// the way a sitter faces: a chair / couch turned left seats you facing right and the other way round; other seats
+// (Toilet) keep the player's own way
+function seatFace(r, own) {
+  const i = at(r.tx, r.ty);
+  return typeof faceLeftAt === 'function' && FACING.has(fg[i]) ? (faceLeftAt(i) ? 1 : -1) : own;
+}
+const sittingNow = () => !!(P.rest && P.rest.k === 'sit');
+
+// ---------- the weapon / tool in the hand while sitting (owner, Nov 1 2026) ----------
+// Sitting used to hide the held tool. Now it sits in the hand that rests on the knees (the arm on the back side of
+// the sitting picture: screen left when facing right, mirrored when facing left), held like when standing (same
+// picture, size and turn, via drawArmWithTool, so scythes / bows / guns keep their own looks), drawn WHOLE in front of
+// the body and legs (owner: it may cover the feet). The hand is then drawn again over the handle so it holds it.
+const SIT_HAND = [80, 144], // sit.png px: where the hand grips (the bottom of the resting hand, like armParts' hand)
+  SIT_HAND_BOX = [55, 126, 102, 160]; // x0, y0, x1, y1 (sit.png px): where the hand / forearm is looked for
+let SIT_HAND_MASK = null; // sit.png pixel indices of the hand (skin + its outline)
+function sitHandMask() {
+  if (SIT_HAND_MASK) return SIT_HAND_MASK;
+  const im = IMG.sit_body;
+  if (!im || !im.width) return null;
+  try {
+    const c = document.createElement('canvas');
+    c.width = im.width;
+    c.height = im.height;
+    const x = c.getContext('2d');
+    x.drawImage(im, 0, 0);
+    const W = c.width,
+      p = x.getImageData(0, 0, W, c.height).data,
+      [x0, y0, x1, y1] = SIT_HAND_BOX,
+      skin = (k) => {
+        const r = p[k * 4],
+          gg = p[k * 4 + 1],
+          bb = p[k * 4 + 2];
+        return p[k * 4 + 3] > 100 && r > 120 && r - bb > 30 && r - bb < 150 && gg < r && bb > 50;
+      },
+      dark = (k) => p[k * 4 + 3] > 100 && p[k * 4] + p[k * 4 + 1] + p[k * 4 + 2] < 200,
+      out = [];
+    for (let y = y0; y < y1; y++)
+      for (let xx = x0; xx < x1; xx++) {
+        const k = y * W + xx;
+        if (skin(k)) out.push(k);
+        else if (dark(k)) {
+          // the outline round the hand: a dark pixel touching a skin pixel of the hand
+          let near = false;
+          for (let dy = -1; dy <= 1 && !near; dy++)
+            for (let dx = -1; dx <= 1 && !near; dx++) {
+              const yy = y + dy,
+                xq = xx + dx;
+              if (yy >= y0 && yy < y1 && xq >= x0 && xq < x1 && skin(yy * W + xq)) near = true;
+            }
+          if (near) out.push(k);
+        }
+      }
+    SIT_HAND_MASK = out;
+  } catch (e) {
+    SIT_HAND_MASK = []; // can't read pixels (page opened as a file): no hand over the handle
+  }
+  return SIT_HAND_MASK;
+}
+// the hand alone, cut out of the (recoloured / dressed) sitting body canvas
+const SIT_HAND_PICS = new Map();
+function sitHandPic(body, key) {
+  if (SIT_HAND_PICS.has(key)) return SIT_HAND_PICS.get(key);
+  const mask = sitHandMask();
+  if (!mask) return null; // picture not loaded yet: try again next frame
+  let res = null;
+  if (mask.length)
+    try {
+      const W = body.width,
+        H = body.height,
+        src = body.getContext('2d').getImageData(0, 0, W, H).data,
+        c = document.createElement('canvas');
+      c.width = W;
+      c.height = H;
+      const x = c.getContext('2d'),
+        d = x.createImageData(W, H);
+      for (const k of mask) for (let j = 0; j < 4; j++) d.data[k * 4 + j] = src[k * 4 + j];
+      x.putImageData(d, 0, 0);
+      res = c;
+    } catch (e) {}
+  if (SIT_HAND_PICS.size > 60) SIT_HAND_PICS.clear();
+  SIT_HAND_PICS.set(key, res);
+  return res;
+}
+// inside drawResting's transform (x 0 = the seat's middle, mirrored by the seat's way)
+function drawSitTool(c, body, bodyKey, top, k) {
+  const eq = c.equipped || {},
+    id = heldTool(c.hand) && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null;
+  if (!id || (typeof hideHold !== 'undefined' && hideHold)) return;
+  g.save();
+  g.translate(0, top);
+  g.scale(k, k);
+  // body-sprite space: drawArmWithTool takes x from the standing frame's left edge; the sitting picture has SIT_PAD
+  // more room on its left
+  drawArmWithTool(id, null, [SIT_HAND[0] - SIT_PAD, SIT_HAND[1]], 0, TOOL_TURN, 0);
+  g.restore();
+  const hp = body && sitHandPic(body, bodyKey);
+  g.imageSmoothingEnabled = true;
+  if (hp) g.drawImage(hp, (-FR.w / 2 - SIT_PAD) * k, top, hp.width * k, hp.height * k);
+}
+
+// ---------- drawing ----------
+function drawResting(c, ox, oy) {
+  const r = c.rest,
+    sc = CHAR_H / FR.h,
+    k = sc * Z,
+    eq = c.equipped || {},
+    tileX = ox + r.tx * TS * Z,
+    tileY = oy + r.ty * TS * Z,
+    breathe = Math.sin(now / 650);
+  g.save();
+  if (c.spawnT > 0) g.globalAlpha = 1 - c.spawnT / SPAWN_FADE;
+  g.imageSmoothingEnabled = true;
+  let tagX, tagY, sitSwing = null;
+  if (r.k === 'sit') {
+    // the owner's sitting pose (legs out in front), its head exactly where the standing head is, so hair and
+    // hats fit; skin tone and clothes repainted like the standing body; bottom on the seat
+    const angry = c.angry > 0,
+      fr = angry ? 'open' : frameAt(now + (c.blink || 0)), // blinking like when standing (not while angry)
+      body = outfitBody(sitWithHead(c.skin, fr), 'sit_' + c.skin + '_' + fr, eq, SIT_BANDS),
+      seatY = tileY + SEATS[r.id] * 2 * Z,
+      cx = tileX + (TS / 2) * Z,
+      // no breathing bob while sitting (owner, Oct 24 2026: rounded to whole pixels it made the sitter shake)
+      top = Math.round(seatY - SIT_SEAT_ROW * k),
+      // flipped (owner): a chair or couch turned to the left (furniture.js) seats you facing right, and the other way
+      face = seatFace(r, c.face);
+    // punching / placing while sitting (owner, Oct 23 2026): you stay seated, the arm reaches out from the
+    // shoulder like when standing (a tool swings at the end of it), behind the body
+    // (owner, Nov 1 2026) breaking with a weapon / tool while sitting swings THAT weapon like when standing (its own
+    // swing, slash and effects, drawn after the body); the bare-fist punch is only for an empty hand
+    const pc = Object.assign({}, c, { face }),
+      swinging = !!(heldTool(c.hand) && c.punch && c.hand !== 'wrench');
+    if ((c.punch || c.place) && !swinging) drawPunch(pc, Math.round(cx), top, sc, ox, oy);
+    if (laserFace(eq) && c.punch) drawLaser(pc, Math.round(cx), top, sc, ox, oy);
+    if (swinging) sitSwing = { pc, cx: Math.round(cx), top, sc };
+    g.translate(Math.round(cx), 0);
+    g.scale(face, 1);
+    drawBehind(c, top, sc, 0);
+    if (body) g.drawImage(body, (-FR.w / 2 - SIT_PAD) * k, top, body.width * k, body.height * k);
+    // the head on the sitting picture is the standing head, so the angry face fits it the same way
+    if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    else if (angry) g.drawImage(angryFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    else drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
+    drawWorn(c, top, sc, 0);
+    drawAuraFront(c, top, sc, 0);
+    if (!swinging) drawSitTool(c, body, 'sit_' + c.skin + '_' + fr + '|' + [eq.shirt, eq.pants, eq.feet].join('|'), top, k); // the held weapon / tool
+    tagX = cx;
+    tagY = top + NAME_TOP * sc * Z; // same height as standing, whatever is worn (render.js)
+  } else {
+    // lying on the mattress: head on the pillow (left), feet to the right, face up, eyes shut
+    const bd = BEDS[r.id],
+      im = IMG['skin_' + c.skin + '_closed'] || IMG['skin_' + c.skin + '_open'],
+      body = outfitBody(im, 'skin_' + c.skin + '_closed', eq),
+      matY = tileY + bd.top * 2 * Z,
+      lie = 0.74, // smaller, so it fits on the bed
+      thick = FR.w * k * lie,
+      cx = tileX + (TS / 2) * Z,
+      cy = matY - thick / 2 + 1.5 * Z,
+      hx = cx - (FR.h / 2) * k * lie; // where the head is (left end)
+    g.save();
+    g.translate(Math.round(cx), Math.round(cy));
+    g.rotate(-Math.PI / 2);
+    g.scale(lie, lie * (1 + breathe * 0.012));
+    const top = (-FR.h * k) / 2;
+    drawBehind(c, top, sc, 0);
+    g.drawImage(body, (-FR.w * k) / 2, top, FR.w * k, FR.h * k);
+    drawWorn(c, top, sc, 0);
+    g.restore();
+    // Zzz floating up from the head, each letter on its own beat
+    g.font = `${4 * Z}px "Press Start 2P", monospace`;
+    g.textAlign = 'center';
+    for (let i = 0; i < 3; i++) {
+      const u = (now / 1600 + i / 3) % 1,
+        zx = hx + (6 + u * 7 + Math.sin(u * 6 + i) * 1.5) * Z,
+        zy = matY - thick - (2 + u * 12) * Z;
+      g.globalAlpha = Math.sin(u * Math.PI) * 0.95;
+      g.font = `${(3 + u * 2.5) * Z}px "Press Start 2P", monospace`;
+      g.lineWidth = Z;
+      g.strokeStyle = 'rgba(20,10,30,.8)';
+      g.strokeText('z', zx, zy);
+      g.fillStyle = '#ffffff';
+      g.fillText('z', zx, zy);
+    }
+    g.globalAlpha = 1;
+    tagX = cx;
+    tagY = matY - thick - 16 * Z; // above the Zzz
+  }
+  g.restore();
+  // the weapon swing (sitting, set above): the arm turning round the shoulder with the weapon, in front of the body
+  if (sitSwing) {
+    g.save();
+    if (c.spawnT > 0) g.globalAlpha = 1 - c.spawnT / SPAWN_FADE;
+    g.imageSmoothingEnabled = true;
+    drawToolSwing(sitSwing.pc, sitSwing.cx, sitSwing.top, sitSwing.sc, ox, oy);
+    g.restore();
+  }
+  g.imageSmoothingEnabled = false;
+  const tagW = drawNameTag(c.name, tagX, tagY - 4 * Z, c.flag);
+  if (c.say) drawBubble(c.say.text, tagX, tagY - 11 * Z, Math.min(1, c.say.t * 2));
+  return { cx: tagX, headTop: tagY, tagW };
+}

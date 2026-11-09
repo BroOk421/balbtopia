@@ -1,0 +1,370 @@
+// Accounts: register, log in and log out.
+// Online (Supabase set up in online-config.js): accounts and saves are on the server (see net.js),
+// so the same account works on any phone or computer.
+// Offline: accounts live in localStorage under ACCT_KEY; each account has its own player save
+// (store().players[username]) and worlds are shared by everyone on the device.
+// Local passwords are never stored as plain text: PBKDF2-SHA256 with a random salt.
+// ===== auth =====
+const ACCT_KEY = 'balbtopia.accounts',
+  SESSION_KEY = 'balbtopia.session';
+// letters and numbers only, no symbols (owner, Oct 24 2026; older names with _ still log in)
+const USER_RE = /^[A-Za-z0-9]{3,16}$/;
+const MAX_ACCOUNTS_HERE = 3; // offline accounts per device (online: 3 per IP address, checked by the server)
+let account = null; // who is logged in: lower-case username (offline) or Supabase user id (online)
+const PASS_MIN = Net.online ? 6 : 4; // Supabase wants at least 6
+
+function accounts() {
+  try {
+    return JSON.parse(localStorage.getItem(ACCT_KEY)) || {};
+  } catch (e) {
+    return {};
+  }
+}
+function putAccounts(a) {
+  try {
+    localStorage.setItem(ACCT_KEY, JSON.stringify(a));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function getSession() {
+  try {
+    return localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
+  } catch (e) {
+    return null;
+  }
+}
+function setSession(user, remember) {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+    if (user) (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, user);
+  } catch (e) {}
+}
+
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+function randSalt() {
+  const u = new Uint8Array(16);
+  (window.crypto || {}).getRandomValues ? crypto.getRandomValues(u) : u.forEach((_, i) => (u[i] = Math.random() * 256));
+  return hex(u);
+}
+// PBKDF2 when the browser has WebCrypto; a simple stretched FNV hash otherwise (old WebViews)
+async function hashPass(pass, salt, algo) {
+  if (algo !== 'fnv' && window.crypto && crypto.subtle) {
+    const enc = new TextEncoder(),
+      key = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' },
+      key,
+      256,
+    );
+    return { algo: 'pbkdf2', hash: hex(bits) };
+  }
+  let h = 0x811c9dc5 >>> 0;
+  const s = salt + ':' + pass;
+  for (let r = 0; r < 5000; r++)
+    for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+  return { algo: 'fnv', hash: h.toString(16) };
+}
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+async function register(user, pass, pass2, email) {
+  if (!USER_RE.test(user)) return 'Username: 3 to 16 letters or numbers (no symbols)';
+  if (Net.online && !EMAIL_RE.test(email || '')) return 'Type your e-mail (for when you forget your password)';
+  if (pass.length < PASS_MIN) return 'Password needs at least ' + PASS_MIN + ' characters';
+  if (pass !== pass2) return 'Passwords do not match';
+  if (Net.online) return Net.signUp(user, pass, email);
+  const all = accounts(),
+    id = user.toLowerCase();
+  if (all[id]) return 'That username is taken';
+  if (Object.keys(all).length >= MAX_ACCOUNTS_HERE) return 'Only ' + MAX_ACCOUNTS_HERE + ' accounts can be made on this device';
+  const salt = randSalt(),
+    h = await hashPass(pass, salt);
+  all[id] = { name: user, salt, algo: h.algo, hash: h.hash, created: Date.now() };
+  if (!putAccounts(all)) return "Couldn't save the account on this device";
+  claimLegacySave(id, user);
+  return null;
+}
+async function login(user, pass) {
+  if (Net.online) return Net.signIn(user, pass);
+  // (Nov 9 2026, security) the same message for a wrong name and a wrong password, so guessing can't find names
+  const a = accounts()[user.toLowerCase()];
+  if (!a) return 'Wrong username or password';
+  const h = await hashPass(pass, a.salt, a.algo);
+  if (h.hash !== a.hash) return 'Wrong username or password';
+  return null;
+}
+// a save from before accounts existed goes to the first account made on this device
+function claimLegacySave(id, user) {
+  const s = store();
+  if (!s.player) return;
+  const old = s.player.name;
+  s.players = s.players || {};
+  s.players[id] = { ...s.player, name: user };
+  delete s.player;
+  for (const n in s.worlds) if (s.worlds[n].owner === old) s.worlds[n].owner = user;
+  putStore(s);
+}
+
+// called once the user is in: load their save (or keep the fresh defaults for a new account)
+function signIn(id) {
+  const a = accounts()[id];
+  if (!a) return false;
+  account = id;
+  playerName = a.name;
+  setWorn(null); // a new account with no save wears nothing
+  seenWorlds = [];
+  loadPlayer();
+  playerName = a.name; // the username is the name shown above the player
+  return true;
+}
+// online: load this account's save from the server; returns an error message or null
+async function signInOnline() {
+  // the server's word first: the account's fixed name, GM, and whether it is banned
+  const banned = await Net.whoami();
+  if (banned) {
+    await Net.signOut();
+    return banned;
+  }
+  account = Net.me.id;
+  playerName = Net.me.name;
+  try {
+    const p = await Net.loadPlayer();
+    setWorn(null);
+    seenWorlds = [];
+    if (p) applyPlayer(p);
+  } catch (e) {
+    console.error(e);
+    account = null;
+    return Net.dbError(e);
+  }
+  playerName = Net.me.name;
+  syncKeys(); // World Keys in the bag = the server's list (keys.js)
+  await Wallet.load(); // gold = the wallet on the server (economy.js)
+  Net.joinLobby();
+  Net.loadMail().then(updateBadge);
+  return null;
+}
+async function logout() {
+  if (inWorld) {
+    saveWorld();
+    savePlayer();
+  }
+  setSession(null);
+  if (Net.online) {
+    // let the last save go out (up to 3 seconds)
+    for (let t = 0; t < 30 && Net.savingPlayer && Net.savingPlayer(); t++) await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 200));
+    await Net.signOut();
+  }
+  location.reload(); // simplest way to start clean for the next player
+}
+// online "Stay logged in" off: forget the session when the app or browser is opened again
+const FORGET_KEY = 'balbtopia.forget',
+  ALIVE_KEY = 'balbtopia.alive';
+function rememberOnline(remember) {
+  try {
+    if (remember) localStorage.removeItem(FORGET_KEY);
+    else localStorage.setItem(FORGET_KEY, '1');
+    sessionStorage.setItem(ALIVE_KEY, '1');
+  } catch (e) {}
+}
+function forgetOnStart() {
+  try {
+    return localStorage.getItem(FORGET_KEY) && !sessionStorage.getItem(ALIVE_KEY);
+  } catch (e) {
+    return false;
+  }
+}
+
+// ---------- start screen ----------
+let authMode = 'login';
+function setAuthMode(m) {
+  authMode = m;
+  document
+    .querySelectorAll('.atabs button')
+    .forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
+  $('aPass2L').hidden = m !== 'register';
+  $('aEmailL').hidden = m !== 'register' || !Net.online; // offline accounts live on this device only
+  $('aPwRow').classList.toggle('two', m === 'register'); // password + confirm on one row
+  $('aRememberL').hidden = m === 'register'; // (owner, Oct 25 2026: no "Stay logged in" on Register; a new account stays logged in)
+  $('aRemember').checked = true;
+  $('aForgot').hidden = m === 'register'; // only under LOG IN
+  $('aGo').textContent = m === 'register' ? 'CREATE ACCOUNT' : 'LOG IN';
+  $('aPass').autocomplete = m === 'register' ? 'new-password' : 'current-password';
+  $('aErr').textContent = '';
+  // 3 wrong logins = a wait with a countdown (loginguard.js); Register is never locked
+  if (m === 'login') showLoginWait();
+  else $('aGo').disabled = false;
+}
+function showPlayBox() {
+  $('authBox').hidden = true;
+  $('playBox').hidden = false;
+  $('who').textContent = playerName;
+}
+function initAuth() {
+  document.querySelectorAll('.atabs button').forEach((b) => (b.onclick = () => setAuthMode(b.dataset.mode)));
+  $('aUser').addEventListener('input', () => {
+    const v = $('aUser').value.replace(/[^A-Za-z0-9_]/g, '').slice(0, 16);
+    if (v !== $('aUser').value) $('aUser').value = v;
+  });
+  $('authF').onsubmit = async (e) => {
+    e.preventDefault();
+    const user = $('aUser').value.trim(),
+      pass = $('aPass').value;
+    if (!user || !pass) return ($('aErr').textContent = 'Type your username and password');
+    if (authMode === 'login' && LoginGuard.waitLeft() > 0) return showLoginWait();
+    $('aGo').disabled = true;
+    try {
+      const err =
+        authMode === 'register' ? await register(user, pass, $('aPass2').value, $('aEmail').value.trim()) : await login(user, pass);
+      if (err) {
+        if (authMode === 'login' && isWrongLogin(err)) {
+          const g = LoginGuard.fail();
+          if (g.wait) return showLoginWait();
+          $('aErr').textContent = err + ' (' + g.left + (g.left === 1 ? ' try' : ' tries') + ' left)';
+          return;
+        }
+        if (authMode === 'login' && LoginGuard.waitLeft() > 0) return showLoginWait(); // the server's limit
+        $('aErr').textContent = err;
+        return;
+      }
+      if (authMode === 'login') LoginGuard.success();
+      if (Net.online) {
+        const e2 = await signInOnline();
+        if (e2) return ($('aErr').textContent = e2);
+        rememberOnline($('aRemember').checked);
+      } else {
+        const id = user.toLowerCase();
+        setSession(id, $('aRemember').checked);
+        signIn(id);
+      }
+      $('aPass').value = $('aPass2').value = '';
+      showPlayBox();
+      renderBars();
+      updateGold();
+      toast(authMode === 'register' ? 'Account created!' : 'Welcome back, ' + playerName + '!');
+    } finally {
+      $('aGo').disabled = authMode === 'login' && LoginGuard.waitLeft() > 0;
+    }
+  };
+  $('logout2').onclick = logout;
+  // Forgot password (owner, Oct 27 2026): a 6-digit code to the account's e-mail (Brevo, password-reset Edge Function)
+  $('aForgot').onclick = () => forgotPassword($('aUser').value.trim());
+  if (Net.online) return initOnline();
+  setAuthMode(Object.keys(accounts()).length ? 'login' : 'register');
+  // still logged in from last time
+  const s = getSession();
+  if (s && signIn(s)) showPlayBox();
+  else {
+    setSession(null);
+    setTimeout(() => $('aUser').focus(), 50);
+  }
+}
+async function initOnline() {
+  setAuthMode('login');
+  $('aGo').disabled = true;
+  if (forgetOnStart()) await Net.signOut();
+  const me = await Net.restore();
+  $('aGo').disabled = false;
+  showLoginWait(); // still locked from before the reload
+  if (me && !(await signInOnline())) {
+    showPlayBox();
+    renderBars();
+    updateGold();
+  } else setTimeout(() => $('aUser').focus(), 50);
+}
+
+// ---------- Forgot password (owner, Oct 27 2026) ----------
+// Step 1: username -> the server e-mails a code to the account's recovery e-mail. Step 2: code + new password.
+function forgotPassword(user0) {
+  if (!Net.online) return toast('Forgot password works when playing online');
+  // the username is shown and sent in capitals (owner, Oct 27 2026; names are matched ignoring case)
+  setTimeout(() => {
+    const u = document.getElementById('fpUser');
+    if (u) u.addEventListener('input', () => {
+      const v = u.value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+      if (v !== u.value) u.value = v;
+    });
+  }, 0);
+  const err = (body, t) => (body.querySelector('.werr').textContent = t || '');
+  dialog(
+    'FORGOT PASSWORD',
+    `<p class="dtext">Type your username. We will send a code to the e-mail of that account.</p>
+     <p class="werr"></p>
+     <input id="fpUser" class="fpin fpup" maxlength="16" spellcheck="false" autocomplete="username" placeholder="USERNAME" value="${esc((user0 || '').toUpperCase())}" />`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => true },
+      {
+        label: 'Send code',
+        run: async (body) => {
+          const user = body.querySelector('#fpUser').value.trim().toUpperCase();
+          if (!USER_RE.test(user) && !/^[A-Za-z0-9_]{3,16}$/.test(user)) return err(body, 'Type your username'), false;
+          err(body, 'Sending...');
+          const r = await Net.resetPassword({ action: 'request', username: user });
+          if (r.error) return err(body, r.error), false;
+          setTimeout(() => forgotCode(user, r.to), 0);
+          return true;
+        },
+      },
+    ],
+  );
+}
+function forgotCode(user, to) {
+  const err = (body, t) => (body.querySelector('.werr').textContent = t || '');
+  dialog(
+    'NEW PASSWORD',
+    `<p class="dtext">We sent a 6-number code to ${esc(to || 'your e-mail')}. Check spam too.</p>
+     <p class="werr"></p>
+     <input id="fpCode" class="fpin" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Code" />
+     <input id="fpPass" class="fpin" type="password" maxlength="64" autocomplete="new-password" placeholder="New password" />
+     <input id="fpPass2" class="fpin" type="password" maxlength="64" autocomplete="new-password" placeholder="Confirm new password" />`,
+    [
+      { label: 'Resend', cls: 'ghost', run: () => (forgotPassword(user), false) },
+      {
+        label: 'Change',
+        run: async (body) => {
+          const code = body.querySelector('#fpCode').value.replace(/\D/g, ''),
+            pass = body.querySelector('#fpPass').value;
+          if (code.length !== 6) return err(body, 'The code is 6 numbers'), false;
+          if (pass.length < PASS_MIN) return err(body, 'Password needs at least ' + PASS_MIN + ' characters'), false;
+          if (pass !== body.querySelector('#fpPass2').value) return err(body, 'Passwords do not match'), false;
+          err(body, 'Changing...');
+          const r = await Net.resetPassword({ action: 'confirm', username: user, code, password: pass });
+          if (r.error) return err(body, r.error), false;
+          setAuthMode('login');
+          $('aUser').value = user;
+          $('aPass').value = '';
+          toast('Password changed. Log in with your new password');
+          return true;
+        },
+      },
+    ],
+  );
+}
+// Menu -> Profile -> E-MAIL: add or change the recovery e-mail (accounts made before Oct 27 2026 have none)
+async function editEmail() {
+  if (!Net.online) return toast('E-mail works when playing online');
+  const cur = (await Net.myEmail()) || '';
+  dialog(
+    'E-MAIL',
+    `<p class="dtext">${cur ? 'Your e-mail for Forgot password:' : 'Add an e-mail so you can reset your password if you forget it.'}</p>
+     <p class="werr"></p>
+     <input id="emIn" class="fpin" type="email" maxlength="120" spellcheck="false" placeholder="you@example.com" value="${esc(cur)}" />`,
+    [
+      { label: 'Cancel', cls: 'ghost', run: () => true },
+      {
+        label: 'Save',
+        run: async (body) => {
+          const e = body.querySelector('#emIn').value.trim();
+          if (!EMAIL_RE.test(e)) return (body.querySelector('.werr').textContent = "That e-mail doesn't look right"), false;
+          const r = await Net.setEmail(e);
+          if (r) return (body.querySelector('.werr').textContent = r), false;
+          toast('E-mail saved');
+          return true;
+        },
+      },
+    ],
+  );
+}

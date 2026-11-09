@@ -62,9 +62,28 @@ def wide(img, f):
     return big.crop((x0, 0, x0 + W, big.height))
 
 
+# (owner: "less stroke on the mountains") his dark outline pixels are filled with the nearest lighter pixel's colour
+# before the toning, so the range keeps its shapes and shading without the thick dark lines
+# (owner, Nov 9 2026: "less stroke on the mountains and clouds of those weathers") `edge`: the outline is kept only
+# this many px wide on the outside (a thin line instead of his thick one), and the clouds get the same treatment;
+# `dark` is a little higher so the softer outline tones go too
+def unstroke(img, dark=0.3, edge=0):
+    a = np.asarray(img).copy()
+    lum = (a[..., 0] * 0.3 + a[..., 1] * 0.59 + a[..., 2] * 0.11) / 255
+    solid = a[..., 3] > 110
+    stroke = (lum < dark) & solid
+    if edge:
+        outside = nd.distance_transform_edt(solid)  # px from the nearest see-through pixel
+        stroke &= outside > edge
+    keep = ~stroke & solid
+    _, (iy, ix) = nd.distance_transform_edt(~keep, return_indices=True)
+    a[stroke, :3] = a[iy[stroke], ix[stroke], :3]
+    return Image.fromarray(a)
+
+
 cl = only(clouds)
 cl = cl.crop((0, 0, cl.width, 460)).resize((W, round(460 * k)), Image.LANCZOS)
-cl_plain = wide(cl, BIG_CLOUDS)
+cl_plain = unstroke(wide(cl, BIG_CLOUDS), dark=0.62, edge=1.5)
 cl = tone(cl_plain, CLOUD_TONES, 0.45, 0.95)
 
 
@@ -88,19 +107,7 @@ mt = only([mountain])
 y0, y1 = objs[mountain - 1][0].start, objs[mountain - 1][0].stop
 x0, x1 = objs[mountain - 1][1].start, objs[mountain - 1][1].stop  # (cropped to the range itself)
 mt = mt.crop((x0, y0, x1, y1)).resize((W, round((y1 - y0) * k)), Image.LANCZOS)
-# (owner: "less stroke on the mountains") his dark outline pixels are filled with the nearest lighter pixel's colour
-# before the toning, so the range keeps its shapes and shading without the thick dark lines
-def unstroke(img, dark=0.3):
-    a = np.asarray(img).copy()
-    lum = (a[..., 0] * 0.3 + a[..., 1] * 0.59 + a[..., 2] * 0.11) / 255
-    stroke = (lum < dark) & (a[..., 3] > 0)
-    keep = ~stroke & (a[..., 3] > 0)
-    _, (iy, ix) = nd.distance_transform_edt(~keep, return_indices=True)
-    a[stroke, :3] = a[iy[stroke], ix[stroke], :3]
-    return Image.fromarray(a)
-
-
-mt_plain = unstroke(wide(mt, BIG_MOUNTAINS))
+mt_plain = unstroke(wide(mt, BIG_MOUNTAINS), dark=0.42, edge=1.5)
 mt = tone(mt_plain, MOUNT_TONES, 0.35, 0.95)
 
 
