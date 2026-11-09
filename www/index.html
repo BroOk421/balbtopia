@@ -26,7 +26,17 @@
     />
     <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body>
+  <body class="booting">
+    <!-- Loading screen (owner, Nov 9 2026: "while loading only the loading, then the log in pop-up"): shown from the
+         very first moment; css `body.booting` hides everything else (pop-ups, top-right buttons, hotbar, pads) until
+         every picture has loaded (config.js boot -> ready), then it fades and the log in pop-up shows. -->
+    <div id="boot" aria-live="polite">
+      <div class="bootin">
+        <h1>BALBTOPIA</h1>
+        <div class="bootbar"><i id="bootBar"></i></div>
+        <p id="bootTxt">Loading...</p>
+      </div>
+    </div>
     <div id="wrap">
       <canvas id="c" aria-label="Game world"></canvas>
       <div class="wname" id="wname">
@@ -422,6 +432,9 @@
     <script src="js/blocks/backgrounds2.js"></script>
     <script src="js/blocks/blockfit.js"></script>
     <script src="js/blocks/gameblocks.js"></script>
+    <script src="js/events/crystalgate.js"></script>
+    <script src="js/blocks/plainportal.js"></script>
+    <script src="js/gameplay/blocksfx.js"></script>
     <script src="js/ui/worldgrid.js"></script>
     <script src="js/ui/news.js"></script>
     <script src="js/ui/chatbar.js"></script>

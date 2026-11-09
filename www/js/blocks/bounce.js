@@ -372,6 +372,7 @@ function stepBounce(vy0, dt) {
 }
 
 // ---------- Portal: walking into it goes through ----------
+const PORTAL_TS = new Set([PORTAL_T]); // every block that sends you on when you walk into it
 let portalArmed = false, // false until you have stepped out of every portal (after arriving, after a trip)
   portalHint = -1; // the portal tile whose "leads nowhere" hint was shown
 function stepPortal() {
@@ -380,7 +381,7 @@ function stepPortal() {
     return;
   }
   const i = doorUnderPlayer(),
-    cur = i >= 0 && fg[i] === PORTAL_T ? i : -1;
+    cur = i >= 0 && PORTAL_TS.has(fg[i]) ? i : -1; // (plainportal.js adds the Plain Portal)
   if (cur < 0) {
     portalArmed = true;
     return;

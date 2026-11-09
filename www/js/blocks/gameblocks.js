@@ -2,12 +2,12 @@
 // Block numbers 442-445 are permanent (NEXT FREE BLOCK: 446):
 //   442 Dice Block: a real-looking white die (rounded, shaded, black pips, a red 1). A punch rolls it: its faces
 //       flick by fast, then slower and slower, and it lands on 1-6.
-//   443 Colour Game Block (id colour_roll_block): a cut-gem colour block (`gbGem`, the owner's picture: a square
-//       table, four facets) that rolls the same way between Red, Blue, White and Green.
-//   444 Roulette Block: just the round wheel, one tile big (0-36, the real wheel's order). A punch spins it, fast
+//   443 Lucky Color Block (id colour_roll_block; was Colour Game Block, renamed Nov 9 2026): the Display Box's shape, all in its colour (`gbBox`, owner Nov 9 2026); it rolls the same way between Red, Blue, White and Green.
+//   444 Roulette Block (walk-through, no collision): just the round wheel, one tile big (0-36, the real wheel's order). A punch spins it, fast
 //       then slowing down; when it stops the wheel fades a little and the number comes up in the middle (fading in,
 //       then out), and the wheel is bright again.
-//   445 Rainbow Shift Block: the same cut-gem block in neon colours that fade smoothly round the rainbow (36 hue
+//   445 Prism Crystal Block (id rainbow_shift_block; was Rainbow Shift Block, renamed Nov 9 2026; also a Moon Stove
+//       recipe, crystalgate.js): the same cut-gem block in neon colours that fade smoothly round the rainbow (36 hue
 //       pictures, cross-faded), with a soft glow.
 // (Build x used the plain colour blocks' bevel for all of them; the owner wanted only his gem picture's look, for
 //  the rainbow and colour game blocks.)
@@ -21,9 +21,9 @@
 // ===== gameblocks =====
 const GB = {
   dice: { t: 442, id: 'dice_block', name: 'Dice Block', n: 6, rarity: 'Uncommon', grow: 240, seed: ['#ffffff', '#2a2830', '#d8d8e2'], fx: ['#e8e8ee', '#ffffff', '#2a2830'], rec: ['white_block', 'black_block'], desc: 'A big white die. Punch it to roll a number from 1 to 6.' },
-  colour: { t: 443, id: 'colour_roll_block', name: 'Colour Game Block', n: 4, rarity: 'Uncommon', grow: 240, seed: ['#c62f2a', '#2f5fd0', '#3f9a30'], fx: ['#c62f2a', '#2f5fd0', '#3f9a30'], rec: ['red_block', 'blue_block'], desc: 'A colour game block: punch it and it shuffles, fast then slower, and stops on Red, Blue, White or Green.' },
+  colour: { t: 443, id: 'colour_roll_block', name: 'Lucky Color Block', n: 4, rarity: 'Uncommon', grow: 240, seed: ['#c62f2a', '#2f5fd0', '#3f9a30'], fx: ['#c62f2a', '#2f5fd0', '#3f9a30'], rec: ['red_block', 'blue_block'], desc: 'A lucky colour box: punch it and it shuffles, fast then slower, and stops on Red, Blue, White or Green.' },
   roulette: { t: 444, id: 'roulette_block', name: 'Roulette Block', n: 37, rarity: 'Rare', grow: 420, seed: ['#1f7a3a', '#c62f2a', '#ffd23f'], fx: ['#1f7a3a', '#c62f2a', '#ffd23f'], rec: ['dice_block', 'red_block'], desc: 'A little roulette wheel. Punch it to spin; the number it stops on shows in the middle.' },
-  rainbow: { t: 445, id: 'rainbow_shift_block', name: 'Rainbow Shift Block', n: 0, rarity: 'Rare', grow: 360, seed: ['#ff4a4a', '#4ad08a', '#4a6aff'], fx: ['#ff4a4a', '#ffd23f', '#4a6aff'], rec: ['rainbow_block', 'glass_pane'], desc: 'A glowing neon gem block that fades smoothly through every colour of the rainbow.' },
+  rainbow: { t: 445, id: 'rainbow_shift_block', name: 'Prism Crystal Block', n: 0, rarity: 'Rare', grow: 360, seed: ['#ff4a4a', '#4ad08a', '#4a6aff'], fx: ['#ff4a4a', '#ffd23f', '#4a6aff'], rec: ['rainbow_block', 'glass_pane'], desc: 'A glowing crystal gem block that fades smoothly through every colour of the rainbow.' },
 };
 const GB_BY_T = {};
 for (const k in GB) {
@@ -32,6 +32,7 @@ for (const k in GB) {
   GB_BY_T[d.t] = d;
   if (BLOCK[d.t]) console.error('gameblocks.js: block number used twice: ' + d.t);
   BLOCK[d.t] = { id: d.id, name: d.name, hits: d.n ? 5 : 4, art: 'tex', fx: d.fx };
+  if (k === 'roulette') BLOCK[d.t].solid = false; // (owner, Nov 9 2026: no collision) you walk through the wheel
   ITEMS[d.id] = { name: d.name, kind: 'block', block: d.t, desc: d.desc, rarity: d.rarity };
   ITEMS[d.id + '_seed'] = { name: d.name + ' Seed', kind: 'seed', from: d.id, desc: 'Plant it on top of a block to grow a ' + d.name + ' Tree.', rarity: d.rarity };
   SEED_COLOR[d.id] = d.seed;
@@ -142,7 +143,38 @@ function gbGem(C) {
 const GB_HUES = 36,
   GB_RAINBOW = [];
 for (let k = 0; k < GB_HUES; k++) GB_RAINBOW.push(gbGem(gbNeon((k * 360) / GB_HUES)));
-const GB_GAME_PIC = GB_GAME.map(gbGem);
+// the Colour Game Block (owner, Nov 9 2026): the Display Box's shape (art/misc.js DISP_PIX), filled all over in the
+// block's colour (owner, later: "the inside the same colour as the border, the whole thing one colour"): the frame and
+// the inside in the colour's main tone, the frame's bevel lines a little darker, a faint diagonal shine inside; 32 x 32
+const gbLum = (s) => {
+  const m = s.match(/\d+/g);
+  return m ? +m[0] : 0;
+};
+function gbBox(C) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 32;
+  const c = cv.getContext('2d'),
+    [OL, D2, D1, M, L1] = C,
+    mix = (a, b, t) => [0, 1, 2].map((k) => Math.round(a[k] + (b[k] - a[k]) * t)),
+    rgb = (a) => 'rgb(' + a.join(',') + ')',
+    inside = { g: mix(M, D1, 0.25), h: M, k: mix(M, L1, 0.3), s: mix(M, L1, 0.55) };
+  DISP_PIX.rows.forEach((r, j) => {
+    for (let i = 0; i < 32; i++) {
+      const ch = r[i];
+      if (ch === 'a') continue;
+      let col = inside[ch];
+      if (!col) {
+        // the frame's greys (28 outline .. 82 lit): outline, darker bevel lines, the rest the main colour
+        const l = gbLum(DISP_PIX.pal[ch]);
+        col = l < 40 ? OL : l < 60 ? D2 : l < 72 ? D1 : M;
+      }
+      c.fillStyle = rgb(col);
+      c.fillRect(i, j, 1, 1);
+    }
+  });
+  return cv;
+}
+const GB_GAME_PIC = GB_GAME.map(gbBox);
 // a real-looking die: a rounded white cube, lit from the top left, black pips (the 1 big and red), on a 16 grid
 const GB_PIPS = {
   1: [[8, 8]],
@@ -324,13 +356,14 @@ function gbIcon(paint) {
 }
 NEWART[GB.dice.id] = gbIcon((c) => gbDice(c, 0, 0, 64, 5));
 NEWART[GB.colour.id] = gbIcon((c) => {
-  // the icon: the four colours, one in each quarter of the gem
+  // the icon: the box in the four colours, one in each quarter
+  c.imageSmoothingEnabled = false;
   GB_GAME_PIC.forEach((pic, k) => {
     c.save();
     c.beginPath();
     c.rect((k % 2) * 32, (k >> 1) * 32, 32, 32);
     c.clip();
-    c.drawImage(pic, 0, 0);
+    c.drawImage(pic, 0, 0, 64, 64);
     c.restore();
   });
 });
@@ -339,7 +372,8 @@ NEWART[GB.rainbow.id] = GB_RAINBOW[30];
 for (const k in GB) SHOP_ICON[GB[k].id] = () => (k === 'rainbow' ? GB_RAINBOW[Math.floor(now / 140) % GB_HUES] : NEWART[GB[k].id]);
 
 // ---------- rolls ----------
-const GB_DUR = { dice: 1300, colour: 1300, roulette: 3200 },
+const GB_DUR = { dice: 4000, colour: 4000, roulette: 4000 }, // (owner, Nov 9 2026: about 4 s before it stops)
+  GB_FLICKS = 22, // faces shown while a dice / colour roll runs (fast, then slower)
   GB_SHOW = { in: 300, hold: 1500, out: 450 }; // the roulette's number, after the wheel stops
 const gbTotal = (d) => GB_DUR[d.kind] + (d.kind === 'roulette' ? GB_SHOW.in + GB_SHOW.hold + GB_SHOW.out : 0);
 let gbWorld = null;
@@ -361,14 +395,15 @@ function gbState(i, d) {
       seq = [];
     if (d.kind !== 'roulette') {
       let last = from;
-      for (let k = 0; k < 11; k++) {
+      for (let k = 0; k < GB_FLICKS; k++) {
         let f;
         do f = Math.floor(Math.random() * d.n);
-        while (f === last || (k === 10 && f === to));
+        while (f === last || (k === GB_FLICKS - 1 && f === to));
         seq.push((last = f));
       }
     }
     Object.assign(s, { raw, start: now, from, seq });
+    if (typeof gbRollSfx === 'function') gbRollSfx(d.kind, s, i); // (blocksfx.js: its sound)
   }
   return s;
 }
@@ -419,7 +454,7 @@ drawNewBlock = ((prev) =>
           e = 1 - Math.pow(1 - p, 3),
           a0 = gbRest(s.from),
           delta = (((gbRest(to) - a0) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-        ang = a0 + (delta + Math.PI * 2 * 4) * e;
+        ang = a0 + (delta + Math.PI * 2 * 5) * e; // (4 s: five whole turns on top)
       } else {
         const t = el - dur;
         if (t < GB_SHOW.in) na = t / GB_SHOW.in;
@@ -432,20 +467,15 @@ drawNewBlock = ((prev) =>
       return;
     }
     // dice / colour: the faces flick by, fast then slower, then the result
-    let show = to,
-      jx = 0,
-      jy = 0;
+    let show = to;
     if (el < dur) {
       const p = el / dur,
-        k = Math.floor(12 * (1 - Math.pow(1 - p, 2.2)));
-      if (k < 11) show = s.seq[k];
-      const amp = (1 - p) * T * 0.05;
-      jx = Math.round(Math.sin(el / 35) * amp);
-      jy = -Math.round(Math.abs(Math.sin(el / 70)) * amp * 1.4);
+        k = Math.floor((GB_FLICKS + 1) * (1 - Math.pow(1 - p, 2.2)));
+      if (k < GB_FLICKS) show = s.seq[k]; // (owner, Nov 9 2026: no shaking, the block stays still)
     }
     g.save();
     g.imageSmoothingEnabled = false;
-    if (d.kind === 'dice') gbDice(g, px + jx, py + jy, T, show + 1);
-    else g.drawImage(GB_GAME_PIC[show], px + jx, py + jy, T, T);
+    if (d.kind === 'dice') gbDice(g, px, py, T, show + 1);
+    else g.drawImage(GB_GAME_PIC[show], px, py, T, T);
     g.restore();
   })(drawNewBlock);

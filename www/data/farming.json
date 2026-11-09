@@ -1554,6 +1554,9 @@
     },
     "rainbow_shift_block": {
       "growSeconds": 360
+    },
+    "plain_portal": {
+      "growSeconds": 420
     }
   },
   "splices": [
@@ -6262,7 +6265,7 @@
       ],
       "result": "colour_roll_block",
       "source": "balbtopia",
-      "note": "Colour Roll Block = Red Block + Blue Block (Balbtopia recipe, Nov 9 2026)"
+      "note": "Lucky Color Block = Red Block + Blue Block (Balbtopia recipe, Nov 9 2026)"
     },
     {
       "seeds": [
@@ -6280,7 +6283,16 @@
       ],
       "result": "rainbow_shift_block",
       "source": "balbtopia",
-      "note": "Rainbow Shift Block = Rainbow Block + Glass Pane (Balbtopia recipe, Nov 9 2026)"
+      "note": "Prism Crystal Block = Rainbow Block + Glass Pane (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "portal",
+        "white_block"
+      ],
+      "result": "plain_portal",
+      "source": "balbtopia",
+      "note": "Plain Portal = Portal + White Block (Balbtopia recipe, Nov 9 2026)"
     }
   ],
   "notInGameYet": [

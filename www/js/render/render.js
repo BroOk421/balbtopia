@@ -1190,9 +1190,79 @@ function flyToBag(id, x, y) {
   };
   return true;
 }
+// Cracks that GROW (owner, Nov 9 2026: "a small crack at first, getting bigger"): one crack network on a 32 grid,
+// branches running out from near the middle, every pixel knowing how far along its branch it is. A hit shows only the
+// part up to r of the way (r = damage 0..1), so the first hit is a little crack in the middle and each hit after
+// it runs further out towards the edges. CRACK_STEPS pictures, made once (no image reading: works from file:// too).
+const CRACK_STEPS = 16;
+let CRACK_PICS = null;
+function crackPics() {
+  if (CRACK_PICS) return CRACK_PICS;
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647),
+    px = new Map(), // "x,y" -> distance along its branch
+    put = (x, y, d) => {
+      if (x < 1 || y < 1 || x > 30 || y > 30) return false;
+      const k = x + ',' + y;
+      if (!px.has(k) || px.get(k) > d) px.set(k, d);
+      return true;
+    };
+  // a branch: a wobbly pixel line from (x, y) heading at angle a, len pixels, starting at distance d0; it may fork
+  const branch = (x, y, a, len, d0, depth) => {
+    let fx = x,
+      fy = y;
+    for (let n = 0; n < len; n++) {
+      a += (rnd() - 0.5) * 0.55;
+      fx += Math.cos(a);
+      fy += Math.sin(a);
+      if (!put(Math.round(fx), Math.round(fy), d0 + n + 1)) return;
+      if (depth < 2 && n > 3 && rnd() < 0.09)
+        branch(fx, fy, a + (rnd() < 0.5 ? -1 : 1) * (0.6 + rnd() * 0.5), Math.round(len * 0.5), d0 + n + 1, depth + 1);
+    }
+  };
+  const cx = 15.5,
+    cy = 16;
+  put(16, 16, 0);
+  put(15, 16, 0.5);
+  const arms = 5,
+    a0 = rnd() * Math.PI * 2;
+  for (let k = 0; k < arms; k++) {
+    const a = a0 + (k * Math.PI * 2) / arms + (rnd() - 0.5) * 0.6;
+    branch(cx, cy, a, 13 + Math.floor(rnd() * 5), 0, 0);
+  }
+  let max = 1;
+  for (const d of px.values()) max = Math.max(max, d);
+  CRACK_PICS = [];
+  for (let s = 0; s < CRACK_STEPS; s++) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d'),
+      lim = ((s + 1) / CRACK_STEPS) * max;
+    for (const [k, d] of px) {
+      if (d > lim) continue;
+      const [i, j] = k.split(',').map(Number);
+      x.fillStyle = 'rgba(14,10,8,.88)';
+      x.fillRect(i, j, 1, 1);
+      // a thin lit edge under the crack, like a chipped edge
+      if (!px.has(i + ',' + (j + 1))) {
+        x.fillStyle = 'rgba(255,255,255,.16)';
+        x.fillRect(i, j + 1, 1, 1);
+      }
+    }
+    CRACK_PICS.push(c);
+  }
+  return CRACK_PICS;
+}
+// the crack picture for damage r (0..1): small at first, longer with every hit
+function crackPic(r) {
+  const f = Math.max(0.14, Math.min(1, r * 1.15));
+  return crackPics()[Math.min(CRACK_STEPS - 1, Math.max(0, Math.ceil(f * CRACK_STEPS) - 1))];
+}
 function drawCrack(px, py, T, r) {
-  const s = Math.min(2, Math.floor(r * 3));
-  g.drawImage(IMG.cracks, s * 32, 0, 32, 32, px, py, T, T);
+  const sm = g.imageSmoothingEnabled;
+  g.imageSmoothingEnabled = false;
+  g.drawImage(crackPic(r), px, py, T, T);
+  g.imageSmoothingEnabled = sm;
 }
 const ICON = {};
 function iconCanvas(id) {

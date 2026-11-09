@@ -122,26 +122,27 @@ toolSprite = ((prev) =>
       g.restore();
       return UMB_BLANK;
     }
-    if (id === UMB_ID) {
-      // the bag / shop icon: the closed umbrella across the square
-      if (UMB_ICON) return UMB_ICON;
-      const im = umbImg('closed');
-      if (!im) return UMB_BLANK;
-      const c = document.createElement('canvas');
-      c.width = c.height = 64;
-      const real = g;
-      g = c.getContext('2d');
-      try {
-        g.translate(14, 50);
-        g.rotate(Math.PI / 4);
-        umbPaint('closed', 1);
-      } finally {
-        g = real;
-      }
-      return (UMB_ICON = c);
-    }
+    if (id === UMB_ID) return umbIcon() || UMB_BLANK;
     return prev(id);
   })(toolSprite);
+// the bag / hotbar / shop icon (owner, Nov 9 2026: "use the closed umbrella itself"): the real closed umbrella picture,
+// whole, lying across the square (tip to the top right, yellow handle to the bottom left), 64 px. Not kept until the
+// picture has loaded.
+function umbIcon() {
+  if (UMB_ICON) return UMB_ICON;
+  const im = umbImg('closed');
+  if (!im) return null;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d'),
+    k = 80 / im.height; // its length along the square's diagonal (90 px)
+  x.imageSmoothingEnabled = false;
+  x.translate(32, 32);
+  x.rotate((-3 * Math.PI) / 4); // its handle (top of the picture) to the bottom left
+  x.drawImage(im, (-im.width * k) / 2, (-im.height * k) / 2, im.width * k, im.height * k);
+  return (UMB_ICON = c);
+}
+SHOP_ICON[UMB_ID] = () => umbIcon() || UMB_BLANK;
 drawArmWithTool = ((prev) =>
   function (id, arm, hand, turn = 0, toolTurn = TOOL_TURN, lift = 0) {
     if (id !== UMB_ID) return prev(id, arm, hand, turn, toolTurn, lift);

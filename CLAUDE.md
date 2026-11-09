@@ -3233,7 +3233,7 @@ closes it and opens the scroll list again".
 - Build x: tapping the chat bar now opens the Global Chat too (same as the globe), not the world CHAT pop-up.
 
 ## Game blocks (build 2026-11-09 x) — `www/js/blocks/gameblocks.js` (after blockfit.js)
-- Blocks 442 Dice Block, 443 Colour Roll Block, 444 Roulette Block, 445 Rainbow Shift Block. NEXT FREE BLOCK: 446.
+- Blocks 442 Dice Block, 443 Colour Roll Block (now "Lucky Color Block"), 444 Roulette Block (walk-through since build z), 445 Rainbow Shift Block (now "Prism Crystal Block"); 446 Hologram Gate (id crystal_gate) + 447 Crystal Gate (id crystal_shard_gate) (crystalgate.js), 448 Plain Portal (plainportal.js), 449 Red Crystal Gate (crystalgate.js). NEXT FREE BLOCK: 450.
 - A punch rolls (they're in ANIM_TOGGLE, and toggleAnim is wrapped to `gbRoll`); hits 5. The result + a flip bit are
   packed into the tile's `vari` bits except WATER (8) (`gbRaw`/`gbSetRaw`), so tiles sync and everyone sees the roll.
   Each client notices a raw change per tile (`gbSeen`, cleared on world change, reset if the block type changes)
@@ -3245,3 +3245,199 @@ closes it and opens the scroll list again".
   (`GB_RAINBOW`) cross-faded (`gbRainbow`, hue pos now/220 + (x+y)*1.4) plus a soft 'lighter' glow.
 - Recipes: Dice = White + Black Block; Colour Roll = Red + Blue Block; Roulette = Dice + Red Block;
   Rainbow Shift = Rainbow Block + Glass Pane (farming.json + SPLICE).
+
+## Build 2026-11-09 z — 4 s rolls, walk-through roulette, black Colour Game Block, growing cracks, umbrella icon
+Owner: "roulette: remove the collision; ~4 s before it stops, the dice and colour block too; colour block: like the
+Display Box but black, the border in its colour (white = white...), new icon; breaking blocks / trees: a small crack
+first that gets bigger; the umbrella's bag icon must be the closed umbrella itself".
+- gameblocks.js: Roulette Block `solid: false` (walk through it). `GB_DUR` dice / colour / roulette all 4000 ms; dice /
+  colour flick through `GB_FLICKS` 22 faces (fast to slow); roulette does 5 extra turns. Colour Game Block = `gbBox`:
+  art/misc.js `DISP_PIX` (Display Box shape) filled all over in the colour (owner, same build, after first seeing black
+  glass: "the inside the same colour as the border, make it one colour"): frame + inside = the colour's main tone
+  (`GB_GAME` M), outline / bevel lines darker, a faint diagonal shine inside; icon = that box in the four colours, one
+  per quarter.
+- render.js `drawCrack`: a procedural crack network (`crackPics`, `CRACK_STEPS` 16 pictures, 5 wobbly arms from the
+  middle that fork, each pixel knowing its distance along the branch); `crackPic(r)` shows the part up to r x 1.15 of
+  the way (min 0.14), so the first hit is a small crack in the middle and each hit grows it. Used for blocks, trees,
+  walls, other players' cracks (remotefx.js) and the floating asteroids (moonroids.js `roidCracked`).
+  `assets/tiles/cracks.png` is no longer drawn.
+- umbrella.js: bag / hotbar / shop icon `umbIcon()` (`SHOP_ICON.blue_umbrella`) = the whole closed picture
+  (umbrella_closed.png) across the 64 px square, tip top-right, handle bottom-left (wearIcon used to draw the old 64 px
+  icon into a 32 px canvas, showing only a corner).
+
+## Build 2026-11-09 za — no shake on rolls, slow sideways with the umbrella
+Owner: "remove the shaking of the colour game and dice blocks; in the air with the umbrella, left and right must be just
+as slow".
+- gameblocks.js: dice / colour rolls no longer jiggle (the `jx` / `jy` shake is gone); only the faces change.
+- umbrella.js: `UMB.side` 62 px/s (= `UMB.fall`). The step wrapper sets `UMB_SLOW` for that step while you are in the
+  air holding it (not dead / resting / in water); a feetSpeed wrapper then returns `UMB.side / 160`, so sideways speed
+  eases to 62 px/s whatever shoes or ride (walking is 160). Measured: in the air vx -60, vy 62; without it vx -155.
+
+## Build 2026-11-09 zb — umbrella sideways speed back to normal
+Owner: "too slow, put the umbrella effect back". The build-za sideways slowdown (`UMB.side`, `UMB_SLOW`, the feetSpeed
+wrapper) is removed: in the air with the umbrella you move left / right at the normal speed again; only the fall is
+slow (`UMB.fall` 62 px/s). The no-shake rolls of build za stay.
+
+## Build 2026-11-09 zc — renamed game blocks, Prism Crystal Block on the Moon, Crystal Gate
+Owner: "rename the rainbow block and the colour block, your choice; put the rainbow block on the Moon too, combined;
+make a gate of crystal like the Portcullis".
+- Names only (ids unchanged, saves keep working): `colour_roll_block` = "Lucky Color Block", `rainbow_shift_block` =
+  "Prism Crystal Block" (gameblocks.js GB names / descs; farming.json notes).
+- NEW `www/js/events/crystalgate.js` (after gameblocks.js in index.html):
+  - Block 446 `crystal_gate` "Crystal Gate" (Epic, `gate: true`, art 'tex' with `NEWART.crystal_gate` = `cgArt()`, a
+    32 px ice-blue crystal portcullis: faceted bars, 3 beams, gems at the crossings, pointed tips; see-through between
+    the bars). gates.js does the rest (shut without access, slides up, wrench "Open to all", portcullis sound); two
+    twinkles while shut (drawNewBlock wrapper); breakDrop: always itself, no seed. NEXT FREE BLOCK: 447.
+  - Stove (wrapper, runs before the older Stove recipes): 1 Portcullis + 3 White Crystals = 1 Crystal Gate;
+    1 Green + 1 Red + 1 Blue + 1 White + 1 Black Crystal + 5 Moon Rock = 5 Prism Crystal Blocks (the splice Rainbow
+    Block + Glass Pane still works). Several sets at once. Tested: 2 Portcullis + 7 White + 2 of each other crystal +
+    10 Moon Rock -> 2 gates + 5 prism blocks, 1 Green / Red / Blue / Black and 5 Moon Rock left.
+  - MOONEVENT museum: `MEV_PRISM_V` ':L5' (once, after mevlabels.js's ':L4'): `mevAddItems([prism, gate])` puts a
+    Display Box for each one not shown yet in the museum's free slots (`mevBox`, a free tile with a background + a free
+    tile under it, not above a Mannequin, not next to another Display Box), then `mevLabel` writes their Hologram Signs
+    (`mevLabelText` wrapper: the Stove recipes). The GM's save keeps it.
+
+## Build 2026-11-09 zd — Crystal Gate is one jelly slab
+Owner (on the barred Crystal Gate of build zc): "not all bars like that; one straight piece, like jelly, going up and
+coming down". crystalgate.js: the bars picture is gone. `cgSlab` draws ONE rounded slab of see-through ice-blue crystal
+filling the tile (gradient light top-left to blue bottom-right, dark edge + light inner rim, gloss bands at the top,
+three bubbles); icon = the same at 64 px. The drawNewBlock wrapper now draws it itself (gates.js `gateAmount` still
+decides open / shut, plays the sound, who may pass): per tile a spring `cgSpring` { p, v } (stiffness 260, damping 13,
+stepped once per frame) pulls it up (open, `CG_LIP` 10% left showing at the top) or down; it overshoots and wobbles,
+stretching tall / thin while moving fast and squashing wide / flat on landing (from its bottom edge). Twinkles only
+while shut. GAME_BUILD '2026-11-09 zd'.
+
+## Build 2026-11-09 ze — Crystal Gate is a blue / green laser
+Owner (on the jelly slab of build zd): "wrong, haha; it should just be like a laser, blue and green". crystalgate.js:
+the slab and its spring are gone. Now: `cgEmitter` (a small dark-blue crystal emitter with a blue-to-green lens, at the
+top of the tile; in a column of gates only the top one has it) and `cgBeam` (one straight beam down the tile's middle:
+a green glow round it, a blue beam, a light core, blue / green light bands running down, a soft flicker); the bottom
+gate of a column shows `cgHit` (a green / blue glow and sparks where it meets the floor) while shut. Opening
+(gates.js `gateAmount`, eased) pulls the beam back up into the emitter; shutting shoots it back down. Icon = emitter +
+full beam (64 px). Same gate rules, sound, Stove recipe and museum labels. GAME_BUILD '2026-11-09 ze'.
+
+## Build 2026-11-09 zf — Crystal Gate is a one-tile hologram wall
+Owner (on the laser of build ze): "it doesn't fit; just a hologram gate, one tile". crystalgate.js: emitter / beam
+gone. `cgHolo` fills the tile with a see-through hologram panel in the Hologram Sign's colours (cyan at the top to green
+at the bottom), a faint 4x4 grid, moving scan lines, a light line sweeping up (shared by the whole wall, by world y),
+a soft flicker with an odd blink, a small pulsing diamond in the middle, and glowing edges only on sides that don't
+touch another Crystal Gate (`cgAt`), so a row / column is one wall. Opening (gates.js `gateAmount`, eased) switches it
+off like a screen: squeezed to the middle line (scaleY), a bright line flashes, then gone; shutting is the reverse.
+Icon = the panel with all four edges. Same gate rules, sound, Stove recipe, museum labels. GAME_BUILD '2026-11-09 zf'.
+
+## Build 2026-11-09 zg — Crystal Gate: Warp Pod base on top, hologram curtain down
+Owner (on the hologram panel of build zf): "like the Item Warp Pod: its bottom part with the button, put that at the
+top, a hologram coming down from it, the gate a bit bright; when you pass the gate goes up; blue and green".
+crystalgate.js: `cgHousing` = vacuum.js `vacPic(VAC_ITEM_T)` rows 50-63 (the pod's base: plate, body, trim band,
+button ring) turned upside down at the top of the tile (`CG_HOUSE` 14/64 of it, picture `cgHousePic`), its round button
+lit green / blue in turn, a lit emitter slot along its underside. `cgCurtain` = a bright hologram curtain under it
+(6/64 in from each side): blue at the top to green at the bottom over the WHOLE column (gradient from the column's top
+tile to its bottom tile), a brighter middle, light streaks running down, scan lines, glowing sides, a bright glowing
+bottom edge. Only the top gate of a column has the housing. Opening (gates.js `gateAmount`, eased) pulls the curtain up
+into the housing; shutting lets it down again. Icon (`NEWART.crystal_gate`, 64 px) = housing + full curtain. Same gate
+rules, sound, Stove recipe, museum labels. GAME_BUILD '2026-11-09 zg'.
+
+## Build 2026-11-09 zh — Crystal Gate (crystals), Hologram Gate renamed, Plain Portal
+Owner: "make one like that too, but crystals, the top the same; and make a portal, just plain: touch it and you go to
+the destination, the same as the doors' wrench option".
+- crystalgate.js: block 446 (id `crystal_gate`, the pod-housing hologram) is now named "Hologram Gate". NEW block 447
+  `crystal_shard_gate` "Crystal Gate" (Epic, gate): the same housing (`cgHousing`), under it `csCurtain`: 4 faceted
+  crystal shards across (blue / green in turn, `CRYSTALS` tones: lit left face, dark right face, edge lines, light
+  ridge, facet lines), pointed tips of different lengths at the bottom of the column, sparkles running down. Opening,
+  the shards SLIDE up into the housing (translated up, clipped under it). Stove: 1 Portcullis + 2 Blue + 2 Green
+  Crystals = 1 (runs before the Hologram Gate recipe). breakDrop: itself. `cgAt(x, y, t)` takes the block type, so a
+  column is per kind. Museum: `mevLabelText` gives both; ':L6' (once, after ':L5') takes off the old label text
+  "Crystal Gate. STOVE: 1 Portcullis + 3 White Crystals.", adds a Display Box for the new Crystal Gate, re-labels; a
+  fresh ':L5' pass adds all three and marks ':L6' too. Tested: 3 Portcullis + 2 Blue + 2 Green + 3 White -> 1 Crystal
+  Gate + 1 Hologram Gate + 1 Portcullis left.
+- NEW `www/js/blocks/plainportal.js` (after crystalgate.js): block 448 `plain_portal` "Plain Portal" (Rare,
+  walk-through, art 'tex' + live vector drawing `ppDraw`: an upright oval, white glowing rim, pale-blue inside lighter
+  in the middle, breathing glow, faint rings drifting in). In DOOR_IDS (door number, label, bubble, wrench EDIT DOOR =
+  world + door ID). bounce.js `stepPortal` now checks `PORTAL_TS` (a Set: Portal 379 + Plain Portal 448), so walking
+  into it goes at once, with the same `portalArmed` rule. Recipe Plain Portal = Portal + White Block (SPLICE +
+  farming.json tree 420 s + splice). Tested: a Plain Portal set to door #1 (another Plain Portal) in the same world
+  moved the player there; arriving didn't send him back.
+- GAME_BUILD '2026-11-09 zh'.
+
+## Build 2026-11-09 zi — the Crystal Gate is ONE crystal that drops
+Owner (on the 4 shards of build zh): "just one crystal that drops". crystalgate.js `csCurtain`: one big faceted crystal
+as wide as the curtain (6/64 in from each side): left half blue (`CRYSTALS.blue_crystal` C[3]), right half green
+(green C[2]), lighter facet strips, dark edges, a bright ridge down the middle, two facet lines across, a pointed tip
+(34% of the tile) at the bottom of the column, sparkles. Moving: lift = 1 - (1 - u)^2 of the free height (u = gates.js
+`gateAmount`): it rises quickly and settles in the housing; shutting, it starts slowly and falls faster and faster
+(drops). Icon the same. GAME_BUILD '2026-11-09 zi'.
+
+## Build 2026-11-09 zj — Crystal Gate in the Blue Crystal Block's look, darker Plain Portal
+Owner: "ugly; it should look like the blue Crystal Block, like that going down, one colour only; and change the
+portal's colour, make it a bit dark".
+- crystalgate.js `csCurtain`: the crystal is now the Blue Crystal Block's own picture (mooncrystals.js
+  `mcFrame('blue', CS_FRAME)`, design 5 = long up-and-down facets, the same on every tile; only its inside 28 px, so a
+  column runs on without seams) stretched over the curtain, cut to the crystal shape (pointed tip, 30% of the tile, at
+  the bottom of the column), a dark-blue outline (`CRYSTALS.blue_crystal` C[0]), the Crystal Blocks' light band
+  (`MC_SHINE_MS`) and two twinkles. Blue only (no green). Icon remade once the crystal sheet has loaded.
+- plainportal.js: dark colours: deep indigo inside (violet in the middle, `#10082a` at the edge), a dim violet rim and
+  purple glow, violet rings. Block fx / seed colours to match.
+- GAME_BUILD '2026-11-09 zj'.
+
+## Build 2026-11-09 zk — still Plain Portal, flat-bottomed Crystal Gate
+Owner: "no animation on the portal; the crystal door: just a straight horizontal bottom, not the pointed one".
+- plainportal.js: drawn with t = 0 every frame (`ppDraw(g, px, py, T, 0)`): no breathing glow, no moving rings.
+- crystalgate.js `csCurtain`: no tip; the crystal is a plain rectangle down to the bottom of the tile (flat bottom,
+  outlined). GAME_BUILD '2026-11-09 zk'.
+
+## Build 2026-11-09 zl — Red Crystal Gate
+Owner: "make a red one too". crystalgate.js: block 447 is now named "Blue Crystal Gate" (id crystal_shard_gate);
+NEW block 449 `red_crystal_gate` "Red Crystal Gate" (Epic, gate): the same pod housing and flat-bottomed crystal, in
+the Red Crystal Block's look (`csCurtain(..., col)` takes the colour: `CS_COLOUR` id -> 'blue' / 'red'; picture
+`mcFrame(col, CS_FRAME)`, outline `CRYSTALS[col + '_crystal'].C[0]`). Stove: 1 Portcullis + 4 Red Crystals = 1 (after
+the blue one, before the Hologram Gate). breakDrop: itself. Icons remade once the crystal sheets have loaded.
+Museum ':L7' (once): the old label "Crystal Gate. STOVE: 1 Portcullis + 2 Blue + 2 Green Crystals." is taken off, a
+Display Box for the Red Crystal Gate is added, labels written again (fresh ':L5' / ':L6' passes add it and mark ':L7').
+NEXT FREE BLOCK: 450. GAME_BUILD '2026-11-09 zl'.
+
+## Build 2026-11-09 zm — sounds for the new blocks, gate recipes in MOONEVENT
+Owner: "change the crystal gate's sound, like ice; the roulette too when it spins, the dice and the Lucky Color Block,
+and the hologram gate; add the crystal (gates) to the MOONEVENT recipes".
+- NEW `www/js/gameplay/blocksfx.js` (after plainportal.js): synthesized Web Audio sounds (`Sfx.ctx()`, no files;
+  Settings sound off = silent; `BSFX_VOL` 0.5). Gates: a `gateAmount` wrapper notes a move starting (shut -> opening)
+  / ending (-> shut) for the gates in `BSFX_GATE` and mutes their portcullis sound (Sfx.play wrapper, flag
+  `bsfxMutePortc`): Blue / Red Crystal Gate = `sfxIceOpen` (frosty hiss + rising glassy pings) / `sfxIceLand` (ice
+  crack, thud, clinks); Hologram Gate = `sfxHoloOff` (falling filtered buzz) / `sfxHoloOn` (rising buzz + ping + hiss).
+  Game blocks: gameblocks.js `gbState` calls `gbRollSfx(kind, s, i)` when a new roll starts (on every screen drawing
+  it): dice = a wooden click at each face change (`gbFlickTimes`, the same timing as the picture) and a knock at the
+  end; Lucky Color = a random-pitch blip per change and a 3-note chime; roulette = a whoosh, a click per pocket going by
+  (cubic ease-out like the wheel, >= 28 ms apart), a bell when it stops. Tested: each one creates its oscillators /
+  noise sources at the right moments, no errors.
+- crystalgate.js ':L8' (once, after ':L4'): `mevAddRecipeSigns` puts 4 Hologram Signs (Blue Crystal Gate, Red Crystal
+  Gate, Hologram Gate, Prism Crystal Block recipes, `MEV_GATE_RECIPES`) on free floor tiles (solid under them) of the
+  row where most "(Stove" recipe signs stand, every other tile outwards from them (right, then left); without such a
+  row, at the bottom of the museum box. Tested on a copy: 4 placed at +3, -3, +5, -5.
+- GAME_BUILD '2026-11-09 zm'.
+
+## Build 2026-11-09 zn — Crystal Gates sound like freezing
+Owner: "the crystal sound is ugly; like something freezing / frozen". blocksfx.js `sfxFreeze(len, big)`: 26 / 46 tiny
+band-passed noise crackles (2.6-7.8 kHz, 8-26 ms) spaced sqrt-wise so they get thicker towards the end (ice spreading),
+a cold-wind noise swell (band-pass sweeping 1.8 -> 5.2 kHz), two slightly detuned sines rising 1.5 -> 2.9 kHz (cold
+shimmer), then a clear "ting" (3520 + 5280 Hz) when frozen (+ a low crunch on the big one). Shutting (the crystal comes
+down) = `sfxFreeze(0.55, true)`, lifting = `sfxFreeze(0.28, false)`. Rendered offline to check: builds up over 0.6 s,
+the ting rings ~0.5 s. GAME_BUILD '2026-11-09 zn'.
+
+## Build 2026-11-09 zo — freeze sound without tones
+Owner: "take out the one with the tone, just the freeze". blocksfx.js `sfxFreeze`: the rising shimmer sines and the
+"ting" are gone; only the spreading ice crackles, the cold-wind swell and (big one) the soft low crunch at the end.
+GAME_BUILD '2026-11-09 zo'.
+
+## Build 2026-11-09 zp — loading screen first, nothing else until the game has loaded
+Owner: "bug on loading, before logging in: a pop-up shows, and the top-right UI and the hotkeys show; it should be only
+the loading, then after loading the log in pop-up". Cause: the page's HTML (log in pop-up, .topr buttons, hotbar, touch
+pads) shows while the ~130 scripts and the pictures load; landing.js only hides the buttons once it has run.
+- index.html: `<body class="booting">` and a `#boot` loading screen first in the body (BALBTOPIA, a progress bar
+  `#bootBar`, `#bootTxt`). css/style.css: `body.booting > *:not(#boot)` is visibility hidden (every pop-up, the HUD,
+  the pads); `#boot` covers the screen (z-index 100000, #1c1033); `body.booted` fades it out (0.35 s).
+- config.js: `bootTotal` counts the pictures + farming.json; `boot()` moves the bar; when the last one is in, `ready()`
+  then `bootRelease()`: keeps the loading screen ("Logging in...") while a saved session logs you in by itself
+  (`AUTH_RESTORING`, set by auth.js initOnline while it checks the session) or while you are being taken into the
+  lobby (authBox hidden, start showing, news.js has hidden the PLAY box), at most 20 s; then removes `booting`.
+- Tested in Chromium: fresh start = only the loading screen, then the log in / register pop-up with no HUD (landing);
+  "Stay logged in" reload = loading screen, "Logging in...", then straight into the lobby with the HUD (the log in
+  pop-up never flashes). GAME_BUILD '2026-11-09 zp'.

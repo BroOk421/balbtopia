@@ -350,9 +350,9 @@ function roidPic(k, px) {
 // inside the rock's own shape and turning with it; gone when the damage is forgotten (5 s, like blocks)
 const ROID_CRACKS = new Map();
 function roidCracked(o, c) {
-  if (!o.hp || now - (o.hitT || 0) > 5000 || !IMG.cracks || !IMG.cracks.width) return c;
-  const st = Math.min(2, Math.floor((o.hp / ROID_HITS) * 3)),
-    key = o.k + ':' + c.width + ':' + st;
+  if (!o.hp || now - (o.hitT || 0) > 5000) return c;
+  const pic = crackPic(o.hp / ROID_HITS), // (Nov 9 2026: the growing crack, like blocks)
+    key = o.k + ':' + c.width + ':' + CRACK_PICS.indexOf(pic);
   let k = ROID_CRACKS.get(key);
   if (k) return k;
   if (ROID_CRACKS.size > 200) ROID_CRACKS.clear();
@@ -363,7 +363,7 @@ function roidCracked(o, c) {
   x.drawImage(c, 0, 0);
   x.globalCompositeOperation = 'source-atop';
   x.imageSmoothingEnabled = false;
-  x.drawImage(IMG.cracks, st * 32, 0, 32, 32, 0, 0, k.width, k.height);
+  x.drawImage(pic, 0, 0, k.width, k.height);
   ROID_CRACKS.set(key, k);
   return k;
 }

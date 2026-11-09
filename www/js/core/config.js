@@ -1,14 +1,48 @@
 // Settings, blocks and items. Add new items in ITEMS.
 // ===== assets =====
 const IMG = {};
-let pending = 0;
+let pending = 0,
+  bootTotal = 0;
+// (owner, Nov 9 2026) the loading screen (index.html #boot) shows how far the pictures are, and goes away only when
+// everything has loaded and the game is set up (ready): then the log in pop-up shows
 function boot() {
-  if (--pending === 0) ready();
+  const bar = document.getElementById('bootBar');
+  if (bar && bootTotal) bar.style.width = Math.max(4, Math.round(10 + 90 * (1 - pending / bootTotal))) + '%';
+  if (--pending === 0) {
+    try {
+      ready();
+    } finally {
+      bootRelease();
+    }
+  }
+}
+// the loading screen stays while you are being logged in by yourself (still logged in from last time: online the
+// session is being checked, `AUTH_RESTORING` in auth.js; then the lobby loads), so the empty log in pop-up never flashes;
+// it goes when you are in the game, when the log in pop-up is really needed, or after 20 s whatever happens
+function bootRelease(t0 = performance.now()) {
+  const start = document.getElementById('start'),
+    auth = document.getElementById('authBox'),
+    play = document.getElementById('playBox'),
+    // logged in and going into the lobby by itself (news.js hides the PLAY box while it presses PLAY for you; if that
+    // fails the box shows again, and so does the page)
+    entering = auth && auth.hidden && start && !start.hidden && play && play.style.visibility === 'hidden',
+    restoring = typeof AUTH_RESTORING !== 'undefined' && AUTH_RESTORING;
+  if ((entering || restoring) && performance.now() - t0 < 20000) {
+    const tx = document.getElementById('bootTxt');
+    if (tx) tx.textContent = 'Logging in...';
+    const bar = document.getElementById('bootBar');
+    if (bar) bar.style.width = '100%';
+    return setTimeout(() => bootRelease(t0), 100);
+  }
+  document.body.classList.remove('booting');
+  document.body.classList.add('booted'); // fades the loading screen out
+  setTimeout(() => document.body.classList.remove('booted'), 450);
 }
 function loadAssets() {
   loadFarming();
   for (const k in A) {
     pending++;
+    bootTotal++;
     const im = new Image();
     im.onload = boot;
     im.onerror = () => {
@@ -692,6 +726,7 @@ const SPLICE = {
 // read data/farming.json (tree grow times and splice recipes); keeps the built-in ones if it can't
 function loadFarming() {
   pending++;
+  bootTotal++;
   fetch("data/farming.json", { cache: "no-cache" })
     .then((r) =>
       r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)),

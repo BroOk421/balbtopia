@@ -262,18 +262,25 @@ function initAuth() {
     setTimeout(() => $('aUser').focus(), 50);
   }
 }
+// true while the saved online session is being checked on start (config.js keeps the loading screen up meanwhile)
+let AUTH_RESTORING = false;
 async function initOnline() {
   setAuthMode('login');
   $('aGo').disabled = true;
-  if (forgetOnStart()) await Net.signOut();
-  const me = await Net.restore();
-  $('aGo').disabled = false;
-  showLoginWait(); // still locked from before the reload
-  if (me && !(await signInOnline())) {
-    showPlayBox();
-    renderBars();
-    updateGold();
-  } else setTimeout(() => $('aUser').focus(), 50);
+  AUTH_RESTORING = true;
+  try {
+    if (forgetOnStart()) await Net.signOut();
+    const me = await Net.restore();
+    $('aGo').disabled = false;
+    showLoginWait(); // still locked from before the reload
+    if (me && !(await signInOnline())) {
+      showPlayBox();
+      renderBars();
+      updateGold();
+    } else setTimeout(() => $('aUser').focus(), 50);
+  } finally {
+    AUTH_RESTORING = false;
+  }
 }
 
 // ---------- Forgot password (owner, Oct 27 2026) ----------
