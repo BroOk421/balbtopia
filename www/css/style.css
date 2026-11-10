@@ -1993,38 +1993,7 @@ button:focus-visible {
   }
 }
 
-/* ---------- chat ---------- */
-.chatbtn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 11px;
-  border-radius: 6px;
-  border: 2px solid var(--line);
-  background: rgba(28, 16, 51, 0.82);
-  color: var(--ink);
-  font-family: var(--pixel);
-  font-size: 10px;
-  cursor: pointer;
-}
-/* a little speech bubble */
-.chatbtn .cb {
-  position: relative;
-  width: 14px;
-  height: 10px;
-  border-radius: 3px;
-  background: var(--ink);
-}
-.chatbtn .cb::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: -4px;
-  border: 3px solid transparent;
-  border-top-color: var(--ink);
-  border-left-color: var(--ink);
-}
+/* ---------- chat (the old pop-up's rows; the chat itself is .gchat) ---------- */
 .chatrow {
   display: flex;
   gap: 6px;
@@ -2067,13 +2036,9 @@ button:focus-visible {
   .topr {
     gap: 6px;
   }
-  .shopbtn,
-  .chatbtn {
+  .shopbtn {
     padding: 0 8px;
     font-size: 8px;
-  }
-  .chatbtn .cb {
-    display: none;
   }
 }
 /* GM: everything in the Shop is free */
@@ -4345,31 +4310,74 @@ body.mannmode.mailmode {
   }
 }
 
-/* ---------- Global Chat (globalchat.js, Oct 25 2026): top left, minimises to a globe button ---------- */
+/* ---------- The chat (globalchat.js, Nov 10 2026): top left. Closed = a bar with the newest line; open = tabs down the
+   left, the lines, and [MODE][box][Send]. Colours: SYSTEM yellow, SHOUT (global) blue, LOCAL plain, FRIEND green ---------- */
 .gchat {
   position: absolute;
   left: calc(10px + env(safe-area-inset-left, 0px));
   top: calc(10px + env(safe-area-inset-top, 0px));
   z-index: 5;
+  width: min(380px, 56vw);
+  --c-sys: rgba(255, 210, 63, 0.24);
+  --c-shout: rgba(58, 143, 224, 0.34);
+  --c-friend: rgba(92, 192, 122, 0.3);
+  --t-sys: #ffe27a;
+  --t-shout: #9fd0ff;
+  --t-friend: #9ef0b4;
 }
-/* a square button like the menu buttons top right (owner, Oct 25 2026) */
-.gchat .gtoggle {
+.gchat .gtick {
   position: relative;
-  width: 38px;
+  display: flex;
+  align-items: center;
+  width: 100%;
   height: 38px;
-  display: grid;
-  place-items: center;
+  box-sizing: border-box;
+  padding: 0 10px;
   border-radius: 6px;
   border: 2px solid var(--line);
   background: rgba(28, 16, 51, 0.82);
+  color: var(--ink);
+  font: 12px var(--body);
+  text-align: left;
   cursor: pointer;
-  padding: 0;
 }
-.gchat .gtoggle svg {
-  width: 22px;
-  height: 22px;
+.gchat .gtick.c-sys {
+  background: linear-gradient(var(--c-sys), var(--c-sys)), rgba(28, 16, 51, 0.82);
+  color: var(--t-sys);
 }
-/* how many new messages: white number on a red rounded tag, top right of the button */
+.gchat .gtick.c-shout {
+  background: linear-gradient(var(--c-shout), var(--c-shout)), rgba(28, 16, 51, 0.82);
+}
+.gchat .gtick.c-friend {
+  background: linear-gradient(var(--c-friend), var(--c-friend)), rgba(28, 16, 51, 0.82);
+}
+.gchat .gtick.flash {
+  animation: gFlash 0.6s ease-out;
+}
+@keyframes gFlash {
+  from {
+    border-color: var(--sun);
+  }
+}
+.gchat .gtick-t {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gchat .gtick-t b {
+  color: var(--glow);
+  font-weight: 600;
+}
+.gchat .gtick-none {
+  color: var(--muted);
+}
+.gchat.open .gtick {
+  display: none;
+}
+/* how many new messages: white number on a red rounded tag, top right of the bar */
 .gchat .gbadge {
   position: absolute;
   top: -7px;
@@ -4392,7 +4400,8 @@ body.mannmode.mailmode {
   display: none;
   flex-direction: column;
   gap: 6px;
-  width: min(300px, 42vw);
+  box-sizing: border-box;
+  width: 100%;
   padding: 8px;
   background: rgba(58, 33, 102, 0.94);
   border: 3px solid var(--night);
@@ -4401,9 +4410,13 @@ body.mannmode.mailmode {
 }
 .gchat.open .gpanel {
   display: flex;
+  animation: gDrop 0.22s ease-out;
 }
-.gchat.open .gtoggle {
-  display: none;
+@keyframes gDrop {
+  from {
+    opacity: 0.2;
+    transform: translateY(-8px);
+  }
 }
 .gchat header {
   display: flex;
@@ -4411,9 +4424,6 @@ body.mannmode.mailmode {
   gap: 6px;
 }
 .gchat .gtitle {
-  display: flex;
-  align-items: center;
-  gap: 5px;
   font: 9px var(--pixel);
   color: var(--sun);
 }
@@ -4423,6 +4433,7 @@ body.mannmode.mailmode {
   color: var(--muted);
 }
 .gchat .gmin {
+  margin-left: auto;
   width: 24px;
   height: 22px;
   padding: 0;
@@ -4434,11 +4445,55 @@ body.mannmode.mailmode {
   cursor: pointer;
   line-height: 1;
 }
+.gchat .gmic + .gmin {
+  margin-left: 0;
+}
+.gchat .gbody {
+  display: flex;
+  gap: 5px;
+}
+/* the tabs, listed down the left side of the lines */
+.gchat .gtabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: none;
+}
+.gchat .gtab {
+  font: 7px var(--pixel);
+  padding: 6px 5px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+  border-left-width: 5px;
+}
+.gchat .gtab.t-all {
+  border-left-color: #3a8fe0;
+}
+.gchat .gtab.t-sys {
+  border-left-color: #ffd23f;
+}
+.gchat .gtab.t-local {
+  border-left-color: #b8a8d8;
+}
+.gchat .gtab.t-friend {
+  border-left-color: #5cc07a;
+}
+.gchat .gtab.on {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--glow);
+}
 .gchat .glist {
+  flex: 1;
+  min-width: 0;
   list-style: none;
   margin: 0;
-  padding: 4px 6px;
-  height: min(150px, 26vh);
+  padding: 3px;
+  height: min(170px, 28vh);
   overflow-y: auto;
   background: var(--slot);
   border: 2px solid var(--night);
@@ -4448,8 +4503,41 @@ body.mannmode.mailmode {
   user-select: text;
 }
 .gchat .glist li {
-  padding: 1px 0;
+  padding: 2px 5px;
+  margin-bottom: 2px;
+  border-radius: 3px;
   overflow-wrap: anywhere;
+}
+.gchat .glist li.c-sys {
+  background: var(--c-sys);
+  color: var(--t-sys);
+}
+.gchat .glist li.c-shout {
+  background: var(--c-shout);
+}
+.gchat .glist li.c-friend {
+  background: var(--c-friend);
+}
+.gchat .glist small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.gchat .gtag {
+  font: normal 6px var(--pixel);
+  padding: 1px 3px;
+  margin-right: 5px;
+  border-radius: 2px;
+  vertical-align: 2px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.gchat .c-sys .gtag {
+  color: var(--t-sys);
+}
+.gchat .c-shout .gtag {
+  color: var(--t-shout);
+}
+.gchat .c-friend .gtag {
+  color: var(--t-friend);
 }
 .gchat .gname {
   background: none;
@@ -4459,6 +4547,12 @@ body.mannmode.mailmode {
   font-weight: 600;
   color: var(--glow);
   cursor: pointer;
+}
+.gchat .c-shout .gname {
+  color: var(--t-shout);
+}
+.gchat .c-friend .gname {
+  color: var(--t-friend);
 }
 .gchat .gname.me {
   color: var(--sun);
@@ -4472,6 +4566,60 @@ body.mannmode.mailmode {
   display: flex;
   gap: 5px;
 }
+/* where the typing goes: SYSTEM / SHOUT / LOCAL / FRIEND */
+.gchat .gmode {
+  position: relative;
+  flex: none;
+}
+.gchat .gmodebtn,
+.gchat .gmodes button {
+  font: 7px var(--pixel);
+  padding: 0 7px;
+  height: 100%;
+  min-height: 30px;
+  border-radius: 4px;
+  border: 2px solid var(--night);
+  background: var(--slot);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.gchat .gmodebtn::after {
+  content: ' ▾';
+}
+.gchat .gm-sys {
+  background: #6a5410 !important;
+  color: #ffe27a !important;
+}
+.gchat .gm-shout {
+  background: #1e4f86 !important;
+  color: #cfe7ff !important;
+}
+.gchat .gm-friend {
+  background: #1f6b38 !important;
+  color: #c8f7d4 !important;
+}
+.gchat .gmodes {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  background: var(--night);
+  border: 2px solid var(--glow);
+  border-radius: 5px;
+  z-index: 2;
+  min-width: 100%;
+}
+.gchat .gmodes[hidden] {
+  display: none;
+}
+.gchat .gmodes button {
+  height: 28px;
+  text-align: left;
+}
 .gchat .gform input {
   flex: 1;
   min-width: 0;
@@ -4482,22 +4630,46 @@ body.mannmode.mailmode {
   background: var(--slot);
   color: var(--ink);
 }
+.gchat .gform input:focus {
+  border-color: var(--glow);
+  outline: none;
+}
 .gchat .gform .btn {
   font-size: 9px;
   padding: 6px 9px;
 }
+/* SYSTEM: read only, no box (owner, Nov 10 2026) */
+.gchat .gro {
+  display: none;
+  flex: 1;
+  align-self: center;
+  font: 7px var(--pixel);
+  color: var(--t-sys);
+  padding-left: 4px;
+}
+.gchat .gform.ro input,
+.gchat .gform.ro .btn {
+  display: none;
+}
+.gchat .gform.ro .gro {
+  display: block;
+}
 @media (orientation: landscape) and (max-height: 520px) {
+  .gchat {
+    width: min(330px, 50vw);
+  }
+  .gchat .gtick {
+    height: 34px;
+  }
   .gchat .gpanel {
-    width: min(260px, 38vw);
     padding: 6px;
   }
   .gchat .glist {
-    height: min(110px, 24vh);
+    height: min(120px, 26vh);
     font-size: 12px;
   }
-  .gchat .gtoggle {
-    width: 34px;
-    height: 34px;
+  .gchat .gtab {
+    padding: 4px;
   }
 }
 

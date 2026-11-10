@@ -1,31 +1,60 @@
-// Global Chat (owner, Oct 25 2026): a panel at the top left of the screen for everyone online, whatever world they
-// are in. Minimised it is a round button with a globe; open it lists the chats ("name: message", newest at the
-// bottom, scrolls) with a box at the bottom to write in.
-//  - Only messages sent while you are online show (none from before you logged in); a red number on the globe
-//    button counts new ones while the panel is minimised.
-//  - Broadcasting needs a Microphone (Shop, 2,000 gold); each message uses one up (the server takes it: GMs free).
-//  - "/go" sends you to the world of the newest message in the list (your own lobby can't be visited).
-//  - Tapping a name: Message / Add friend / Block (hides that player's messages for 10 minutes) / Close.
+// THE CHAT (owner, Nov 10 2026; was the Global Chat of Oct 25 2026 + the CHAT pop-up + the chat bar of Nov 9):
+// one panel at the top left for everything.
+//  - Closed it is a bar showing the newest line (any kind, in its colour); a red number counts new messages from
+//    other players while it is closed. Tap it (or press Enter on a keyboard) to open it.
+//  - Open: TABS listed down the left side (GLOBAL = every line, SYSTEM, LOCAL, FRIEND: tap one to see only that),
+//    the lines, and at the bottom a MODE button left of the box (SYSTEM / SHOUT / LOCAL / FRIEND: where what you
+//    type goes), the box and Send.
+//  - Line colours: SYSTEM yellow, SHOUT (seen by everyone online, the GLOBAL ones) blue, LOCAL plain, FRIEND green.
+//  - SYSTEM lines are the game's notices (ui.js toast, no pop-up any more). Nobody chats there (owner, Nov 10 2026:
+//    "system should have no input"): with the SYSTEM mode or the SYSTEM tab picked, the box and Send are hidden.
+//    /commands are typed in LOCAL mode.
+//  - SHOUT needs a Microphone (Shop, 2,000 gold); each message uses one up (the server takes it: GMs free). Only
+//    shouts sent while you are online show. "/go" (any mode) sends you to the world of the newest shout.
+//  - LOCAL: only the players in your world (social.js sendChat: speech bubble, /commands as before).
+//  - FRIEND: goes to every friend who is online (a 'dm' marked fc, social.js gotDM); private messages from the
+//    wrench / Menu show here too.
+//  - Tapping a name: Message / Add friend / Block (hides that player's lines for 10 minutes) / Close.
 // Online: schema.sql global_chat + send_broadcast (real names, the sender's world, live on the 'global' topic; the
-// table is also read every 8 s so nothing is missed). Offline: only your own messages, on this device.
-// ===== globalchat =====
-const GCHAT_MAX = 120, // letters in one broadcast
-  GCHAT_KEEP = 60, // messages kept in the list
+// table is also read every 8 s so nothing is missed). Offline: only your own shouts, on this device.
+// ===== globalchat (the chat) =====
+const GCHAT_MAX = 120, // letters in one shout
+  GCHAT_KEEP = 60, // shouts kept for /go
+  CHAT_KEEP = 150, // lines kept in the panel
+  FCHAT_MAX_TO = 20, // friend chat goes to at most this many online friends (the server allows 40 sends / 10 s)
   GMUTE_MS = 10 * 60 * 1000; // how long Block hides someone
 ITEMS.microphone = {
   name: 'Microphone',
   kind: 'consumable',
-  desc: 'Speak to everyone online: each message you send in the Global Chat (the globe at the top left) uses one.',
+  desc: 'Shout to everyone online: each message you send in SHOUT mode in the chat (top left) uses one.',
   rarity: 'Rare',
   noDrop: true, // (the server counts who bought one: a dropped one couldn't be used by whoever picks it up)
 };
 SHOP.push({ id: 'microphone', gold: 2000, cat: 'world' });
 
-let gmsgs = [], // [{ id, u, n, w, t, at }] oldest first
-  gLast = 0, // newest id seen
+let gmsgs = [], // shouts [{ id, u, n, w, t, at }] oldest first (for /go and to skip ones already shown)
+  gLast = 0, // newest shout id seen
   gSentT = 0,
-  gUnread = 0, // new messages since the panel was last open (red number on the globe button)
-  gPrimed = false; // (owner, Oct 25 2026) messages from before you came online are never shown: the first read only notes the newest id
+  fSentT = 0,
+  gUnread = 0, // new lines from others since the panel was last open (red number on the bar)
+  gPrimed = false; // (owner, Oct 25 2026) shouts from before you came online are never shown: the first read only notes the newest id
+let chatMsgs = [], // every line [{ k, ch: 'sys'|'shout'|'local'|'friend', n, u, w, t, to, pm, mine, at }] oldest first
+  chatK = 0,
+  chatTab = 'all', // which lines show: 'all' (GLOBAL) | 'sys' | 'local' | 'friend'
+  chatMode = 'local'; // where typing goes: 'sys' | 'shout' | 'local' | 'friend'
+const CHAT_TABS = [
+  ['all', 'GLOBAL'],
+  ['sys', 'SYSTEM'],
+  ['local', 'LOCAL'],
+  ['friend', 'FRIEND'],
+];
+const CHAT_MODES = [
+  ['sys', 'SYSTEM'],
+  ['shout', 'SHOUT'],
+  ['local', 'LOCAL'],
+  ['friend', 'FRIEND'],
+];
+const CHAT_TAG = { sys: 'SYS', shout: 'SHOUT', friend: 'FRIEND' }; // (LOCAL lines have no tag)
 // blocked players: lower-case name -> until (ms); kept on this device
 const GMUTE_KEY = 'balbtopia.gmute';
 let gmute = {};
@@ -43,16 +72,25 @@ function gMute(name) {
 }
 
 // ---------- the panel ----------
-const GLOBE_SVG =
-  '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" shape-rendering="crispEdges"><circle cx="8" cy="8" r="6.5" fill="#3a8fe0" stroke="#0c1a3a" stroke-width="1"/><path d="M4 4h3v2H5v2H3V5zM9 3h2v2h2v3h-2V7H9zM6 9h3v2h1v2H7v-2H6zM11 10h2v1h-1v1h-1z" fill="#5cc07a"/><path d="M5 3.5a6.5 6.5 0 0 1 6 0" stroke="#bfe0ff" stroke-width="1" fill="none"/></svg>';
 const gEl = document.createElement('div');
 gEl.className = 'gchat';
 gEl.id = 'gchat';
-gEl.innerHTML = `<button class="gtoggle" id="gOpen" type="button" title="Global chat" aria-label="Open the global chat">${GLOBE_SVG}<b class="gbadge" id="gDot" hidden></b></button>
-  <section class="gpanel" id="gPanel" aria-label="Global chat">
-    <header><span class="gtitle">${GLOBE_SVG}GLOBAL</span><span class="gmic" id="gMic"></span><button class="gmin" id="gMin" type="button" title="Minimise" aria-label="Minimise">–</button></header>
-    <ul class="glist" id="gList"></ul>
-    <div class="gform"><input id="gText" maxlength="${GCHAT_MAX}" placeholder="Broadcast… (/go = their world)" autocomplete="off" enterkeyhint="send" /><button class="btn" id="gSend" type="button">Send</button></div>
+gEl.innerHTML = `<button class="gtick" id="gTick" type="button" aria-label="Open the chat"><span class="gtick-t gtick-none">Chat</span><b class="gbadge" id="gDot" hidden></b></button>
+  <section class="gpanel" id="gPanel" aria-label="Chat">
+    <header><span class="gtitle">CHAT</span><span class="gmic" id="gMic"></span><button class="gmin" id="gMin" type="button" title="Minimise" aria-label="Minimise">–</button></header>
+    <div class="gbody">
+      <nav class="gtabs" id="gTabs" aria-label="Show">${CHAT_TABS.map(([k, l]) => `<button type="button" class="gtab t-${k}" data-tab="${k}">${l}</button>`).join('')}</nav>
+      <ul class="glist" id="gList"></ul>
+    </div>
+    <div class="gform">
+      <div class="gmode">
+        <button class="gmodebtn" id="gModeBtn" type="button" aria-haspopup="true" aria-label="Send to"></button>
+        <div class="gmodes" id="gModes" hidden>${CHAT_MODES.map(([k, l]) => `<button type="button" class="gm-${k}" data-mode="${k}">${l}</button>`).join('')}</div>
+      </div>
+      <input id="gText" maxlength="${GCHAT_MAX}" autocomplete="off" enterkeyhint="send" />
+      <button class="btn" id="gSend" type="button">Send</button>
+      <span class="gro" id="gRo">System notices only</span>
+    </div>
   </section>`;
 $('wrap').appendChild(gEl);
 // always starts minimised (owner, Oct 25 2026: after logging in it was still open), so nothing is remembered
@@ -60,15 +98,58 @@ let gOpenNow = false;
 function gShow(open) {
   gOpenNow = open;
   gEl.classList.toggle('open', open);
+  $('gModes').hidden = true;
   if (open) {
     gUnread = 0;
     gBadge();
     gRender(true);
     gPoll();
-  }
+  } else $('gText').blur();
 }
-$('gOpen').onclick = () => gShow(true);
+// open the panel, optionally in a mode, with the cursor in the box (Enter on a keyboard: social.js openChat)
+function chatOpen(open, mode) {
+  if (mode) chatSetMode(mode);
+  if (mode && chatTab === 'sys') chatTab = 'all'; // (Enter to chat: out of the read-only SYSTEM tab)
+  gShow(open !== false);
+  if (open !== false && !chatReadOnly()) setTimeout(() => $('gText').focus(), 30);
+}
+$('gTick').onclick = () => chatOpen(true);
 $('gMin').onclick = () => gShow(false);
+$('gTabs').onclick = (e) => {
+  const b = e.target.closest('[data-tab]');
+  if (!b) return;
+  chatTab = b.dataset.tab;
+  gRender(true);
+  gFormState();
+};
+// SYSTEM (mode or tab): no box, nothing can be sent
+const chatReadOnly = () => chatMode === 'sys' || chatTab === 'sys';
+function gFormState() {
+  const ro = chatReadOnly();
+  gEl.querySelector('.gform').classList.toggle('ro', ro);
+  if (ro) $('gText').blur();
+}
+function chatSetMode(m) {
+  if (!CHAT_MODES.some(([k]) => k === m)) return;
+  chatMode = m;
+  const btn = $('gModeBtn');
+  btn.textContent = CHAT_MODES.find(([k]) => k === m)[1];
+  btn.className = 'gmodebtn gm-' + m;
+  $('gText').placeholder =
+    m === 'sys' ? '' : m === 'shout' ? 'Shout to everyone (1 Microphone)' : m === 'friend' ? 'To your online friends…' : 'Say something here… (/help)';
+  $('gText').maxLength = m === 'local' ? CHAT_MAX : GCHAT_MAX;
+  gMicShow();
+  gFormState();
+}
+$('gModeBtn').onclick = () => ($('gModes').hidden = !$('gModes').hidden);
+$('gModes').onclick = (e) => {
+  const b = e.target.closest('[data-mode]');
+  if (!b) return;
+  chatSetMode(b.dataset.mode);
+  $('gModes').hidden = true;
+  if (!chatReadOnly()) $('gText').focus();
+};
+chatSetMode('local');
 // shown only while playing: never on the log in / PLAY screen (a world can be drawn behind it there); it is
 // minimised again whenever that screen shows
 const gPlaying = () => typeof account !== 'undefined' && !!account && inWorld && $('start').hidden;
@@ -79,41 +160,104 @@ setInterval(() => {
 }, 300);
 gEl.hidden = true;
 
+// one line's HTML
+function chatLine(m) {
+  const tag = CHAT_TAG[m.ch] ? `<i class="gtag">${CHAT_TAG[m.ch]}</i>` : '',
+    who = (n, u) => `<button class="gname${lc(n) === lc(playerName) ? ' me' : ''}" type="button" data-u="${esc(u || '')}" data-n="${esc(n)}"${m.w ? ` title="In ${esc(m.w)}"` : ''}>${esc(n)}</button>`;
+  if (m.ch === 'sys') return `<li class="c-sys">${tag}${esc(m.t)}</li>`;
+  const name = m.mine && m.to ? `To ${esc(m.to)}` : who(m.n, m.u) + (m.pm && !m.mine ? ' <small>(private)</small>' : '');
+  return `<li class="c-${m.ch}">${tag}${name}: ${esc(m.t)}</li>`;
+}
+const chatShown = (m) => (chatTab === 'all' || m.ch === chatTab) && (m.ch === 'sys' || m.mine || !gMuted(m.n));
 function gRender(toEnd) {
   const ul = $('gList');
   if (!ul) return;
+  gEl.querySelectorAll('.gtab').forEach((b) => b.classList.toggle('on', b.dataset.tab === chatTab));
   const atEnd = toEnd || ul.scrollHeight - ul.scrollTop - ul.clientHeight < 20,
-    list = gmsgs.filter((m) => !gMuted(m.n));
+    list = chatMsgs.filter(chatShown);
   ul.innerHTML = list.length
-    ? list
-        .map(
-          (m) => `<li><button class="gname${lc(m.n) === lc(playerName) ? ' me' : ''}" type="button" data-u="${esc(m.u || '')}" data-n="${esc(m.n)}" title="${m.w ? 'In ' + esc(m.w) : ''}">${esc(m.n)}</button>: ${esc(m.t)}</li>`,
-        )
-        .join('')
-    : '<li class="gnone">No broadcasts yet. Buy a Microphone in the Shop to speak to everyone.</li>';
+    ? list.map(chatLine).join('')
+    : `<li class="gnone">${chatTab === 'friend' ? 'No messages from friends yet.' : chatTab === 'sys' ? 'No notices yet.' : 'Nothing here yet. Say hi!'}</li>`;
   ul.querySelectorAll('.gname').forEach((b) => (b.onclick = () => gPlayer(b.dataset.u, b.dataset.n)));
   if (atEnd) ul.scrollTop = ul.scrollHeight;
-  const mics = countItem('microphone');
-  $('gMic').textContent = isGM() ? 'GM' : mics + ' mic' + (mics === 1 ? '' : 's');
+  gMicShow();
 }
-// a new message arrived (live, from the table, or our own)
+function gMicShow() {
+  const mics = countItem('microphone');
+  $('gMic').textContent = chatMode !== 'shout' ? '' : isGM() ? 'GM' : mics + ' mic' + (mics === 1 ? '' : 's');
+}
+// the closed bar: the newest line that isn't hidden
+let tickKey = -1;
+function gTick() {
+  const m = [...chatMsgs].reverse().find((o) => o.ch === 'sys' || o.mine || !gMuted(o.n)),
+    t = $('gTick');
+  if (!t || (m ? m.k : 0) === tickKey) return;
+  tickKey = m ? m.k : 0;
+  const span = t.querySelector('.gtick-t');
+  t.className = 'gtick' + (m ? ' c-' + m.ch : '');
+  if (!m) {
+    span.className = 'gtick-t gtick-none';
+    span.textContent = 'Chat';
+    return;
+  }
+  span.className = 'gtick-t';
+  span.innerHTML = m.ch === 'sys' ? esc(m.t) : `<b>${esc(m.mine && m.to ? 'To ' + m.to : m.n)}:</b> ${esc(m.t)}`;
+  t.classList.remove('flash');
+  void t.offsetWidth;
+  t.classList.add('flash');
+}
+// adds a line to the panel: ch 'sys' | 'shout' | 'local' | 'friend', m { n, u, w, t, to, pm, mine }
+function chatAdd(ch, m) {
+  const line = { k: ++chatK, ch, n: String(m.n || '').slice(0, 16), u: m.u || '', w: m.w || '', t: String(m.t || '').slice(0, 200), to: m.to || '', pm: !!m.pm, mine: !!m.mine, at: m.at || Date.now() };
+  if (!line.t) return;
+  chatMsgs.push(line);
+  if (chatMsgs.length > CHAT_KEEP) chatMsgs = chatMsgs.slice(-CHAT_KEEP);
+  const theirs = ch !== 'sys' && !line.mine && !gMuted(line.n);
+  if (theirs && !gOpenNow) {
+    gUnread++;
+    gBadge();
+  }
+  if (gOpenNow) {
+    const ul = $('gList');
+    if (ul && chatShown(line) && !ul.querySelector('.gnone')) {
+      const atEnd = ul.scrollHeight - ul.scrollTop - ul.clientHeight < 20;
+      ul.insertAdjacentHTML('beforeend', chatLine(line));
+      const b = ul.lastElementChild && ul.lastElementChild.querySelector('.gname');
+      if (b) b.onclick = () => gPlayer(b.dataset.u, b.dataset.n);
+      while (ul.children.length > CHAT_KEEP) ul.firstElementChild.remove();
+      if (atEnd || line.mine) ul.scrollTop = ul.scrollHeight;
+    } else gRender();
+  }
+  gTick();
+}
+// a game notice (ui.js toast): a yellow SYSTEM line. False while the panel can't be seen (toast pops up then).
+let sysLastT = '',
+  sysLastAt = 0;
+function chatSys(msg) {
+  if (!gPlaying()) return false;
+  const t = String(msg == null ? '' : msg);
+  if (!t) return true;
+  if (t === sysLastT && Date.now() - sysLastAt < 1500) return true; // the same notice again right away: once
+  sysLastT = t;
+  sysLastAt = Date.now();
+  chatAdd('sys', { t });
+  return true;
+}
+// a new shout arrived (live, from the table, or our own)
 function gAdd(list) {
-  let added = false;
+  let heard = false;
   for (const m of list) {
     if (!m || !Number.isFinite(m.id) || gmsgs.some((o) => o.id === m.id)) continue;
-    gmsgs.push({ id: m.id, u: m.u, n: String(m.n || '?').slice(0, 16), w: String(m.w || ''), t: String(m.t || '').slice(0, GCHAT_MAX), at: m.at || Date.now() });
+    const s = { id: m.id, u: m.u, n: String(m.n || '?').slice(0, 16), w: String(m.w || ''), t: String(m.t || '').slice(0, GCHAT_MAX), at: m.at || Date.now() };
+    gmsgs.push(s);
     gLast = Math.max(gLast, m.id);
-    if (!gMuted(m.n) && lc(m.n) !== lc(playerName)) {
-      added = true;
-      if (!gOpenNow) gUnread++;
-    }
+    const mine = lc(s.n) === lc(playerName);
+    chatAdd('shout', { ...s, mine });
+    if (!mine && !gMuted(s.n)) heard = true;
   }
-  if (!added && !list.length) return;
   gmsgs.sort((a, b) => a.id - b.id);
   if (gmsgs.length > GCHAT_KEEP) gmsgs = gmsgs.slice(-GCHAT_KEEP);
-  if (added && !gOpenNow) gBadge();
-  if (added) toot();
-  gRender();
+  if (heard) toot();
 }
 // "toot toot" (owner, Oct 25 2026: like a scanner's beep) when a Global Chat or private message comes in: two short
 // bright beeps made with Web Audio (square wave softened by a low-pass filter, quick fade), at most one every 0.6 s;
@@ -151,7 +295,7 @@ function toot() {
     o.stop(t0 + at + 0.1);
   }
 }
-// the red number on the globe button (white, rounded; 99+ at most)
+// the red number on the closed bar (white, rounded; 99+ at most)
 function gBadge() {
   const b = $('gDot');
   b.hidden = !gUnread;
@@ -176,52 +320,85 @@ async function gPoll() {
 setInterval(gPoll, 8000);
 setInterval(() => gOpenNow && gRender(), 60000); // a Block running out shows that player's messages again
 
-// ---------- sending ----------
-async function gSend() {
-  const inp = $('gText'),
-    text = inp.value.replace(/\s+/g, ' ').trim().slice(0, GCHAT_MAX);
-  if (!text) return;
-  // /go: to the world of the newest message (not from you, not blocked)
-  if (/^\/go\b/i.test(text)) {
-    const m = [...gmsgs].reverse().find((o) => !gMuted(o.n) && lc(o.n) !== lc(playerName));
-    if (!m) return toast('Nobody has broadcast yet');
-    if (!m.w || m.w === LOBBY_WORLD) return toast(m.n + ' is in their own lobby');
-    inp.value = '';
-    inp.blur();
-    gShow(false); // the panel closes when you go (owner, Oct 25 2026)
-    toast('Going to ' + m.w + '…');
-    enterWorld(m.w);
-    return;
-  }
-  if (!isGM() && countItem('microphone') < 1) return toast('You need a Microphone to broadcast (Shop, 2,000 gold)');
-  if (Date.now() - gSentT < 3000) return toast('Too fast! Wait a few seconds');
+// ---------- sending (the box at the bottom; where it goes = the MODE button) ----------
+// returns false when nothing went out (the text stays in the box), 'keep' when another pop-up opened, else true
+async function gSendShout(text) {
+  if (!isGM() && countItem('microphone') < 1) return toast('You need a Microphone to shout (Shop, 2,000 gold)'), false;
+  if (Date.now() - gSentT < 3000) return toast('Too fast! Wait a few seconds'), false;
   gSentT = Date.now();
   const world = inWorld && worldName !== LOBBY_WORLD ? worldName : '';
+  if (Net.online && Net.me) {
+    const r = await Net.globalSend(text, world);
+    if (r.err) return toast(r.err), false;
+    if (!isGM()) takeItem('microphone', 1);
+    gAdd([{ id: r.id, u: Net.me.id, n: playerName, w: world, t: text, at: Date.now() }]);
+  } else {
+    if (!isGM()) takeItem('microphone', 1);
+    gAdd([{ id: Date.now(), u: 'local', n: playerName, w: world, t: text, at: Date.now() }]);
+  }
+  renderBars();
+  savePlayer();
+  return true;
+}
+// FRIEND: one 'dm' marked fc to every friend who is online (social.js gotDM shows it as a green line)
+function gSendFriends(text) {
+  if (!Net.online || !Net.me) return toast('Friend chat works when playing online'), false;
+  const on = myFriends.filter((f) => f && f.id && Net.people.has(f.id)).slice(0, FCHAT_MAX_TO);
+  if (!myFriends.length) return toast('You have no friends yet. Tap a player and Add friend'), false;
+  if (!on.length) return toast('None of your friends are online right now'), false;
+  if (Date.now() - fSentT < 1500) return toast('Too fast! Wait a few seconds'), false;
+  fSentT = Date.now();
+  for (const f of on) Net.lsend('dm', f.id, { text, fc: 1 });
+  P.say = { text, t: 4 };
+  chatAdd('friend', { n: playerName, u: Net.me.id, t: text, mine: true });
+  return true;
+}
+// /go (any mode): to the world of the newest shout (not from you, not blocked)
+function gGo() {
+  const m = [...gmsgs].reverse().find((o) => !gMuted(o.n) && lc(o.n) !== lc(playerName));
+  if (!m) return toast('Nobody has shouted yet'), false;
+  if (!m.w || m.w === LOBBY_WORLD) return toast(m.n + ' is in their own lobby'), false;
+  gShow(false); // the panel closes when you go (owner, Oct 25 2026)
+  toast('Going to ' + m.w + '…');
+  enterWorld(m.w);
+  return true;
+}
+let gBusy = false;
+async function gSend(byEnter) {
+  const inp = $('gText'),
+    text = inp.value.replace(/\s+/g, ' ').trim().slice(0, chatMode === 'local' ? CHAT_MAX : GCHAT_MAX);
+  if (!text || gBusy || chatReadOnly()) return;
+  gBusy = true;
   $('gSend').disabled = true;
+  let r = false;
   try {
-    if (Net.online && Net.me) {
-      const r = await Net.globalSend(text, world);
-      if (r.err) return toast(r.err);
-      if (!isGM()) takeItem('microphone', 1);
-      gAdd([{ id: r.id, u: Net.me.id, n: playerName, w: world, t: text, at: Date.now() }]);
-    } else {
-      if (!isGM()) takeItem('microphone', 1);
-      gAdd([{ id: Date.now(), u: 'local', n: playerName, w: world, t: text, at: Date.now() }]);
-    }
-    inp.value = '';
-    renderBars();
-    savePlayer();
+    if (/^\/go\b/i.test(text)) r = gGo();
+    else if (chatMode === 'shout') r = await gSendShout(text);
+    else if (chatMode === 'friend') r = gSendFriends(text);
+    else r = await sendChat(text); // LOCAL (social.js: /commands, spam limit, speech bubble)
+  } catch (e) {
+    console.warn('chat send', e);
+    toast('Your message was not sent. Try again.');
+    r = false;
   } finally {
+    gBusy = false;
     $('gSend').disabled = false;
   }
+  if (r === false) return;
+  inp.value = '';
+  // Enter on a keyboard: back to the game (Enter opens the box again); 'keep': another pop-up took over
+  if (byEnter || r === 'keep') inp.blur();
 }
-$('gSend').onclick = gSend;
+$('gSend').onclick = () => gSend(false);
 $('gText').onkeydown = (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    gSend();
+    gSend(true);
   }
-  if (e.key === 'Escape') e.target.blur();
+  if (e.key === 'Escape') {
+    $('gModes').hidden = true;
+    e.target.blur();
+  }
 };
 
 // ---------- a name tapped: Message / Add friend / Block / Close ----------

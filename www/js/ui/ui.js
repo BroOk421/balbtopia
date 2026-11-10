@@ -32,7 +32,10 @@ function closePlayerMenu() {
 }
 // Trade, Add Friend, Message, Email, Gift: see social.js
 $('pmClose').onclick = closePlayerMenu;
+// (owner, Nov 10 2026) notices go into the chat panel as yellow SYSTEM lines (chat.js chatSys in globalchat.js);
+// the old pop-up only shows while the chat panel can't be seen (log in screen, loading)
 function toast(msg) {
+  if (typeof chatSys === 'function' && chatSys(msg)) return;
   const t = $('toast');
   t.textContent = msg;
   t.hidden = false;

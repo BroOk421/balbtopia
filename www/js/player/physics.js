@@ -49,7 +49,12 @@ function collide(axis, prevBottom) {
   return lava;
 }
 const SWIM_UP = -105, // px/s, the fastest you rise holding jump in water
-  SWIM_ACC = 380; // how quickly you get there
+  SWIM_ACC = 380, // how quickly you get there
+  // (owner, Nov 10 2026: "swimming, the fall should be slow") sinking in water: a gentle pull down to at most
+  // SWIM_SINK; falling INTO water is slowed down smoothly (SWIM_DRAG) instead of keeping the fall's speed
+  SWIM_SINK = 38, // px/s, the fastest you sink
+  SWIM_G = 150, // px/s² pulling you down in water (was 520 to a top speed of 140)
+  SWIM_DRAG = 900; // px/s² that slows a fall into the water
 const BURN_PUSH = 340, // px/s sideways when lava burns you, the way you are going
   BURN_UP = 400, // px/s up (was 520: a lower, quicker hop, so the burns come one after another)
   BURN_GAP = 0.12, // s before the next burn can happen (was 0.8, then 0.35; owner: faster, burn after burn)
@@ -138,9 +143,14 @@ function step(dt) {
   if (P.ceilT > 0) {
     P.ceilT -= dt;
     P.vy = 0;
-  } else P.vy = swim ? Math.min(140, P.vy + 520 * dt) : Math.min(MAX_FALL, P.vy + fallGravity() * dt);
+  } else
+    P.vy = swim
+      ? P.vy > SWIM_SINK
+        ? Math.max(SWIM_SINK, P.vy - SWIM_DRAG * dt)
+        : Math.min(SWIM_SINK, P.vy + SWIM_G * dt)
+      : Math.min(MAX_FALL, P.vy + fallGravity() * dt);
   // swimming up (owner, Oct 27 2026): no sudden stroke; holding jump in water speeds you up gently to SWIM_UP
-  if (swim && jumpHeld) P.vy = Math.max(SWIM_UP, P.vy - (520 + SWIM_ACC) * dt);
+  if (swim && jumpHeld) P.vy = Math.max(SWIM_UP, P.vy - (SWIM_G + SWIM_ACC) * dt);
   let hot = false;
   // a Spike Gate that shut on you (owner, Oct 27 2026): touching a shut one doesn't hurt, being in it when it shuts
   // kills; open, nothing. Checked before moving (the collision would push you out of it). 2 px margin.
@@ -245,7 +255,14 @@ function die(why) {
   shake = 6;
   Native.haptic('heavy');
   Sfx.play('ouch'); // Menu -> SPAWN too: the same sound as touching spikes (owner, Oct 25 2026)
-  toast(why === 'fell' ? 'You fell out of the world!' : why === 'spikes' ? 'Ouch! You got spiked!' : why === 'spawn' ? 'Going back to the door…' : 'You burned up in the lava!');
+  toast(
+    why === 'fell' ? 'You fell out of the world!'
+    : why === 'spikes' ? 'Ouch! You got spiked!'
+    : why === 'spawn' ? 'Going back to the door…'
+    : why === 'laser' ? 'Zapped by a laser!' // (lasers.js)
+    : why === 'crushed' ? 'You got crushed!' // (pushers.js)
+    : 'You burned up in the lava!',
+  );
   Net.sendDie();
 }
 // walking past a Checkpoint (the flag, or the Checkpoint Tower: blocks64h.js): you'll come back there when you die

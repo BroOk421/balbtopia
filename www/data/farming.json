@@ -1557,6 +1557,54 @@
     },
     "plain_portal": {
       "growSeconds": 420
+    },
+    "password_door": {
+      "growSeconds": 420
+    },
+    "steel_screen_door": {
+      "growSeconds": 300
+    },
+    "air_blower_right": {
+      "growSeconds": 360
+    },
+    "air_blower_left": {
+      "growSeconds": 360
+    },
+    "air_blower_up": {
+      "growSeconds": 360
+    },
+    "air_blower_down": {
+      "growSeconds": 360
+    },
+    "needle_trap": {
+      "growSeconds": 360
+    },
+    "saw_blade": {
+      "growSeconds": 360
+    },
+    "caltrops": {
+      "growSeconds": 300
+    },
+    "green_laser_gate": {
+      "growSeconds": 360
+    },
+    "red_laser_gate": {
+      "growSeconds": 360
+    },
+    "stone_pusher_left": {
+      "growSeconds": 360
+    },
+    "stone_pusher_right": {
+      "growSeconds": 360
+    },
+    "stone_pusher_up": {
+      "growSeconds": 360
+    },
+    "stone_pusher_down": {
+      "growSeconds": 360
+    },
+    "pressure_plate": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -5270,15 +5318,6 @@
     },
     {
       "seeds": [
-        "electric_fan",
-        "leaf_block"
-      ],
-      "result": "leaf_blower",
-      "source": "balbtopia",
-      "note": "Guitar (id leaf_blower) = Electric Fan + Leaf Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
         "beach_umbrella",
         "bamboo_block"
       ],
@@ -6293,6 +6332,150 @@
       "result": "plain_portal",
       "source": "balbtopia",
       "note": "Plain Portal = Portal + White Block (Balbtopia recipe, Nov 9 2026)"
+    },
+    {
+      "seeds": [
+        "door",
+        "iron_bars"
+      ],
+      "result": "password_door",
+      "source": "balbtopia",
+      "note": "Password Door = Door + Iron Bars (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "screen_door",
+        "steel_block"
+      ],
+      "result": "steel_screen_door",
+      "source": "balbtopia",
+      "note": "Steel Screen Door = Screen Door + Steel Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "air_duct",
+        "arrow_block_right"
+      ],
+      "result": "air_blower_right",
+      "source": "balbtopia",
+      "note": "Air Blower Right = Air Exhaust + Right Arrow Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "air_duct",
+        "arrow_block_left"
+      ],
+      "result": "air_blower_left",
+      "source": "balbtopia",
+      "note": "Air Blower Left = Air Exhaust + Left Arrow Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "air_duct",
+        "arrow_block_up"
+      ],
+      "result": "air_blower_up",
+      "source": "balbtopia",
+      "note": "Air Blower Up = Air Exhaust + Up Arrow Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "air_duct",
+        "arrow_block_down"
+      ],
+      "result": "air_blower_down",
+      "source": "balbtopia",
+      "note": "Air Blower Down = Air Exhaust + Down Arrow Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "death_spikes",
+        "iron_bars"
+      ],
+      "result": "needle_trap",
+      "source": "balbtopia",
+      "note": "Needle Trap = Death Spikes + Iron Bars (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "death_spikes",
+        "steel_beam"
+      ],
+      "result": "saw_blade",
+      "source": "balbtopia",
+      "note": "Saw Blade = Death Spikes + Steel Beam (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "death_spikes",
+        "rock"
+      ],
+      "result": "caltrops",
+      "source": "balbtopia",
+      "note": "Caltrops = Death Spikes + Rock (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "green_block",
+        "steel_beam"
+      ],
+      "result": "green_laser_gate",
+      "source": "balbtopia",
+      "note": "Green Laser Gate = Steel Beam + Green Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "steel_beam"
+      ],
+      "result": "red_laser_gate",
+      "source": "balbtopia",
+      "note": "Red Laser Gate = Steel Beam + Red Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "arrow_block_left",
+        "rock"
+      ],
+      "result": "stone_pusher_left",
+      "source": "balbtopia",
+      "note": "Stone Pusher Left = Rock + Left Arrow Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "arrow_block_right",
+        "rock"
+      ],
+      "result": "stone_pusher_right",
+      "source": "balbtopia",
+      "note": "Stone Pusher Right = Rock + Right Arrow Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "arrow_block_up",
+        "rock"
+      ],
+      "result": "stone_pusher_up",
+      "source": "balbtopia",
+      "note": "Stone Pusher Up = Rock + Up Arrow Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "arrow_block_down",
+        "rock"
+      ],
+      "result": "stone_pusher_down",
+      "source": "balbtopia",
+      "note": "Stone Pusher Down = Rock + Down Arrow Block (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "rock",
+        "wooden_platform"
+      ],
+      "result": "pressure_plate",
+      "source": "balbtopia",
+      "note": "Pressure Plate = Rock + Wooden Platform (Balbtopia recipe, Nov 10 2026)"
     }
   ],
   "notInGameYet": [

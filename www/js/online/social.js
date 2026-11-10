@@ -401,7 +401,8 @@ function composeMessage(id, name) {
           Net.lsend('dm', id, { text });
           msgLog.unshift({ id, name, text, mine: true, at: Date.now() });
           P.say = { text, t: 4 };
-          toast('Sent to ' + name);
+          if (typeof chatAdd === 'function') chatAdd('friend', { n: playerName, to: name, t: text, mine: true, pm: true });
+          else toast('Sent to ' + name);
         },
       },
     ],
@@ -412,11 +413,22 @@ Net.onLobby('dm', (p) => gotDM(p));
 function gotDM(p) {
   const text = String(p.text || '').slice(0, 120),
     name = String(p.fn || 'Player').slice(0, 16);
+  // FRIEND chat (chat.js, owner Nov 10 2026): a 'dm' marked fc goes to every online friend; only the chat's green line
+  if (p.fc) {
+    if (!myFriends.some((f) => f.id === p.from)) return; // (only from someone on our friends list)
+    const r = Net.remotes.get(p.from);
+    if (r) r.say = { text, t: 5 };
+    if (typeof chatAdd === 'function') chatAdd('friend', { n: name, u: p.from, t: text });
+    if (typeof toot === 'function') toot();
+    return;
+  }
   msgLog.unshift({ id: p.from, name, text, mine: false, at: Date.now() });
   msgLog.length = Math.min(msgLog.length, 40);
   const r = Net.remotes.get(p.from);
   if (r) r.say = { text, t: 5 };
-  toast(name + ': ' + text);
+  // a private message shows in the chat panel too (FRIEND colour, "(private)"), not as a pop-up
+  if (typeof chatAdd === 'function') chatAdd('friend', { n: name, u: p.from, t: text, pm: true });
+  else toast(name + ': ' + text);
   Native.haptic('light');
   if (typeof toot === 'function') toot();
   if ($('menu').hidden || menuTab !== 'email') {
@@ -865,41 +877,15 @@ function mailTab(el) {
   }
 }
 
-// ---------- world chat (the CHAT button next to SHOP) ----------
-// Same pop-up as a message from the wrench, but it goes to everyone in this world:
-// it shows as a speech bubble over your head and in their chat list.
+// ---------- local chat (this world) ----------
+// (owner, Nov 10 2026) no pop-up any more: local chat is the LOCAL mode of the chat panel at the top left (chat.js in
+// globalchat.js). It still shows as a speech bubble over your head. Enter (keyboard) opens the panel in LOCAL mode.
 const chatLog = []; // { name, text, mine } for this world, newest last
 function openChat() {
   if (!inWorld) return;
   for (const k in keys) keys[k] = false;
   ptr.down = false;
-  const rows = chatLog
-    .slice(-30)
-    .map((m) => `<li class="${m.mine ? 'me' : ''}"><b>${esc(m.name)}:</b> ${esc(m.text)}</li>`)
-    .join('');
-  const body = dialog(
-    'CHAT · ' + worldName,
-    `<ul class="chatlog" id="chatLog">${rows}</ul>
-     <div class="chatrow"><input id="chatText" maxlength="${CHAT_MAX}" placeholder="Say something… (/help for commands)" autocomplete="off" enterkeyhint="send" /><span class="chatcount" id="chatCount">0/${CHAT_MAX}</span></div>`,
-    [
-      { label: 'Close', cls: 'ghost', run: () => {} },
-      // a /command that opened its own pop-up ('keep') must not close it
-      { label: 'Send', run: async (b) => ((await sendChat(b.querySelector('#chatText').value)) === 'keep' ? false : undefined) },
-    ],
-  );
-  const input = body.querySelector('#chatText'),
-    log = body.querySelector('#chatLog'),
-    count = body.querySelector('#chatCount');
-  log.scrollTop = log.scrollHeight;
-  input.oninput = () => (count.textContent = input.value.length + '/' + CHAT_MAX);
-  // focus right away (inside the tap) so the phone keyboard comes up
-  input.focus();
-  input.onkeydown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      sendChat(input.value).then((ok) => ok !== false && ok !== 'keep' && closeDialog());
-    }
-  };
+  if (typeof chatOpen === 'function') chatOpen(true, 'local');
 }
 // spam limit: up to CHAT_BURST messages close together, then a cooldown
 let chatTimes = [],
@@ -936,6 +922,8 @@ async function sendChat(raw) {
   P.say = { text, t: 4 };
   chatLog.push({ name: playerName, text, mine: true });
   if (chatLog.length > 60) chatLog.shift();
+  if (typeof chatAdd === 'function') chatAdd('local', { n: playerName, u: Net.me && Net.me.id, t: text, mine: true });
+  return true;
 }
 // ---------- chat commands (owner, Oct 23 2026) ----------
 // Typed in the chat, start with "/", never shown as chat: /pull NAME, /kick NAME, /ban NAME (the owner of a locked
@@ -1033,10 +1021,5 @@ Net.onChat = (p) => {
   if (r) r.say = { text, t: 5 };
   chatLog.push({ name, text, mine: false });
   if (chatLog.length > 60) chatLog.shift();
-  const log = $('dlg').hidden ? null : document.getElementById('chatLog');
-  if (log) {
-    log.insertAdjacentHTML('beforeend', `<li><b>${esc(name)}:</b> ${esc(text)}</li>`);
-    log.scrollTop = log.scrollHeight;
-  } else toast(name + ': ' + text);
+  if (typeof chatAdd === 'function') chatAdd('local', { n: name, u: p.id, t: text });
 };
-$('chatBtn').onclick = openChat;

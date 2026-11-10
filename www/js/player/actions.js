@@ -82,6 +82,84 @@ function gotHit(p) {
 function overlapsPlayer(tx, ty) {
   return P.x < tx * TS + TS && P.x + P.w > tx * TS && P.y < ty * TS + TS && P.y + P.h > ty * TS;
 }
+// one punch on the block of tile (x, y) = i (act() below, after its checks; also the Autumn Scythe's laser hopping to
+// the tiles next to it, autumnbeam.js): damage, and breaking it with its drops when the damage is enough
+function hitBlockAt(x, y, i) {
+  const b = BLOCK[fg[i]],
+    need = hitsNeeded(b);
+  if (b.hits === Infinity) {
+    shake = 4;
+    toast('Bedrock is too hard to break');
+    return;
+  }
+  // Disco Ball / Boombox (owner, Oct 25 2026): only players a lock gives access (Gold Lock, or the Red / Blue
+  // Lock it stands in) can switch it on / off or break it; outside every lock nobody can
+  if ((b.id === 'disco_ball' || b.id === 'boombox' || b.id === 'spike_gate' || b.id === 'storage_chest' || b.id === 'stove') && !realAccess(playerName, i)) {
+    shake = Math.max(shake, 2);
+    if (now - farWrenchT > 1500) {
+      farWrenchT = now;
+      toast(alockAt(i) || worldOwner ? 'You have no access to this ' + b.name : 'Put this ' + b.name + ' inside your lock to use it');
+    }
+    return;
+  }
+  // a Weather Machine: every punch switches it off / on (punch it fast a few times to break it)
+  if (isWeatherT(fg[i])) toggleWeather(i);
+  // a Disco Ball: every punch stops / starts its animation (blocks.js)
+  if (canStopAnim(fg[i])) toggleAnim(i);
+  // a Spike Gate: every punch opens / shuts it (blocks64b.js)
+  if (fg[i] === SPIKE_GATE_T) toggleSpikeGate(i);
+  // a Chest / Stove: every punch shuts / opens it; shut, the drops on it are kept inside (blocks64c.js)
+  if (isStoreT(fg[i])) toggleStore(i);
+  // a Signal Jammer / Punch Blocker: every punch switches it off / on (shop.js)
+  if (isJamT(fg[i])) toggleJam(i);
+  dmg[i]++;
+  dmgT[i] = now;
+  shake = 2.5;
+  Native.haptic(dmg[i] >= need ? 'medium' : 'light');
+  burst(x, y, fg[i], 3);
+  smoke(x, y, 5, 1);
+  toolSparkles(heldTool(hand), x * TS + 16, y * TS + 16, 5, 24);
+  if (dmg[i] >= need) {
+    Sfx.play('break');
+    burst(x, y, fg[i], 12);
+    smoke(x, y, 11, 1.6);
+    const id = b.dropAs || b.id; // (a Wet Sponge drops like a Sponge)
+    vends.delete(i);
+    displays.delete(i);
+    manns.delete(i);
+    if (signs.delete(i)) Net.sendSign(i, ''); // sign text / door destination goes with the block
+    pianoSongs.delete(i); // and a Piano's song
+    if (typeof qdoors !== 'undefined' && qdoors.delete(i)) Net.sendShow(i, 'q', null); // and a Question Door's list (qdoor.js)
+    if (typeof pwdoors !== 'undefined' && pwdoors.delete(i)) Net.sendShow(i, 'pw', null); // and a Password Door's password (pwdoor.js)
+    if (typeof isBoardT === 'function' && isBoardT(fg[i])) boardBroken(i); // and a Suggestion Board's posts (board.js)
+    if (typeof atms !== 'undefined') atms.delete(i); // and an ATM's wait (placed again = starts over, atm.js)
+    fg[i] = floorClosed(x, y) ? BEDROCK : 0; // (something in the bedrock floor: the floor closes again; not the lobby room's own row)
+    dmg[i] = 0;
+    if (y > 0) uproot(x, y - 1);
+    addXP(1);
+    questTick('break', id); // daily quest (quests.js)
+    // a Red / Blue Lock goes back into its owner's bag and its area is free again (alocks.js)
+    if (b.alock) return alockBroken(i, id);
+    // an Autumn Chest gives one random prize instead (autumn.js)
+    if (b.chest && typeof openChest === 'function') return openChest(i, x, y);
+    const got = breakDrop(id), // one roll: the block, its seed, coins or nothing (farming.js)
+      gotBlock = got.block;
+    if (gotBlock) spawnDrop(id, x * TS + 16, y * TS + 16);
+    if (b.lock) {
+      worldOwner = null;
+      setLockCfg(null);
+      $('lockwin').hidden = true;
+      updateWorldLabel();
+      toast(worldName + ' is unlocked');
+      saveWorld();
+      return;
+    }
+    const gotSeed = got.seed && dropSeed(id, x, y);
+    // a Wet Sponge always gives something back: its Sponge or, failing that, a Sponge seed (sponge.js)
+    if (b.dropAs && !gotBlock && !gotSeed) spawnDrop(id + '_seed', x * TS + 16, y * TS + 20);
+    if (got.gold) spawnCoins(x, y, got.gold);
+  }
+}
 function act() {
   if (P.dead || doorTrip) return;
   // wrench: click another player (or the wrench next to their name) to open their player menu
@@ -199,81 +277,8 @@ function act() {
       shake = Math.max(shake, 2);
       return;
     }
-    if (fg[i]) {
-      const b = BLOCK[fg[i]],
-        need = hitsNeeded(b);
-      if (b.hits === Infinity) {
-        shake = 4;
-        toast('Bedrock is too hard to break');
-        return;
-      }
-      // Disco Ball / Boombox (owner, Oct 25 2026): only players a lock gives access (Gold Lock, or the Red / Blue
-      // Lock it stands in) can switch it on / off or break it; outside every lock nobody can
-      if ((b.id === 'disco_ball' || b.id === 'boombox' || b.id === 'spike_gate' || b.id === 'storage_chest' || b.id === 'stove') && !realAccess(playerName, i)) {
-        shake = Math.max(shake, 2);
-        if (now - farWrenchT > 1500) {
-          farWrenchT = now;
-          toast(alockAt(i) || worldOwner ? 'You have no access to this ' + b.name : 'Put this ' + b.name + ' inside your lock to use it');
-        }
-        return;
-      }
-      // a Weather Machine: every punch switches it off / on (punch it fast a few times to break it)
-      if (isWeatherT(fg[i])) toggleWeather(i);
-      // a Disco Ball: every punch stops / starts its animation (blocks.js)
-      if (canStopAnim(fg[i])) toggleAnim(i);
-      // a Spike Gate: every punch opens / shuts it (blocks64b.js)
-      if (fg[i] === SPIKE_GATE_T) toggleSpikeGate(i);
-      // a Chest / Stove: every punch shuts / opens it; shut, the drops on it are kept inside (blocks64c.js)
-      if (isStoreT(fg[i])) toggleStore(i);
-      // a Signal Jammer / Punch Blocker: every punch switches it off / on (shop.js)
-      if (isJamT(fg[i])) toggleJam(i);
-      dmg[i]++;
-      dmgT[i] = now;
-      shake = 2.5;
-      Native.haptic(dmg[i] >= need ? 'medium' : 'light');
-      burst(x, y, fg[i], 3);
-      smoke(x, y, 5, 1);
-      toolSparkles(heldTool(hand), x * TS + 16, y * TS + 16, 5, 24);
-      if (dmg[i] >= need) {
-        Sfx.play('break');
-        burst(x, y, fg[i], 12);
-        smoke(x, y, 11, 1.6);
-        const id = b.dropAs || b.id; // (a Wet Sponge drops like a Sponge)
-        vends.delete(i);
-        displays.delete(i);
-        manns.delete(i);
-        if (signs.delete(i)) Net.sendSign(i, ''); // sign text / door destination goes with the block
-        pianoSongs.delete(i); // and a Piano's song
-        if (typeof qdoors !== 'undefined' && qdoors.delete(i)) Net.sendShow(i, 'q', null); // and a Question Door's list (qdoor.js)
-        if (typeof isBoardT === 'function' && isBoardT(fg[i])) boardBroken(i); // and a Suggestion Board's posts (board.js)
-        if (typeof atms !== 'undefined') atms.delete(i); // and an ATM's wait (placed again = starts over, atm.js)
-        fg[i] = floorClosed(x, y) ? BEDROCK : 0; // (something in the bedrock floor: the floor closes again; not the lobby room's own row)
-        dmg[i] = 0;
-        if (y > 0) uproot(x, y - 1);
-        addXP(1);
-        questTick('break', id); // daily quest (quests.js)
-        // a Red / Blue Lock goes back into its owner's bag and its area is free again (alocks.js)
-        if (b.alock) return alockBroken(i, id);
-        // an Autumn Chest gives one random prize instead (autumn.js)
-        if (b.chest && typeof openChest === 'function') return openChest(i, x, y);
-        const got = breakDrop(id), // one roll: the block, its seed, coins or nothing (farming.js)
-          gotBlock = got.block;
-        if (gotBlock) spawnDrop(id, x * TS + 16, y * TS + 16);
-        if (b.lock) {
-          worldOwner = null;
-          setLockCfg(null);
-          $('lockwin').hidden = true;
-          updateWorldLabel();
-          toast(worldName + ' is unlocked');
-          saveWorld();
-          return;
-        }
-        const gotSeed = got.seed && dropSeed(id, x, y);
-        // a Wet Sponge always gives something back: its Sponge or, failing that, a Sponge seed (sponge.js)
-        if (b.dropAs && !gotBlock && !gotSeed) spawnDrop(id + '_seed', x * TS + 16, y * TS + 20);
-        if (got.gold) spawnCoins(x, y, got.gold);
-      }
-    } else if (bg[i]) {
+    if (fg[i]) hitBlockAt(x, y, i);
+    else if (bg[i]) {
       bgDmg[i]++;
       dmgT[i] = now;
       shake = 1.5;

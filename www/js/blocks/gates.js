@@ -150,14 +150,39 @@ function drawWater(ox, oy, T) {
     for (let x = x0; x <= x1; x++) if (vari[at(x, y)] & WATER) drawWaterTile(x, y, ox, oy, T);
 }
 // one tile of water (drawWater, and the Water Bucket's see-through preview under the cursor)
+// (owner, Nov 10 2026: "when there's no more water to the left / right, curve both ends by 5 px so it doesn't look cut
+// off") an end of the water is rounded: the surface corner on a side with no water next to it, and the bottom corner
+// too when the water floats (no water and no solid block under it). WATER_ROUND px of the 32 px tile.
+const WATER_ROUND = 5;
+const wetAt = (x, y) => x >= 0 && y >= 0 && x < WW && y < WH && !!(vari[at(x, y)] & WATER);
 function drawWaterTile(x, y, ox, oy, T) {
   const px = ox + x * T,
     py = oy + y * T,
     top = y === 0 || !(vari[at(x, y - 1)] & WATER);
   let sy = py;
   if (top) sy += T * 0.12; // the surface sits a little below the tile top
+  const r = (WATER_ROUND * T) / 32,
+    left = wetAt(x - 1, y),
+    right = wetAt(x + 1, y),
+    floating = !wetAt(x, y + 1) && !(y + 1 < WH && fg[at(x, y + 1)] !== EMPTY && BLOCK[fg[at(x, y + 1)]] && BLOCK[fg[at(x, y + 1)]].solid !== false),
+    radii = [top && !left ? r : 0, top && !right ? r : 0, floating && !right ? r : 0, floating && !left ? r : 0],
+    round = radii.some((v) => v) && typeof g.roundRect === 'function';
+  g.save();
+  if (round) {
+    g.beginPath();
+    g.roundRect(px, sy, T, py + T - sy, radii);
+    g.clip();
+  }
   g.fillStyle = 'rgba(40,130,220,.38)';
   g.fillRect(px, sy, T, py + T - sy);
+  if (round) {
+    // the clip cut the waves' tops too: let them show over the surface line again
+    g.restore();
+    g.save();
+    g.beginPath();
+    g.roundRect(px, sy - Z * 3, T, py + T - sy + Z * 3, radii.map((v) => (v ? v + Z * 3 * 0.6 : 0)));
+    g.clip();
+  }
   if (top) {
     // wavy surface: light crest, darker under it
     const wv = Z * 1.2;
@@ -174,6 +199,7 @@ function drawWaterTile(x, y, ox, oy, T) {
   g.fillStyle = 'rgba(200,240,255,.18)';
   const s = (now / 1600 + x * 0.37 + y * 0.61) % 1;
   g.fillRect(px + T * s, py + T * 0.55, T * 0.18, Z);
+  g.restore();
 }
 
 // ---------- swimming pose (owner, Oct 26 2026) ----------

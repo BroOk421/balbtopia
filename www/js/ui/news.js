@@ -7,7 +7,7 @@
 //   title, the picture, the text. Close (or Back, when opened from the list: back to the list).
 // - Coming into your LOBBY (and every 60 s while there) the newest paper you haven't seen pops up once
 //   (`newsSeen`, localStorage per player).
-// - The SCROLL button (#newsBtn, under the menu button): the list (#newsList) of every paper, newest first, with its
+// - The SCROLL button (#newsBtn, top right between SHOP and the menu button since Nov 10 2026): the list (#newsList) of every paper, newest first, with its
 //   stamp and date; a dot on the button while there is one you haven't seen. The GM also gets "+ NEW" (the editor:
 //   title, Update / Event, text, picture -> Cancel / Broadcast) and an x to take a paper down.
 // - Pictures are made small in the game (at most NEWS_IMG_W px wide, JPEG) before they are sent.
@@ -218,7 +218,7 @@ function openNewsEdit() {
   };
 }
 
-// ---------- the scroll button under the menu button ----------
+// ---------- the scroll button (top right, next to SHOP) ----------
 const NEWS_SCROLL_SVG =
   '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 4h11a3 3 0 0 1 0 6h-1v8a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h1V7a3 3 0 0 1 3-3" fill="#fff"/>' +
   '<path d="M7 15v3M10 8h5M10 11h5M10 14h3" stroke="#3a2a5a" stroke-width="1.4" stroke-linecap="round" fill="none"/><circle cx="17" cy="7" r="1.6" fill="#d8d0e8"/><circle cx="6" cy="18" r="1.6" fill="#d8d0e8"/></svg>';
@@ -229,23 +229,13 @@ newsBtn.type = 'button';
 newsBtn.setAttribute('aria-label', 'News');
 newsBtn.innerHTML = NEWS_SCROLL_SVG + '<b class="badge" hidden></b>';
 newsBtn.onclick = () => (newsAnyOpen() ? newsCloseAll() : openNewsList());
+// (owner, Nov 10 2026: "move the scroll news icon to where the chat was, next to the shop") in the top-right row,
+// between SHOP and the menu button, where the CHAT button was (the chat is the panel at the top left now: chat.js)
 {
   const burger = document.getElementById('burger');
-  if (burger && burger.parentElement) burger.parentElement.appendChild(newsBtn);
+  if (burger && burger.parentElement) burger.parentElement.insertBefore(newsBtn, burger);
 }
-// under the menu button: placed from where the menu button is (it moves with the screen size / safe areas)
-function newsPlace() {
-  const bu = document.getElementById('burger');
-  if (!bu) return;
-  const r = bu.getBoundingClientRect(),
-    p = newsBtn.offsetParent ? newsBtn.offsetParent.getBoundingClientRect() : { left: 0, top: 0 };
-  newsBtn.style.left = r.left - p.left + 'px';
-  newsBtn.style.top = r.bottom - p.top + 6 + 'px';
-  newsBtn.style.width = r.width + 'px';
-  newsBtn.style.height = r.height + 'px';
-}
-addEventListener('resize', () => setTimeout(newsPlace, 50));
-setInterval(newsPlace, 1000);
+function newsPlace() {} // (it sits in the row now; kept for old callers)
 function newsDot() {
   const b = newsBtn.querySelector('.badge'),
     n = newsAll.filter((x) => x.id > newsSeen()).length;
@@ -297,7 +287,7 @@ showPlayBox = ((prev) =>
 {
   const st = document.createElement('style');
   st.textContent = [
-    '.newsbtn{position:absolute;display:grid;place-content:center;padding:0;border-radius:6px;border:2px solid var(--line);background:rgba(28,16,51,.82);cursor:pointer;z-index:3}',
+    '.newsbtn{position:relative;flex:none;width:38px;height:38px;box-sizing:border-box;display:grid;place-content:center;padding:0;border-radius:6px;border:2px solid var(--line);background:rgba(28,16,51,.82);cursor:pointer}',
     '.newsbtn:hover{border-color:var(--glow)}',
     // (owner: "a red number like the world chat's") the same tag as the Global Chat's: white number on red
     '.newsbtn .badge{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;box-sizing:border-box;padding:0 4px;border-radius:9px;' +

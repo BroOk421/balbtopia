@@ -33,7 +33,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | `wear/` | wear, clothes, tees, capes, scarves, hairstyles, diaper, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
 | `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides |
 | `render/` | render, shadow, portrait, remotefx |
-| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags |
+| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
 | `vendor/` | supabase.js |
 
@@ -85,7 +85,7 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
 | `art64.js` | 64 x 64 art (painter `pix64Canvas`, steel colours `ST64`): Steel Block; the punching fist (`FIST_REF`) |
 | `steel.js` | Steel Beam / Steel Bridge platforms (blocks 162-163, 64 px art via `pix64Canvas`) |
 | `mailbox.js` | Mailbox block (208): flag up while you have unread email / a GM update; wrench = inbox + GM updates (server `announcements`) |
-| `globalchat.js` | Global Chat panel (top left, globe button), Microphone item (2,000 gold, one per broadcast), /go, name pop-up (Message / Add friend / Block 10 min) |
+| `globalchat.js` | THE CHAT (Nov 10 2026; replaces the Global Chat globe, the CHAT pop-up and chatbar.js, all removed): one panel top left. Closed = a bar with the newest line (+ red unread number); open = tabs down the left (`CHAT_TABS`: GLOBAL = every line, SYSTEM, LOCAL, FRIEND), the lines, `[MODE][box][Send]` (`CHAT_MODES`: SYSTEM = runs a /command, SHOUT = Microphone broadcast, LOCAL = social.js sendChat, FRIEND = a 'dm' with `fc: 1` to every online friend, social.js gotDM). Line colours: SYSTEM yellow, SHOUT blue, LOCAL plain, FRIEND green (private messages show there too). `chatAdd(ch, m)` adds a line; ui.js `toast()` goes through `chatSys` (yellow SYSTEM line; the old pop-up only while the panel can't show: log in / loading). Enter (input.js -> social.js openChat) opens it in LOCAL mode. /go works in any mode. Microphone item (2,000 gold) |
 | `moon.js` | Rocket Ship (door 420: launch / landing animation), the shared MOON world (`buildMoon`), Moon Sand / Moon Rock (421-422), Moon Sand / Rock Walls (bg 43-44), the space backdrop `drawMoonBg` (weather 'moon') |
 | `moonevent.js` | The Moon Event: MOONEVENT world (200 rockets, closed outside the event), schedule (every 3 days, 8 PM PH, 24 h), seats (server moon_seats), Moon rebuilds per event (`moonWorldsFix`) |
 | `moonroids.js` | The Moons' floating asteroids: moving / spinning entities (`roids`), riding and pushing them, breaking them (cracks `roidCracked`), 'roid' sync, at most `ROID_MAX` |
@@ -151,7 +151,7 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
   with eyes shut and a weak face, fades out, a ghost with wings and a halo floats up (clothes stay on), then
   you respawn at the main door, fading in.
 - Arm stays out 0.5 s after the last block you placed (`PLACE_POSE`; placing again restarts it).
-- Top right: gold, SHOP, CHAT, menu. The world name and coordinates are hidden on purpose (`.wname, .coords` in CSS).
+- Top right: gold, SHOP, NEWS scroll (news.js, where CHAT was since Nov 10 2026), menu. The world name and coordinates are hidden on purpose (`.wname, .coords` in CSS).
 - Buying something in the Shop closes the Shop window (back to the game).
 - Shop has category tabs (`SHOP_TABS`: LOCKS, WORLD, TOOLS, WEAR; each `SHOP` entry has `cat`). Only two rows of
   cards show (`--scard-h`), the rest scrolls.
@@ -3441,3 +3441,105 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 - Tested in Chromium: fresh start = only the loading screen, then the log in / register pop-up with no HUD (landing);
   "Stay logged in" reload = loading screen, "Logging in...", then straight into the lobby with the HUD (the log in
   pop-up never flashes). GAME_BUILD '2026-11-09 zp'.
+
+## Nov 10 2026
+
+- Death Spikes under a block point DOWN (`blocks/spikeflip.js`, outermost drawNewBlock wrapper, loaded right before
+  main.js): a solid tile right above and nothing solid right under = drawn upside down. Picture only; the whole tile
+  still kills.
+- Chat: see `globalchat.js` in the Files table. The NEWS scroll button sits in the top-right row between SHOP and the
+  menu button (news.js; it was under the menu button).
+- Chat SYSTEM is read only (owner, Nov 10 2026): with the SYSTEM mode or the SYSTEM tab picked, the box and Send are
+  hidden (`chatReadOnly`, `.gform.ro`). /commands are typed in LOCAL mode.
+- Swimming sinks slowly (physics.js `SWIM_SINK` 38 px/s, `SWIM_G` 150; a fall into water is slowed by `SWIM_DRAG`).
+- `blocks/pwdoor.js`: block 450 Password Door (door; wrench = world, door ID, label, password, all with placeholders;
+  click = only a password box; right = the normal door trip; saved as a hash in `pwdoors` / world `pw`, `show` k 'pw'),
+  Screen Door redrawn to fill the tile, block 455 Steel Screen Door. Recipes: Door + Iron Bars, Screen Door + Steel Block.
+- `blocks/blowers.js`: blocks 451-454 Air Blower Right / Left / Up / Down (own look since Nov 10 2026: teal wind
+  machine, hazard band at the back, turning motor, horn-shaped mouth with louvers and gusts on the blowing side). In its row
+  (right / left) or column (up / down), up to `BLOW_RANGE` 8 tiles until a solid block, it pushes YOUR player slowly
+  but only while idle (no walk key, no jump). Recipes: Air Exhaust + the Arrow Block of that direction.
+- NEXT FREE BLOCK: 456. None of these are in the Shop (that needs shop_prices in schema.sql); they come from splices.
+- Password Door look (owner, Nov 10 2026): a purple MONSTER door (horns, toothy mouth) whose eyes look ahead / left /
+  right and blink (`HD_DECO.password_door` frames 0-4, `PW_EYE_SEQ` via decoFrame). The wrench shows the password as
+  typed (kept as `p` in `pwdoors`, world `pw`: [tile, { p, d, id }]; first-build hashes `h` still open) and has a
+  Description (`d`, 160 letters) shown above the password box when you click the door.
+- Water ends are rounded (gates.js `drawWaterTile`, `WATER_ROUND` 5 px of 32): the surface corner where there is no
+  water beside it, and the bottom corner too when the water floats.
+- `blocks/traps.js` (owner, Nov 10 2026): block 456 Needle Trap (needles up 3 s = deadly, down 3 s = safe; one shared
+  clock `Date.now() % NEEDLE_CYCLE`; BLOCK[456].kill is a getter `needleUp`), 457 Saw Blade (spinning, always deadly),
+  458 Caltrops (bobbing, always deadly). HD_DECO art with decoFrame frames; flipped under a block (spikeflip.js).
+  Recipes: Death Spikes + Iron Bars / Steel Beam / Rock. NEXT FREE BLOCK: 459.
+- `blocks/lasers.js` (owner, Nov 10 2026): blocks 459 / 460 Green / Red Laser Gate (green_laser_gate, red_laser_gate:
+  steel posts left and right, FOUR beams across). On 3 s / off 3 s, timed per tile from when it was PLACED (`lzT`,
+  world `lz`, `show` k 'lz'; earliest time heard wins; owner Nov 10 2026); switching
+  on the beams come out of both posts and meet in the middle, off is the same backwards (HD_DECO frames via
+  laserFrame(i): 0-7 on with running pulses, 8-15 part-way, 16 off). Touching the beams while fully on = die('laser').
+  Recipes: Steel Beam + Green / Red Block. (Vertical versions removed by the owner: blocks 461-462 are unused.)
+- `blocks/pushers.js` (owner, Nov 10 2026): blocks 463-466 Stone Pusher Left / Right / Up / Down (rounded stone square
+  that slides one tile out: ease-in out in 0.65 s, back 3 s after the trigger, slowly in 1.5 s; shoves YOUR player,
+  shoved into a wall = die('crushed')) and 467 Pressure Plate (triggers resting pushers within `PUSH_RANGE` 10 tiles;
+  sent as `show` k 'pp'). Recipes: Rock + Arrow Block of that way; Pressure Plate = Rock + Wooden Platform.
+  A stone that comes all the way out onto a plate presses it too (`pushLandCheck`, chains; each game works it out).
+  While its stone is out a pusher's own tile is NOT solid (BLOCK.shut): only the stone collides.
+  A plate sets its pushers off one after another (nearest first, `PUSH_STAGGER` 220 ms); the plate sinks / rises
+  animated (`PLATE_FRAMES`); sounds made with Web Audio (`pushSound`: plate click, grind out, thud, grind back, thud).
+  NEXT FREE BLOCK: 468.
+- `items/autumnbeam.js` (owner, Nov 10 2026): the Autumn Scythe shoots the Nocturn's radiation beam in autumn colours
+  (`RAD_AUTUMN` in reaperscythe.js NOCT_BEAMERS), and when a swing really hits a block the laser HOPS to up to 3 more
+  touching tiles (8 directions) of the same block, straight on first (`autumnChain`), 130 ms apart; each hop = one
+  punch via actions.js `hitBlockAt(x, y, i)` (the block-damage part of act(), split out for this). Other players'
+  hops are drawn too (no damage). Each hop's beam is weaker (`AUTUMN_HOP_ST` 0.65, 0.42, 0.24: drawNoctBeam's `st`, thinner
+  and fainter). Loaded right before main.js.
+- `gameplay/fishjunk.js` (owner, Nov 10 2026): fishing also brings up the game's own Seaweed (106) and Starfish (415),
+  a new Old Shoe (block 471, walk-through) and the wearable Holey Pants (fish.js `JUNK`). The Starfish got a new 64 px
+  curved picture (`paintStarfish` -> NEWART 'starfish:f'). Blocks 468-470 are UNUSED (a first try clashed with the
+  existing Seaweed / Starfish ids: never reuse an id that exists). NEXT FREE BLOCK: 472 (461-462, 468-470 unused).
+- `ui/starterpack.js` (owner, Nov 10 2026): Shop tab PACKS, Starter Pack 2,000 gold = 5 different random items from
+  `starterPool()` (recipe wearables Common / Uncommon + recipe weapons Common / Uncommon / Rare; no set pieces);
+  needs 5 free slots; server row shop_prices 'starter_pack' 2000 in schema.sql (re-run it). Reveal pop-up after.
+- `ui/shopstyle.js` (owner, Nov 10 2026): the Shop's right column shows GROUPS (AUTUMN, CHARACTER = wear / sets /
+  tools / rides, WORLD = locks / world ("ITEMS") / music, PETS, PACKS, TOP UP) with a sub-tab row (`#shopSub`) for
+  groups of more than one part; `shopTab` is still the part. Each card gets a painted background for its part
+  (`shopBg`, pixel art made in code). Never name the game this one is inspired by in it.
+- `wear/musicset.js` (owner, Nov 10 2026): the Guitar (leaf_blower) is Shop-only (MUSIC tab, 5,000; recipe removed from
+  SPLICE / config.js / farming.json, seed retired, so never in the Starter Pack); Music Set (set_music, SETS 20,000:
+  Music Tee (tees.js print 'note'), Rocker Jeans, Rocker Sneakers, Guitar in the Hand slot); Holey Pants = Pants-slot
+  clothing (pattern 'holey' via a paintPixel wrapper); Octopus Beard (kraken_beard, Mustache slot, Rare, animated
+  WEAR_ART + ANIM_N, mouth cut out), `KRAKEN_CHANCE` 1.2% of fished-up junk, Shrimp bait only. schema.sql rows leaf_blower / set_music.
+- Music Set (musicset.js) also gives Piano, Drum Set and Boombox (`extra`), sold in the MUSIC tab; the Piano alone is
+  no longer sold. Octopus Beard = the owner's own neon octopus pictures (assets/sea/kraken_beard.png, 4 frames lined up on the octopus's
+  head; its head top pinned at the mouth top, KRAKEN_AT / KRAKEN_AY; KRAKEN_MS 230 per frame).
+- `gameplay/drums.js` (owner, Nov 10 2026): the Drum Set (361) plays like the Boombox (punch: ANIM_OFF = playing): a
+  Web Audio rock beat (`Drums`, DRUM_BPM 112, heard within DRUM_HEAR 12 tiles) and it moves on the beat (jump, hit
+  flashes, cymbal, sticks, notes).
+- `gameplay/sea.js` (owner, Nov 10 2026, his picture sheet): blocks 472 Shipwreck (5 tiles wide), 473 Torn Ship Flag,
+  474-477 Orange / Pink / Teal / Purple Coral: walk-through, from fishing only (corals in JUNK; Shipwreck / Flag Shrimp bait
+  only, SHIPWRECK_CHANCE 3% / SHIP_FLAG_CHANCE 6% of junk). Pictures in assets/sea/ cut by art-source/sea/sea_cut.py; the Shipwreck / Flag are
+  drawn after all blocks (drawMannequins wrapper). NEXT FREE BLOCK: 478.
+- `gameplay/goldsea.js` (owner, Nov 10 2026): what a bait brings up when it isn't a fish (`FISH_DROPS`, weights per
+  bait: worm = rubbish, snail = seaweed / starfish / corals, shrimp = sea things + rarely Flag / Shipwreck, very rarely
+  Octopus Beard, golden_shrimp = + Golden Shipwreck / Golden Octopus Beard); the old rollFish wrappers in sea.js /
+  musicset.js are gone (one place now). Golden Shrimp bait (Epic, `GOLD_BAIT_CHANCE` 5% of full Bait Baskets via a
+  baitIn wrapper, best fish odds in BAIT_INFO). Golden Octopus Beard (Legendary, gold frames + stroke via `goldify`,
+  shine fading in / out, 12 cached frames). Golden Shipwreck block 478 (gold + stroke, pulsing glow, rising glowing
+  circles; drawSea wrapper). NEXT FREE BLOCK: 479.
+- `wear/pirate.js` (owner, Nov 10 2026, his picture): Pirate Hat (Hat slot, hideHair) and Pirate Beard (Mustache slot),
+  cut by art-source/sea/pirate_cut.py into assets/sea/; drawn at their measured place on the body frame (`PIRATE_AT`,
+  WEAR_ART space = the 118 x 215 frame). From fishing with Shrimp / Golden Shrimp (FISH_DROPS, about 3.6% of the junk each).
+- `gameplay/sea.js` ship shape (owner, Nov 10 2026): the Shipwreck and Golden Shipwreck collide on their picture itself
+  (alpha > SHIP_ALPHA mask as column / row runs, `shipShape`; `shipCollide` in a collide wrapper, like moon.js
+  rockCollide: land on its tops, bump its underside, stopped by its sides, step up lips <= SHIP_STEP px). Empty air in
+  the picture doesn't collide. Punching any solid pixel of the picture (on a tile with no block of its own) punches the
+  ship's tile (act wrapper); broken, it drops itself as a floating item. Water on its tiles is untouched.
+- `wear/afro.js` (owner, Nov 10 2026, his picture): Afro (Hair slot, Rare, shop), cut by art-source/hair/afro_cut.py into
+  assets/items/hair_afro.png (face cut out); a strip hairstyle at its measured place on the body frame. His picture is
+  lined up on the eyes (game idle eye whites vs his picture's: 4.4 picture px per frame px), at full size, the face
+  (and the game's own eyes) cut out; gaps between the hair and the game head by the ear / down to the jaw are filled with
+  the nearest hair. Hair-on-head matches his picture; the game body is just smaller than his picture's.
+  The Pirate Hat (Hat) and Pirate Beard (Mustache) stay separate items.
+- `events/moonevent.js` (owner, Nov 10 2026): while the moon event is open EVERY world shows the Moon's space backdrop,
+  over any weather machine that is on (currentWeather wrapper; weatherNow kept 'moon' so no rain / snow / sand or rain
+  sound, flashT kept so no flash); after it closes each world's machine / backdrop shows again.
+- Rainbow Afro (owner, Nov 10 2026, `wear/afro.js`, Epic): the Afro recoloured in rainbow arcs round the face
+  (art-source/hair/afro_rainbow.py). Shop: afro_hair 8,000 and rainbow_afro 15,000 (shop.js, schema.sql rows + keep list).

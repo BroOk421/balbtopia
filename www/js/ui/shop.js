@@ -263,6 +263,8 @@ const SHOP = [
   { id: 'frosted_quiff', gold: 10000, cat: 'wear' },
   { id: 'pink_ombre_long_hair', gold: 10000, cat: 'wear' },
   { id: 'rainbow_long_hair', gold: 15000, cat: 'wear' },
+  { id: 'afro_hair', gold: 8000, cat: 'wear' }, // afro.js (Nov 10 2026)
+  { id: 'rainbow_afro', gold: 15000, cat: 'wear' },
   { id: 'blue_streak_spikes', gold: 8000, cat: 'wear' },
   { id: 'galaxy_spikes', gold: 8000, cat: 'wear' },
   { id: 'sunset_ponytail', gold: 12000, cat: 'wear' },

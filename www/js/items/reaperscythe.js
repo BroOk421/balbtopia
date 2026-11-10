@@ -171,14 +171,15 @@ stepToolFx = ((prev) =>
       if (noctBeamer(id)) noctShoot(r.name, r.x + r.w / 2, r.y + r.h * 0.42, p.x, p.y, NOCT_BEAMERS[id]);
     }
   })(stepToolFx);
-// the asteroid radiation, squeezed across its line by wf (1 = as on an asteroid, 0 = gone)
-function drawNoctBeam(X0, Y0, X1, Y1, k, pal) {
+// the asteroid radiation, squeezed across its line by wf (1 = as on an asteroid, 0 = gone); st = its strength (1 =
+// full; the Autumn Scythe's hops are weaker and weaker, autumnbeam.js): thinner and fainter
+function drawNoctBeam(X0, Y0, X1, Y1, k, pal, st = 1) {
   if (typeof drawRadiation !== 'function') return;
-  const wf = 1 - k,
+  const wf = (1 - k) * st,
     L = Math.hypot(X1 - X0, Y1 - Y0) || 1;
   if (wf <= 0.01) return;
   g.save();
-  g.globalAlpha *= k < 0.75 ? 1 : (1 - k) / 0.25;
+  g.globalAlpha *= (k < 0.75 ? 1 : (1 - k) / 0.25) * (0.3 + 0.7 * st);
   g.translate(X0, Y0);
   g.rotate(Math.atan2(Y1 - Y0, X1 - X0));
   g.scale(1, wf);
@@ -208,7 +209,7 @@ drawWater = ((prev) =>
         X0 = ox + tip.x * Z;
         Y0 = oy + tip.y * Z;
       }
-      drawNoctBeam(X0, Y0, ox + b.x1 * Z, oy + b.y1 * Z, k, b.pal);
+      drawNoctBeam(X0, Y0, ox + b.x1 * Z, oy + b.y1 * Z, k, b.pal, b.st);
     }
   })(drawWater);
 

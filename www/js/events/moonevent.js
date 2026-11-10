@@ -696,3 +696,19 @@ setInterval(() => {
     '.wrow .wt.mevclock{color:#3ee07a;font-variant-numeric:tabular-nums;font-weight:bold}';
   document.head.appendChild(st);
 })();
+
+// (owner, Nov 10 2026) "in the moon event, even with a weather machine on, the moon event's background always shows;
+// only after the event do their weather machines come back" / "the event is on but the worlds still don't have the moon
+// event's background: that's what I meant, gone only after the event": while the event is open EVERY world shows the
+// Moon's space backdrop, over any weather machine; once it closes each world shows its own machine / backdrop again.
+currentWeather = ((prev) =>
+  function () {
+    if (!inWorld || !mevOpenNow()) return prev();
+    const f = flashT;
+    prev();
+    // the machine's weather is kept out: no rain / snow / sand over the space and no rain sound (render.js uses
+    // weatherNow), and no white flash every frame from it changing back and forth (weather.js flashT)
+    weatherNow = 'moon';
+    flashT = f;
+    return 'moon';
+  })(currentWeather);

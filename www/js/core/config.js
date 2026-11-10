@@ -419,7 +419,7 @@ const SPLICE = {
   "bamboo_block+sword": "bolo",
   "bamboo_block+red_block": "arnis_stick",
   "bolo+grass": "hand_scythe", // weapons2.js (Oct 26 2026)
-  "electric_fan+leaf_block": "leaf_blower",
+  // ("electric_fan+leaf_block": the Guitar, leaf_blower, is Shop-only since Nov 10 2026: musicset.js)
   "bamboo_block+beach_umbrella": "paper_umbrella",
   "campfire+cookie_block": "smores_staff",
   "rose+spear": "heart_bow",
