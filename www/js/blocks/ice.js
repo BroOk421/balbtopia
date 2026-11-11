@@ -20,13 +20,16 @@
 // ===== slide ice =====
 const SLIDE_ICE_T = 479,
   SLIDE_ICE_ID = 'slide_ice';
-const ICE_GRIP = 1.7, // per second: how quickly your speed follows the keys on ice (ground: 14)
-  ICE_BRAKE = 2.6, // pressing against the slide
-  ICE_COAST = 0.995, // speed kept per second sliding with no key, before the pull (almost all of it)
-  ICE_SLIDE_MIN = 40, // px/s: slower than this with no key = you stand still on the ice
-  ICE_PULL = 120, // px/s² the slide pulls you on, up to the top speed of your run
-  ICE_BOOST = 0.16, // top speed + this x walking speed for every Slide Ice tile slid over
-  ICE_MAX_K = 2.8, // top speed at most this x walking speed
+// (owner, Nov 11 2026, build b: "on the ice it stops before it speeds up: it should keep getting faster; a light walk
+// stays that slow, only holding left / right makes it faster, up to a limit, unless a block like a bounce hits you")
+// Holding a direction speeds you up STEADILY (ICE_ACCEL, no easing that levels off and no per-tile steps) up to
+// ICE_MAX_K x the walking speed. Let go and you keep the speed you had (ICE_COAST), no pull. Faster than the limit only
+// from something else (a Super Bounce / bounce block's fling): then you just coast.
+const ICE_ACCEL = 230, // px/s² holding the way you go (or starting from standing)
+  ICE_BRAKE = 520, // px/s² pressing against the slide
+  ICE_COAST = 0.93, // speed kept per second sliding with no key (a little friction)
+  ICE_SLIDE_MIN = 10, // px/s: slower than this with no key = you stand still on the ice
+  ICE_MAX_K = 2.8, // top speed from walking: this x walking speed
   ICE_AIR = 1.4; // in the air after the ice: how quickly your speed follows the keys (air: 8)
 {
   const fx = ['#e8fbff', '#7fd4f5', '#2a86c0'],
@@ -227,24 +230,22 @@ step = ((prev) =>
     }
     let v;
     if (ice) {
-      // count the tiles slid over
+      // count the tiles slid over (kept for other files; the speed no longer depends on it)
       const col = Math.floor((P.x + P.w / 2) / TS);
       if (Math.abs(vx0) >= ICE_SLIDE_MIN && col !== iceCol) {
         if (iceCol >= 0) iceRun++;
         iceCol = col;
       }
-      const top = walk * Math.min(ICE_MAX_K, 1 + ICE_BOOST * iceRun),
+      const top = walk * ICE_MAX_K,
         s = Math.sign(vx0);
-      if (dir && s && dir !== s) v = vx0 + (target - vx0) * Math.min(1, ICE_BRAKE * dt); // braking
-      else if (dir) {
-        // pushing the way you slide (or starting): towards the run's top speed, slowly
-        v = vx0 + (dir * top - vx0) * Math.min(1, ICE_GRIP * dt);
-        if (Math.abs(vx0) > top) v = vx0 * Math.pow(ICE_COAST, dt); // faster than the run allows: just coast
-      } else if (Math.abs(vx0) >= ICE_SLIDE_MIN) {
-        // no key: the slide carries you on and pulls you faster, up to the run's top speed
-        v = vx0 * Math.pow(ICE_COAST, dt);
-        if (Math.abs(v) < top) v = s * Math.min(top, Math.abs(v) + ICE_PULL * dt);
-      } else v = 0; // (too slow: you stand)
+      if (dir && s && dir !== s) {
+        // braking: a steady slow-down, then off the other way
+        v = vx0 + dir * ICE_BRAKE * dt;
+      } else if (dir) {
+        // holding the way you go (or starting): steadily faster, up to the limit
+        if (Math.abs(vx0) >= top) v = vx0 * Math.pow(ICE_COAST, dt); // already faster (a bounce flung you): just coast
+        else v = dir * Math.min(top, Math.abs(vx0) + ICE_ACCEL * dt);
+      } else v = vx0 * Math.pow(ICE_COAST, dt); // no key: you keep (almost) the speed you had
       if (Math.abs(v) < ICE_SLIDE_MIN && !dir) {
         v = 0;
         iceRun = 0;

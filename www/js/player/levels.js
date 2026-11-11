@@ -97,7 +97,7 @@ async function claimReward(r, btn) {
 }
 // the reward flies down onto the player, then the counter goes up
 function rewardFly(r, shownGold, shownBC) {
-  if (r.kind === 'gold') $('goldN').textContent = shownGold.toLocaleString();
+  if (r.kind === 'gold') $('goldN').textContent = goldShort(shownGold);
   if (r.kind === 'bc') $('bcN').textContent = shownBC.toLocaleString();
   const label = '+' + rewardName(r),
     land = () => {

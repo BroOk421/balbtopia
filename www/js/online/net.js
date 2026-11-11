@@ -52,6 +52,9 @@ const Net = (() => {
   try {
     if (cfg) sb = window.supabase.createClient(url.replace(/\/$/, ''), key, {
       auth: { persistSession: true, autoRefreshToken: true },
+      // (owner, Nov 11 2026: the game keeps playing in a background tab) the realtime socket's heartbeat runs on a
+      // worker timer, which the browser doesn't slow down in a hidden tab, so the connection (and presence) stays up
+      ...(window.Worker && location.protocol !== 'file:' ? { realtime: { worker: true, workerUrl: 'js/core/keepalive-worker.js' } } : {}),
     });
   } catch (e) {
     console.error('Supabase setup failed', e);
@@ -1307,11 +1310,14 @@ const Net = (() => {
       return 'No connection. Try again';
     }
   };
+  let helloAt = 0;
   function startHello() {
     if (helloTimer) return;
-    const beat = () => (banCheck(), worldHello(inWorld && joinedName ? joinedName : '').then(refreshPeople)); // (not in a world: '')
+    const beat = () => ((helloAt = Date.now()), banCheck(), worldHello(inWorld && joinedName ? joinedName : '').then(refreshPeople)); // (not in a world: '')
     beat();
     helloTimer = setInterval(() => N.me && beat(), HELLO_EVERY);
+    // a hidden tab slows setInterval down to once a minute: bgtick.js calls this from its worker timer instead
+    N.helloDue = () => N.me && Date.now() - helloAt >= HELLO_EVERY && beat();
   }
   N.onLobby = (ev, fn) => (lobbyH[ev] = fn);
   // ---- messages, friend requests, trades, gifts go THROUGH THE SERVER (schema.sql lobby_send, build v) ----

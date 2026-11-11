@@ -14,7 +14,7 @@
 //   at once (normal loot roll, ROCK_LOOT), then the gun charges for LASER_CD (15 min, kept per player in
 //   localStorage). Any other click on an asteroid (fist, tool, laser still charging) does nothing at all: no damage,
 //   no toast. Moon Sand and walls are untouched by this.
-// - HUD (#astHud, right of the Global Chat globe, only on a Moon): "Asteroid: left / total" and the laser's state
+// - HUD (#astHud, top right under the menu buttons since Nov 11 2026, only on a Moon): "Asteroid: left / total" and the laser's state
 //   ("Laser: READY" or the time left). The total is the Moon's count when it was built (world `ast0`).
 // - FOSSILS: Ammonite / Fish / Dino Skull Fossil (materials) in ROCK_LOOT.
 // - STOVE: the Legendary Stone recipe (runs before every other Stove recipe).
@@ -779,7 +779,9 @@ $('wrap').appendChild(AST_HUD);
 {
   const st = document.createElement('style');
   st.textContent =
-    '#astHud{position:absolute;left:calc(56px + env(safe-area-inset-left,0px));top:calc(10px + env(safe-area-inset-top,0px));z-index:5;' +
+    // (owner, Nov 11 2026: "put the asteroid box under the menus") top RIGHT, under the gold / SHOP / menu buttons
+    // (.topr: 38 px buttons, zoomed by --btnz), so it no longer covers the chat bar
+    '#astHud{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:calc(10px + env(safe-area-inset-top,0px) + 46px * var(--btnz,1));z-index:5;' +
     'display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:38px;box-sizing:border-box;padding:4px 9px;' +
     'background:rgba(28,16,51,.82);border:2px solid var(--line,#8a6ad8);border-radius:6px;pointer-events:none;' +
     'font:9px/1.2 var(--pixel,monospace);color:#e8e4ff;white-space:nowrap;font-variant-numeric:tabular-nums}' +
@@ -788,7 +790,7 @@ $('wrap').appendChild(AST_HUD);
     '#astHud b{font-weight:normal;color:#b8b0e8}#astHud i{font-style:normal;color:#fff}' +
     '#astHud .ah-laser i{color:#ffb0b8}#astHud .ah-laser.ready i{color:#3ee07a}' +
     'body.landing #astHud{display:none !important}' +
-    '@media (orientation: landscape) and (max-height: 520px){#astHud{left:calc(52px + env(safe-area-inset-left,0px));min-height:34px;padding:3px 8px;font-size:8px}}';
+    '@media (orientation: landscape) and (max-height: 520px){#astHud{min-height:34px;padding:3px 8px;font-size:8px}}';
   document.head.appendChild(st);
 }
 const astIcons = { rock: false, gun: false };

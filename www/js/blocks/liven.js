@@ -753,7 +753,7 @@ let goldFlying = 0, // gold picked up but still on its way to the counter
 updateGold = ((prev) =>
   function (pop) {
     prev(pop);
-    if (goldFlying > 0) $('goldN').textContent = Math.max(0, P.gold - goldFlying).toLocaleString();
+    if (goldFlying > 0) $('goldN').textContent = goldShort(Math.max(0, P.gold - goldFlying));
   })(updateGold);
 const COIN_FLY_MS = 700;
 function coinsToCounter(qty, ck) {

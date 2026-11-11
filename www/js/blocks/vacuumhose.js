@@ -10,7 +10,7 @@
 //   (up / right / down / left; none: stubs all four ways) and bend round corners like the Steam Pipes.
 // - Block 492 (permanent): FACTORY CORE (`factory_core`, solid; was the Vacuum Monitor for an hour), the heart of the
 //   factory: it holds the FUEL (machines.js `coreFuel`, `fuelCore`: Fuel Cans into its slot in the window, or click it
-//   holding a Fuel Can; 10 min a can, up to 24 h) and its fuel POWERS everything: Generators only run right next to a
+//   holding a Fuel Can; 3 min a can = full, then refill (owner, Nov 11 2026)) and its fuel POWERS everything: Generators only run right next to a
 //   Core with fuel (machines.js genLeft), and Suction Intakes only suck into a Core with fuel. It keeps what was
 //   sucked in: VMON_SLOTS 5 kinds of items (one kind per slot, up to MAXSTACK); all 5 used = no new kinds come in.
 //   Its screen shows the power bar, the 5 slots and text being typed (dimmer without fuel). Walk-through.
@@ -34,7 +34,8 @@ const VHOSE_BG = 86, // the Suction Intake (with the hole)
   VMON_T = CORE_T, // the Factory Core (492)
   VMON_ID = 'factory_core',
   VMON_SLOTS = 5,
-  VH_MIN_AGE = 0.45, // s a drop floats before it is sucked in
+  VH_MIN_AGE = 1.1, // s a drop floats before it is sucked in (owner, Nov 11 2026: "let it float first")
+  VH_SUCK_MS = 700, // then it lifts a little and is pulled into the intake, shrinking, before it runs along the hose
   VH_STEP_MS = 75, // the item runs one hose tile further every this many ms
   VH_MAX = 300, // hose tiles a monitor is looked for through
   VH_TICK_MS = 200,
@@ -227,13 +228,17 @@ function vhBoss() {
   return worldOwner ? vacBossMe() : genActor();
 }
 // show an item running from hose tile f along its path into the monitor (every game)
-function vhRun(id, f) {
+// (owner, Nov 11 2026: "it should float first before the Suction Intake sucks it in, animate the floating item getting
+// smaller") from = where the drop was floating (world px): for VH_SUCK_MS its picture lifts a little, wobbles and is
+// pulled into the intake's hole, shrinking to the size it has in the hose; then it runs along the path (t0)
+function vhRun(id, f, from) {
   const path = vhPathFrom(f);
   if (!path) return;
-  vhSuck.set(f, now);
-  vhRuns.push({ id, path, t0: now });
   const [x, y] = machXY(f);
-  if (onScreenTile(x, y)) smoke(x, y, 3, 0.5);
+  vhSuck.set(f, now);
+  const fx = from && isFinite(from.x) ? from.x : x * TS + 16,
+    fy = from && isFinite(from.y) ? from.y : y * TS + 16;
+  vhRuns.push({ id, path, s0: now, t0: now + VH_SUCK_MS, fx, fy, ph: Math.random() * 6 });
   machSound('hiss', f);
 }
 function vhTick() {
@@ -259,7 +264,7 @@ function vhTick() {
     if (k < 0) continue;
     drops.splice(k, 1);
     vmonPut(mon, d.id, d.qty);
-    vhRun(d.id, f);
+    vhRun(d.id, f, { x: d.x, y: d.y });
     n++;
     if (!sent.has(mon)) sent.set(mon, { u: [], f, ids: [] });
     sent.get(mon).u.push(d.uid);
@@ -276,12 +281,17 @@ setInterval(vhTick, VH_TICK_MS);
     if (!Number.isInteger(p.i) || p.i < 0 || p.i >= fg.length || fg[p.i] !== VMON_T) return;
     const v = p.v && typeof p.v === 'object' ? p.v : {};
     vmonSet(p.i, v.s);
+    const from = new Map(); // drop uid -> where it floated (for the suck-in animation)
     if (Array.isArray(v.u))
       for (const u of v.u.slice(0, 20)) {
         const k = drops.findIndex((d) => d.uid === u);
-        if (k >= 0) drops.splice(k, 1);
+        if (k >= 0) {
+          from.set(u, { x: drops[k].x, y: drops[k].y });
+          drops.splice(k, 1);
+        }
       }
-    if (Number.isInteger(v.f) && v.f >= 0 && v.f < fg.length && Array.isArray(v.ids)) for (const id of v.ids.slice(0, 20)) if (ITEMS[id]) vhRun(id, v.f);
+    if (Number.isInteger(v.f) && v.f >= 0 && v.f < fg.length && Array.isArray(v.ids))
+      v.ids.slice(0, 20).forEach((id, n) => ITEMS[id] && vhRun(id, v.f, Array.isArray(v.u) ? from.get(v.u[n]) : null));
   };
 }
 
@@ -343,7 +353,12 @@ VMON_CSS.textContent =
   '.fcore .sl .nm{font-size:9px;line-height:1.1;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
   '.fcore .sl .n{font:bold 11px var(--pixel,monospace);color:#ffd23f}' +
   '.fcore .sl .btn{padding:3px 6px;font-size:9px}' +
-  '.fcore .note{opacity:.8;font-size:11px;text-align:center}';
+  '.fcore .note{opacity:.8;font-size:11px;text-align:center}' +
+  // (owner, Nov 11 2026: "the Core window wider than it is tall") POWER and STORAGE side by side under the header
+  '#dlg:has(.fcore){width:min(96vw,720px)}' +
+  '.fcore{display:grid;grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr);gap:10px;min-width:0}' +
+  '.fcore .fchead{grid-column:1 / -1}' +
+  '@media (max-width:520px){.fcore{grid-template-columns:1fr}}';
 document.head.appendChild(VMON_CSS);
 const fuelInBag = () => inv.filter((e) => e.id === 'fuel_can').reduce((a, e) => a + e.qty, 0);
 function coreGens(i) {
@@ -361,7 +376,7 @@ function openCore(i) {
     on = left > 0,
     gens = coreGens(i),
     have = fuelInBag(),
-    pct = Math.round((Math.min(left, 60 * 60 * 1000) / (60 * 60 * 1000)) * 100);
+    pct = Math.round((Math.min(left, FUEL_MAX) / FUEL_MAX) * 100);
   const slots = [];
   for (let k = 0; k < VMON_SLOTS; k++) {
     const e = s[k];
@@ -384,7 +399,7 @@ function openCore(i) {
         </div>
         <div class="fuelrow">
           <div class="fslot" title="Fuel slot"><canvas width="64" height="64" id="fcFuel"></canvas><em>${have}</em></div>
-          ${may ? `<button type="button" class="btn" data-fuel="1">+1 Can</button><button type="button" class="btn" data-fuel="5">+5</button><button type="button" class="btn" data-fuel="999">FILL</button>` : '<span class="note">Only builders here can fuel it</span>'}
+          ${may ? `<button type="button" class="btn" data-fuel="1">REFILL (1 Can)</button>` : '<span class="note">Only builders here can fuel it</span>'}
         </div>
       </div>
       <div class="fcpanel">
@@ -535,7 +550,7 @@ drawNewBlock = ((prev) =>
     g.fillStyle = flash ? '#3ee07a' : on ? '#0c4a24' : '#0a3018';
     g.fillRect(px + 11 * k, py + 11 * k, 42 * k, 25 * k);
     g.fillStyle = '#ffd23f';
-    g.fillRect(px + 13 * k, py + 12 * k, 38 * Math.min(1, left / (60 * 60 * 1000)) * k, 1.5 * k);
+    g.fillRect(px + 13 * k, py + 12 * k, 38 * Math.min(1, left / FUEL_MAX) * k, 1.5 * k);
     for (let n = 0; n < VMON_SLOTS; n++) {
       const bx = px + (12.5 + n * 8) * k,
         by = py + 14.5 * k;
@@ -585,8 +600,36 @@ drawMannequins = ((prev) =>
   function (ox, oy, T) {
     prev(ox, oy, T);
     for (let r = vhRuns.length - 1; r >= 0; r--) {
-      const run = vhRuns[r],
-        pos = (now - run.t0) / VH_STEP_MS,
+      const run = vhRuns[r];
+      if (run.s0 !== undefined && now < run.t0) {
+        // being sucked in: first it floats up a little (bobbing like a drop), then it is pulled into the hole with a
+        // swirl, shrinking from the floating size to the hose size
+        const u = Math.max(0, (now - run.s0) / VH_SUCK_MS),
+          a = run.path[0],
+          hx = (a % WW) * TS + 16,
+          hy = ((a / WW) | 0) * TS + 16,
+          lift = Math.min(1, u / 0.4),
+          pull = u < 0.4 ? 0 : (u - 0.4) / 0.6,
+          pe = pull * pull, // speeds up into the hole
+          bob = Math.sin(now / 380 + run.ph) * 2.5 * (1 - pe),
+          sw = Math.sin(pull * Math.PI * 2.5) * 6 * (1 - pe), // the swirl round the hole
+          wx = run.fx + (hx - run.fx) * pe + sw,
+          wy = run.fy - 7 * Math.sin(lift * Math.PI * 0.5) * (1 - pe) + (hy - run.fy) * pe + bob,
+          sz = DROP_SIZE * (1 + 0.12 * Math.sin(lift * Math.PI)) * (1 - pe) + (TS * 0.3) * pe;
+        if (!run.puff && pull > 0.85) {
+          run.puff = true;
+          const [x, y] = machXY(a);
+          if (onScreenTile(x, y)) smoke(x, y, 3, 0.5); // (smoke only)
+        }
+        g.save();
+        g.translate(ox + wx * Z, oy + wy * Z);
+        g.rotate(pull * pull * Math.PI * 1.5 * (run.ph > 3 ? 1 : -1));
+        g.globalAlpha = 1 - 0.15 * pe;
+        drawIcon(run.id, (-sz / 2) * Z, (-sz / 2) * Z, sz * Z);
+        g.restore();
+        continue;
+      }
+      const pos = (now - run.t0) / VH_STEP_MS,
         last = run.path.length - 1;
       if (pos >= last) {
         vmonFlash.set(run.path[last], now);
@@ -608,7 +651,7 @@ drawMannequins = ((prev) =>
         ay = ((a / WW) | 0) + 0.5,
         bx = (b2 % WW) + 0.5,
         by = ((b2 / WW) | 0) + 0.5,
-        s = T * 0.34;
+        s = T * 0.3;
       g.save();
       g.globalAlpha = 0.85;
       drawIcon(run.id, ox + (ax + (bx - ax) * u) * T - s / 2, oy + (ay + (by - ay) * u) * T - s / 2, s);

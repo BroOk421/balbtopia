@@ -255,7 +255,7 @@ function drawTrees(ox, oy, T) {
         g.drawImage(
           iconCanvas(t.seed),
           px + fx * T - fs / 2,
-          py + fy * T - fs / 2 + Math.sin(now / 500 + k) * Z * 0.6,
+          py + fy * T - fs / 2, // (owner, Nov 11 2026: the fruits stay still, no bobbing)
           fs,
           fs,
         );

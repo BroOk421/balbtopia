@@ -4317,7 +4317,7 @@ body.mannmode.mailmode {
   left: calc(10px + env(safe-area-inset-left, 0px));
   top: calc(10px + env(safe-area-inset-top, 0px));
   z-index: 5;
-  width: min(380px, 56vw);
+  width: min(460px, 62vw); /* (owner, Nov 11 2026: a bit longer; was min(380px, 56vw)) */
   --c-sys: rgba(255, 210, 63, 0.24);
   --c-shout: rgba(58, 143, 224, 0.34);
   --c-friend: rgba(92, 192, 122, 0.3);
@@ -4656,7 +4656,7 @@ body.mannmode.mailmode {
 }
 @media (orientation: landscape) and (max-height: 520px) {
   .gchat {
-    width: min(330px, 50vw);
+    width: min(400px, 56vw); /* (was min(330px, 50vw)) */
   }
   .gchat .gtick {
     height: 34px;

@@ -370,7 +370,7 @@ async function claimQuest() {
 }
 // the same flight for a gold reward: the big gold coin, "+N gold" in gold, then the gold counter pops
 function goldReward(n, shown) {
-  $('goldN').textContent = shown.toLocaleString();
+  $('goldN').textContent = goldShort(shown);
   const t = teapotAt,
     pic = document.createElement('canvas');
   pic.width = pic.height = 32;

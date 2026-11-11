@@ -6668,6 +6668,132 @@
       "result": "factory_wall",
       "source": "balbtopia",
       "note": "Factory Wall = Factory Plate + Rock Background (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "barrel",
+        "glass_pane"
+      ],
+      "result": "fuel_tank",
+      "source": "balbtopia",
+      "note": "Fuel Tank = Barrel + Glass Pane (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "glass_pane",
+        "rock"
+      ],
+      "result": "glass_jar",
+      "source": "balbtopia",
+      "note": "Jar = Glass Pane + Rock (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "granite_block",
+        "yellow_block"
+      ],
+      "result": "gold_vein",
+      "source": "balbtopia",
+      "note": "Gold Vein = Granite Block + Yellow Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "flower_pot",
+        "honeycomb_block"
+      ],
+      "result": "pot_of_gold",
+      "source": "balbtopia",
+      "note": "Pot of Gold = Flower Pot + Honeycomb Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "dice_block",
+        "white_block"
+      ],
+      "result": "lucky_cat",
+      "source": "balbtopia",
+      "note": "Lucky Cat = Dice Block + White Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "marble_block",
+        "water_bucket"
+      ],
+      "result": "coin_fountain",
+      "source": "balbtopia",
+      "note": "Coin Fountain = Marble Block + Water Bucket (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "barrel",
+        "black_block"
+      ],
+      "result": "oil_drum",
+      "source": "balbtopia",
+      "note": "Oil Drum = Barrel + Black Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "toy_block"
+      ],
+      "result": "tire_stack",
+      "source": "balbtopia",
+      "note": "Tire Stack = Black Block + Toy Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "glass_jar",
+        "blueberry"
+      ],
+      "result": "jam_jar",
+      "source": "balbtopia",
+      "note": "Jam Jar = Jar + Blueberry (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "glass_jar",
+        "honeycomb_block"
+      ],
+      "result": "honey_jar",
+      "source": "balbtopia",
+      "note": "Honey Jar = Jar + Honeycomb Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "glass_jar",
+        "torch"
+      ],
+      "result": "firefly_jar",
+      "source": "balbtopia",
+      "note": "Firefly Jar = Jar + Torch (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "orange_block",
+        "bricks"
+      ],
+      "result": "copper_block",
+      "source": "balbtopia",
+      "note": "Copper Block = Orange Block + Bricks (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "sign",
+        "wooden_background"
+      ],
+      "result": "wood_wall_sign",
+      "source": "balbtopia",
+      "note": "Wooden Wall Sign = Sign + Wooden Background (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "pointy_sign",
+        "blue_block"
+      ],
+      "result": "octagon_wall_sign",
+      "source": "balbtopia",
+      "note": "Octagon Wall Sign = Pointy Sign + Blue Block (Balbtopia recipe, Nov 11 2026)"
     }
   ],
   "notInGameYet": [

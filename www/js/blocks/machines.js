@@ -53,33 +53,48 @@ const PIPE_STEP_MS = 110, // a signal goes one pipe tile further every this many
   // most PIPE_RANGE Steam Pipes in a row; a Pressure Booster on the line gives it the full pressure again
   PIPE_RANGE = 8,
   BOOST_SPIN_MS = 650, // a booster's one turn per signal
-  LIFT_MS = 700, // a Lift Gate rising / coming down
+  LIFT_MS = 700, // a Lift Gate rising (opening; unchanged)
+  // (owner, Nov 11 2026: "coming down it should be sudden and fast, shaking first before it drops; going up stays the same")
+  LIFT_SHAKE_MS = 480, // shut: it rattles in place this long...
+  LIFT_DROP_MS = 130, // ...then falls shut this fast (gravity ease), slamming with lift_gate.mp3
   MACH_MAX = 400, // tiles one signal may reach
   GATE_OPEN_MS = 2200, // a gate stays open this long after the last signal
   GATE_MOVE_MS = 260, // rolling up / down
-  SPIN_GAP = 250, // ms: a Spin Trigger / Button fires again at the soonest after this
+  SPIN_GAP = 2000, // ms: a Spin Trigger / Button fires again at the soonest after this (owner, Nov 11 2026: 2 s)
   SPIN_MS = 1400, // a spin slows down to a stop in this long
   SPIN_TURNS = 2.2, // turns of one spin
   CUT_OUT_MS = 110, // the blade shooting out
   CUT_HOLD_MS = 260, // spinning out there
   CUT_IN_MS = 220, // going back in
+  CUT_HITS = 2, // punches one cut gives a block (a normal punch + 1)
   GEN_EVERY = 3000, // ms between a fuelled Generator's signals
-  FUEL_MS = 10 * 60 * 1000, // running time of one Fuel Can
-  FUEL_MAX = 24 * 60 * 60 * 1000, // a Generator holds at most this much
+  // (owner, Nov 11 2026: "the Generator runs 3 minutes at most, then refill again") one Fuel Can fills the Core to
+  // FUEL_MAX; it can't hold more, so it needs a new can every 3 min
+  FUEL_MS = 3 * 60 * 1000, // running time of one Fuel Can
+  FUEL_MAX = 3 * 60 * 1000, // a Core holds at most this much
   MACH_HEAR = 12; // tiles: machine sounds fade out this far from you
 const MACHINES = [
   { t: GATE_T, id: 'factory_gate', name: 'Factory Gate', rec: ['portcullis', 'steel_block'], rarity: 'Rare', desc: 'A heavy steel shutter. A signal rolls it open (from a Spin Trigger, Factory Button or Generator, through Steam Pipes); it rolls shut again ' + GATE_OPEN_MS / 1000 + ' seconds later.' },
   { t: LIFT_T, id: 'lift_gate', name: 'Lift Gate', rec: ['factory_gate', 'steel_beam'], rarity: 'Rare', desc: 'A whole block of teal steel with mustard corners and a yellow valve wheel on its side. One signal (a Spin Trigger, Factory Button or Generator, through Steam Pipes) turns the wheel and lifts it open; the next signal lowers it shut. It stays as it is in between. Do not stand under it when it comes down!' },
-  { t: SPIN_T, id: 'spin_trigger', name: 'Spin Trigger', solid: false, rec: ['electric_fan', 'steel_beam'], rarity: 'Rare', desc: 'A steel turnstile wheel. Walk through it and it spins and sends a signal into the Steam Pipes and machines next to it, every time you pass.' },
-  { t: BUTTON_T, id: 'factory_button', name: 'Factory Button', solid: false, rec: ['pressure_plate', 'steel_block'], rarity: 'Uncommon', desc: 'A big red floor button. Step on it and it sends a signal into the Steam Pipes and machines next to it.' },
+  { t: SPIN_T, id: 'spin_trigger', name: 'Spin Trigger', solid: false, rec: ['electric_fan', 'steel_beam'], rarity: 'Rare', desc: 'A steel turnstile wheel. Walk through it and it spins and sends a signal DOWN into the Steam Pipe or machine right under it (only the bottom joins). Ready again 2 seconds after each pass.' },
+  { t: BUTTON_T, id: 'factory_button', name: 'Factory Button', solid: false, rec: ['pressure_plate', 'steel_block'], rarity: 'Uncommon', desc: 'A big red floor button. Step on it and it sends a signal DOWN into the Steam Pipe or machine right under it (only the bottom joins). Ready again 2 seconds after each press.' },
   { t: PIPE_T, id: 'steam_pipe', name: 'Steam Pipe', rec: ['air_duct', 'steel_beam'], rarity: 'Uncommon', desc: 'A teal steel block with a big steam hose protected inside it. The hose joins the pipes and machines next to it (bends round corners, a cross where four meet) and carries signals along, tile by tile, puffing steam.' },
   { t: CUTTER_T, id: 'factory_cutter', name: 'Factory Cutter', rec: ['saw_blade', 'steel_block'], rarity: 'Epic', desc: 'On a signal its saw blade shoots out above or below it and cuts what is there: a ripe tree is harvested, a block is broken.' },
-  { t: GEN_T, id: 'generator', name: 'Generator', rec: ['air_duct', 'steel_block'], rarity: 'Epic', desc: 'Put it right next to a Factory Core: while the Core has fuel, the Generator sends a signal every 3 seconds into the Steam Pipes and machines next to it. Wrench it to see the fuel left.' },
+  { t: GEN_T, id: 'generator', name: 'Generator', rec: ['air_duct', 'steel_block'], rarity: 'Epic', desc: 'Put it right next to a Factory Core: while the Core has fuel (3 minutes a Fuel Can), the Generator sends a signal every 3 seconds into the Steam Pipes and machines next to it. Wrench it to see the fuel left.' },
   { t: BOOST_T, id: 'pressure_booster', name: 'Pressure Booster', rec: ['electric_fan', 'steam_pipe'], rarity: 'Rare', desc: 'A signal only runs through ' + PIPE_RANGE + ' Steam Pipes in a row. Put a Pressure Booster in the line and the signal gets its full pressure back: its rotor turns once the way the signal goes and its red light flashes.' },
-  { t: FUEL_T, id: 'fuel_can', name: 'Fuel Can', solid: false, rec: ['barrel', 'lava'], rarity: 'Uncommon', desc: 'A red can of fuel for a Factory Core: put it in the Core\'s fuel slot (wrench the Core), or click the Core or a Generator next to it while holding it. 10 minutes of power a can.' },
+  { t: FUEL_T, id: 'fuel_can', name: 'Fuel Can', solid: false, rec: ['barrel', 'lava'], rarity: 'Uncommon', desc: 'A red can of fuel for a Factory Core: put it in the Core\'s fuel slot (wrench the Core), or click the Core or a Generator next to it while holding it. One can = 3 minutes of power (the most a Core holds), then refill it.' },
 ];
 const MACH_BY_T = {};
 const MACH_NET = new Set([GATE_T, SPIN_T, BUTTON_T, PIPE_T, CUTTER_T, GEN_T, BOOST_T, LIFT_T]); // what pipes join to
+// (owner, Nov 11 2026: "the Spin Trigger and Factory Button work when the hose touches them: no left, right or up,
+// only the bottom") a Spin Trigger / Button joins ONLY the tile right under it: its signal goes down only, and a pipe
+// joins it only from below. machLink(a, b): do the neighbouring tiles a and b join?
+const MACH_DOWN_ONLY = new Set([SPIN_T, BUTTON_T]);
+function machLink(a, b) {
+  if (MACH_DOWN_ONLY.has(fg[a]) && b !== a + WW) return false;
+  if (MACH_DOWN_ONLY.has(fg[b]) && a !== b + WW) return false;
+  return true;
+}
 for (const d of MACHINES) {
   MACH_BY_T[d.t] = d;
   const fx = d.t === FUEL_T ? ['#e8303e', '#ffd23f', '#5a0a10'] : ['#2a8088', '#ffd23f', '#123a40'];
@@ -616,7 +631,7 @@ let machWorld = null;
 function machCheckWorld() {
   if (machWorld === worldName) return;
   machWorld = worldName;
-  for (const m of [gateAt, spinAt, buttonAt, pipeAt, cutAt, genPulseAt, srcAt, boostAt]) m.clear(); // (liftAt: kept with the world)
+  for (const m of [gateAt, spinAt, buttonAt, pipeAt, cutAt, genPulseAt, srcAt, boostAt, cutQuietAt]) m.clear(); // (liftAt: kept with the world)
   machQ = [];
 }
 const machXY = (i) => [i % WW, (i / WW) | 0];
@@ -655,7 +670,7 @@ function spinAngle(i) {
 const blowSwitched = new Set(); // blower tiles switched ON by a signal
 function blowerLinked(i) {
   const [x, y] = machXY(i);
-  for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) if (inW(nx, ny) && MACH_NET.has(fg[at(nx, ny)])) return true;
+  for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) if (inW(nx, ny) && MACH_NET.has(fg[at(nx, ny)]) && machLink(i, at(nx, ny))) return true;
   return false;
 }
 const blowerActive = (i) => !blowerLinked(i) || blowSwitched.has(i);
@@ -665,9 +680,29 @@ const blowerActive = (i) => !blowerLinked(i) || blowSwitched.has(i);
 function liftOpen(i) {
   const L = liftAt.get(i);
   if (!L) return 0;
+  if (!L.open) {
+    // shutting: it stays where it was and rattles (liftShake), then drops shut fast like falling (u^2)
+    const e = now - L.t - LIFT_SHAKE_MS;
+    if (e <= 0) return L.from;
+    const u = Math.min(1, e / LIFT_DROP_MS);
+    return L.from * (1 - u * u);
+  }
   const u = Math.min(1, Math.max(0, (now - L.t) / LIFT_MS));
   const e = u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
-  return L.from + ((L.open ? 1 : 0) - L.from) * e;
+  return L.from + (1 - L.from) * e;
+}
+// the rattle before it drops (art px offsets [dx, dy]); harder towards the drop, and a little bounce after the slam
+function liftShake(i) {
+  const L = liftAt.get(i);
+  if (!L || L.open) return [0, 0];
+  const e = now - L.t;
+  if (e < LIFT_SHAKE_MS && L.from > 0.02) {
+    const p = 0.6 + (e / LIFT_SHAKE_MS) * 1.4;
+    return [Math.round(Math.sin(e / 18) * p * 1.3), Math.round(Math.sin(e / 11 + 1) * p * 0.8)];
+  }
+  const after = e - LIFT_SHAKE_MS - LIFT_DROP_MS;
+  if (after >= 0 && after < 160 && L.from > 0.02) return [0, -Math.round(Math.sin((after / 160) * Math.PI) * 2)];
+  return [0, 0];
 }
 // a Lift Gate coming down (or already down) with its block in your body: you are crushed
 function liftCrushesYou() {
@@ -685,9 +720,26 @@ function liftToggle(i) {
   const cur = liftOpen(i),
     L = liftAt.get(i),
     open = !(L && L.open);
-  liftAt.set(i, { open, t: now, from: cur });
-  machSound('clank', i);
+  const nl = { open, t: now, from: cur };
+  liftAt.set(i, nl);
+  if (open) return machSound('clank', i); // going up: as before
+  if (cur < 0.02) return; // already down
+  machSound('rattle', i);
+  // the slam (lift_gate.mp3, its loudest hit ~LIFT_SLAM_AT into the file) lands when the block hits the bottom
+  setTimeout(() => {
+    if (liftAt.get(i) !== nl || fg[i] !== LIFT_T) return;
+    machSound('lift', i);
+  }, Math.max(0, LIFT_SHAKE_MS + LIFT_DROP_MS - LIFT_SLAM_AT));
+  setTimeout(() => {
+    if (liftAt.get(i) !== nl || fg[i] !== LIFT_T) return;
+    const [x, y] = machXY(i);
+    if (onScreenTile(x, y)) {
+      smoke(x, y + 0.4, 4, 0.6);
+      if (Math.hypot(x * TS + 16 - (P.x + P.w / 2), y * TS + 16 - (P.y + P.h / 2)) < TS * 6) shake = Math.max(shake, 3);
+    }
+  }, LIFT_SHAKE_MS + LIFT_DROP_MS);
 }
+const LIFT_SLAM_AT = 270; // ms into lift_gate.mp3 where it hits hardest
 // the wheel's turn: one turn while it lifts (clockwise), back the other way while it comes down
 const liftWheel = (i) => liftOpen(i) * Math.PI * 2;
 // a booster's rotor: one full turn per signal, the way the signal goes (eased)
@@ -720,7 +772,7 @@ function machFire(src, actor) {
     for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) {
       if (!inW(nx, ny)) continue;
       const j = at(nx, ny);
-      if (dist.has(j)) continue;
+      if (dist.has(j) || !machLink(i, j)) continue;
       const t = fg[j],
         when = now + (d + 1) * PIPE_STEP_MS;
       if (t === PIPE_T || t === BOOST_T) {
@@ -755,7 +807,7 @@ function machTick() {
       if (fg[e.i] !== PIPE_T) continue;
       pipeAt.set(e.i, e.at);
       if (onScreenTile(x, y)) smoke(x, y, 2, 0.45);
-      if (now - hissT > 90) {
+      if (now - hissT > 600) { // (steam_hiss.mp3 is ~1 s long: one per signal, not one per tile)
         hissT = now;
         machSound('hiss', e.i);
       }
@@ -776,7 +828,7 @@ function machTick() {
       if (fg[e.i] !== GATE_T) continue;
       const wasShut = fgateOpen(e.i) < 1;
       gateAt.set(e.i, fgateOpen(e.i) >= 1 ? now - GATE_MOVE_MS : now - fgateOpen(e.i) * GATE_MOVE_MS); // (open: stays open longer)
-      if (wasShut) machSound('clank', e.i);
+      if (wasShut) machSound('fgate', e.i); // (owner's factory_gate.mp3, its first sound only)
     } else if (e.k === 'cut') {
       if (fg[e.i] === CUTTER_T) cutterStrike(e.i, e.actor);
     }
@@ -842,6 +894,7 @@ function cutterStrike(i, actor) {
     s = cutterSide(x, y);
   if (!s) return;
   cutAt.set(i, { t: now, s });
+  if (inW(x, y + s)) cutQuietAt.set(at(x, y + s), now);
   machSound('zing', i);
   if (!actor) return; // (only one game cuts: the others just see the blade and the result)
   const tx = x,
@@ -854,13 +907,39 @@ function cutterStrike(i, actor) {
     if (trees.has(j)) {
       if (treeProgress(trees.get(j)) >= 1) punchTree(tx, ty); // ripe: harvested (unripe trees are left alone)
     } else if (cutterMayCut(j)) {
-      const t0 = fg[j],
-        need = hitsNeeded(BLOCK[t0]);
-      for (let k = 0; k < need + 2 && fg[j] === t0; k++) hitBlockAt(tx, ty, j);
+      // (owner, Nov 11 2026: "not 1 hit, too OP: it depends on the block, only +1 on a normal punch") each cut is
+      // CUT_HITS punches (a normal punch + 1); a hard block takes a few signals (its damage stays while they come:
+      // render.js healMs, up to 5 s, and a Generator fires every 3 s)
+      const t0 = fg[j];
+      for (let k = 0; k < CUT_HITS && fg[j] === t0; k++) hitBlockAt(tx, ty, j);
     }
     shake = keepShake;
   }, CUT_OUT_MS);
 }
+
+// (owner, Nov 11 2026: "when the Factory Cutter breaks something, remove the little box effects, only smoke") the
+// block bits (burst) and tool sparkles are skipped on the tile a cutter is cutting, on every game (the presser's
+// hitBlockAt and the others' net.js applyTiles); the smoke stays
+const cutQuietAt = new Map(); // tile a blade cut into -> when (kept CUT_QUIET_MS: the others' tile change comes over the net later)
+const CUT_QUIET_MS = 2500;
+function cutterQuiet(x, y) {
+  if (!cutQuietAt.size || !inW(x, y)) return false;
+  const t0 = cutQuietAt.get(at(x, y));
+  if (t0 === undefined) return false;
+  if (now - t0 < CUT_QUIET_MS) return true;
+  cutQuietAt.delete(at(x, y));
+  return false;
+}
+burst = ((prev) =>
+  function (x, y, t, n) {
+    if (cutterQuiet(x, y)) return;
+    return prev(x, y, t, n);
+  })(burst);
+toolSparkles = ((prev) =>
+  function (tool, wx, wy, ...a) {
+    if (cutterQuiet(Math.floor(wx / TS), Math.floor(wy / TS))) return;
+    return prev(tool, wx, wy, ...a);
+  })(toolSparkles);
 
 // ---------- the Generator ----------
 function genActor() {
@@ -884,6 +963,10 @@ function coresBy(i) {
 // a Generator's fuel: the best Core next to it (0 = none / empty)
 const genLeft = (i) => Math.max(0, ...coresBy(i).map(coreLeft));
 const fmtFuel = (ms) => {
+  if (ms < 10 * 60000) {
+    const sec = Math.ceil(ms / 1000);
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + ' min';
+  }
   const m = Math.ceil(ms / 60000);
   return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min';
 };
@@ -909,14 +992,14 @@ function genTick() {
 function fuelCore(i, n = 1) {
   if (fg[i] !== CORE_T || !canEdit(false, i)) return 0;
   const have = inv.filter((s2) => s2.id === 'fuel_can').reduce((a, s2) => a + s2.qty, 0);
-  let put = 0;
-  while (put < n && put < have && coreLeft(i) + (put + 1) * FUEL_MS <= FUEL_MAX) put++;
+  // (3 min max: one can tops it back up to full; n is ignored, more than one never fits)
+  const put = have && coreLeft(i) < FUEL_MAX - 5000 ? 1 : 0;
   if (!put) {
     toast(have ? 'The Factory Core is full (' + fmtFuel(coreLeft(i)) + ' of fuel)' : 'You have no Fuel Cans');
     return 0;
   }
   if (!takeItem('fuel_can', put)) return 0;
-  const until = Date.now() + coreLeft(i) + put * FUEL_MS;
+  const until = Date.now() + Math.min(FUEL_MAX, coreLeft(i) + put * FUEL_MS);
   coreFuel.set(i, until);
   Net.sendShow(i, 'cf', until - Date.now());
   const [x, y] = machXY(i);
@@ -946,7 +1029,7 @@ applyWorld = function (w, skew) {
   for (const i of Array.isArray(w && w.blow) ? w.blow : []) if (Number.isInteger(i)) blowSwitched.add(i);
   for (const i of Array.isArray(w && w.lift) ? w.lift : []) if (Number.isInteger(i)) liftAt.set(i, { open: true, t: -1e9, from: 1 });
   coreFuel.clear();
-  for (const e of Array.isArray(w && w.cfuel) ? w.cfuel : []) if (Array.isArray(e) && Number.isInteger(e[0]) && +e[1] > 0) coreFuel.set(e[0], +e[1] + (+skew || 0));
+  for (const e of Array.isArray(w && w.cfuel) ? w.cfuel : []) if (Array.isArray(e) && Number.isInteger(e[0]) && +e[1] > 0) coreFuel.set(e[0], Math.min(Date.now() + FUEL_MAX, +e[1] + (+skew || 0))); // (old saves held up to 24 h: cut to 3 min)
 };
 const _genWorldMach = genWorld;
 genWorld = function (...a) {
@@ -1082,7 +1165,7 @@ drawNewBlock = ((prev) =>
       return g.drawImage(buttonPics[f], px, py, T, T);
     }
     if (t === PIPE_T) {
-      const j = (xx, yy) => inW(xx, yy) && (MACH_NET.has(fg[at(xx, yy)]) || !!BLOWER_BY_T[fg[at(xx, yy)]]);
+      const j = (xx, yy) => inW(xx, yy) && (MACH_NET.has(fg[at(xx, yy)]) || !!BLOWER_BY_T[fg[at(xx, yy)]]) && machLink(i, at(xx, yy));
       const m = (j(x, y - 1) ? 1 : 0) | (j(x + 1, y) ? 2 : 0) | (j(x, y + 1) ? 4 : 0) | (j(x - 1, y) ? 8 : 0),
         pp = (xx, yy) => inW(xx, yy) && fg[at(xx, yy)] === PIPE_T,
         cm = (pp(x, y - 1) ? 1 : 0) | (pp(x + 1, y) ? 2 : 0) | (pp(x, y + 1) ? 4 : 0) | (pp(x - 1, y) ? 8 : 0);
@@ -1111,8 +1194,8 @@ drawNewBlock = ((prev) =>
       if (on) g.rotate(now / 160);
       g.drawImage(genWheel, -15 * k, -15 * k, 30 * k, 30 * k);
       g.restore();
-      // the fuel gauge (full = FUEL_MAX's first hour; more shows full)
-      const lv = Math.min(1, left / (60 * 60 * 1000));
+      // the fuel gauge (full = FUEL_MAX)
+      const lv = Math.min(1, left / FUEL_MAX);
       if (lv > 0) {
         g.fillStyle = lv < 0.15 ? '#ff5a3a' : '#ffd23f';
         g.fillRect(px + 45 * k, py + (11 + 37 * (1 - lv)) * k, 9 * k, 37 * lv * k);
@@ -1133,14 +1216,15 @@ drawNewBlock = ((prev) =>
         g.beginPath();
         g.rect(px, py + LIFT_TOP * k, T, T - LIFT_TOP * k);
         g.clip();
-        g.drawImage(liftBlockPic, px, py - o * (64 - LIFT_TOP) * k, T, T);
+        const [sx, sy] = liftShake(i);
+        g.drawImage(liftBlockPic, px + sx * k, py + (sy - o * (64 - LIFT_TOP)) * k, T, T);
         g.restore();
       }
       g.drawImage(liftHousePic, px, py, T, T);
       // the yellow valve wheel on the side, turning as it moves
       g.save();
       g.translate(px + LIFT_WX * k, py + LIFT_WY * k);
-      g.rotate(liftWheel(i));
+      g.rotate(liftWheel(i) + liftShake(i)[0] * 0.06);
       g.drawImage(liftWheelPic, (-LIFT_WS / 2) * k, (-LIFT_WS / 2) * k, LIFT_WS * k, LIFT_WS * k);
       g.restore();
       // a lamp: green open, amber shut (no red on this gate: owner)
@@ -1153,7 +1237,7 @@ drawNewBlock = ((prev) =>
       // steel collars where Steam Pipes come in
       g.fillStyle = MCH.met[3];
       for (const [nx, ny, rx, ry, rw, rh] of [[x, y - 1, 17, 0, 30, 4], [x + 1, y, 60, 17, 4, 30], [x, y + 1, 17, 60, 30, 4], [x - 1, y, 0, 17, 4, 30]])
-        if (inW(nx, ny) && MACH_NET.has(fg[at(nx, ny)])) g.fillRect(px + rx * k, py + ry * k, rw * k, rh * k);
+        if (inW(nx, ny) && MACH_NET.has(fg[at(nx, ny)]) && machLink(i, at(nx, ny))) g.fillRect(px + rx * k, py + ry * k, rw * k, rh * k);
       g.save();
       g.translate(px + 32 * k, py + 32 * k);
       g.rotate(boostAngle(i));
@@ -1223,9 +1307,7 @@ drawMannequins = ((prev) =>
       const cy = py + T / 2 + c.s * (0.18 + out * 0.62) * T;
       g.drawImage(SAW_PICS[Math.floor(now / 30) % SAW_PICS.length], px + T * 0.06, cy - T * 0.44, T * 0.88, T * 0.88);
       g.restore();
-      // sparks while it is out
-      if (out > 0.9 && Math.random() < 0.5)
-        parts.push({ x: x * TS + 16 + (Math.random() - 0.5) * 20, y: y * TS + 16 + c.s * 18, vx: (Math.random() - 0.5) * 160, vy: c.s * -(40 + Math.random() * 80), life: 0.25, c: Math.random() < 0.5 ? '#ffd23f' : '#ffffff', s: 2 });
+      // (owner, Nov 11 2026: no square sparks / bits, only smoke)
     }
   })(drawMannequins);
 
@@ -1239,6 +1321,9 @@ function machSound(kind, i) {
   const [x, y] = machXY(i),
     vol = Math.max(0, 1 - Math.hypot(x * TS + 16 - (P.x + P.w / 2), y * TS + 16 - (P.y + P.h / 2)) / TS / MACH_HEAR);
   if (vol <= 0.03) return;
+  // the owner's recorded sounds (sound.js; Nov 11 2026): steam = steam_hiss, Lift Gate slam, Factory Gate opening
+  const FILE = { hiss: 'steam_hiss', lift: 'lift_gate', fgate: 'factory_gate' };
+  if (FILE[kind]) return Sfx.play(FILE[kind], vol);
   if (!machNoise) {
     machNoise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
     const dd = machNoise.getChannelData(0);
@@ -1287,6 +1372,24 @@ function machSound(kind, i) {
   } else if (kind === 'clank') {
     tone(0.18, 'triangle', 180, 90, 0.16);
     noise(0.12, 'bandpass', 2200, 1200, 0.1, 4);
+  } else if (kind === 'rattle') {
+    // the Lift Gate shaking before it drops: a quick metal chatter
+    for (let r = 0; r < 5; r++) {
+      const n = ac.createBufferSource(),
+        f = ac.createBiquadFilter(),
+        gn = ac.createGain(),
+        t0 = t + r * 0.085 + Math.random() * 0.02;
+      n.buffer = machNoise;
+      f.type = 'bandpass';
+      f.Q.value = 5;
+      f.frequency.value = 1500 + Math.random() * 900;
+      gn.gain.setValueAtTime(0.0001, t0);
+      gn.gain.exponentialRampToValueAtTime(0.05 + r * 0.012, t0 + 0.005);
+      gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.06);
+      n.connect(f).connect(gn).connect(out);
+      n.start(t0, Math.random() * 0.5);
+      n.stop(t0 + 0.08);
+    }
   } else if (kind === 'zing') {
     tone(0.35, 'sawtooth', 1300, 1700, 0.05);
     noise(0.3, 'bandpass', 3800, 3000, 0.08, 6);
@@ -1299,9 +1402,9 @@ enterWorldNow = ((prev) =>
     return prev(name);
   })(enterWorldNow);
 
-// the wrench mark (signs.js) over the machines the wrench opens something for: the Generator (its fuel) and the
-// Factory Core (its window)
+// the wrench mark (signs.js) over the Factory Core (its window). (Not over the Generator any more: owner, Nov 11 2026;
+// wrenching a Generator still says its fuel)
 wrenchBlock = ((prev) =>
   function (x, y) {
-    return prev(x, y) || (inW(x, y) && (fg[at(x, y)] === GEN_T || fg[at(x, y)] === CORE_T));
+    return prev(x, y) || (inW(x, y) && fg[at(x, y)] === CORE_T);
   })(wrenchBlock);

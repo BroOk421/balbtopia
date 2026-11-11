@@ -166,10 +166,10 @@ BLOCK[STAGE_T] = { id: 'stage_block', name: 'Stage', hits: 4, art: 'deco', solid
 BLOCK[CURTAIN_T] = { id: 'red_curtain', name: 'Red Curtain', hits: 2, art: 'deco', solid: false, fx: ['#c0202e', '#e8404a', '#f2c14e'] };
 BLOCK[TRUSS_T] = { id: 'stage_truss', name: 'Steel Truss Post', hits: 4, art: 'deco', solid: false, fx: ['#3a3e48', '#6a7280', '#1e2026'] };
 BLOCK[TRUSS_PLAT_T] = { id: 'stage_platform', name: 'Steel Stage Platform', hits: 4, art: 'deco', solid: false, plat: true, fx: ['#3a3e48', '#6a7280', '#1e2026'] };
-ITEMS.stage_block = { name: 'Stage', kind: 'block', block: STAGE_T, desc: 'A concert stage floor: wooden boards on a black front with a gold trim. Stand on it from above, walk or jump through it from below, like a Wooden Platform. From the Stage Set.' };
-ITEMS.red_curtain = { name: 'Red Curtain', kind: 'block', block: CURTAIN_T, desc: 'Red velvet stage curtains. Stack them: the top one gets a gold rail, the bottom one a gold fringe. From the Stage Set.' };
-ITEMS.stage_truss = { name: 'Steel Truss Post', kind: 'block', block: TRUSS_T, desc: 'A dark steel truss post for a stage. Stack them into a tower. From the Stage Set.' };
-ITEMS.stage_platform = { name: 'Steel Stage Platform', kind: 'block', block: TRUSS_PLAT_T, desc: 'A dark steel truss platform: stand on it from above, jump up through it from below; side by side they join. From the Stage Set.' };
+ITEMS.stage_block = { name: 'Stage', kind: 'block', block: STAGE_T, desc: 'A concert stage floor: wooden boards on a black front with a gold trim. Stand on it from above, walk or jump through it from below, like a Wooden Platform. From the Music Pack.' };
+ITEMS.red_curtain = { name: 'Red Curtain', kind: 'block', block: CURTAIN_T, desc: 'Red velvet stage curtains. Stack them: the top one gets a gold rail, the bottom one a gold fringe. From the Music Pack.' };
+ITEMS.stage_truss = { name: 'Steel Truss Post', kind: 'block', block: TRUSS_T, desc: 'A dark steel truss post for a stage. Stack them into a tower. From the Music Pack.' };
+ITEMS.stage_platform = { name: 'Steel Stage Platform', kind: 'block', block: TRUSS_PLAT_T, desc: 'A dark steel truss platform: stand on it from above, jump up through it from below; side by side they join. From the Music Pack.' };
 
 const STL = ['#1e2026', '#2e323a', '#3e434e', '#565c6a', '#767e8e']; // dark steel
 // Stage: boards on top, a gold trim, a black front (skirt) with soft folds
@@ -328,9 +328,24 @@ drawBg = ((prev) =>
 // (owner did not name a price: 20,000 gold. Server: shop_prices row 'set_stage', not tracked)
 const STAGE_SET = {
   id: 'set_stage',
-  name: 'Stage Set',
+  // (owner, Nov 11 2026: "the music pack: in the PACKS tab like the Factory Pack; the instruments one of each, 10 red
+  // curtains, 10 platforms, 10 posts, 5 stages, 2 spotlights") renamed Music Pack; its poster and PACKS tab: musicpack.js.
+  // Same id 'set_stage' and price (the server's shop_prices row).
+  name: 'Music Pack',
   gold: 20000,
-  get: [['spotlight', 4], ['stage_block', 20], ['red_curtain', 12], ['stage_truss', 8], ['stage_platform', 10], ['disco_weather_machine', 1]],
+  get: [
+    ['piano', 1],
+    ['drum_set', 1],
+    ['guitar', 1],
+    ['karaoke_machine', 1],
+    ['mic_stand', 1],
+    ['boombox', 1],
+    ['red_curtain', 10],
+    ['stage_platform', 10],
+    ['stage_truss', 10],
+    ['stage_block', 5],
+    ['spotlight', 2],
+  ],
 };
 // a Shop set that gives items with amounts (like the Fish Tank Set in fish.js)
 function itemSet(S) {

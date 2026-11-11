@@ -37,6 +37,9 @@ itemSet(FACTORY_PACK);
 ITEMS.set_factory.desc =
   'Everything to start a factory line. ' + ITEMS.set_factory.desc + ' (The Generator and Fuel Cans come from recipes.)';
 ITEMS.set_factory.rarity = 'Epic';
+// (owner, Nov 11 2026: "put the set in the PACKS tab, not CHARACTER") itemSet files it under SETS; move it to PACKS
+// (the tab starterpack.js adds, loaded later)
+for (const s of SHOP) if (s.id === 'set_factory') s.cat = 'packs';
 
 // the character with the wow face (both arms up), as a canvas
 function posterCharacter(k) {
@@ -278,6 +281,9 @@ shopPic = ((prev) =>
     '.spic:has(.fposter){height:72px}' +
     '.spic canvas.fposter{width:128px;max-width:100%;height:auto;aspect-ratio:2;image-rendering:auto;border-radius:4px;box-shadow:0 2px 0 rgba(0,0,0,.45)}' +
     '.sdet .spic.big:has(.fposter){height:auto}' +
-    '.sdet .spic.big canvas.fposter{width:100%;max-width:340px;height:auto}';
+    '.sdet .spic.big canvas.fposter{width:min(100%,calc(min(300px,30vh) * 2));max-width:none;height:auto;aspect-ratio:2;display:block;margin:0 auto}' +
+    // (owner, Nov 11 2026: "a wide pop-up, the banner on top and the text under it")
+    '#dlg:has(.sdet .fposter){width:min(94vw,620px)}' +
+    '.sdet:has(.fposter) p{font-size:13px}';
   document.head.appendChild(css);
 }

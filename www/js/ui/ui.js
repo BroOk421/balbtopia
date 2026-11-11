@@ -1,7 +1,16 @@
 // Inventory, hotbar, item pop-up, info window, start screen.
 // ===== ui =====
+// (owner, Nov 11 2026) the gold counter's short form: under 1,000 as it is, then 1 decimal rounded DOWN: 122,862 ->
+// 122.8k; k, M, B, T (hudcard.js)
+function goldShort(n) {
+  n = Math.max(0, Math.floor(+n || 0));
+  if (n < 1000) return String(n);
+  for (const [u, s] of [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'k']])
+    if (n >= u) return (Math.floor((n / u) * 10) / 10).toFixed(1) + s;
+  return String(n);
+}
 function updateGold(pop) {
-  $('goldN').textContent = P.gold.toLocaleString();
+  $('goldN').textContent = goldShort(P.gold); // (hudcard.js: 122.8k)
   $('bcN').textContent = (P.bc | 0).toLocaleString(); // Balb Coins beside the gold (economy.js)
   if (pop) {
     // restart the coin's pop every time (even when gold comes in quickly)

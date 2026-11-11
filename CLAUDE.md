@@ -23,17 +23,17 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 
 | Folder | Files |
 |---|---|
-| `core/` | errors, assets, config, native, input, sound, camzoom, main |
+| `core/` | errors, assets, config, native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), main |
 | `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, gmwatch, subscriber, rename, social, globalchat, keys |
 | `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, signs |
 | `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids |
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
-| `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip |
+| `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
 | `wear/` | wear, clothes, tees, capes, scarves, hairstyles, diaper, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
 | `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides |
 | `render/` | render, shadow, portrait, remotefx |
-| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, factorypack (chatbar.js removed Nov 10 2026) |
+| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, factorypack, musicpack, hudcard, titlescreen, landinglinks (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
 | `vendor/` | supabase.js |
 
@@ -3546,10 +3546,12 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 
 ## Nov 11 2026
 
-- `blocks/ice.js`: block 479 Slide Ice (`slide_ice`, solid, Ice + Water Bucket). Walking on it you hardly grip
-  (`ICE_GRIP`), you slide on when you let go, and the slide pulls you faster: every Slide Ice tile slid over raises the
-  top speed by `ICE_BOOST` x walking speed (`iceRun`), up to `ICE_MAX_K` 2.8 x (tested: 40 -> 448 px/s over ~25 tiles).
-  The other way brakes (`ICE_BRAKE`); a jump off it keeps the speed (`ICE_AIR`). A step wrapper: works out physics.js's
+- `blocks/ice.js`: block 479 Slide Ice (`slide_ice`, solid, Ice + Water Bucket). (Build c, owner: "it stopped before
+  speeding up; a light walk stays slow, only holding makes it faster, with a limit, unless a bounce hits you".) Holding
+  a direction speeds you up STEADILY (`ICE_ACCEL` 230 px/s², linear, no per-tile steps / pull) up to `ICE_MAX_K` 2.8 x
+  walking speed (448 px/s); let go = you keep the speed (`ICE_COAST` 0.93/s), no pull; faster than the limit only from a
+  fling (bounce blocks): then it just coasts. Tested: a 0.25 s tap = 57 px/s and stays; holding 0 -> 448 in ~2 s.
+  The other way brakes (`ICE_BRAKE` 520 px/s²); a jump off it keeps the speed (`ICE_AIR`). A step wrapper: works out physics.js's
   own walk speed and moves you by the difference. No particles (owner). Look (owner): the Blue Crystal Block's 12
   pictures recoloured paler / icier (`ICE_RECOLOR`, `iceFrame`), dark patches lightened, a snow cap on top when open.
   The old Ice (72) is unchanged.
@@ -3614,4 +3616,143 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   `art-source/sea/pirate_beard_fix.py` cleans the first cut (ear line, skin, tank-top grey, the head's outline strokes;
   the original is kept as `pirate_beard_cut1.png`) and cuts a mouth opening under the mustache's parting; pirate.js
   places that opening (`BEARD_MOUTH`) on the idle frame's mouth (`BODY_MOUTH` 75.5, 95), same size (`BEARD_K` 0.5).
-- GAME_BUILD '2026-11-11 a'.
+- Factory changes (owner, Nov 11 2026, build b):
+  - Fuel: `FUEL_MS` = `FUEL_MAX` = 3 min. One Fuel Can fills a Factory Core to full (only when it has under 2:55 left);
+    the Core window has one REFILL (1 Can) button; gauges are scaled to FUEL_MAX; old saves are cut to 3 min on load.
+    `fmtFuel` shows m:ss under 10 min.
+  - Spin Trigger / Factory Button: `SPIN_GAP` 2000 ms between firings. They join ONLY the tile right under them
+    (`MACH_DOWN_ONLY`, `machLink(a, b)`): the signal goes down only, pipes / blowers / booster collars join them only from below.
+  - Factory Cutter: no block bits / sparks where it cuts, only smoke (`cutterQuiet`, `cutQuietAt` kept `CUT_QUIET_MS`
+    2.5 s so the other players' net.js applyTiles skips its burst too; wraps `burst` and `toolSparkles`).
+  - Suction Intake: a drop floats `VH_MIN_AGE` 1.1 s, then for `VH_SUCK_MS` 700 it lifts, swirls and SHRINKS into the
+    hole (vhRun gets the drop's position; online `vh` sends uids, the others look the positions up), then runs the hose.
+  - Lift Gate shutting: rattles `LIFT_SHAKE_MS` 480 (`liftShake`, synth 'rattle'), then drops in `LIFT_DROP_MS` 130
+    (gravity ease), slam = lift_gate.mp3 timed so its hit (`LIFT_SLAM_AT` 270 ms in) lands on impact, smoke + small screen
+    shake nearby. Opening is unchanged (LIFT_MS ease, clank).
+  - Owner's sounds (sound.js NAMES, cut with ffmpeg, originals art-source/sfx/*-original.mp3): steam_hiss.mp3 = every
+    'hiss' (pipes, at most one per 600 ms; suction), lift_gate.mp3 = Lift Gate slam, factory_gate.mp3 = Factory Gate
+    opening (the first sound only, 0.27-2.9 s of the owner's 34 s file). machSound plays them through Sfx.play with distance volume.
+- Build c (owner, Nov 11 2026): the Factory Pack is in the Shop's PACKS tab (factorypack.js sets its SHOP cat to
+  'packs'); its pop-up is landscape (`#dlg:has(.sdet .fposter)` 640 px wide: poster left, text right; stacks under
+  460 px). The Factory Core window is landscape too (`#dlg:has(.fcore)` 720 px: header across, POWER | STORAGE side by
+  side; stacks under 520 px). No wrench mark over the Generator any more (wrenching it still says the fuel).
+- Build d (owner, Nov 11 2026): Factory Pack pop-up = wide (620 px) with the poster ON TOP across it (height capped
+  `min(300px, 30vh)` so phones in landscape still show Buy) and the text under it. The Moon's Asteroid / Laser Gun box
+  (#astHud) moved to the top RIGHT under the gold / SHOP / menu buttons (`top: 10px + 46px * --btnz`), off the chat bar.
+  The chat (.gchat) is wider: min(460px, 62vw), landscape phones min(400px, 56vw).
+  Storage note (asked by the owner): SYSTEM lines are only in the game's memory (chatSys -> chatAdd), never sent or
+  saved. LOCAL chat = send_chat (realtime broadcast + a row in chat_sent, rows older than 1 min deleted). SHOUT =
+  global_chat table, the newest 200 kept (send_broadcast deletes older). FRIEND = lobby 'dm' broadcast, not a table.
+- Build e (owner, Nov 11 2026), `ui/hudcard.js` (loaded right before main.js): a profile card (top left since build f): your
+  HEAD only (charPortrait with only the head slots `PCARD_SLOTS` worn, cut at the neck `PCARD_NECK` 15.5 world px over
+  the box bottom, squared round the head; redrawn only when skin / head items change, `pcardKey`), "Lv N" right of it
+  and the gold under it (#gold is MOVED into the card, so its ids / coin pop still work). Gold shows short:
+  `goldShort` (ui.js) = under 1,000 as is, else 1 decimal rounded down + k / M / B / T (122,862 -> 122.8k), used by every
+  #goldN writer (ui.js, quests.js, liven.js, levels.js). (The chat bar over the hotbar of build e was replaced in build g, below.) #astHud top offset is now 52px * --btnz (the card is 42 px tall).
+- Build f (owner, Nov 11 2026): the profile card is at the TOP LEFT (in #wrap, own position, zoomed by --btnz, hidden
+  on the landing screen), not in .topr; the Balb Coins (#bcBox, moved in) sit beside "Lv N", the gold under them.
+  .topr now holds SHOP, News and the menu only; #astHud back to top 46px * --btnz under them.
+- Build g (owner, Nov 11 2026): no chat bar any more (not over the hotbar either). hudcard.js puts `#chatBtn` on the
+  LEFT edge, middle of the screen height (a tab with 3 dots in a column, red unread number from globalchat.js gUnread,
+  lit while open); a click opens / closes the chat panel, which FLOATS beside it, vertically centred, z-index 60 over
+  every window (Shop, pop-ups), `CHAT_FLOAT_W` 35% of the screen width (at least 270 px), list height min(150px, 30vh).
+  Closed, .gchat is hidden entirely (.gtick never shows). Enter still opens it (social.js openChat -> chatOpen).
+- Build h (owner, Nov 11 2026): the chat moved to the RIGHT: `#chatBtn` is a tab on the right edge (middle of the
+  height); open, the chat is a FULL-HEIGHT drawer along the right edge, `--chatW` = max(CHAT_MIN_W 250px, CHAT_FLOAT_W
+  26vw), z-index 60 over everything, and the tab slides with it, stuck to the drawer's left side (`#chatBtn.on`). The
+  list fills the height (flex). (Build g's left-side 35vw floating panel is replaced.)
+- Build i (owner, Nov 11 2026), `ui/titlescreen.js` (after hudcard.js, right before main.js): a TITLE SCREEN before
+  the log in pop-up. Each time the landing screen comes up (after the boot screen): the world fades in from black
+  (`TITLE_FADE_MS` 1400, `.tfade`) while the camera glides down from the map's top (`TITLE_PAN_MS` 2600, render
+  wrapper lifts cam.y for drawing only and puts it back), then the owner's LOGO (assets/icon/logo.webp, 900 px,
+  transparent; original art-source/logo/balbtopia_logo_original.png) and a COLUMN of buttons come in
+  (`body.titlemenu`, the pop-up hidden): PLAY (shows the log in / register pop-up, which now has a "◀ Back" to the
+  title and the logo as its heading, padding 30 px top / 26 px bottom; a remembered account presses #play at once), OPTIONS (Settings in a dialog
+  without the Account row; the choice is put back over the save after log in: applyPlayer wrapper), EXIT (Capacitor
+  App.exitApp, browser window.close + toast). No character drawn behind the landing screen (drawCharacter skipped
+  inside render while body.landing). Note: titleSync runs from a MutationObserver on body's class: only touch
+  classList when something changes (remove() rewrites the attribute even when unchanged = endless loop).
+- Build j (owner, Nov 11 2026): log in pop-up keeps the logo heading, padded (44 px top, 28 px bottom; the Back button
+  sits in the top padding). Landing BACKGROUND MUSIC (titlescreen.js `tmus*`): a soft piano loop synthesised with Web
+  Audio (no file): 8 bars C-G-Am-Em-F-C-F-G at `TMUS_BPM` 76, rolling left hand + bass + a tune, small convolver
+  room, master `TMUS_VOL` 0.16, fades in / out (`TMUS_FADE` 1.2 s); plays only while body.landing and Sound is on;
+  starts after the first tap / key (browser rule). Chat tab sync (hudcard.js): the tab's `.on` is set at once by a
+  gShow wrapper (the 120 ms timer made it lag); opening, the drawer slides in from translateX(100%) and the tab's
+  `right` transitions to --chatW with the same `CHAT_SLIDE` .22s / `CHAT_EASE`; closing, both go at once.
+- GAME_BUILD '2026-11-11 j'.
+- Build k (owner, Nov 11 2026):
+  - LANDING LINKS (`ui/landinglinks.js`, after titlescreen.js): round buttons at the bottom right of the landing / title
+    screen (inside #start): MUSIC on / off for the landing piano (localStorage `balbtopia.titleMusic`, '0' = off;
+    titlescreen.js tmusSchedule asks `landMusicOn()`; the game's Sound setting is untouched), then Facebook, YouTube,
+    Discord: `SOCIAL_LINKS` (EMPTY until the owner gives the links: an empty one toasts "coming soon").
+  - BACKGROUND TAB (`core/bgtick.js` before main.js + `core/keepalive-worker.js`): while `document.hidden` a Worker
+    timer (not slowed by the browser; a file because the CSP only allows 'self') runs `bgTick` every BG_TICK_MS 250:
+    moves `now`, steps physics, `Net.tick` (position heartbeat, so others don't drop you after 8 s), `Net.helloDue()`
+    (net.js startHello: the world_hello beat even when setInterval is slowed) and `afkCheck`. Skipped while the rAF loop
+    is still alive (`last` < 400 ms ago). net.js createClient: `realtime: { worker: true, workerUrl:
+    'js/core/keepalive-worker.js' }` so the socket heartbeat / presence survive a hidden tab. The only way out while
+    tabbed is the AFK logout (afk.js, 15 min). Android pauses the app itself in the background (not covered).
+  - `blocks/blocks64i.js` (before hudcard.js), blocks 495-507: 495 FUEL TANK (walk-through, Barrel + Glass Pane, Rare):
+    24 h like the ATM / Bait Basket (its time in atm.js `atms`; atm.js atmList keeps Fuel Tanks; `atmPlaced` on place
+    via an act wrapper; bubble via a `timedUnderPlayer` wrapper); full = click within reach -> `FUEL_TANK_OIL` 3-5
+    CRUDE OIL drops (`crude_oil`, kind 'material', icon a glossy black drop); empty = punch, breaks like any splice.
+    496 JAR (`glass_jar`, walk-through = no collision, Glass Pane + Rock). 497 FUEL JAR (`fuel_jar`, walk-through,
+    shimmers, no seed): STOVE recipe (stoveCook wrapper, outermost): `FUEL_JAR_OIL` 15 Crude Oil + 1 Jar = 1 Fuel Jar
+    (several at once). (Fuel Jar is not wired into the Factory Core yet; the Core still takes Fuel Cans.)
+    498-501 RICH TREES, Rare (`RICH_TREES`): Gold Vein (Granite Block + Yellow Block) 72 h, Pot of Gold (Flower Pot +
+    Honeycomb Block) 80 h, Lucky Cat (Dice Block + White Block) 88 h, Coin Fountain (Marble Block + Water Bucket, animated)
+    96 h; treeTime / treeGold wrappers: a ripe one pays 1,500-3,600 gold; their blocks: coinDropChance 40%,
+    goldDropAmount 20-80. 502-507: Oil Drum (Barrel + Black Block), Tire Stack (Black Block + Toy Block), Jam Jar (Jar +
+    Blueberry), Honey Jar (Jar + Honeycomb Block), Firefly Jar (Jar + Torch, animated), Copper Block (Orange Block +
+    Bricks). All recipes in SPLICE + farming.json (source balbtopia). NEXT FREE BLOCK: 508 (blocks go up to 509).
+  - MUSIC PACK: concert.js STAGE_SET (id `set_stage`, price 20,000 and server row unchanged) renamed "Music Pack",
+    gives 1 each Piano, Drum Set, Guitar (block), Karaoke Machine, Microphone Stand, Boombox + 10 Red Curtain, 10 Steel
+    Stage Platform, 10 Steel Truss Post, 5 Stage, 2 Spotlight (the Disco Weather Machine is no longer in it). `ui/musicpack.js`
+    (after factorypack.js): moved to PACKS, poster `musicPoster` (384 x 192, `.fposter` like the Factory Pack): curtains,
+    truss platforms with the instruments on them, the stage with 3 slightly blurred characters (Music Set clothes, one
+    with the Guitar, /omg, /love), spotlight beams, MUSIC PACK band.
+- Build l (owner, Nov 11 2026):
+  - Landing links at the TOP RIGHT, smaller (32 px buttons, 16 px icons).
+  - Fuel Tank: hits 10 (hard to break); always animated (`paintFuelTank(a, full, f)`, 4 frames each, FUEL_TANK_MS 260):
+    EMPTY = needle low and trembling, low oil window, dim red lamp, wisp from the cap; FULL (ready to click) = needle on
+    F, green blinking lamp with a glow, oil brimming over the top in thick streaks, a drop growing / falling under the
+    tap, a puddle, a gold glint sweeping the body.
+  - Factory Cutter: no more one-hit breaks: each cut = `CUT_HITS` 2 punches (a normal punch + 1, machines.js), so hard
+    blocks need several signals. Ripe tree fruits no longer bob (farming.js drawTrees).
+  - HARVESTER FUEL, NEW `items/harvfuel.js` (after blocks64i.js): the Harvester only harvests with fuel (`harvFuel` ms,
+    saved as player `hf`); it burns only while driving. Fill: ride it, hold a Fuel Can (`HARV_CAN_MS` 3 min) or a Fuel
+    Jar (`HARV_JAR_MS` 15 min) and click (not on a Generator / Core); max `HARV_FUEL_MAX` 15 min. Gauge #harvFuel at
+    the top middle while riding; empty = toast when a ripe tree is under the reel. (So the Fuel Jar has a use now.)
+- Build m (owner, Nov 11 2026): Fuel Tank has a BULB LIGHT at the top middle (on a steel socket, replaces the filler
+  cap): RED blinking while it fills, GREEN blinking with a glow once it is ready to click (paintFuelTank, last layer).
+- Build n (owner, Nov 11 2026): Fuel Tank: the yellow / black hazard band moved lower (y 23-28, black edges; the oil
+  window starts under it); the bulb light is bigger, on top (socket at y 12) and really BLINKS (on = bright with a
+  glow ring, off = dark glass, every other frame), red while filling, green when ready.
+- Build o (owner, Nov 11 2026): the Fuel Tank's blinking bulb sits RIGHT ABOVE the yellow / black band (BY 16, its
+  socket on the band at y 20), not at the very top.
+- Build p (owner, Nov 11 2026): the Fuel Tank's bulb a little smaller (radius 3.3 + 1 px rim, BY 17, glow ring 5.6 px).
+- Build q (owner, Nov 11 2026): WALL SIGNS, NEW `blocks/wallsigns.js` (after harvfuel.js): BACKGROUNDS 89-93 (blocks
+  only go up to 509 and 508-509 are the last two): Wooden Wall Sign (Sign + Wooden Background), Steel Wall Sign (Sign +
+  Pressure Plate), Stone Wall Sign (Sign + Stone Wall, chipped edges), Golden Wall Sign (Danger Sign + Yellow Block),
+  Octagon Wall Sign (Pointy Sign + Blue Block: wide octagon, navy, soft blue stroke, white line). The same sign side by
+  side in a row JOINS into one plate (`wsRun`, up to WS_MAX 40 tiles; only the outer ends get the end shape). Each plate:
+  outline, a lit / shaded band, a STROKE line in a medium-bright colour, the body (wood seams + grain, brushed steel,
+  stone speckles, gold shine band). The "writing": one continuous 2 px engraved line across the whole plate, straight
+  near the ends and winding (sine, smooth envelope) only round the middle of the WHOLE plate, so joined plates share one
+  line. Pictures per (sign, run length, place) cached in `WS_PICS`; bgImage wrapper (uses the tile index). NEXT FREE BG: 94.
+- Build r (owner, Nov 11 2026, with his two pictures: "it looks like this, change it a little"): wall signs redrawn in
+  chunky 16 x 16 cells a tile (2 px each), the plate fills cells 1-14: corners cut in steps (`shape`: octagon = cut
+  corners (wood, gold), oval = rounder steps (Octagon Wall Sign), square, chipped (stone)), a DARK OUTLINE (`ol`), a
+  coloured STROKE ring inside it (`trim`, lit along the top; the cream Octagon sign has none, only its rust edge), grain
+  lines in the body, and the WRITING = two rows of little 3 x 3 pixel "snake" letters (`WS_GLYPHS`, each one joined
+  stroke that turns) with a soft shadow, 1 cell apart, centred on the WHOLE plate (`wsWriting(w, n)`), so joined signs
+  carry one row of letters across. (Build q's single winding line is gone.) This supersedes the art notes of build q.
+- Build s (owner, Nov 11 2026: "take out the three in the middle; the yellow border white, the brown one blue, the
+  bottom one's writing red; it must work like a sign with the wrench"): wallsigns.js now has only TWO wall signs and
+  they are BLOCKS (walk-through, `sign: true` = wrench to write, stand on it to read, like the Sign): 508 Wooden Wall
+  Sign (Sign + Wooden Background; WHITE stroke ring) and 509 Octagon Wall Sign (Pointy Sign + Blue Block; BLUE edge, RED
+  letters). Joining reads `fg` (`wsRun`), drawn by a drawNewBlock wrapper. Steel / Stone / Golden Wall Signs removed
+  (items, recipes, farming.json). Backgrounds 89-93 (builds q-r) are left unused: NEXT FREE BG stays 94.
+  BLOCK NUMBERS ARE NOW ALL USED (509 is the last one; worlds.js fgBytes / fgx limit). A new block needs a wider fg save
+  format first.
+- GAME_BUILD '2026-11-11 s'.
