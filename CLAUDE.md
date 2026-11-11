@@ -29,11 +29,11 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids |
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
-| `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit |
+| `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip |
 | `wear/` | wear, clothes, tees, capes, scarves, hairstyles, diaper, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
 | `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides |
 | `render/` | render, shadow, portrait, remotefx |
-| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news (chatbar.js removed Nov 10 2026) |
+| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, factorypack (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
 | `vendor/` | supabase.js |
 
@@ -3543,3 +3543,75 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   sound, flashT kept so no flash); after it closes each world's machine / backdrop shows again.
 - Rainbow Afro (owner, Nov 10 2026, `wear/afro.js`, Epic): the Afro recoloured in rainbow arcs round the face
   (art-source/hair/afro_rainbow.py). Shop: afro_hair 8,000 and rainbow_afro 15,000 (shop.js, schema.sql rows + keep list).
+
+## Nov 11 2026
+
+- `blocks/ice.js`: block 479 Slide Ice (`slide_ice`, solid, Ice + Water Bucket). Walking on it you hardly grip
+  (`ICE_GRIP`), you slide on when you let go, and the slide pulls you faster: every Slide Ice tile slid over raises the
+  top speed by `ICE_BOOST` x walking speed (`iceRun`), up to `ICE_MAX_K` 2.8 x (tested: 40 -> 448 px/s over ~25 tiles).
+  The other way brakes (`ICE_BRAKE`); a jump off it keeps the speed (`ICE_AIR`). A step wrapper: works out physics.js's
+  own walk speed and moves you by the difference. No particles (owner). Look (owner): the Blue Crystal Block's 12
+  pictures recoloured paler / icier (`ICE_RECOLOR`, `iceFrame`), dark patches lightened, a snow cap on top when open.
+  The old Ice (72) is unchanged.
+- `blocks/bouncedir.js`: ONE block 480 Super Bounce Block (`super_bounce`, Bounce Block + Spring; owner: "no arrows, one
+  block, up / down / left / right, strong"): orange quilted rubber cushion in a steel frame. Top: thrown ~7 tiles up
+  (`SB_UP_H`, more holding jump); a side: flung away STRAIGHT ~5 tiles (`SB_SIDE` 760, kbT `SB_KB`, no hop, no gravity
+  while `sbFlatT`: fallGravity wrapper); bottom (head): slammed down; up / down zero your sideways speed
+  (`SB_DOWN`). Blocks 481-483 (the first try's Bounce Left / Up / Down) are the same block and turned into 480 on load:
+  NEVER reuse 481-483.
+- `blocks/machines.js` (FACTORY MACHINES, the Air Blower's teal look): 484 Factory Gate (solid shutter, opens on a
+  signal for `GATE_OPEN_MS`, never shuts on you: BLOCK.shut), 485 Spin Trigger (walk-through turnstile: walk in = signal
+  + spin, every pass), 486 Factory Button (walk-through floor button), 487 Steam Pipe (SOLID teal steel block like the Cutter: diamond tread plate, hazard stripes on closed sides, vent grilles, steel collars at the edges, a gauge in a bend; bends are a superellipse `PIPE_BEND_P` swelling into the open corner, the hose inside it in a channel under steel
+  clamps, casings of joined pipes merge; the hose joins pipes / machines round it: straight, bent corners, T, cross hub, end cap; signals run along it tile by tile,
+  `PIPE_STEP_MS` 110, glowing + steam puffs), 488 Factory Cutter (solid; on a signal a saw blade shoots into the tile
+  above or below (`cutterSide`): ripe tree = harvested, cuttable block = broken, `cutterMayCut`), 489 Generator (solid;
+  with fuel a signal every `GEN_EVERY` 3 s on the shared Date.now clock; flywheel, gauge, lamp, exhaust), 490 Fuel Can
+  (walk-through; hold + click a Generator = +10 min, `FUEL_MAX` 24 h; wrench the Generator = fuel left). Sources
+  (trigger, button, generator) send `machFire` breadth first through pipes; gates / cutters next to a reached pipe (or
+  the source) get it. Online: presses are `show` k 'mx'; fuel `show` k 'gf' (ms left); world `gen` [[tile, until]].
+  Only ONE game cuts: the presser's, or for Generators `genActor()` (world owner if here, else first name A-Z); it
+  needs canEdit there. Recipes: Portcullis + Steel Block, Electric Fan + Steel Beam, Pressure Plate + Steel Block,
+  Air Exhaust + Steel Beam, Saw Blade + Steel Block, Air Exhaust + Steel Block, Barrel + Lava (farming.json + SPLICE).
+- Pressure (owner): a signal runs through at most `PIPE_RANGE` 8 Steam Pipes in a row; block 491 Pressure Booster
+  (`pressure_booster`, solid, Electric Fan + Steam Pipe) on the line refills it: its 4-blade rotor turns ONE turn per
+  signal the way it goes (`boostAngle`: right / down clockwise, left / up anticlockwise) and a red siren light sweeps.
+- Factory Cutter blade kills: touching the blade disc while it is out (`cutterHitsYou`) = die('saw').
+- `blocks/vacuumhose.js` (renamed the same day): BACKGROUND 86 Suction Intake (`suction_intake`, Suction Hose + Electric
+  Fan: hose with a round intake, the only one that sucks) and BACKGROUND 87 Suction Hose (`suction_hose`, Steam Pipe +
+  Air Exhaust: plain hose, only carries; NEXT FREE BG: 88). Drops on an intake run along the hoses (`vhPathFrom`,
+  `vhRuns`, smoke) into block 492 FACTORY CORE (`factory_core`, Steam Pipe + Retro TV; was "Vacuum Monitor"): the
+  heart of the factory. It holds the FUEL (machines.js `coreFuel` / `fuelCore` / `coreLeft`, `show` k 'cf', world
+  `cfuel`; fuel slot in its window, or click it / a Generator beside it holding a Fuel Can). Generators only run right
+  next to a Core with fuel (`genLeft` = best Core touching it); intakes only suck into a Core with fuel. Storage
+  `VMON_SLOTS` 5 kinds (full = nothing new), screen shows power bar / slots / NO FUEL. Wrench = `openCore`: styled
+  panel (header, POWER CRT with fuel bar + +1 / +5 / FILL, STORAGE: a box per slot with only the item, name + count + Claim under it; builders only).
+  Hoses lie OVER background walls: a hose tile shows the wall most of its neighbours have behind it (`vhUnder`,
+  `vhOver`, any wall incl. the Factory Wall).
+  Can't be broken while holding items. WALK-THROUGH (owner). Its screen always looks busy: power bar, slots, lines of
+  text being typed and scrolling, blinking lights (dimmer without fuel; no NO FUEL). One game sucks (vacBossMe /
+  genActor): `show` k 'vh'; world `vmon`.
+- Block 493 Lift Gate (`lift_gate`, Factory Gate + Steel Beam, machines.js): a whole plain teal steel block (the machines' colour), MUSTARD corner plates (no red), the bottom
+  two rounded a little with a screw each, a
+  yellow valve wheel on its side; NO timer: every signal flips it (`liftToggle`: lifts open / comes down shut, `LIFT_MS`, the wheel
+  turns with it); coming down on you CRUSHES you (`liftCrushesYou`, die(crushed)); open ones saved as world `lift`.
+- Air Blowers in the factory (owner): a blower touching a Steam Pipe or machine (`blowerLinked`) starts OFF and every
+  signal flips it on / off (`blowSwitched`, world `blow`; blowers.js `blowerActive` in its push + drawing); a lone
+  blower blows all the time as before. Steam Pipes join blowers in their picture.
+- The wrench mark (signs.js, wrenchBlock) now shows over the Generator and the Factory Core too.
+- `blocks/factoryplate.js`: block 494 Factory Plate (`factory_plate`, solid, Lift Gate + Steel Block) and BACKGROUND 88
+  Factory Wall (`factory_wall`, Factory Plate + Rock Background; NEXT FREE BG: 89). Plate (owner: like the Cutter, changed):
+  riveted teal panel, hazard stripes top and bottom, a steel vent plate with slots and bolts in the middle. Wall: a
+  darker plain teal panel with a screw in each corner. One picture each (no joining).
+- `ui/factorypack.js`: Shop SETS `set_factory` FACTORY PACK, 25,000 gold (price picked by Claude; schema.sql shop_prices
+  row + keep list: RE-RUN schema.sql), via concert.js itemSet: 1 Spin Trigger, 1 Factory Button, 10 Steam Pipes, 1 Pressure
+  Booster, 2 Factory Gates, 2 Lift Gates, 5 Factory Cutters, 1 Air Blower Right, 1 Factory Core, 10 each Suction Intake /
+  Suction Hose / Factory Wall, 10 Factory Plates (Generator + Fuel Can stay recipe-only). Poster (`factoryPoster`, LANDSCAPE 384 x 192 (owner: a shorter pop-up), shown by a shopPic wrapper; square middle crop for SHOP_ICON;
+  its SHOP_ICON; `fposter` class = shown big on the card / pop-up): a factory of the machines' pictures, blurred and
+  darkened, FACTORY PACK on a hazard band on the left, on the right the character (tan) from the waist up with the /omg
+  face and arms up (`posterCharacter`), blurred / faded from the bottom up.
+- NEXT FREE BLOCK: 495 (blocks go up to 509, see worlds.js fgBytes).
+- Pirate Beard (owner, Nov 11 2026: "raise it, the mouth in the middle of the beard"):
+  `art-source/sea/pirate_beard_fix.py` cleans the first cut (ear line, skin, tank-top grey, the head's outline strokes;
+  the original is kept as `pirate_beard_cut1.png`) and cuts a mouth opening under the mustache's parting; pirate.js
+  places that opening (`BEARD_MOUTH`) on the idle frame's mouth (`BODY_MOUTH` 75.5, 95), same size (`BEARD_K` 0.5).
+- GAME_BUILD '2026-11-11 a'.

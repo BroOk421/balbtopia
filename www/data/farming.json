@@ -1605,6 +1605,54 @@
     },
     "pressure_plate": {
       "growSeconds": 360
+    },
+    "slide_ice": {
+      "growSeconds": 240
+    },
+    "super_bounce": {
+      "growSeconds": 360
+    },
+    "factory_gate": {
+      "growSeconds": 360
+    },
+    "spin_trigger": {
+      "growSeconds": 360
+    },
+    "factory_button": {
+      "growSeconds": 360
+    },
+    "steam_pipe": {
+      "growSeconds": 360
+    },
+    "factory_cutter": {
+      "growSeconds": 480
+    },
+    "generator": {
+      "growSeconds": 480
+    },
+    "fuel_can": {
+      "growSeconds": 360
+    },
+    "pressure_booster": {
+      "growSeconds": 360
+    },
+    "suction_hose": {
+      "growSeconds": 360
+    },
+    "factory_core": {
+      "growSeconds": 480
+    },
+    "suction_intake": {
+      "growSeconds": 360
+    },
+    "lift_gate": {
+      "growSeconds": 360
+    },
+    "factory_plate": {
+      "growSeconds": 300
+    },
+    "factory_wall": {
+      "growSeconds": 300
     }
   },
   "splices": [
@@ -6476,6 +6524,150 @@
       "result": "pressure_plate",
       "source": "balbtopia",
       "note": "Pressure Plate = Rock + Wooden Platform (Balbtopia recipe, Nov 10 2026)"
+    },
+    {
+      "seeds": [
+        "ice",
+        "water_bucket"
+      ],
+      "result": "slide_ice",
+      "source": "balbtopia",
+      "note": "Slide Ice = Ice + Water Bucket (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "bounce_block",
+        "spring"
+      ],
+      "result": "super_bounce",
+      "source": "balbtopia",
+      "note": "Super Bounce Block = Bounce Block + Spring (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "portcullis",
+        "steel_block"
+      ],
+      "result": "factory_gate",
+      "source": "balbtopia",
+      "note": "Factory Gate = Portcullis + Steel Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "electric_fan",
+        "steel_beam"
+      ],
+      "result": "spin_trigger",
+      "source": "balbtopia",
+      "note": "Spin Trigger = Electric Fan + Steel Beam (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "pressure_plate",
+        "steel_block"
+      ],
+      "result": "factory_button",
+      "source": "balbtopia",
+      "note": "Factory Button = Pressure Plate + Steel Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "air_duct",
+        "steel_beam"
+      ],
+      "result": "steam_pipe",
+      "source": "balbtopia",
+      "note": "Steam Pipe = Air Exhaust + Steel Beam (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "saw_blade",
+        "steel_block"
+      ],
+      "result": "factory_cutter",
+      "source": "balbtopia",
+      "note": "Factory Cutter = Saw Blade + Steel Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "air_duct",
+        "steel_block"
+      ],
+      "result": "generator",
+      "source": "balbtopia",
+      "note": "Generator = Air Exhaust + Steel Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "barrel",
+        "lava"
+      ],
+      "result": "fuel_can",
+      "source": "balbtopia",
+      "note": "Fuel Can = Barrel + Lava (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "electric_fan",
+        "steam_pipe"
+      ],
+      "result": "pressure_booster",
+      "source": "balbtopia",
+      "note": "Pressure Booster = Electric Fan + Steam Pipe (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "air_duct",
+        "steam_pipe"
+      ],
+      "result": "suction_hose",
+      "source": "balbtopia",
+      "note": "Suction Hose = Steam Pipe + Air Exhaust (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "retro_tv",
+        "steam_pipe"
+      ],
+      "result": "factory_core",
+      "source": "balbtopia",
+      "note": "Factory Core = Steam Pipe + Retro TV (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "electric_fan",
+        "suction_hose"
+      ],
+      "result": "suction_intake",
+      "source": "balbtopia",
+      "note": "Suction Intake = Suction Hose + Electric Fan (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "factory_gate",
+        "steel_beam"
+      ],
+      "result": "lift_gate",
+      "source": "balbtopia",
+      "note": "Lift Gate = Factory Gate + Steel Beam (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "lift_gate",
+        "steel_block"
+      ],
+      "result": "factory_plate",
+      "source": "balbtopia",
+      "note": "Factory Plate = Lift Gate + Steel Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "factory_plate",
+        "rock_background"
+      ],
+      "result": "factory_wall",
+      "source": "balbtopia",
+      "note": "Factory Wall = Factory Plate + Rock Background (Balbtopia recipe, Nov 11 2026)"
     }
   ],
   "notInGameYet": [

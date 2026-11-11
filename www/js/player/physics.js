@@ -261,6 +261,7 @@ function die(why) {
     : why === 'spawn' ? 'Going back to the door…'
     : why === 'laser' ? 'Zapped by a laser!' // (lasers.js)
     : why === 'crushed' ? 'You got crushed!' // (pushers.js)
+    : why === 'saw' ? 'Sliced by a Factory Cutter!' // (machines.js)
     : 'You burned up in the lava!',
   );
   Net.sendDie();

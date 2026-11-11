@@ -11,6 +11,10 @@
 //   and it lets go of you. Your own character only: everybody's game moves its own player, so nothing is sent.
 // - Recipes (Balbtopia, SPLICE + farming.json): Air Exhaust + an Arrow Block of that direction.
 // Loaded before spikeflip.js (after pwdoor.js). NEXT FREE BLOCK: 456.
+// (owner, Nov 11 2026: "the air blowers can be triggered too: one signal and it blows on and on, the next one switches
+// it off, when a hose / trigger is next to it") a blower touching a Steam Pipe or a factory machine (machines.js
+// `blowerLinked`) is part of the factory: it starts OFF and every signal flips it on / off (machines.js `blowSwitched`, saved as world
+// `blow`). A blower with nothing like that next to it blows all the time, as before (`blowerActive`).
 // ===== blowers =====
 const BLOW_RANGE = 8, // tiles of air in front of a blower
   BLOW_SIDE = 48, // px/s sideways (walking is 160)
@@ -158,7 +162,7 @@ function blowOnPlayer() {
         const x = cx + s * k;
         if (x < 0 || x >= WW || !inW(x, ty)) break;
         const d = BLOWER_BY_T[fg[at(x, ty)]];
-        if (d && d.dx === -s) vx = d.dx * BLOW_SIDE;
+        if (d && d.dx === -s && blowerActive(at(x, ty))) vx = d.dx * BLOW_SIDE;
         if (blowSolid(x, ty)) break;
       }
     }
@@ -169,7 +173,7 @@ function blowOnPlayer() {
         const y = cy + s * k;
         if (y < 0 || y >= WH || !inW(tx, y)) break;
         const d = BLOWER_BY_T[fg[at(tx, y)]];
-        if (d && d.dy === -s) vy = d.dy > 0 ? BLOW_DOWN : -BLOW_UP;
+        if (d && d.dy === -s && blowerActive(at(tx, y))) vy = d.dy > 0 ? BLOW_DOWN : -BLOW_UP;
         if (blowSolid(tx, y)) break;
       }
     }
@@ -208,7 +212,9 @@ drawNewBlock = ((prev) =>
   function (b, x, y, px, py, T) {
     const d = b && BLOWER_BY_T[fg[at(x, y)]];
     if (!d || b.id !== d.id) return prev(b, x, y, px, py, T);
-    g.drawImage(BLOWER_PICS[d.id][Math.floor(now / 70 + x * 3 + y) % 8], px, py, T, T);
+    const on = blowerActive(at(x, y));
+    g.drawImage(BLOWER_PICS[d.id][on ? Math.floor(now / 70 + x * 3 + y) % 8 : 0], px, py, T, T);
+    if (!on) return; // switched off: still, no wind
     const n = Math.min(blowReach(x, y, d), 3);
     if (!n) return;
     g.save();
