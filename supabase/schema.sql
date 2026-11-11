@@ -356,10 +356,15 @@ create or replace function public.alock_owned_by_other(e jsonb, p_me text)
 returns boolean language sql immutable as $$
   select jsonb_typeof(e) = 'array' and jsonb_typeof(e -> 1) = 'object' and lower(coalesce(e -> 1 ->> 'o', '')) <> lower(p_me)
 $$;
+-- (Nov 11 2026, build u) a lock whose owner has been away 1000+ days (public.alock_abandoned, defined with the hellos
+-- further down) is ABANDONED: anyone may break it. Its tiles aren't kept, and it may leave the list; while it stays in
+-- the new list it is kept exactly as it was (it never becomes the saver's).
 create or replace function public.alock_guard(p_old jsonb, p_new jsonb, p_me text)
-returns jsonb language plpgsql immutable as $$
+returns jsonb language plpgsql stable as $$
 declare
   others jsonb := '[]'::jsonb;
+  gone jsonb := '[]'::jsonb; -- abandoned locks of other players
+  ab jsonb;
   merged jsonb := '[]'::jsonb;
   e jsonb;
   o jsonb;
@@ -372,13 +377,23 @@ declare
 begin
   if jsonb_typeof(p_old -> 'al') = 'array' then
     select coalesce(jsonb_agg(x), '[]'::jsonb) into others
-    from jsonb_array_elements(p_old -> 'al') x where public.alock_owned_by_other(x, p_me);
+    from jsonb_array_elements(p_old -> 'al') x
+    where public.alock_owned_by_other(x, p_me) and not public.alock_abandoned(x -> 1 ->> 'o');
+    select coalesce(jsonb_agg(x), '[]'::jsonb) into gone
+    from jsonb_array_elements(p_old -> 'al') x
+    where public.alock_owned_by_other(x, p_me) and public.alock_abandoned(x -> 1 ->> 'o');
   end if;
   merged := others;
   if jsonb_typeof(p_new -> 'al') = 'array' then
     for e in select * from jsonb_array_elements(p_new -> 'al') loop
       if jsonb_typeof(e) <> 'array' or jsonb_typeof(e -> 0) <> 'number' or jsonb_typeof(e -> 1) <> 'object' then continue; end if;
       if exists (select 1 from jsonb_array_elements(others) k where k -> 0 = e -> 0) then continue; end if;
+      -- an abandoned lock still in the list: as it was
+      select k into ab from jsonb_array_elements(gone) k where k -> 0 = e -> 0 limit 1;
+      if ab is not null then
+        merged := merged || jsonb_build_array(ab);
+        continue;
+      end if;
       merged := merged || jsonb_build_array(jsonb_build_array(e -> 0, jsonb_set(e -> 1, '{o}', to_jsonb(p_me))));
     end loop;
   end if;
@@ -1233,6 +1248,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('reaper_scythe', 1, 100000, true, 0), -- reaperscythe.js (Nov 8 2026): Shop-only from the start, so tracked
   ('set_stage', 1, 20000, false, 0), -- concert.js: Stage Set
   ('set_factory', 1, 25000, false, 0), -- factorypack.js (Nov 11 2026): Factory Pack (price picked by Claude)
+  ('set_rvb', 1, 20000, false, 0), -- events/rvb.js (Nov 12 2026): Red vs Blue Pack = a new game world (price picked by Claude)
   ('set_fishing', 1, 10000, false, 0), -- fish.js: Fish Tank Set (basket, lid, water bucket, 20 Fish Tanks)
   -- pets (pets.js): Shop-only, tracked
   ('pet_puppy', 1, 15000, true, 0),
@@ -1269,7 +1285,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_jade_dragon', 1, 100000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('halo', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('red_knit_scarf', 1), ('blue_striped_scarf', 1), ('red_bandana', 1), ('big_orange_scarf', 1), ('big_black_scarf', 1), ('big_striped_scarf', 1), ('black_scarf', 1), ('candy_stripe_scarf', 1), ('green_plaid_scarf', 1), ('snowflake_scarf', 1), ('pink_fluffy_scarf', 1), ('rainbow_scarf', 1), ('royal_silk_scarf', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('vampire_face', 1), ('vampire_eyes', 1), ('sailor_shirt', 1), ('flower_shirt', 1), ('camo_shirt', 1), ('red_flannel', 1), ('heart_tee', 1), ('star_tee', 1), ('ball_jersey', 1), ('sunset_tee', 1), ('white_tee', 1), ('red_tee', 1), ('blue_tee', 1), ('green_tee', 1), ('yellow_tee', 1), ('black_tee', 1), ('striped_tee', 1), ('ringer_tee', 1), ('navy_polo', 1), ('pink_polo', 1), ('green_polo', 1), ('white_polo', 1), ('red_polo', 1), ('black_polo', 1), ('yellow_polo', 1), ('striped_polo', 1), ('sky_polo', 1), ('aloha_polo', 1), ('hawaiian_polo', 1), ('hawaiian_polo_red', 1), ('gold_watch', 1), ('silver_watch', 1), ('diamond_watch', 1), ('black_watch', 1), ('red_wristband', 1), ('blue_wristband', 1), ('black_wristband', 1), ('white_wristband', 1), ('rainbow_wristband', 1), ('gold_bracelet', 1), ('cloud_ring', 1), ('prism_ring', 1), ('denim_shorts', 1), ('black_shorts', 1), ('track_shorts', 1), ('board_shorts', 1), ('camo_shorts', 1), ('blue_slippers', 1), ('pink_slippers', 1), ('green_slippers', 1), ('gold_slippers', 1), ('red_sneakers', 1), ('black_sneakers', 1), ('blue_sneakers', 1), ('gold_sneakers', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('pink_sundress', 1), ('flower_dress', 1), ('red_party_dress', 1), ('blue_polka_dress', 1), ('sailor_dress', 1), ('lavender_gown', 1), ('ruffle_blouse', 1), ('bow_top', 1), ('pink_skirt', 1), ('plaid_skirt', 1), ('denim_skirt', 1), ('pink_flats', 1), ('red_flats', 1), ('white_flats', 1), ('lilac_slippers', 1), ('fire_quiff', 1), ('frosted_quiff', 1), ('pink_ombre_long_hair', 1), ('rainbow_long_hair', 1), ('afro_hair', 1), ('rainbow_afro', 1), ('blue_streak_spikes', 1), ('galaxy_spikes', 1), ('sunset_ponytail', 1), ('mint_ponytail', 1), ('lavender_swept_hair', 1), ('blue_streak_swept_hair', 1), ('cotton_candy_bun', 1), ('galaxy_bun', 1), ('blue_tip_bob', 1), ('red_streak_bob', 1), ('gold_tip_top_bun', 1), ('mint_top_bun', 1), ('purple_ombre_long_hair', 1), ('silver_streak_long_hair', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('set_astronaut', 1), ('starter_pack', 1), ('leaf_blower', 1), ('set_music', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_raptor', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('halo', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('red_knit_scarf', 1), ('blue_striped_scarf', 1), ('red_bandana', 1), ('big_orange_scarf', 1), ('big_black_scarf', 1), ('big_striped_scarf', 1), ('black_scarf', 1), ('candy_stripe_scarf', 1), ('green_plaid_scarf', 1), ('snowflake_scarf', 1), ('pink_fluffy_scarf', 1), ('rainbow_scarf', 1), ('royal_silk_scarf', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('vampire_face', 1), ('vampire_eyes', 1), ('sailor_shirt', 1), ('flower_shirt', 1), ('camo_shirt', 1), ('red_flannel', 1), ('heart_tee', 1), ('star_tee', 1), ('ball_jersey', 1), ('sunset_tee', 1), ('white_tee', 1), ('red_tee', 1), ('blue_tee', 1), ('green_tee', 1), ('yellow_tee', 1), ('black_tee', 1), ('striped_tee', 1), ('ringer_tee', 1), ('navy_polo', 1), ('pink_polo', 1), ('green_polo', 1), ('white_polo', 1), ('red_polo', 1), ('black_polo', 1), ('yellow_polo', 1), ('striped_polo', 1), ('sky_polo', 1), ('aloha_polo', 1), ('hawaiian_polo', 1), ('hawaiian_polo_red', 1), ('gold_watch', 1), ('silver_watch', 1), ('diamond_watch', 1), ('black_watch', 1), ('red_wristband', 1), ('blue_wristband', 1), ('black_wristband', 1), ('white_wristband', 1), ('rainbow_wristband', 1), ('gold_bracelet', 1), ('cloud_ring', 1), ('prism_ring', 1), ('denim_shorts', 1), ('black_shorts', 1), ('track_shorts', 1), ('board_shorts', 1), ('camo_shorts', 1), ('blue_slippers', 1), ('pink_slippers', 1), ('green_slippers', 1), ('gold_slippers', 1), ('red_sneakers', 1), ('black_sneakers', 1), ('blue_sneakers', 1), ('gold_sneakers', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('pink_sundress', 1), ('flower_dress', 1), ('red_party_dress', 1), ('blue_polka_dress', 1), ('sailor_dress', 1), ('lavender_gown', 1), ('ruffle_blouse', 1), ('bow_top', 1), ('pink_skirt', 1), ('plaid_skirt', 1), ('denim_skirt', 1), ('pink_flats', 1), ('red_flats', 1), ('white_flats', 1), ('lilac_slippers', 1), ('fire_quiff', 1), ('frosted_quiff', 1), ('pink_ombre_long_hair', 1), ('rainbow_long_hair', 1), ('afro_hair', 1), ('rainbow_afro', 1), ('blue_streak_spikes', 1), ('galaxy_spikes', 1), ('sunset_ponytail', 1), ('mint_ponytail', 1), ('lavender_swept_hair', 1), ('blue_streak_swept_hair', 1), ('cotton_candy_bun', 1), ('galaxy_bun', 1), ('blue_tip_bob', 1), ('red_streak_bob', 1), ('gold_tip_top_bun', 1), ('mint_top_bun', 1), ('purple_ombre_long_hair', 1), ('silver_streak_long_hair', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('set_astronaut', 1), ('starter_pack', 1), ('leaf_blower', 1), ('set_music', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('set_rvb', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_raptor', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
@@ -2272,6 +2288,33 @@ returns table (id uuid, name text, world text) language sql stable security defi
 $$;
 revoke all on function public.world_hello(text), public.world_names(text, uuid[]), public.online_people() from public, anon;
 grant execute on function public.world_hello(text), public.world_names(text, uuid[]), public.online_people() to authenticated;
+
+-- ---------- Red / Blue Lock: days its owner has been away (Nov 11 2026, build u; www/js/world/alockaway.js) ----------
+-- Last online = the newest of the player's last hello (world_here.at) and last save (players.updated_at: players who
+-- haven't played since hellos began). null = no player by that name (deleted; renames update the locks' owner).
+create or replace function public.days_away(p_name text)
+returns integer language sql stable security definer set search_path = public as $$
+  select floor(extract(epoch from (now() - greatest(h.at, p.updated_at))) / 86400)::integer
+  from public.usernames u
+  left join public.world_here h on h.player_id = u.id
+  left join public.players p on p.id = u.id
+  where lower(u.name) = lower(p_name)
+  limit 1
+$$;
+-- 1000+ days away: anyone may break the lock (alock_guard)
+create or replace function public.alock_abandoned(p_owner text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce(p_owner, '') <> '' and coalesce(public.days_away(p_owner) >= 1000, false)
+$$;
+-- the game asks for the owners of the locks in a world (at most 60 names)
+create or replace function public.alock_days_away(p_names text[])
+returns table (name text, days integer) language sql stable security definer set search_path = public as $$
+  select n, public.days_away(n)
+  from unnest((coalesce(p_names, '{}'::text[]))[1:60]) n
+  where auth.uid() is not null
+$$;
+revoke all on function public.days_away(text), public.alock_abandoned(text), public.alock_days_away(text[]) from public, anon;
+grant execute on function public.alock_days_away(text[]) to authenticated;
 
 -- ---------- PRIVATE MESSAGES, FRIEND REQUESTS, TRADES, GIFTS THROUGH THE SERVER (Oct 25 2026, build v) ----------
 -- These used to be broadcast by the sender's game on the shared 'lobby' channel: everyone there could read them and

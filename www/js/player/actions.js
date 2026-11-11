@@ -253,7 +253,7 @@ function act() {
     // a Red / Blue Lock: only the player who placed it (alocks.js)
     if (isALockT(fg[i]) && !alockMine(i)) {
       const a = alocks.get(i);
-      toast('Only ' + (a ? a.o : 'its owner') + ' can break this ' + BLOCK[fg[i]].name);
+      toast('Only ' + (a ? a.o : 'its owner') + ' can break this ' + BLOCK[fg[i]].name + (typeof alockAwayNote === 'function' ? alockAwayNote(i) : ''));
       alockFlash(i);
       shake = Math.max(shake, 2.5);
       return;
@@ -286,7 +286,9 @@ function act() {
       smoke(x, y, 4, 0.9);
       const t = heldTool(hand);
       toolSparkles(t, x * TS + 16, y * TS + 16, 3, 24);
-      if (bgDmg[i] >= (t && t.bonus && !t.dirtOnly ? 1 : 2)) {
+      // (owner, Nov 12 2026, build x: "pickaxes normal: no extra break on backgrounds") every background takes its
+      // `hits` (default 2; Suction Hose / Intake 3: vacuumhose.js), whatever is in your hand
+      if (bgDmg[i] >= bgHits(bg[i])) {
         const bk = BGS[bg[i]] || BGS[1];
         Sfx.play('break');
         burst(x, y, bk.fx, 10);

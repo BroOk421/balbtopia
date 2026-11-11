@@ -102,6 +102,24 @@ function autumnHops(i, t, mine) {
   });
 }
 const tileMid = (j) => [(j % WW) * TS + TS / 2, ((j / WW) | 0) * TS + TS / 2];
+// (owner, Nov 11 2026, build t: "the laser that hops should count as one click: on ATMs it hopped, but the coins
+// didn't come out, it only cracked") a hop is one CLICK on that tile: a full ATM / Bait Basket / Fuel Tank pays out
+// (useATM and its wrappers, the same as clicking it), anything else takes the punch. (useATM's own startPunch is
+// skipped: the hop is the beam, your arm doesn't swing again or shoot a second beam.)
+function autumnClick(x, y, j) {
+  if (typeof useATM === 'function') {
+    const sp = startPunch;
+    startPunch = () => {};
+    let used = false;
+    try {
+      used = useATM(x, y);
+    } finally {
+      startPunch = sp;
+    }
+    if (used) return;
+  }
+  hitBlockAt(x, y, j);
+}
 step = ((prev) =>
   function (dt) {
     const r = prev(dt);
@@ -113,7 +131,7 @@ step = ((prev) =>
       const [x0, y0] = tileMid(q.from),
         [x1, y1] = tileMid(q.to);
       noctBeams.push({ n: '', x0, y0, x1, y1, t0: now, pal: RAD_AUTUMN, st: q.st }); // (no name: starts at the tile, not a blade)
-      if (q.mine && !P.dead && autumnOk(q.to, q.t, true)) hitBlockAt(q.to % WW, (q.to / WW) | 0, q.to);
+      if (q.mine && !P.dead && autumnOk(q.to, q.t, true)) autumnClick(q.to % WW, (q.to / WW) | 0, q.to);
     }
     return r;
   })(step);
@@ -126,9 +144,12 @@ act = ((prev) =>
     const { x, y } = tileUnder(),
       i = inW(x, y) ? at(x, y) : -1,
       t = i >= 0 ? fg[i] : 0,
-      d0 = i >= 0 ? dmg[i] : 0;
+      d0 = i >= 0 ? dmg[i] : 0,
+      a0 = i >= 0 && typeof atms !== 'undefined' ? atms.get(i) : undefined;
     const r = prev();
-    if (i >= 0 && t && (fg[i] !== t || dmg[i] !== d0)) autumnHops(i, t, true);
+    // hit it, or clicked a full ATM / Bait Basket / Fuel Tank (its time in atms changed): the laser hops on
+    const paid = i >= 0 && typeof atms !== 'undefined' && atms.get(i) !== a0;
+    if (i >= 0 && t && (fg[i] !== t || dmg[i] !== d0 || paid)) autumnHops(i, t, true);
     return r;
   })(act);
 // other players' swings: the same hops drawn (no damage here)

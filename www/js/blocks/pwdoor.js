@@ -161,7 +161,8 @@ function pwHash(pw) {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
 }
 const isPwDoorT = (t) => t === PWDOOR_T,
-  PW_DESC_MAX = 160;
+  PW_DESC_MAX = 160, // (old saves' descriptions; new hints are cut to PW_HINT_MAX)
+  PW_HINT_MAX = 100; // (build u) the answer box's placeholder
 // this door's entry, or null (none set, or left over from a door that was broken there)
 function pwEntry(i) {
   const e = pwdoors.get(i);
@@ -225,7 +226,7 @@ function editPwDoor(i) {
     setDoor(i, nd);
     Net.sendSign(i, signs.get(i) || '');
     const pw = b.querySelector('#pwdPass').value.slice(0, PW_MAX),
-      desc = b.querySelector('#pwdDesc').value;
+      desc = b.querySelector('#pwdDesc').value.slice(0, PW_HINT_MAX);
     // (an old hashed password with the box left empty: kept)
     setPw(i, pw ? { p: pw, d: desc, id: nd.id } : oldHashOnly ? { h: e.h, d: desc, id: nd.id } : { d: desc, id: nd.id });
     Net.sendShow(i, 'pw', pwdoors.get(i) || null);
@@ -242,8 +243,8 @@ function editPwDoor(i) {
      <p class="mnote">This door is <b>#${d.id}</b>. Empty world = this world. No door ID = the main door.</p>
      <label class="lfield" for="pwdPass">Password <small>(${oldHashOnly ? 'an old one is set: type a new one to change it' : 'empty = no password, anyone can go in'})</small>
        <input id="pwdPass" type="text" maxlength="${PW_MAX}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Password (e.g. balb123)" value="${esc(e.p || '')}"></label>
-     <label class="lfield" for="pwdDesc">Description <small>(shows above the password box: what to type)</small>
-       <textarea id="pwdDesc" maxlength="${PW_DESC_MAX}" rows="2" placeholder="e.g. What is the owner's favourite food?">${esc(e.d || '')}</textarea></label>
+     <label class="lfield" for="pwdDesc">Placeholder <small>(the hint inside the answer box, ${PW_HINT_MAX} letters)</small>
+       <input id="pwdDesc" maxlength="${PW_HINT_MAX}" autocomplete="off" placeholder="e.g. First letter of this game?" value="${esc((e.d || '').slice(0, PW_HINT_MAX))}"></label>
      <label class="lfield" for="pwdLabel">Label <small>(shows above the door while you stand in it)</small>
        <input id="pwdLabel" maxlength="${DOOR_LABEL_MAX}" autocomplete="off" placeholder="e.g. VIP ONLY" value="${esc(d.label)}"></label>`,
     [
@@ -279,7 +280,7 @@ function askPw(x, y) {
   for (const k in keys) keys[k] = false;
   ptr.down = false;
   const tryIt = (b) => {
-    const v = b.querySelector('#pwdTry').value;
+    const v = b.querySelector('#pwdTry').value.replace(/[\r\n]+/g, '');
     if (!v) return false;
     if (!isPwDoorT(fg[i])) return;
     if (!pwRight(i, v)) {
@@ -304,8 +305,9 @@ function askPw(x, y) {
   };
   const body = dialog(
     d.label ? d.label.toUpperCase() : 'PASSWORD DOOR',
-    `<p class="pwdesc">${esc((pwEntry(i) || {}).d || 'This door is locked. Type the password to go in.')}</p>
-     <input id="pwdTry" class="pwtry" type="password" maxlength="${PW_MAX}" autocomplete="off" placeholder="Password" aria-label="Password">
+    // (owner, Nov 11 2026, build u: "make it plain text, not password, so the answer shows; no description; the
+    // placeholder 100 letters") the hint (`d`) is the box's placeholder; the box wraps so a long hint fits
+    `<textarea id="pwdTry" class="pwtry" rows="${((pwEntry(i) || {}).d || '').length > 34 ? 3 : 1}" maxlength="${PW_MAX}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(((pwEntry(i) || {}).d || 'Password').slice(0, PW_HINT_MAX))}" aria-label="Password"></textarea>
      <p class="pwerr" id="pwdErr"></p>`,
     [
       { label: 'Cancel', cls: 'ghost', run: () => {} },
@@ -334,7 +336,8 @@ useDoor = ((prev) =>
 {
   const st = document.createElement('style');
   st.textContent = [
-    '.pwtry{width:100%;box-sizing:border-box;font:16px var(--body);padding:10px;border-radius:4px;border:2px solid var(--line);background:var(--slot);color:var(--ink);letter-spacing:2px}',
+    '.pwtry{width:100%;box-sizing:border-box;font:16px var(--body);padding:10px;border-radius:4px;border:2px solid var(--line);background:var(--slot);color:var(--ink);letter-spacing:1px;resize:none;display:block;line-height:1.35;overflow:hidden}',
+    '.pwtry::placeholder{color:var(--muted);letter-spacing:0;font-size:14px}',
     '.pwtry:focus{outline:none;border-color:var(--glow)}',
     '.pwtry.pwbad{border-color:var(--danger);animation:pwShake .3s}',
     '@keyframes pwShake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}',

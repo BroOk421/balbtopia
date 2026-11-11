@@ -4599,10 +4599,11 @@ body.mannmode.mailmode {
   background: #1f6b38 !important;
   color: #c8f7d4 !important;
 }
+/* opens UPWARD: the box sits at the bottom of the screen (owner, Nov 11 2026) */
 .gchat .gmodes {
   position: absolute;
   left: 0;
-  top: calc(100% + 4px);
+  bottom: calc(100% + 4px);
   display: flex;
   flex-direction: column;
   gap: 3px;

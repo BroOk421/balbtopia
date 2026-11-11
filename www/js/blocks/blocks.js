@@ -2054,6 +2054,8 @@ const HD_DECO = {
 };
 let decoFrame = (id) => (id === 'torch' ? Math.floor(now / 160) % 2 : id === 'streetlamp' ? Math.floor(now / 700) % 2 : 0);
 // the background picture for a bg[] value
+// hits a background takes to break (build x: no pickaxe bonus any more; BGS[v].hits, else 2)
+const bgHits = (v) => (BGS[v] && BGS[v].hits) || 2;
 function bgImage(v) {
   const b = BGS[v];
   return !b || b.id === 'cave' ? IMG.tile_cave : texCanvas(b.id);

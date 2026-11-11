@@ -763,15 +763,29 @@ function machFire(src, actor) {
   if (fg[src] === GEN_T) genPulseAt.set(src, now);
   const dist = new Map([[src, 0]]),
     press = new Map([[src, PIPE_RANGE]]), // pressure left at each tile reached (pipes use 1, a booster fills it)
-    q = [src];
+    q = [src],
+    valves = new Set(); // (build v) hoses with a shut side (hosevalve.js) touched by this signal: each turns once
   let n = 0;
   for (let h = 0; h < q.length && n < MACH_MAX; h++) {
     const i = q[h],
       d = dist.get(i),
       [x, y] = machXY(i);
-    for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) {
+    for (const [nx, ny, s] of [[x, y - 1, 0], [x + 1, y, 1], [x, y + 1, 2], [x - 1, y, 3]]) {
       if (!inW(nx, ny)) continue;
       const j = at(nx, ny);
+      // (build w) a Steam Pipe with a shut side (wrench: hosevalve.js) passes no signal through it; (build y) with Auto
+      // rotate on, a signal stopped at its shut side still turns it once
+      if (typeof pipeShutBlocks === 'function' && pipeShutBlocks(i, j, s)) {
+        if (pvAuto(j) && !valves.has(j)) {
+          valves.add(j);
+          machQ.push({ i: j, at: now + (d + 1) * PIPE_STEP_MS, k: 'valve', from: i });
+        }
+        continue;
+      }
+      if (typeof hvSignalled === 'function' && !valves.has(j) && hvSignalled(j) && machLink(i, j)) {
+        valves.add(j);
+        machQ.push({ i: j, at: now + (d + 1) * PIPE_STEP_MS, k: 'valve', from: i });
+      }
       if (dist.has(j) || !machLink(i, j)) continue;
       const t = fg[j],
         when = now + (d + 1) * PIPE_STEP_MS;
@@ -781,7 +795,10 @@ function machFire(src, actor) {
         dist.set(j, d + 1);
         press.set(j, t === BOOST_T ? PIPE_RANGE : pr);
         q.push(j);
-        machQ.push({ i: j, at: when, k: t === BOOST_T ? 'boost' : 'pipe', dir: nx > x || ny > y ? 1 : -1 });
+        // (build y) an Auto rotate pipe valve turns once when the signal gets to it (hosevalve.js)
+        const turn = t === PIPE_T && typeof pvAuto === 'function' && pvAuto(j) && !valves.has(j);
+        if (turn) valves.add(j);
+        machQ.push({ i: j, at: when, k: t === BOOST_T ? 'boost' : 'pipe', dir: nx > x || ny > y ? 1 : -1, turn, from: i });
         n++;
       } else if (t === GATE_T || t === CUTTER_T || t === LIFT_T || BLOWER_BY_T[t]) {
         dist.set(j, d + 1);
@@ -806,6 +823,7 @@ function machTick() {
     if (e.k === 'pipe') {
       if (fg[e.i] !== PIPE_T) continue;
       pipeAt.set(e.i, e.at);
+      if (e.turn && typeof hvTurn === 'function') hvTurn(e.i, e.from);
       if (onScreenTile(x, y)) smoke(x, y, 2, 0.45);
       if (now - hissT > 600) { // (steam_hiss.mp3 is ~1 s long: one per signal, not one per tile)
         hissT = now;
@@ -831,6 +849,8 @@ function machTick() {
       if (wasShut) machSound('fgate', e.i); // (owner's factory_gate.mp3, its first sound only)
     } else if (e.k === 'cut') {
       if (fg[e.i] === CUTTER_T) cutterStrike(e.i, e.actor);
+    } else if (e.k === 'valve') {
+      if (typeof hvTurn === 'function') hvTurn(e.i, e.from);
     }
   }
   machQ = keep;

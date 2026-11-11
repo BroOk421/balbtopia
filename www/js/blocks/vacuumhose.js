@@ -47,7 +47,7 @@ const VHOSE_BG = 86, // the Suction Intake (with the hole)
     [VHOSE_BG, VHOSE_ID, 'Suction Intake', 'A background hose with a round intake in the middle. Anything floating on it is sucked in and runs through the joined hoses into a Factory Core (the Core needs fuel). Suction Intake = Suction Hose + Electric Fan.'],
   ]) {
     if (BGS[n]) console.error('vacuumhose.js: background number used twice: ' + n);
-    BGS[n] = { id, fx };
+    BGS[n] = { id, fx, hits: 3 }; // (build x, owner: "a bit harder": 3 hits, other backgrounds 2)
     ITEMS[id] = { name, kind: 'background', bg: n, rarity: 'Rare', desc };
   }
   if (BLOCK[VMON_T]) console.error('vacuumhose.js: block number used twice: ' + VMON_T);
@@ -70,7 +70,8 @@ const VHOSE_BG = 86, // the Suction Intake (with the hole)
   }
 }
 const isVHose = (x, y) => inW(x, y) && bg[at(x, y)] === VHOSE_BG; // an intake
-const isAnyHose = (x, y) => inW(x, y) && (bg[at(x, y)] === VHOSE_BG || bg[at(x, y)] === VPLAIN_BG);
+const isHoseBg = (v) => v === VHOSE_BG || v === VPLAIN_BG;
+const isAnyHose = (x, y) => inW(x, y) && isHoseBg(bg[at(x, y)]);
 const vhJoins = (x, y) => isAnyHose(x, y) || (inW(x, y) && fg[at(x, y)] === VMON_T);
 
 // ---------- pictures ----------
@@ -198,16 +199,18 @@ function vhPathFrom(i) {
     const c = q[h],
       x = c % WW,
       y = (c / WW) | 0;
-    for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) {
+    for (const [nx, ny, s] of [[x, y - 1, 0], [x + 1, y, 1], [x, y + 1, 2], [x - 1, y, 3]]) {
       if (!inW(nx, ny)) continue;
       const j = at(nx, ny);
       if (prev.has(j)) continue;
+      // (build v) a hose with a shut side (wrench: hosevalve.js) lets nothing through it (out of it, or into it)
+      if (typeof hvOpen === 'function' && ((isHoseBg(bg[c]) && !hvOpen(c, s)) || (isHoseBg(bg[j]) && !hvOpen(j, (s + 2) % 4)))) continue;
       if (fg[j] === VMON_T) {
         const path = [j];
         for (let k = c; k >= 0; k = prev.get(k)) path.unshift(k);
         return path;
       }
-      if (bg[j] === VHOSE_BG || bg[j] === VPLAIN_BG) {
+      if (isHoseBg(bg[j])) {
         prev.set(j, c);
         q.push(j);
       }
@@ -497,13 +500,18 @@ bgImage = ((prev) =>
     return under ? vhOver(bgImage(under, i), hose) : hose;
   })(bgImage);
 // the background wall round a hose tile (the most common non-hose background of its 8 neighbours; the 4 sides count
-// double), or 0
+// double), or 0. (build u, owner: "the suction hose gets a dirt background; it shouldn't") Only BUILT walls: the
+// natural cave / dirt backgrounds behind the ground never show under a hose (`VH_NO_UNDER`).
+const VH_NO_UNDER = (v) => {
+  const b = BGS[v];
+  return !b || v === 1 || /cave|dirt/.test(b.id || '');
+};
 function vhUnder(x, y) {
   const n = new Map();
   for (const [dx, dy, w] of [[0, -1, 2], [1, 0, 2], [0, 1, 2], [-1, 0, 2], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]]) {
     if (!inW(x + dx, y + dy)) continue;
     const v = bg[at(x + dx, y + dy)];
-    if (!v || v === VHOSE_BG || v === VPLAIN_BG) continue;
+    if (!v || isHoseBg(v) || VH_NO_UNDER(v)) continue;
     n.set(v, (n.get(v) || 0) + w);
   }
   let best = 0,

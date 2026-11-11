@@ -183,7 +183,16 @@ drawNewBlock = ((prev) =>
 // ---------- sliding ----------
 let iceRun = 0, // Slide Ice tiles slid over in a row
   iceCol = -1, // the column of the last one counted
-  iceAir = false; // in the air after leaving the ice: the slide's speed carries on
+  iceAir = false, // in the air after leaving the ice: the slide's speed carries on
+  iceKb = false; // (owner, Nov 11 2026, build t) a bounce flung you while on the ice: the fling doesn't fade
+// feet on (or a hair over) Slide Ice, grounded or not: a Super Bounce fling flies you flat just over the ice
+function iceBelow() {
+  const fy = Math.floor((P.y + P.h + 2) / TS);
+  if (P.y + P.h < fy * TS - 2) return false;
+  return isSlideIce(Math.floor((P.x + P.w / 2) / TS), fy) || isSlideIce(Math.floor(P.x / TS), fy) || isSlideIce(Math.floor((P.x + P.w - 0.01) / TS), fy);
+}
+// sliding on the ice in any way (bouncedir.js asks this before a bounce: on the ice a bounce ADDS to your speed)
+const iceSliding = () => inWorld && !P.dead && (onSlideIce() || iceBelow() || iceAir || iceKb);
 // standing on Slide Ice? (the tile under the middle of your feet, else under either foot)
 function onSlideIce() {
   if (!P.ground) return false;
@@ -199,6 +208,7 @@ step = ((prev) =>
     if (!inWorld || P.dead || P.rest || (typeof doorTrip !== 'undefined' && doorTrip)) {
       iceRun = 0;
       iceAir = false;
+      iceKb = false;
       return prev(dt);
     }
     const ice = onSlideIce(),
@@ -206,6 +216,27 @@ step = ((prev) =>
       vx0 = P.vx,
       kb = P.kbT > 0,
       swim = typeof inWater === 'function' && inWater(P);
+    // (owner, Nov 11 2026, build t: "it stops at the end of the bounce's push; it should keep getting faster, even
+    // bouncing") physics.js fades a knockback fast (x0.02 a second): a fling from a bounce block on the ice would die
+    // out and leave you slow. On the ice (or flung off it) the fling only coasts, like a slide with no key.
+    if (kb && !swim && (iceKb || iceBelow() || ice)) {
+      iceKb = true;
+      const r = prev(dt);
+      if (P.dead || !P.vx) return r; // (dead, or the fling hit a wall / bounce block: bouncedir.js takes it from there)
+      const vg = vx0 * Math.pow(0.02, dt),
+        v = vx0 * Math.pow(ICE_COAST, dt),
+        d = (v - vg) * dt;
+      if (d) {
+        P.vx = d / dt;
+        P.x += d;
+        collide('x');
+        if (P.vx === 0) return r;
+      }
+      P.vx = v;
+      iceAir = !P.ground && Math.abs(v) > 160 * feetSpeed() * 0.6; // the speed carries on after the fling
+      return r;
+    }
+    if (!kb) iceKb = false;
     if (!ice && !iceAir) {
       iceRun = 0;
       iceCol = -1;
@@ -279,5 +310,6 @@ enterWorldNow = ((prev) =>
     iceRun = 0;
     iceCol = -1;
     iceAir = false;
+    iceKb = false;
     return prev(name);
   })(enterWorldNow);

@@ -203,12 +203,33 @@ function sbStep(vy0, dt) {
       return;
     }
 }
+// (owner, Nov 11 2026, build t: "on the ice it stops at the end of the bounce's push; while speeding up, even when it
+// bounces it should get faster still") Sliding on Slide Ice (ice.js iceSliding), a SIDE bounce (this block or the
+// Bounce Block) that turns you round throws you back at least as fast as you came in, plus SB_ICE_ADD, up to
+// SB_ICE_MAX (physics runs 1/120 s steps: 1800 px/s = 15 px a step, can't skip through a tile). ice.js keeps the fling
+// from fading while on the ice, so going back and forth between bounce blocks keeps getting faster.
+const SB_ICE_ADD = 120, // px/s more on every bounce
+  SB_ICE_MAX = 1800; // px/s at most
+let sbSideHit = false; // a side bounce happened in this step
+bounceHit = ((prev) =>
+  function (tx, ty, side) {
+    if (side === 'left' || side === 'right') sbSideHit = true;
+    return prev(tx, ty, side);
+  })(bounceHit);
 step = ((prev) =>
   function (dt) {
     const vy0 = P.vy,
-      dead = P.dead;
+      vx0 = P.vx,
+      dead = P.dead,
+      slid = typeof iceSliding === 'function' && iceSliding();
+    sbSideHit = false;
     const r = prev(dt);
     if (dead || P.dead || !inWorld || P.rest) return r;
     sbStep(vy0, dt);
+    if (sbSideHit && slid && vx0 && P.vx && Math.sign(P.vx) !== Math.sign(vx0)) {
+      const sp = Math.min(SB_ICE_MAX, Math.max(Math.abs(P.vx), Math.abs(vx0) + SB_ICE_ADD));
+      P.vx = Math.sign(P.vx) * sp;
+    }
+    sbSideHit = false;
     return r;
   })(step);

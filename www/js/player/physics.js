@@ -262,6 +262,7 @@ function die(why) {
     : why === 'laser' ? 'Zapped by a laser!' // (lasers.js)
     : why === 'crushed' ? 'You got crushed!' // (pushers.js)
     : why === 'saw' ? 'Sliced by a Factory Cutter!' // (machines.js)
+    : why === 'water' ? 'Splashed! Back to your base…' // (Red vs Blue: events/rvb.js)
     : 'You burned up in the lava!',
   );
   Net.sendDie();

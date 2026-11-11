@@ -548,6 +548,8 @@ const Net = (() => {
         }
       })
       .on('broadcast', { event: 'shot' }, ({ payload }) => payload && N.onShot && N.onShot(payload))
+      // Red vs Blue (events/rvb.js): game state, painted tiles, water-gun outs; any player in the world may send
+      .on('broadcast', { event: 'rvb' }, ({ payload }) => payload && typeof netRvb === 'function' && netRvb(payload))
       .on('broadcast', { event: 'drop' }, ({ payload }) => netDrop(payload))
       .on('broadcast', { event: 'take' }, ({ payload }) => payload && netTake(payload.u, payload.by))
       // 5 coins on one tile joined into a bigger one (coins.js)
@@ -1005,6 +1007,11 @@ const Net = (() => {
   // ex: extra fields for that kind of shot (remotefx.js: the Laser Gun's radiation sends the asteroid's id)
   N.sendShot = (k, x, y, tx, ty, ex) => {
     if (N.me) send('shot', { ...(ex || {}), id: N.me.id, k, x: Math.round(x), y: Math.round(y), tx: Math.round(tx), ty: Math.round(ty) });
+  };
+  // Red vs Blue (events/rvb.js): on the world channel, so players without build rights can send too; the receiver
+  // looks the sender up by id (N.remotes: names checked by the server)
+  N.sendRvb = (p) => {
+    if (N.me) send('rvb', { ...p, id: N.me.id });
   };
   N.hit = (r, dir) => {
     if (!N.me) return;

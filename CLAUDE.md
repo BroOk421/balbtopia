@@ -26,7 +26,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | `core/` | errors, assets, config, native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), main |
 | `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, gmwatch, subscriber, rename, social, globalchat, keys |
 | `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, signs |
-| `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids |
+| `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb |
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
 | `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
@@ -3756,3 +3756,118 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   BLOCK NUMBERS ARE NOW ALL USED (509 is the last one; worlds.js fgBytes / fgx limit). A new block needs a wider fg save
   format first.
 - GAME_BUILD '2026-11-11 s'.
+- Build t (owner, Nov 11 2026, with a video):
+  - Chat: the MODE menu (`#gModes`) opens UPWARD (`bottom: calc(100% + 4px)`); the box is at the bottom of the screen,
+    opening down it went off-screen.
+  - Autumn Scythe laser hops = ONE CLICK on the tile (autumnbeam.js `autumnClick`): `useATM` first (full ATM / Bait
+    Basket / Fuel Tank pays out, its own startPunch muted so no second beam), else `hitBlockAt`. Clicking a full ATM
+    with it (pay-out, `atms` changed) also starts the hops. Before: hops on ATMs only cracked them.
+  - Slide Ice + bounces (owner: "it stops at the end of the push; it should keep getting faster, even bouncing"):
+    ice.js: a knockback that starts on / just over Slide Ice (`iceBelow`, `iceKb`) no longer fades (physics.js x0.02/s),
+    it coasts (`ICE_COAST`) and carries on as `iceAir`. bouncedir.js: sliding on ice (`iceSliding`), a SIDE bounce
+    (Super Bounce or Bounce Block, seen through a `bounceHit` wrapper) that turns you round throws you back at your
+    incoming speed + `SB_ICE_ADD` 120, at most `SB_ICE_MAX` 1800 px/s (15 px per 1/120 s step). Tested between two
+    Super Bounce Blocks 19 tiles apart: 760, 880, 1000 ... 1800. Holding the key against the slide still brakes.
+  - Background play (owner: "alt-tabbed / on Facebook the game stops and the player vanishes; only gone after the
+    15 min AFK"): bgtick.js no longer waits for `document.hidden`: Chrome can stop / crawl rAF (~1 frame a second)
+    while visibilityState stays 'visible' (tested: background tab, rAF 1 / s, hidden false, bgTick did nothing). It now
+    ticks whenever no frame came for `BG_STALL_MS` 150, its clock running from its own last tick. Also holds a Web Lock
+    (`balbtopia-keepalive`) so Chrome's tab freezing (Energy / Memory Saver) leaves the page alone (best effort).
+- GAME_BUILD '2026-11-11 t'.
+- Build u (owner, Nov 11 2026):
+  - Password Door (pwdoor.js): clicking it shows ONE box, plain text (a wrapping textarea, Enter = try; was
+    type=password); no description block above it: the door's hint `d` is the box's PLACEHOLDER. Wrench: the
+    Description textarea is now "Placeholder", an input of `PW_HINT_MAX` 100 letters (old longer ones are cut when shown).
+  - Red / Blue Lock days away (NEW `world/alockaway.js`, before bgtick.js): the game asks the server
+    (`alock_days_away(names)`, schema.sql: days since the owner's last hello `world_here.at` or last save
+    `players.updated_at`, via `days_away`) for the owners of this world's locks (`alockSeen`, again after 10 min); online now
+    = 0. A tag "Nd" over other players' locks (drawSetupBadges wrapper; green from 1000), a line in the lock window
+    (`.alaway`), and the "Only X can break" toast says it (`alockAwayNote`, actions.js). From `ALOCK_AWAY_DAYS` 1000 the
+    lock is abandoned: alockMine / alockAllows wrappers let anyone break it and build in its area. Server: alock_guard
+    (now STABLE) doesn't keep an abandoned lock's tiles (`alock_abandoned`), lets it leave the `al` list, and keeps it
+    unchanged (never re-owned) while it stays. RE-RUN schema.sql.
+  - Suction hoses no longer show the natural cave / dirt background under them (`VH_NO_UNDER` in vhUnder: bg 1 and ids
+    with cave / dirt); built walls still show.
+  - (Build u's Hose Valve, background 94, was replaced in build v, below.)
+- GAME_BUILD '2026-11-11 u'.
+- Build v (owner, Nov 12 2026: "drop the new block; the hoses themselves, set with the wrench, automatic or not; the
+  wrench icon on them"): `blocks/hosevalve.js` now works on the Suction Hose / Intake themselves (no new item; build u's
+  background 94 tiles turn into plain hoses on load, NEVER reuse 94: NEXT FREE BG 95). `hoseCfg` tile -> { s: shut side
+  0-3 / -1, a: auto }; only with 3+ joined sides (`hvJoined`, vhJoins) is a side shut (`hvShut`); nothing set = all open
+  as before. AUTO ROTATE: the shut side moves on every `HV_AUTO_MS` 3 s on the Date.now clock (same in every game).
+  Factory signals next to a hose with a shut side turn it on by one (machines.js -> `hvSignalled` / `hvTurn`). Shut =
+  drawn with straight arms, valve housing + yellow wheel, hazard cap on the shut side (`hvPaint`). Wrench (builders): a
+  hose tile with no block on it is a `wrenchBlock` (so the wrench icon shows), act wrapper opens `openHoseWin`: joined
+  sides, Shut side buttons (All open / each side), Auto rotate checkbox (switching keeps the side shut now). `show` k
+  'hv' { s, a }; world `hv` [[tile, side, auto]]. vhPathFrom checks `hvOpen` on hoses.
+- GAME_BUILD '2026-11-11 v'.
+- Build w (owner, Nov 12 2026: "the Steam Pipe too"): hosevalve.js also does STEAM PIPES. Wrench a pipe (wrenchBlock:
+  every pipe tile, the wrench icon shows) = the same window (joined = pipes / machines it joins: MACH_NET, blowers,
+  machLink); entry `p: true`. A shut side passes no signal: machines.js machFire's neighbour loop asks
+  `pipeShutBlocks(i, j, side)` (sides now numbered in that loop). Auto rotate the same (3 s, Date.now). Signals do NOT
+  turn pipes. Drawn by a drawNewBlock wrapper: pipeArt without the shut side + `pvOver` (hazard plate across the
+  channel on that edge, yellow wheel in the middle). Saved in world `hv` as [tile, side, auto, 1]; `show` 'hv' with p.
+  Tested: button over a T of pipes to two gates: shut right = only the lower gate, shut down = only the right, shut the
+  input side = none.
+- GAME_BUILD '2026-11-11 w'.
+- Build x (owner, Nov 12 2026):
+  - Only hoses / Steam Pipes with 3 or 4 joined sides are wrench blocks (icon + window): hosevalve.js hoseAt / pipeAtXY.
+  - Backgrounds: NO pickaxe bonus any more (was: any pickaxe = 1 hit). Each background takes `bgHits(v)` (blocks.js:
+    BGS[v].hits, default 2), in actions.js act and render.js's crack. Suction Hose / Intake `hits: 3`. Pickaxes still
+    take hits off BLOCKS (wear.js hitsNeeded `bonus`), unchanged.
+- GAME_BUILD '2026-11-11 x'.
+- Build y (owner, Nov 12 2026: "auto rotate shouldn't turn by itself all the time; it turns ONCE when triggered"):
+  hosevalve.js has no clock any more (HV_AUTO_MS gone; hvShut = the set side). Auto rotate ON = every factory signal
+  turns it by one side; OFF = it never moves (signals or not). Hoses: a signal next to it (hvSignalled needs `a`).
+  Steam Pipes: machines.js machFire marks the pipe event `turn` when the signal reaches an auto pipe valve (machTick
+  'pipe' -> hvTurn, after the signal went through), and a signal STOPPED at its shut side still queues a 'valve' turn
+  (`pvAuto`); once per signal (the `valves` set). Picking a side in the window keeps the Auto switch. Tested: T of
+  pipes, shut right + auto: signals give D, R, none, D (turning each time); auto off: D, D.
+- GAME_BUILD '2026-11-11 y'.
+- Build z (owner, Nov 12 2026: "the way the pressure goes stays open, the one without pressure is switched in, the side
+  it came from shuts"): an Auto rotate STEAM PIPE valve, after a signal goes through it, shuts the side the signal CAME
+  IN BY (hosevalve.js hvTurn(i, from); machines.js pipe events carry `from`). A signal stopped at the shut side opens it
+  (the next joined side shuts) so a valve never stays stuck. Hoses still just turn one side per signal. Tested (one
+  source on the left of a T, auto, shut down first): R, blocked, D, blocked, D...
+- GAME_BUILD '2026-11-11 z'.
+
+## Nov 12 2026
+
+- RED vs BLUE (NEW `events/rvb.js`, before hudcard.js; owner's two screenshots = the lobby and a base). Full notes at
+  the top of the file. In short:
+  - Shop PACKS `set_rvb` "Red vs Blue Pack", `RVB_GOLD` 20,000 (price picked by Claude; schema.sql shop_prices row +
+    keep list: RE-RUN schema.sql). buy wrapper -> `openRvbBuy` (description + world name) -> `rvbCreate`: name A-Z0-9
+    1-16, not LOBBY / RECIPES / MOON*, must not exist (Net.loadWorld / offline store), Wallet.buy, enterWorldNow,
+    `buildRvbWorld()`, worldOwner = you (Gold Lock in the lobby), saveWorld. Poster `rvbPoster` (shopPic wrapper, fposter).
+  - Template (absolute places, door (50, 53)): `RVB_LOBBY` 17 x 7 at (42, 47): Purple Neon walls, Iron Bars on top,
+    centre room with the ARCADE MACHINE (298) = console (world `rvb.c`), Up Arrow Gate, Red / Blue Crystal Gate (GATE_OPEN)
+    into the RED (Red Crystal Wall bg) / BLUE rooms (couches, Steel Stage Platform), Gold Lock. `RVB_BASES` red x 0-9,
+    blue x 90-99, rows 51-53 (Checkpoint, Iron Bars exit). Arena bg Factory Wall; maze `rvbMaze`: runs of 1-6 Purple
+    Neon on rows 52, 50, ... 4 (a jump is ~2.8 tiles), never touching, built as branching STAIRS from the floor (each run
+    2-3 tiles beside a reachable run of the row below, left / right halves in turn, max 7 a row, +1 loose): tested on 6
+    names, ~100% of standing spots reachable from both bases up to the top row.
+  - Console (owner wrenches rvb.c; wrenchBlock wrapper): tabs PLAYERS (+ Red / + Blue) / RED / BLUE (Pull = brought to
+    his team room, Remove), `RVB_MAX` 7, START (1+ each team) / STOP. Teams saved as world `rvb.red/blue`.
+  - Phases (every game runs its own clock from the owner's 'st'; the owner re-sends every 3 s): wait 30 s (team players
+    to the centre room) -> ready 10 s (to the bases, held inside: P.x clamped to `RVB_BASE_X`; Checkpoint set; Water Gun
+    forced in hand; paint cleared) -> play 5 min (base bars GATE_OPEN; `rvbPaintMe`: every non-solid tile your body is in,
+    outside lobby / bases, sent as 'pt' batches; HUD #rvbHud: red count, clock, blue count; team rings at feet) -> end 8 s
+    (owner sends 'res'; result pop-up; back to team rooms; hand given back) -> idle.
+  - Water Gun: shotHit wrapper: your water shot on an enemy = 'out' -> his game (shooter on the other team, within 14
+    tiles, not spawn-protected) does die('water') (physics.js message) -> respawn at his base Checkpoint. Team-mates: splash.
+  - net.js: world-channel event 'rvb' (`N.sendRvb`, listener -> `netRvb`); sender looked up in Net.remotes; 'st', 'pull',
+    'res' only from the world owner; 'pt' only for the sender's own team colour.
+- GAME_BUILD '2026-11-12 a'.
+- Build b: the pack's Buy did nothing: the Shop's Buy button is a dialog() button, which calls closeDialog() after its
+  run returns, so the name pop-up opened by buy() was shut at once. rvb.js's buy wrapper now opens it with
+  setTimeout(0). (Any buy() wrapper that opens its own dialog must do the same.)
+- GAME_BUILD '2026-11-12 b'.
+- Build c (owner: "unlimited jumps there, with or without wings, like the Moon in the Astronaut Set, nothing to wear"):
+  in an RvB world (rvbOn) everyone gets the Moon space jump: gravK -> MOON_G and maxFallNow -> MOON_MAX_FALL wrappers
+  (net.js's guess for others uses them too), and a step wrapper keeps P.airJ >= 1 (every press jumps again) and
+  slows the jump kick by MOON_JUMP, like moon.js does for the suit. Tested: 5 presses = 7 tiles up.
+- GAME_BUILD '2026-11-12 c'.
+- Build d (owner's picture): RVB_LOBBY row 4 = 'NccckBPPPPPBkcccN': Iron Bars (shut: owner / builders pass) on both
+  sides of the door room, between it and the team rooms; the Gold Lock moved to row 1 col 6 (the centre room's top left
+  corner). Only new Red vs Blue worlds get it (the template is laid once, when bought).
+- GAME_BUILD '2026-11-12 d'.

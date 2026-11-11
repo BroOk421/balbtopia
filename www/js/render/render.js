@@ -855,7 +855,7 @@ function render() {
       // (owner, Oct 21 2026: no more dark shade on a background next to / under a block; walls look the same
       // everywhere, blocks just sit on top of them)
       if (fg[i]) continue;
-      if (bgDmg[i]) drawCrack(px, py, T, bgDmg[i] / 2);
+      if (bgDmg[i]) drawCrack(px, py, T, bgDmg[i] / bgHits(bg[i]));
     }
   // blocks, with a shadow like the characters' (owner, Oct 31 2026; shadow.js SHADOW_DX / DY / ALPHA): every block is
   // drawn on a layer the size of the screen, a black copy of that layer goes on the screen first (a little down and

@@ -1648,6 +1648,9 @@
     "lift_gate": {
       "growSeconds": 360
     },
+    "hose_valve": {
+      "growSeconds": 360
+    },
     "factory_plate": {
       "growSeconds": 300
     },
@@ -6650,6 +6653,15 @@
       "result": "lift_gate",
       "source": "balbtopia",
       "note": "Lift Gate = Factory Gate + Steel Beam (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "lift_gate",
+        "suction_hose"
+      ],
+      "result": "hose_valve",
+      "source": "balbtopia",
+      "note": "Hose Valve = Suction Hose + Lift Gate (Balbtopia recipe, Nov 11 2026)"
     },
     {
       "seeds": [
