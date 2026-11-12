@@ -16,7 +16,8 @@ const shadowCv = document.createElement('canvas'),
   shadowG = shadowCv.getContext('2d'),
   shadeCv = document.createElement('canvas'), // the same drawing turned black
   shadeG = shadeCv.getContext('2d');
-let shadowBusy = false;
+let shadowBusy = false,
+  shadowOff = null; // { x, y } while a character is drawn on the shadow canvas
 // the name tag's width without drawing it (same sums as render.js drawNameTag)
 function tagWidthOnly(name, flag) {
   g.save();
@@ -110,10 +111,12 @@ drawCharacter = ((prev) =>
     shadowG.globalAlpha = 1;
     shadowBusy = true;
     g = shadowG;
+    shadowOff = { x: x0, y: y0 }; // (build p: what to add to a point drawn here to get the screen's: asteroids.js gunNoteTip)
     try {
       r = prev(c, ox, oy);
     } finally {
       g = main;
+      shadowOff = null;
       shadowBusy = false;
       drawNameTag = tag;
       drawBubble = bub;

@@ -833,6 +833,9 @@ const DROP_BLOCK = [0.35, 0.12],
 // drop a few coins now and then (DROP_COIN_FEW: most coins one break gives, by tier); about DROP_RICH_SHARE of the Epic /
 // Legendary blocks (picked by their id, the same on every device: `richBlock`) are money blocks that drop coins
 // DROP_RICH_CHANCE of the time, in big amounts (goldDropAmount)
+// (build p) coins from 5,000 breaks of an ordinary (not money) block, by tier: [rarity from, to, coins from, to]
+// (Rare 1k -> 3k, Epic 5k -> 9k, Legendary 12k -> 15k; the money blocks keep their own amounts)
+const COIN_PER_5K = { Rare: [16, 40, 1000, 3000], Epic: [41, 80, 5000, 9000], Legendary: [81, 130, 12000, 15000] };
 const DROP_COIN_FEW = { Rare: 2, Epic: 3, Legendary: 4 },
   DROP_RICH_SHARE = 0.12,
   DROP_RICH_CHANCE = 0.25;

@@ -2,7 +2,7 @@
 // on the server is the player's real gold: P.gold only shows it (plus coins picked up a moment ago, still on their
 // way). Offline or on an old server everything works the old way, in the save.
 //   * Coins picked up (broken blocks, harvested trees) are added at once on screen and sent in batches (earn_gold);
-//     the server takes at most 10,000 an hour, the rest waits for a GM (held) and is logged.
+//     the server takes at most 30,000 an hour (build p; was 10,000), the rest waits for a GM (held) and is logged.
 //   * The Shop sells on the server (shop_buy, the server's price; a GM pays nothing).
 //   * A trade's gold is settled by the server for both sides at once: both games call trade_gold (what I give, what
 //     I get); the second matching call moves it. The side that finishes it tells the other (lobby 'gold_done').

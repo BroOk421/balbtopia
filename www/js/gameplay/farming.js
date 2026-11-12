@@ -87,7 +87,15 @@ function goldDropAmount(id) {
   const r = Math.min(130, rarityOf(id) || 1), // (a few splices go past 130; the coins stop growing there)
     t = rarityTier(r),
     u = Math.random();
-  if (!richBlock(id)) return 1 + Math.floor(u * (DROP_COIN_FEW[t] || 1));
+  if (!richBlock(id)) {
+    // (owner, Nov 12 2026, build p: "raise the others to 1k, 2k, 3k, 5k, 7k, 9k, and the Legendary ones 12k, 14k,
+    // 15k, by rarity") what 5,000 breaks of the block give on average (COIN_PER_5K, slid along the rarity number inside
+    // its tier) divided over the breaks that drop coins; each drop is 50% to 150% of that
+    const [r0, r1, c0, c1] = COIN_PER_5K[t] || [r, r, 0, 0],
+      want = c0 + (c1 - c0) * Math.min(1, Math.max(0, (r - r0) / (r1 - r0 || 1))),
+      mean = want / (5000 * (DROP_COIN_CHANCE[t] || 1));
+    return Math.max(1, Math.round(mean * (0.5 + u)));
+  }
   const top = t === 'Legendary' ? r / 3 : r / 4;
   return 5 + Math.floor(u * u * top);
 }

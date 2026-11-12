@@ -15,11 +15,18 @@ const WG_MAX = 10,
 let wgLive = null; // the random live worlds picked for this opening of the pop-up
 function wgLiveWorlds(skip) {
   if (wgLive) return wgLive;
-  const count = new Map();
-  if (typeof Net !== 'undefined' && Net.people)
+  const count = new Map(),
+    ok = (w) => w && w !== LOBBY_WORLD && !(typeof worldHidden === 'function' && worldHidden(w));
+  // (build m) from the server's counts per world when there are any (it no longer says where everyone is)
+  if (typeof Net !== 'undefined' && Net.worldCounts)
+    for (const [w0, n] of Net.worldCounts) {
+      const w = String(w0).toUpperCase();
+      if (ok(w) && n > 0) count.set(w, n);
+    }
+  else if (typeof Net !== 'undefined' && Net.people)
     for (const p of Net.people.values()) {
       const w = String(p.world || '').toUpperCase();
-      if (!w || w === LOBBY_WORLD || (typeof worldHidden === 'function' && worldHidden(w))) continue;
+      if (!ok(w)) continue;
       count.set(w, (count.get(w) || 0) + 1);
     }
   const pool = [...count.keys()].filter((n) => !skip.has(n));
@@ -46,7 +53,9 @@ renderWorldList = function () {
     live = wgLiveWorlds(names),
     liveBy = new Map(live.map((w) => [w.name, w.live]));
   // players in the listed worlds too (for the dot)
-  if (typeof Net !== 'undefined' && Net.people)
+  if (typeof Net !== 'undefined' && Net.worldCounts) {
+    for (const n of names) if (n !== LOBBY_WORLD && !liveBy.has(n) && Net.worldCounts.get(n)) liveBy.set(n, Net.worldCounts.get(n));
+  } else if (typeof Net !== 'undefined' && Net.people)
     for (const p of Net.people.values()) {
       const w = String(p.world || '').toUpperCase();
       if (names.has(w) && w !== LOBBY_WORLD) liveBy.set(w, (liveBy.get(w) || 0) + (live.some((l) => l.name === w) ? 0 : 1));

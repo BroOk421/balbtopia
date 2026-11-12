@@ -458,6 +458,27 @@ B64D_PIC.beach_umbrella = pix64Canvas(64, (a) => {
   a.ell(36, 62, 14, 2, '#e8d8a0');
   a.outline('#3a1414');
 });
+// (owner, Nov 12 2026, build p: "change the beach umbrella's look to a professional one: copy the blue umbrella, but
+// bent") the Blue Umbrella's own picture, tilted, standing in a little sand mound: assets/items/beach_umbrella.png
+// (128 x 128, art-source/beachumbrella/beach_umbrella_build.py), drawn into this same canvas once it loads (the old
+// drawing above shows until then)
+{
+  const old = B64D_PIC.beach_umbrella,
+    c = document.createElement('canvas'),
+    im = new Image();
+  c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.imageSmoothingEnabled = false;
+  x.drawImage(old, 0, 0, 128, 128);
+  im.onload = () => {
+    x.clearRect(0, 0, 128, 128);
+    x.drawImage(im, 0, 0);
+    if (typeof ICON !== 'undefined') delete ICON.beach_umbrella;
+    if (typeof HD_CACHE !== 'undefined') for (const k in HD_CACHE) if (k.startsWith('beach_umbrella')) delete HD_CACHE[k];
+  };
+  im.src = 'assets/items/beach_umbrella.png';
+  B64D_PIC.beach_umbrella = c;
+}
 B64D_PIC.arcade_machine = pix64Canvas(64, (a) => {
   a.poly([[14, 2], [50, 2], [50, 63], [14, 63]], (i, j) => ramp(['#2a1a5a', '#4a2a8a', '#6a3ab8'], lit(i, j, 14, 2, 36, 61)));
   a.rect(16, 4, 32, 8, (i, j) => (j === 4 ? '#ffd040' : '#e8303e'));

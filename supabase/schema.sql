@@ -319,6 +319,8 @@ begin
   if auth.uid() is null or public.is_banned() or v !~ '^[0-9]{1,9}$' then return false; end if;
   select * into r from public.worlds where name = split_part(p_topic, ':', 2);
   if not found or r.lockv <> v::integer then return false; end if;
+  -- (build j) the event worlds: only the GM builds there
+  if r.name in ('SPLASHWARS', 'SPLASHPRIZE', 'MOONEVENT') and not public.is_gm() then return false; end if;
   -- (also players a Red / Blue Lock lets build in part of a locked world: their saves only take that part)
   return public.world_can_edit(r.owner, r.data, public.my_name(), public.is_gm())
     or (r.owner is not null and public.alock_grants(r.data, public.my_name()));
@@ -584,10 +586,16 @@ declare
   merged jsonb := '[]'::jsonb;
   e jsonb;
   lv integer;
+  gmw boolean := false;
 begin
   if me is null then raise exception 'Not signed in' using errcode = '42501'; end if;
   if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
   if p_name !~ '^[A-Z0-9]{1,16}$' then raise exception 'Bad world name'; end if;
+  -- (Nov 12 2026, build g) a SPLASH WARS match world (SPW + 6) is made by the game for one match and never kept
+  if p_name ~ '^SPW[A-Z0-9]{6}$' then return jsonb_build_object('r', 'saved', 'v', 0); end if;
+  -- (build j, security) the event worlds the game builds are the GM's: a player's game never creates them and only
+  -- saves what a visitor may (drops, Vending Machine sales), even if one was ever saved without an owner
+  gmw := p_name in ('SPLASHWARS', 'SPLASHPRIZE', 'MOONEVENT') and not gm;
   if public.world_banned(p_name) then raise exception 'You are banned from this world' using errcode = '42501'; end if;
   if jsonb_typeof(p_data) is distinct from 'object' or octet_length(p_data::text) > 3000000 then
     raise exception 'Bad world data';
@@ -596,6 +604,7 @@ begin
   select * into r from public.worlds where name = p_name for update;
 
   if not found then
+    if gmw then return jsonb_build_object('r', 'saved', 'v', 0); end if;
     -- a world that was just moved (World Transfer): old games still in it would make it again at the old name
     if exists (select 1 from public.world_moves m where m.old_name = p_name and m.at > now() - interval '10 minutes') then
       raise exception 'This world moved to a new name' using errcode = 'P0001';
@@ -610,7 +619,7 @@ begin
   end if;
 
   boss := r.owner is null or gm or lower(r.owner) = lower(me);
-  if public.world_can_edit(r.owner, r.data, me, gm) then
+  if not gmw and public.world_can_edit(r.owner, r.data, me, gm) then
     -- the owner: unowned -> you may lock it for yourself; yours -> you may keep it or unlock it; else unchanged
     if r.owner is null then
       own := case when req is not null and (lower(req) = lower(me) or gm) then req end;
@@ -1000,7 +1009,7 @@ grant execute on function public.whoami(), public.my_name(), public.am_i_gm(), p
 -- Owner's choice: anything over a limit is LOGGED (cheat_log) or HELD for a GM to look at; honest saves are never
 -- refused.
 --   * Gold only comes from breaking blocks and harvesting trees (picked up as coins), trades, and the Shop.
---     earn_gold credits at most EARN_PER_HOUR (10,000) per rolling hour; the rest waits in wallets.held (logged).
+--     earn_gold credits at most EARN_PER_HOUR (30,000 since build p; was 10,000) per rolling hour; the rest waits in wallets.held (logged).
 --     A GM can release it:  update wallets set gold = gold + held, held = 0 where id = (select id from usernames
 --     where lower(name) = lower('NAME'));
 --   * The gold in a player's save is always set to the wallet's (the save can't add gold).
@@ -1186,6 +1195,9 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('rainbow_long_hair', 1, 15000, true, 0),
   ('afro_hair', 1, 8000, true, 0), -- afro.js (Nov 10 2026): Afro and Rainbow Afro
   ('rainbow_afro', 1, 15000, true, 0),
+  ('silver_wild_hair', 1, 12000, true, 0), -- oldman.js (Nov 12 2026, builds n-o; prices picked by Claude)
+  ('silver_full_beard', 1, 12000, true, 0),
+  ('boss_shades', 1, 6000, true, 0),
   ('blue_streak_spikes', 1, 8000, true, 0),
   ('galaxy_spikes', 1, 8000, true, 0),
   ('sunset_ponytail', 1, 12000, true, 0),
@@ -1248,7 +1260,6 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('reaper_scythe', 1, 100000, true, 0), -- reaperscythe.js (Nov 8 2026): Shop-only from the start, so tracked
   ('set_stage', 1, 20000, false, 0), -- concert.js: Stage Set
   ('set_factory', 1, 25000, false, 0), -- factorypack.js (Nov 11 2026): Factory Pack (price picked by Claude)
-  ('set_rvb', 1, 20000, false, 0), -- events/rvb.js (Nov 12 2026): Red vs Blue Pack = a new game world (price picked by Claude)
   ('set_fishing', 1, 10000, false, 0), -- fish.js: Fish Tank Set (basket, lid, water bucket, 20 Fish Tanks)
   -- pets (pets.js): Shop-only, tracked
   ('pet_puppy', 1, 15000, true, 0),
@@ -1285,7 +1296,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_jade_dragon', 1, 100000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('halo', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('red_knit_scarf', 1), ('blue_striped_scarf', 1), ('red_bandana', 1), ('big_orange_scarf', 1), ('big_black_scarf', 1), ('big_striped_scarf', 1), ('black_scarf', 1), ('candy_stripe_scarf', 1), ('green_plaid_scarf', 1), ('snowflake_scarf', 1), ('pink_fluffy_scarf', 1), ('rainbow_scarf', 1), ('royal_silk_scarf', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('vampire_face', 1), ('vampire_eyes', 1), ('sailor_shirt', 1), ('flower_shirt', 1), ('camo_shirt', 1), ('red_flannel', 1), ('heart_tee', 1), ('star_tee', 1), ('ball_jersey', 1), ('sunset_tee', 1), ('white_tee', 1), ('red_tee', 1), ('blue_tee', 1), ('green_tee', 1), ('yellow_tee', 1), ('black_tee', 1), ('striped_tee', 1), ('ringer_tee', 1), ('navy_polo', 1), ('pink_polo', 1), ('green_polo', 1), ('white_polo', 1), ('red_polo', 1), ('black_polo', 1), ('yellow_polo', 1), ('striped_polo', 1), ('sky_polo', 1), ('aloha_polo', 1), ('hawaiian_polo', 1), ('hawaiian_polo_red', 1), ('gold_watch', 1), ('silver_watch', 1), ('diamond_watch', 1), ('black_watch', 1), ('red_wristband', 1), ('blue_wristband', 1), ('black_wristband', 1), ('white_wristband', 1), ('rainbow_wristband', 1), ('gold_bracelet', 1), ('cloud_ring', 1), ('prism_ring', 1), ('denim_shorts', 1), ('black_shorts', 1), ('track_shorts', 1), ('board_shorts', 1), ('camo_shorts', 1), ('blue_slippers', 1), ('pink_slippers', 1), ('green_slippers', 1), ('gold_slippers', 1), ('red_sneakers', 1), ('black_sneakers', 1), ('blue_sneakers', 1), ('gold_sneakers', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('pink_sundress', 1), ('flower_dress', 1), ('red_party_dress', 1), ('blue_polka_dress', 1), ('sailor_dress', 1), ('lavender_gown', 1), ('ruffle_blouse', 1), ('bow_top', 1), ('pink_skirt', 1), ('plaid_skirt', 1), ('denim_skirt', 1), ('pink_flats', 1), ('red_flats', 1), ('white_flats', 1), ('lilac_slippers', 1), ('fire_quiff', 1), ('frosted_quiff', 1), ('pink_ombre_long_hair', 1), ('rainbow_long_hair', 1), ('afro_hair', 1), ('rainbow_afro', 1), ('blue_streak_spikes', 1), ('galaxy_spikes', 1), ('sunset_ponytail', 1), ('mint_ponytail', 1), ('lavender_swept_hair', 1), ('blue_streak_swept_hair', 1), ('cotton_candy_bun', 1), ('galaxy_bun', 1), ('blue_tip_bob', 1), ('red_streak_bob', 1), ('gold_tip_top_bun', 1), ('mint_top_bun', 1), ('purple_ombre_long_hair', 1), ('silver_streak_long_hair', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('set_astronaut', 1), ('starter_pack', 1), ('leaf_blower', 1), ('set_music', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('set_rvb', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_raptor', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('halo', 1), ('golden_wings', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('blue_fire_eyes', 1), ('red_fire_eyes', 1), ('faceless_head', 1), ('red_knit_scarf', 1), ('blue_striped_scarf', 1), ('red_bandana', 1), ('big_orange_scarf', 1), ('big_black_scarf', 1), ('big_striped_scarf', 1), ('black_scarf', 1), ('candy_stripe_scarf', 1), ('green_plaid_scarf', 1), ('snowflake_scarf', 1), ('pink_fluffy_scarf', 1), ('rainbow_scarf', 1), ('royal_silk_scarf', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('vampire_face', 1), ('vampire_eyes', 1), ('sailor_shirt', 1), ('flower_shirt', 1), ('camo_shirt', 1), ('red_flannel', 1), ('heart_tee', 1), ('star_tee', 1), ('ball_jersey', 1), ('sunset_tee', 1), ('white_tee', 1), ('red_tee', 1), ('blue_tee', 1), ('green_tee', 1), ('yellow_tee', 1), ('black_tee', 1), ('striped_tee', 1), ('ringer_tee', 1), ('navy_polo', 1), ('pink_polo', 1), ('green_polo', 1), ('white_polo', 1), ('red_polo', 1), ('black_polo', 1), ('yellow_polo', 1), ('striped_polo', 1), ('sky_polo', 1), ('aloha_polo', 1), ('hawaiian_polo', 1), ('hawaiian_polo_red', 1), ('gold_watch', 1), ('silver_watch', 1), ('diamond_watch', 1), ('black_watch', 1), ('red_wristband', 1), ('blue_wristband', 1), ('black_wristband', 1), ('white_wristband', 1), ('rainbow_wristband', 1), ('gold_bracelet', 1), ('cloud_ring', 1), ('prism_ring', 1), ('denim_shorts', 1), ('black_shorts', 1), ('track_shorts', 1), ('board_shorts', 1), ('camo_shorts', 1), ('blue_slippers', 1), ('pink_slippers', 1), ('green_slippers', 1), ('gold_slippers', 1), ('red_sneakers', 1), ('black_sneakers', 1), ('blue_sneakers', 1), ('gold_sneakers', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('pink_sundress', 1), ('flower_dress', 1), ('red_party_dress', 1), ('blue_polka_dress', 1), ('sailor_dress', 1), ('lavender_gown', 1), ('ruffle_blouse', 1), ('bow_top', 1), ('pink_skirt', 1), ('plaid_skirt', 1), ('denim_skirt', 1), ('pink_flats', 1), ('red_flats', 1), ('white_flats', 1), ('lilac_slippers', 1), ('fire_quiff', 1), ('frosted_quiff', 1), ('pink_ombre_long_hair', 1), ('rainbow_long_hair', 1), ('afro_hair', 1), ('rainbow_afro', 1), ('silver_wild_hair', 1), ('silver_full_beard', 1), ('boss_shades', 1), ('blue_streak_spikes', 1), ('galaxy_spikes', 1), ('sunset_ponytail', 1), ('mint_ponytail', 1), ('lavender_swept_hair', 1), ('blue_streak_swept_hair', 1), ('cotton_candy_bun', 1), ('galaxy_bun', 1), ('blue_tip_bob', 1), ('red_streak_bob', 1), ('gold_tip_top_bun', 1), ('mint_top_bun', 1), ('purple_ombre_long_hair', 1), ('silver_streak_long_hair', 1), ('blue_pacifier', 1), ('golden_diaper', 1), ('diamond_diaper', 1), ('super_saiyan_hair', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_gentleman', 1), ('set_sporty', 1), ('set_biker', 1), ('set_lolo', 1), ('set_chill_guy', 1), ('set_sunshine', 1), ('set_cozy_night', 1), ('set_autumn_red', 1), ('set_pastel_pop', 1), ('set_lady_green', 1), ('set_pink_rock', 1), ('set_skull_beanie', 1), ('set_cat_hoodie', 1), ('set_astronaut', 1), ('starter_pack', 1), ('leaf_blower', 1), ('set_music', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_raptor', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
@@ -1360,17 +1371,17 @@ begin
   return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc);
 end $$;
 
--- coins picked up from broken blocks and harvested trees: at most 10,000 per rolling hour, the rest held + logged
+-- coins picked up from broken blocks and harvested trees: at most 30,000 per rolling hour (owner, build p; was 10,000), the rest held + logged
 create or replace function public.earn_gold(p_amount bigint)
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare w public.wallets; lim constant bigint := 10000; ok bigint; over bigint; used bigint;
+declare w public.wallets; lim constant bigint := 30000; ok bigint; over bigint; used bigint;
 begin
   if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
   perform public.my_wallet();
   select * into w from public.wallets where id = auth.uid() for update;
   if p_amount is null or p_amount <= 0 then return jsonb_build_object('gold', w.gold, 'held', w.held, 'over', 0); end if;
   p_amount := least(p_amount, 100000000);
-  -- a rolling hour: what was earned drains away at 10,000 an hour (hour_start = last time it was worked out)
+  -- a rolling hour: what was earned drains away at 30,000 an hour (hour_start = last time it was worked out)
   used := greatest(0, w.earned_hour - floor(lim * extract(epoch from (now() - w.hour_start)) / 3600)::bigint);
   ok := least(p_amount, greatest(lim - used, 0));
   -- (build v) coins only count while the game is really online (a hello in the last 75 s); otherwise they are held
@@ -1384,7 +1395,7 @@ begin
   if over > 0 and not exists (select 1 from public.cheat_log where player_id = auth.uid() and what like 'gold held%'
                               and created_at > now() - interval '1 hour') then
     insert into public.cheat_log (player_id, name, what, before_value, after_value)
-    values (auth.uid(), public.my_name(), 'gold held (over 10,000 an hour, or not online)', w.gold, w.held);
+    values (auth.uid(), public.my_name(), 'gold held (over 30,000 an hour, or not online)', w.gold, w.held);
   end if;
   return jsonb_build_object('gold', w.gold, 'held', w.held, 'over', over, 'bc', w.bc);
 end $$;
@@ -2914,3 +2925,2581 @@ begin
 end $$;
 revoke execute on function public.moon_event_now(), public.moon_status(), public.moon_claim(integer), public.moon_arrive(boolean) from public, anon;
 grant execute on function public.moon_event_now(), public.moon_status(), public.moon_claim(integer), public.moon_arrive(boolean) to authenticated;
+
+
+-- ==================== SPLASH WARS (Nov 12 2026, owner; build g) ====================
+-- The summer water gun event (www/js/events/rvb.js, SPLASH WARS section). Open every year March 15 00:00 to April 15
+-- 23:59 Manila time. Players register in the SPLASHWARS world; THE SERVER makes the matches: 20 registered = a 10 v 10
+-- at once, else 2+ once the first in line has waited 30 s. Each match gets its own new world 'SPW' + 6 letters /
+-- digits (made by the game, never saved: save_world skips those names, and any row is deleted after the match).
+-- Every game runs the match from `t0` on the server's clock: 10 s getting ready, 5 s countdown, 5 min playing, 8 s
+-- result. After the end every player of the match reports the tiles he counted (spw_report); the server takes the
+-- reports (once all of the match's players reported, or 15 s after the end with what came in): the side at least 2/3 of the
+-- reports name wins (else a draw); every player of the winning team wins 5 Splash Tickets (a draw gives none). (build h)
+-- The winners go to the SPLASHPRIZE world and take them from the Ticket Master (spw_prizes -> spw_claim -> spw_tickets);
+-- the losers go to their own lobby. The exchange of tickets for items
+-- comes later (the owner sends the price list).
+-- The game's numbers must match these: SPW_PREP 10000, SPW_COUNT 5000, RVB_PLAY 300000, RVB_END 8000 (ms).
+create table if not exists public.spw_queue (
+  user_id uuid primary key,
+  name text not null,
+  at timestamptz not null default clock_timestamp(), -- when registered (the order of the queue)
+  seen timestamptz not null default clock_timestamp() -- last spw_status / spw_register: gone 12 s = off the queue
+);
+alter table public.spw_queue enable row level security;
+revoke all on public.spw_queue from anon, authenticated;
+create table if not exists public.spw_matches (
+  id text primary key check (id ~ '^SPW[A-Z0-9]{6}$'), -- = its world's name
+  t0 timestamptz not null default clock_timestamp(),
+  red text[] not null,
+  blue text[] not null,
+  red_ids uuid[] not null,
+  blue_ids uuid[] not null,
+  settled boolean not null default false,
+  red_score integer,
+  blue_score integer,
+  winner text -- 'r', 'b' or 'd' (draw / nobody reported)
+);
+alter table public.spw_matches enable row level security;
+revoke all on public.spw_matches from anon, authenticated;
+create table if not exists public.spw_reports (
+  match text not null references public.spw_matches (id) on delete cascade,
+  user_id uuid not null,
+  red integer not null,
+  blue integer not null,
+  primary key (match, user_id)
+);
+alter table public.spw_reports enable row level security;
+revoke all on public.spw_reports from anon, authenticated;
+-- (build h) tickets won and not taken yet: the winners take them from the Ticket Master in SPLASHPRIZE (spw_claim)
+create table if not exists public.spw_prizes (
+  user_id uuid not null,
+  match text not null,
+  tickets integer not null check (tickets > 0),
+  at timestamptz not null default clock_timestamp(),
+  primary key (user_id, match)
+);
+alter table public.spw_prizes enable row level security;
+revoke all on public.spw_prizes from anon, authenticated;
+create table if not exists public.spw_tickets (
+  user_id uuid primary key,
+  name text not null,
+  tickets bigint not null default 0 check (tickets >= 0),
+  wins integer not null default 0,
+  played integer not null default 0
+);
+alter table public.spw_tickets enable row level security;
+revoke all on public.spw_tickets from anon, authenticated;
+-- (build p) the Ticket Exchange: what it gives and for how many tickets; `excl` = given only here (counted like a
+-- Shop-only item: owned_items / bag_pool, see is_tracked at the end of this file)
+create table if not exists public.spw_shop (
+  item text primary key,
+  tickets integer not null check (tickets > 0),
+  excl boolean not null default false
+);
+alter table public.spw_shop enable row level security;
+revoke all on public.spw_shop from anon, authenticated;
+-- (build p) how many of the item one exchange gives (Water Bucket x20, Sand x30, Beach Umbrella x20)
+alter table public.spw_shop add column if not exists qty integer not null default 1 check (qty between 1 and 1000);
+insert into public.spw_shop (item, tickets, excl) values
+  ('cow_swim_ring', 500, true), ('duck_swim_ring', 500, true),
+  ('glow_cow_swim_ring', 2000, true), ('glow_duck_swim_ring', 2000, true),
+  ('silver_wild_hair', 700, false), ('silver_full_beard', 500, false), ('boss_shades', 400, false),
+  ('hawaiian_polo', 300, false), ('hawaiian_polo_red', 300, false), ('cargo_shorts', 200, false),
+  ('pet_penguin', 1500, false), -- (owner: "the penguin pet too, 1.5k")
+  ('water_gun', 800, false), ('mega_water_gun', 3000, true) -- (build p: the Water Gun 800; the Mega Water Gun 3k, only here)
+on conflict (item) do update set tickets = excluded.tickets, excl = excluded.excl;
+-- (build p, owner: "water bucket 50 tickets for 20, sand 10 tickets for 30, beach umbrella 5 tickets for 20")
+insert into public.spw_shop (item, tickets, excl, qty) values
+  ('water_bucket', 50, false, 20), ('sand', 10, false, 30), ('beach_umbrella', 5, false, 20)
+on conflict (item) do update set tickets = excluded.tickets, excl = excluded.excl, qty = excluded.qty;
+
+-- when spw_make last ran (build j)
+create table if not exists public.spw_tick (k integer primary key, at timestamptz not null);
+alter table public.spw_tick enable row level security;
+revoke all on public.spw_tick from anon, authenticated;
+-- { now (ms), open }
+create or replace function public.spw_event_now()
+returns jsonb language sql stable as $$
+  with t as (select clock_timestamp() as ts)
+  select jsonb_build_object(
+    'now', floor(extract(epoch from ts) * 1000)::bigint,
+    'open', to_char(ts at time zone 'Asia/Manila', 'MMDD') between '0315' and '0415')
+  from t
+$$;
+-- the match lengths (ms) and the team size
+create or replace function public.spw_len(k text)
+returns integer language sql immutable as $$
+  select case k when 'prep' then 10000 when 'count' then 5000 when 'play' then 300000 when 'end' then 8000
+    when 'fill' then 30000 when 'team' then 10 else 0 end
+$$;
+-- when a match's playing is over
+create or replace function public.spw_play_end(m public.spw_matches)
+returns timestamptz language sql immutable as $$
+  select m.t0 + make_interval(secs => (public.spw_len('prep') + public.spw_len('count') + public.spw_len('play')) / 1000.0)
+$$;
+
+-- settle a match if it can be: the median of the reports, tickets to the winners, the world gone
+create or replace function public.spw_settle(p_match text)
+returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  m public.spw_matches;
+  n integer;
+  k integer;
+  rs integer;
+  bs integer;
+  w text;
+  win uuid[];
+begin
+  select * into m from public.spw_matches where id = p_match for update;
+  if not found or m.settled then return; end if;
+  if clock_timestamp() < public.spw_play_end(m) then return; end if;
+  n := coalesce(array_length(m.red_ids, 1), 0) + coalesce(array_length(m.blue_ids, 1), 0);
+  select count(*) into k from public.spw_reports where match = p_match;
+  -- every player of the match reported, or 15 s after the end with what came in (60 s: nobody = no winner)
+  if k < n and clock_timestamp() < public.spw_play_end(m) + interval '15 seconds' then return; end if;
+  if k = 0 and clock_timestamp() < public.spw_play_end(m) + interval '60 seconds' then return; end if;
+  -- (security, build j) each TEAM's reports give that team's verdict (what most of its reports say; a tie = draw);
+  -- both teams agree = that result; only one team reported = its verdict; the teams disagree = a draw. So a team can't
+  -- give itself the win while the other team says otherwise (before: 2/3 of ALL reports, which the bigger team of an
+  -- uneven match always had). The score shown is the median of the reports that agree with the result.
+  w := 'd';
+  if k > 0 then
+    declare
+      vr text;
+      vb text;
+    begin
+      select case when sum((red > blue)::int) > sum((blue > red)::int) and sum((red > blue)::int) * 2 > count(*) then 'r'
+                  when sum((blue > red)::int) > sum((red > blue)::int) and sum((blue > red)::int) * 2 > count(*) then 'b' else 'd' end
+        into vr from public.spw_reports where match = p_match and user_id = any (m.red_ids) having count(*) > 0;
+      select case when sum((red > blue)::int) > sum((blue > red)::int) and sum((red > blue)::int) * 2 > count(*) then 'r'
+                  when sum((blue > red)::int) > sum((red > blue)::int) and sum((blue > red)::int) * 2 > count(*) then 'b' else 'd' end
+        into vb from public.spw_reports where match = p_match and user_id = any (m.blue_ids) having count(*) > 0;
+      w := case when vr is null then coalesce(vb, 'd') when vb is null then vr when vr = vb then vr else 'd' end;
+    end;
+    select percentile_disc(0.5) within group (order by red), percentile_disc(0.5) within group (order by blue)
+      into rs, bs from public.spw_reports
+      where match = p_match and (w = 'd' or (case when red > blue then 'r' when blue > red then 'b' else 'd' end) = w);
+  end if;
+  update public.spw_matches set settled = true, red_score = rs, blue_score = bs, winner = w where id = p_match;
+  win := case w when 'r' then m.red_ids when 'b' then m.blue_ids else '{}'::uuid[] end;
+  -- everybody of the match: played + 1; the winners: wins + 1 and 5 tickets WAITING for them (build h: they take them
+  -- from the Ticket Master, spw_claim)
+  insert into public.spw_tickets (user_id, name, tickets, wins, played)
+    select u.id, u.name, 0, case when u.id = any (win) then 1 else 0 end, 1
+    from public.usernames u where u.id = any (m.red_ids || m.blue_ids)
+  on conflict (user_id) do update set
+    name = excluded.name,
+    wins = public.spw_tickets.wins + excluded.wins,
+    played = public.spw_tickets.played + 1;
+  insert into public.spw_prizes (user_id, match, tickets)
+    select u, p_match, 5 from unnest(win) u
+  on conflict do nothing;
+  delete from public.spw_reports where match = p_match;
+  delete from public.worlds where name = p_match; -- (the match's world is gone; it should never have been saved)
+end $$;
+
+-- make matches from the queue (called by spw_register / spw_status; one at a time)
+create or replace function public.spw_make()
+returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  team integer := public.spw_len('team');
+  n integer;
+  first timestamptz;
+  ids uuid[];
+  nms text[];
+  mid text;
+  r record;
+begin
+  -- (build j) one game at a time and at most once a second: the others just read the status (no queue of waiting
+  -- calls when many players ask every 2 s)
+  if not pg_try_advisory_xact_lock(hashtext('spw_make')) then return; end if;
+  if exists (select 1 from public.spw_tick where at > clock_timestamp() - interval '1 second') then return; end if;
+  insert into public.spw_tick (k, at) values (1, clock_timestamp()) on conflict (k) do update set at = excluded.at;
+  -- off the queue: not seen for 12 s (left SPLASHWARS / closed the game)
+  delete from public.spw_queue where seen < clock_timestamp() - interval '12 seconds';
+  -- old matches: settle what can be, forget those over a day old
+  for r in select id from public.spw_matches where not settled and public.spw_play_end(spw_matches) < clock_timestamp() loop
+    perform public.spw_settle(r.id);
+  end loop;
+  delete from public.spw_matches where t0 < clock_timestamp() - interval '1 day';
+  loop
+    select count(*), min(at) into n, first from public.spw_queue;
+    exit when n < 2 or (n < 2 * team and first > clock_timestamp() - make_interval(secs => public.spw_len('fill') / 1000.0));
+    select array_agg(user_id order by at, user_id), array_agg(name order by at, user_id) into ids, nms
+      from (select user_id, name, at from public.spw_queue order by at, user_id limit 2 * team) q;
+    loop
+      mid := 'SPW' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+      exit when mid ~ '^SPW[A-Z0-9]{6}$' and not exists (select 1 from public.spw_matches where id = mid)
+        and not exists (select 1 from public.worlds where name = mid);
+    end loop;
+    -- RED / BLUE in turn, in the queue's order
+    insert into public.spw_matches (id, red, blue, red_ids, blue_ids)
+    select mid,
+      array(select nms[i] from generate_subscripts(nms, 1) i where i % 2 = 1 order by i),
+      array(select nms[i] from generate_subscripts(nms, 1) i where i % 2 = 0 order by i),
+      array(select ids[i] from generate_subscripts(ids, 1) i where i % 2 = 1 order by i),
+      array(select ids[i] from generate_subscripts(ids, 1) i where i % 2 = 0 order by i);
+    delete from public.spw_queue where user_id = any (ids);
+  end loop;
+end $$;
+
+-- what the game shows: { now, open, queued, pos, qn (in the queue), fill (ms until a smaller match forms, or null),
+-- tickets, wins, played, match: { id, t0 (ms), red, blue, team, settled, red_score, blue_score, winner } | null }
+-- (also keeps me on the queue: call it every few seconds while registered)
+create or replace function public.spw_status()
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  e jsonb := public.spw_event_now();
+  me uuid := auth.uid();
+  m public.spw_matches;
+  q public.spw_queue;
+  n integer;
+  first timestamptz;
+  t public.spw_tickets;
+  pz bigint;
+begin
+  if me is null then raise exception 'Log in first'; end if;
+  update public.spw_queue set seen = clock_timestamp() where user_id = me;
+  perform public.spw_make();
+  select * into q from public.spw_queue where user_id = me;
+  select count(*), min(at) into n, first from public.spw_queue;
+  select * into t from public.spw_tickets where user_id = me;
+  select coalesce(sum(tickets), 0) into pz from public.spw_prizes where user_id = me;
+  -- my match: the newest one I'm in, from the last 10 minutes
+  select * into m from public.spw_matches where (me = any (red_ids) or me = any (blue_ids))
+    and t0 > clock_timestamp() - interval '10 minutes' order by t0 desc limit 1;
+  return e || jsonb_build_object(
+    'queued', q.user_id is not null,
+    'pos', case when q.user_id is null then null else (select count(*) from public.spw_queue x where (x.at, x.user_id) <= (q.at, q.user_id)) end,
+    'qn', n,
+    'fill', case when n >= 2 then greatest(0, floor(extract(epoch from (first + make_interval(secs => public.spw_len('fill') / 1000.0) - clock_timestamp())) * 1000))::bigint end,
+    'tickets', coalesce(t.tickets, 0), 'wins', coalesce(t.wins, 0), 'played', coalesce(t.played, 0),
+    'prize', pz, -- tickets won and waiting at the Ticket Master
+    'shop', coalesce((select jsonb_object_agg(item, tickets) from public.spw_shop), '{}'::jsonb), -- (build p) the Exchange
+    'shop_qty', coalesce((select jsonb_object_agg(item, qty) from public.spw_shop where qty > 1), '{}'::jsonb), -- (x20 ...)
+    'match', case when m.id is null then null else jsonb_build_object(
+      'id', m.id, 't0', floor(extract(epoch from m.t0) * 1000)::bigint, 'red', to_jsonb(m.red), 'blue', to_jsonb(m.blue),
+      'team', case when me = any (m.red_ids) then 'r' else 'b' end,
+      'settled', m.settled, 'red_score', m.red_score, 'blue_score', m.blue_score, 'winner', m.winner) end);
+end $$;
+
+-- register (p_on true) or leave the queue (false); answers spw_status. Not while the event is closed (the GM may),
+-- not while your own match is still being played.
+create or replace function public.spw_register(p_on boolean default true)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  nm text := public.my_name();
+begin
+  if me is null or nm is null then raise exception 'Log in first'; end if;
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  if coalesce(p_on, true) then
+    if not (public.spw_event_now() ->> 'open')::boolean and not public.is_gm() then raise exception 'SPLASH WARS is closed'; end if;
+    if exists (select 1 from public.spw_matches m where (me = any (m.red_ids) or me = any (m.blue_ids)) and not m.settled
+        and public.spw_play_end(m) > clock_timestamp()) then
+      raise exception 'Finish your match first';
+    end if;
+    insert into public.spw_queue (user_id, name) values (me, nm)
+      on conflict (user_id) do update set seen = clock_timestamp(), name = excluded.name;
+  else
+    delete from public.spw_queue where user_id = me;
+  end if;
+  return public.spw_status();
+end $$;
+
+-- after the playing time: the tiles I counted (once per match); answers spw_status
+create or replace function public.spw_report(p_match text, p_red integer, p_blue integer)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  m public.spw_matches;
+begin
+  if me is null then raise exception 'Log in first'; end if;
+  select * into m from public.spw_matches where id = p_match;
+  if not found or not (me = any (m.red_ids) or me = any (m.blue_ids)) then raise exception 'Not your match'; end if;
+  if clock_timestamp() >= public.spw_play_end(m) - interval '2 seconds' and not m.settled then
+    insert into public.spw_reports (match, user_id, red, blue)
+      values (p_match, me, least(greatest(coalesce(p_red, 0), 0), 6000), least(greatest(coalesce(p_blue, 0), 0), 6000))
+      on conflict do nothing;
+    perform public.spw_settle(p_match);
+  end if;
+  return public.spw_status();
+end $$;
+
+-- (build h) take the tickets waiting for me (the Ticket Master in SPLASHPRIZE): { got, ...spw_status }
+create or replace function public.spw_claim()
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  nm text := public.my_name();
+  got bigint;
+begin
+  if me is null or nm is null then raise exception 'Log in first'; end if;
+  with d as (delete from public.spw_prizes where user_id = me returning tickets)
+  select coalesce(sum(tickets), 0) into got from d;
+  if got > 0 then
+    insert into public.spw_tickets (user_id, name, tickets) values (me, nm, got)
+      on conflict (user_id) do update set tickets = public.spw_tickets.tickets + excluded.tickets, name = excluded.name;
+  end if;
+  return public.spw_status() || jsonb_build_object('got', got);
+end $$;
+revoke execute on function public.spw_claim() from public, anon;
+grant execute on function public.spw_claim() to authenticated;
+revoke execute on function public.spw_event_now(), public.spw_len(text), public.spw_play_end(public.spw_matches), public.spw_settle(text), public.spw_make() from public, anon, authenticated;
+revoke execute on function public.spw_status(), public.spw_register(boolean), public.spw_report(text, integer, integer) from public, anon;
+grant execute on function public.spw_status(), public.spw_register(boolean), public.spw_report(text, integer, integer) to authenticated;
+
+-- =====================================================================================================
+-- SERVER BAG + PRIVACY (Nov 12 2026, owner, build m: "nobody plays yet, so fix it: it really must be on the server,
+-- above all the players' privacy"). Safe to run more than once. The game: www/js/online/bag.js.
+-- THE BAG: `bag` is the truth of what every player owns (bag + hotbar + what he wears; not gold / Balb Coins, which
+-- are the wallet's, and not World Keys, which are world_keys'). The game's bag is only a copy:
+--   * Items that move between players or come from the server move HERE, in one transaction: trades (trade_move),
+--     gifts (gift_send / gift_take / gift_back, every item now waits in gift_escrow), Mailbox letters, the Shop
+--     (shop_buy; packs give their pieces through play), level rewards, lock compressing (bag_lock_convert). The game
+--     doesn't change its own bag for these: it asks the server again (bag_get) and shows what it says.
+--   * Play (breaking, harvesting, fishing, picking up drops, Stove...) can't be checked here, so the game sends the
+--     difference every few seconds (bag_sync): what you LOST is always taken; what you GOT is given up to an hourly
+--     amount per rarity (`bag_cap`, far over normal play); the rest waits in `bag_held` and comes as the hour allows
+--     (logged in cheat_log). Shop-only items (shop_prices.tracked) can't be made by play at all: they come back only
+--     out of `bag_pool`, what players lost of them (dropped, placed, put in a machine...), so their number in the game
+--     never grows except through the Shop. Packs, the Splash Wars console / Ticket Master: never from play.
+--   * A player's first bag is copied once from his save (bag_init; big ones logged). GMs: no limits.
+--   * item_info: every item's class (from the game's ITEMS; an item not listed counts as 'legendary').
+-- PRIVACY: online_people shows WHERE a player is only to his friends (mutual, kept here: friend_req / friend_ok go
+-- through lobby_send) and to players in the same world; everyone else sees only that he is online. world_counts()
+-- gives how many are in each world (for the world list and the 30-player limit). board_list needs a login.
+-- =====================================================================================================
+create table if not exists public.bag (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  item text not null check (item ~ '^[a-z0-9_]{1,40}$'),
+  qty bigint not null check (qty > 0),
+  primary key (user_id, item)
+);
+create table if not exists public.bag_meta (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  made_at timestamptz not null default now()
+);
+create table if not exists public.bag_rate (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  cls text not null,
+  hour_start timestamptz not null default now(),
+  n bigint not null default 0,
+  primary key (user_id, cls)
+);
+create table if not exists public.bag_held (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  item text not null,
+  qty bigint not null check (qty > 0),
+  at timestamptz not null default now(),
+  primary key (user_id, item)
+);
+create table if not exists public.bag_pool (item text primary key, qty bigint not null default 0 check (qty >= 0));
+create table if not exists public.item_info (item text primary key, cls text not null);
+do $$ begin
+  alter table public.bag enable row level security;
+  alter table public.bag_meta enable row level security;
+  alter table public.bag_rate enable row level security;
+  alter table public.bag_held enable row level security;
+  alter table public.bag_pool enable row level security;
+  alter table public.item_info enable row level security;
+end $$;
+revoke all on public.bag, public.bag_meta, public.bag_rate, public.bag_held, public.bag_pool, public.item_info from anon, authenticated;
+-- the game's items and their class (made from www/js ITEMS on Nov 12 2026; add new items here when the game gets them,
+-- or they count as 'legendary')
+insert into public.item_info (item, cls) values
+  ('afro_hair', 'rare'),
+  ('air_blower_down', 'rare'),
+  ('air_blower_down_seed', 'rare'),
+  ('air_blower_left', 'rare'),
+  ('air_blower_left_seed', 'rare'),
+  ('air_blower_right', 'rare'),
+  ('air_blower_right_seed', 'rare'),
+  ('air_blower_up', 'rare'),
+  ('air_blower_up_seed', 'rare'),
+  ('air_conditioner', 'rare'),
+  ('air_conditioner_seed', 'rare'),
+  ('air_duct', 'uncommon'),
+  ('air_duct_seed', 'uncommon'),
+  ('aloha_polo', 'rare'),
+  ('amber_glass', 'uncommon'),
+  ('amber_glass_seed', 'uncommon'),
+  ('amethyst_block', 'rare'),
+  ('amethyst_block_seed', 'rare'),
+  ('ammonite_fossil', 'uncommon'),
+  ('angel_statue', 'epic'),
+  ('angel_statue_seed', 'epic'),
+  ('angel_wings', 'legendary'),
+  ('anglerfish', 'rare'),
+  ('anglerfish_l', 'legendary'),
+  ('anglerfish_m', 'rare'),
+  ('apple', 'common'),
+  ('apple_seed', 'common'),
+  ('aqua_block', 'common'),
+  ('aqua_block_seed', 'common'),
+  ('aqua_wallpaper', 'common'),
+  ('aqua_wallpaper_seed', 'common'),
+  ('aquarium', 'rare'),
+  ('aquarium_glass', 'rare'),
+  ('aquarium_glass_seed', 'rare'),
+  ('aquarium_seed', 'rare'),
+  ('arcade_machine', 'rare'),
+  ('arcade_machine_seed', 'rare'),
+  ('argyle_bg', 'rare'),
+  ('argyle_bg_seed', 'rare'),
+  ('arnis_stick', 'uncommon'),
+  ('arnis_stick_seed', 'uncommon'),
+  ('arrow_block_down', 'basic'),
+  ('arrow_block_down_seed', 'basic'),
+  ('arrow_block_left', 'basic'),
+  ('arrow_block_left_seed', 'basic'),
+  ('arrow_block_right', 'basic'),
+  ('arrow_block_right_seed', 'basic'),
+  ('arrow_block_up', 'basic'),
+  ('arrow_block_up_seed', 'basic'),
+  ('arrow_gate_down', 'rare'),
+  ('arrow_gate_down_seed', 'rare'),
+  ('arrow_gate_left', 'rare'),
+  ('arrow_gate_left_seed', 'rare'),
+  ('arrow_gate_right', 'rare'),
+  ('arrow_gate_right_seed', 'rare'),
+  ('arrow_gate_up', 'rare'),
+  ('arrow_gate_up_seed', 'rare'),
+  ('arrow_placard', 'uncommon'),
+  ('arrow_placard_left', 'uncommon'),
+  ('arrow_placard_left_seed', 'uncommon'),
+  ('arrow_placard_seed', 'uncommon'),
+  ('art_wall', 'rare'),
+  ('art_wall_seed', 'rare'),
+  ('atm_machine', 'epic'),
+  ('autumn_boots', 'rare'),
+  ('autumn_cape', 'epic'),
+  ('autumn_chest', 'epic'),
+  ('autumn_leaf_block', 'uncommon'),
+  ('autumn_leaf_shirt', 'rare'),
+  ('autumn_leaf_shorts', 'rare'),
+  ('autumn_leaf_wall', 'common'),
+  ('autumn_leaves', 'uncommon'),
+  ('autumn_leaves_seed', 'uncommon'),
+  ('autumn_scythe', 'legendary'),
+  ('autumn_wings', 'legendary'),
+  ('baby_bath', 'uncommon'),
+  ('baby_bath_seed', 'uncommon'),
+  ('baby_bottle', 'uncommon'),
+  ('baby_bottle_seed', 'uncommon'),
+  ('baby_crib', 'rare'),
+  ('baby_crib_seed', 'rare'),
+  ('baby_mobile', 'rare'),
+  ('baby_mobile_seed', 'rare'),
+  ('baby_rattle', 'uncommon'),
+  ('baby_rattle_seed', 'uncommon'),
+  ('baby_stroller', 'rare'),
+  ('baby_stroller_seed', 'rare'),
+  ('backpack', 'common'),
+  ('backpack_seed', 'common'),
+  ('bait_basket', 'rare'),
+  ('bait_basket_seed', 'rare'),
+  ('ball_jersey', 'uncommon'),
+  ('balloon_bunch', 'uncommon'),
+  ('balloon_bunch_seed', 'uncommon'),
+  ('bamboo_block', 'common'),
+  ('bamboo_block_seed', 'common'),
+  ('banana_tree', 'uncommon'),
+  ('banana_tree_seed', 'uncommon'),
+  ('banig_mat', 'uncommon'),
+  ('banig_mat_seed', 'uncommon'),
+  ('barn_block', 'common'),
+  ('barn_block_seed', 'common'),
+  ('barn_door', 'common'),
+  ('barn_door_seed', 'common'),
+  ('barrel', 'common'),
+  ('barrel_seed', 'common'),
+  ('basalt_block', 'uncommon'),
+  ('basalt_block_seed', 'uncommon'),
+  ('baseball_cap', 'common'),
+  ('baseball_cap_seed', 'common'),
+  ('basketball_hoop', 'rare'),
+  ('basketball_hoop_seed', 'rare'),
+  ('bass_note', 'common'),
+  ('bass_note_seed', 'common'),
+  ('bathtub', 'uncommon'),
+  ('bathtub_seed', 'uncommon'),
+  ('battle_axe', 'rare'),
+  ('battle_axe_seed', 'rare'),
+  ('beach_blast', 'epic'),
+  ('beach_umbrella', 'uncommon'),
+  ('beach_umbrella_seed', 'uncommon'),
+  ('bean_bag', 'common'),
+  ('bean_bag_seed', 'common'),
+  ('bed', 'common'),
+  ('bed_seed', 'common'),
+  ('bell_note', 'common'),
+  ('bell_note_seed', 'common'),
+  ('bent_danger_sign', 'common'),
+  ('bent_danger_sign_seed', 'common'),
+  ('big_black_scarf', 'rare'),
+  ('big_glasses', 'common'),
+  ('big_glasses_seed', 'common'),
+  ('big_old_sideways_arrow', 'common'),
+  ('big_old_sideways_arrow_seed', 'common'),
+  ('big_orange_scarf', 'rare'),
+  ('big_striped_scarf', 'rare'),
+  ('biker_stache', 'common'),
+  ('biker_stache_seed', 'common'),
+  ('biohazard_sign', 'uncommon'),
+  ('biohazard_sign_seed', 'uncommon'),
+  ('bird_cage', 'uncommon'),
+  ('bird_cage_seed', 'uncommon'),
+  ('birthday_cake', 'uncommon'),
+  ('birthday_cake_seed', 'uncommon'),
+  ('black_beanie', 'rare'),
+  ('black_block', 'common'),
+  ('black_block_seed', 'common'),
+  ('black_crystal', 'legendary'),
+  ('black_crystal_block', 'epic'),
+  ('black_crystal_wall', 'rare'),
+  ('black_crystal_wings', 'legendary'),
+  ('black_diamond_lock', 'lock3'),
+  ('black_diamond_pickaxe', 'legendary'),
+  ('black_pants', 'common'),
+  ('black_pants_seed', 'common'),
+  ('black_polo', 'uncommon'),
+  ('black_scarf', 'common'),
+  ('black_shorts', 'common'),
+  ('black_sneakers', 'uncommon'),
+  ('black_tee', 'common'),
+  ('black_wallpaper', 'common'),
+  ('black_wallpaper_seed', 'common'),
+  ('black_watch', 'common'),
+  ('black_wristband', 'common'),
+  ('blackout_weather_machine', 'epic'),
+  ('blonde_bombshell', 'common'),
+  ('blonde_bombshell_seed', 'common'),
+  ('blue_block', 'common'),
+  ('blue_block_seed', 'common'),
+  ('blue_crystal', 'epic'),
+  ('blue_crystal_block', 'epic'),
+  ('blue_crystal_wall', 'rare'),
+  ('blue_fire_eyes', 'legendary'),
+  ('blue_glass_block', 'uncommon'),
+  ('blue_glass_block_seed', 'uncommon'),
+  ('blue_hero_cape', 'rare'),
+  ('blue_jeans', 'common'),
+  ('blue_jeans_seed', 'common'),
+  ('blue_lock', 'rare'),
+  ('blue_pacifier', 'uncommon'),
+  ('blue_polka_dress', 'uncommon'),
+  ('blue_slippers', 'common'),
+  ('blue_sneakers', 'uncommon'),
+  ('blue_star_wallpaper', 'common'),
+  ('blue_star_wallpaper_seed', 'common'),
+  ('blue_streak_spikes', 'rare'),
+  ('blue_streak_swept_hair', 'rare'),
+  ('blue_striped_scarf', 'common'),
+  ('blue_tee', 'common'),
+  ('blue_tip_bob', 'rare'),
+  ('blue_umbrella', 'epic'),
+  ('blue_umbrella_seed', 'epic'),
+  ('blue_wallpaper', 'common'),
+  ('blue_wallpaper_seed', 'common'),
+  ('blue_wristband', 'common'),
+  ('blueberry', 'common'),
+  ('blueberry_seed', 'common'),
+  ('board_shorts', 'uncommon'),
+  ('bolo', 'uncommon'),
+  ('bolo_seed', 'uncommon'),
+  ('bone_platform', 'uncommon'),
+  ('bone_platform_seed', 'uncommon'),
+  ('bonsai_tree', 'rare'),
+  ('bonsai_tree_seed', 'rare'),
+  ('bookcase', 'uncommon'),
+  ('bookcase_seed', 'uncommon'),
+  ('boombox', 'uncommon'),
+  ('boombox_seed', 'uncommon'),
+  ('boots', 'common'),
+  ('boots_seed', 'common'),
+  ('bounce_block', 'uncommon'),
+  ('bounce_block_seed', 'uncommon'),
+  ('bounce_mushroom', 'rare'),
+  ('bounce_mushroom_seed', 'rare'),
+  ('bow_top', 'uncommon'),
+  ('brick_background', 'common'),
+  ('brick_background_seed', 'common'),
+  ('bricks', 'common'),
+  ('bricks_seed', 'common'),
+  ('bridal_veil', 'common'),
+  ('bridal_veil_seed', 'common'),
+  ('brown_block', 'common'),
+  ('brown_block_seed', 'common'),
+  ('brown_hair', 'common'),
+  ('brown_hair_seed', 'common'),
+  ('brown_shoes', 'common'),
+  ('brown_shoes_seed', 'common'),
+  ('brown_wallpaper', 'common'),
+  ('brown_wallpaper_seed', 'common'),
+  ('bubble_tea', 'uncommon'),
+  ('bubble_tea_seed', 'uncommon'),
+  ('bubble_wrap', 'common'),
+  ('bubble_wrap_seed', 'common'),
+  ('bush', 'common'),
+  ('bush_block', 'common'),
+  ('bush_block_seed', 'common'),
+  ('bush_seed', 'common'),
+  ('cactus', 'common'),
+  ('cactus_pot', 'common'),
+  ('cactus_pot_seed', 'common'),
+  ('cactus_seed', 'common'),
+  ('caltrops', 'uncommon'),
+  ('caltrops_seed', 'uncommon'),
+  ('camo_block', 'common'),
+  ('camo_block_seed', 'common'),
+  ('camo_shirt', 'uncommon'),
+  ('camo_shorts', 'uncommon'),
+  ('campfire', 'uncommon'),
+  ('campfire_seed', 'uncommon'),
+  ('candy_block', 'uncommon'),
+  ('candy_block_seed', 'uncommon'),
+  ('candy_platform', 'uncommon'),
+  ('candy_platform_seed', 'uncommon'),
+  ('candy_stripe_bg', 'rare'),
+  ('candy_stripe_bg_seed', 'rare'),
+  ('candy_stripe_scarf', 'uncommon'),
+  ('capiz_window', 'rare'),
+  ('capiz_window_seed', 'rare'),
+  ('caramel_block', 'uncommon'),
+  ('caramel_block_seed', 'uncommon'),
+  ('cardboard_box', 'common'),
+  ('cardboard_box_seed', 'common'),
+  ('cargo_shorts', 'common'),
+  ('cargo_shorts_seed', 'common'),
+  ('carpet_block', 'uncommon'),
+  ('carpet_block_seed', 'uncommon'),
+  ('cat_ear_hoodie', 'epic'),
+  ('cave', 'common'),
+  ('cave_seed', 'common'),
+  ('celestial_wings', 'legendary'),
+  ('ceramic_tile', 'common'),
+  ('ceramic_tile_seed', 'common'),
+  ('chainsaw', 'rare'),
+  ('chainsaw_seed', 'rare'),
+  ('checker_marble', 'uncommon'),
+  ('checker_marble_seed', 'uncommon'),
+  ('checker_wallpaper', 'common'),
+  ('checker_wallpaper_seed', 'common'),
+  ('checkered_pajamas', 'common'),
+  ('checkered_pajamas_seed', 'common'),
+  ('checkpoint', 'rare'),
+  ('checkpoint_seed', 'rare'),
+  ('checkpoint_tower', 'rare'),
+  ('checkpoint_tower_seed', 'rare'),
+  ('cheese_block', 'uncommon'),
+  ('cheese_block_seed', 'uncommon'),
+  ('cherry', 'common'),
+  ('cherry_blossom', 'rare'),
+  ('cherry_blossom_seed', 'rare'),
+  ('cherry_planks', 'uncommon'),
+  ('cherry_planks_seed', 'uncommon'),
+  ('cherry_seed', 'common'),
+  ('chocolate_block', 'uncommon'),
+  ('chocolate_block_seed', 'uncommon'),
+  ('christmas_tree', 'rare'),
+  ('christmas_tree_seed', 'rare'),
+  ('circuit_block', 'rare'),
+  ('circuit_block_seed', 'rare'),
+  ('clear_world', 'epic'),
+  ('cloud_block', 'uncommon'),
+  ('cloud_block_seed', 'uncommon'),
+  ('cloud_platform', 'uncommon'),
+  ('cloud_platform_seed', 'uncommon'),
+  ('cloud_ring', 'legendary'),
+  ('clouds', 'uncommon'),
+  ('clouds_seed', 'uncommon'),
+  ('cloudstone_block', 'uncommon'),
+  ('cloudstone_block_seed', 'uncommon'),
+  ('clown_pants', 'common'),
+  ('clown_pants_seed', 'common'),
+  ('clownfish', 'common'),
+  ('clownfish_l', 'uncommon'),
+  ('clownfish_m', 'common'),
+  ('cobblestone', 'common'),
+  ('cobblestone_seed', 'common'),
+  ('coconut_tree', 'uncommon'),
+  ('coconut_tree_seed', 'uncommon'),
+  ('coin_fountain', 'none'), -- (build p: taken out of the game)
+  ('coin_fountain_seed', 'none'),
+  ('coin_vacuum', 'epic'),
+  ('colour_roll_block', 'uncommon'),
+  ('colour_roll_block_seed', 'uncommon'),
+  ('cookie_block', 'uncommon'),
+  ('cookie_block_seed', 'uncommon'),
+  ('copper_block', 'rare'),
+  ('copper_block_seed', 'rare'),
+  ('copper_plumbing', 'uncommon'),
+  ('copper_plumbing_seed', 'uncommon'),
+  ('coral_block', 'uncommon'),
+  ('coral_block_seed', 'uncommon'),
+  ('coral_orange', 'basic'),
+  ('coral_pink', 'basic'),
+  ('coral_purple', 'basic'),
+  ('coral_teal', 'basic'),
+  ('cotton_candy_bun', 'rare'),
+  ('couch', 'uncommon'),
+  ('couch_seed', 'uncommon'),
+  ('crappy_sign', 'common'),
+  ('crappy_sign_seed', 'common'),
+  ('crude_oil', 'uncommon'),
+  ('crystal_block', 'uncommon'),
+  ('crystal_block_seed', 'uncommon'),
+  ('crystal_cluster', 'rare'),
+  ('crystal_cluster_seed', 'rare'),
+  ('crystal_gate', 'epic'),
+  ('crystal_platform', 'rare'),
+  ('crystal_platform_seed', 'rare'),
+  ('crystal_shard_gate', 'epic'),
+  ('crystal_wings', 'legendary'),
+  ('cupcake', 'common'),
+  ('cupcake_seed', 'common'),
+  ('cyclopean_visor', 'uncommon'),
+  ('cyclopean_visor_seed', 'uncommon'),
+  ('daisy', 'common'),
+  ('daisy_seed', 'common'),
+  ('danger_sign', 'common'),
+  ('danger_sign_seed', 'common'),
+  ('dark_aqua_block', 'common'),
+  ('dark_aqua_block_seed', 'common'),
+  ('dark_blue_block', 'common'),
+  ('dark_blue_block_seed', 'common'),
+  ('dark_brown_block', 'common'),
+  ('dark_brown_block_seed', 'common'),
+  ('dark_cave', 'uncommon'),
+  ('dark_cave_seed', 'uncommon'),
+  ('dark_diamond_aura', 'legendary'),
+  ('dark_green_block', 'common'),
+  ('dark_green_block_seed', 'common'),
+  ('dark_grey_block', 'common'),
+  ('dark_grey_block_seed', 'common'),
+  ('dark_oak_planks', 'common'),
+  ('dark_oak_planks_seed', 'common'),
+  ('dark_orange_block', 'common'),
+  ('dark_orange_block_seed', 'common'),
+  ('dark_pastel_aqua_bg', 'rare'),
+  ('dark_pastel_aqua_bg_seed', 'rare'),
+  ('dark_pastel_blue_bg', 'rare'),
+  ('dark_pastel_blue_bg_seed', 'rare'),
+  ('dark_pastel_cream_bg', 'uncommon'),
+  ('dark_pastel_cream_bg_seed', 'uncommon'),
+  ('dark_pastel_lavender_bg', 'epic'),
+  ('dark_pastel_lavender_bg_seed', 'epic'),
+  ('dark_pastel_mint_bg', 'uncommon'),
+  ('dark_pastel_mint_bg_seed', 'uncommon'),
+  ('dark_pastel_peach_bg', 'rare'),
+  ('dark_pastel_peach_bg_seed', 'rare'),
+  ('dark_pastel_pink_bg', 'rare'),
+  ('dark_pastel_pink_bg_seed', 'rare'),
+  ('dark_pastel_yellow_bg', 'rare'),
+  ('dark_pastel_yellow_bg_seed', 'rare'),
+  ('dark_purple_block', 'common'),
+  ('dark_purple_block_seed', 'common'),
+  ('dark_red_block', 'common'),
+  ('dark_red_block_seed', 'common'),
+  ('dark_yellow_block', 'common'),
+  ('dark_yellow_block_seed', 'common'),
+  ('das_red_balloon', 'uncommon'),
+  ('das_red_balloon_seed', 'uncommon'),
+  ('death_scythe', 'legendary'),
+  ('death_scythe_seed', 'legendary'),
+  ('death_spikes', 'uncommon'),
+  ('death_spikes_seed', 'uncommon'),
+  ('demon_wings', 'epic'),
+  ('denim_shorts', 'common'),
+  ('denim_skirt', 'common'),
+  ('desert_weather_machine', 'epic'),
+  ('desk_lamp', 'uncommon'),
+  ('desk_lamp_seed', 'uncommon'),
+  ('diamond_aura', 'legendary'),
+  ('diamond_diaper', 'legendary'),
+  ('diamond_lock', 'lock2'),
+  ('diamond_pickaxe', 'legendary'),
+  ('diamond_plate', 'uncommon'),
+  ('diamond_plate_seed', 'uncommon'),
+  ('diamond_watch', 'legendary'),
+  ('diaper_stack', 'uncommon'),
+  ('diaper_stack_seed', 'uncommon'),
+  ('dice_block', 'uncommon'),
+  ('dice_block_seed', 'uncommon'),
+  ('diner_tiles', 'uncommon'),
+  ('diner_tiles_seed', 'uncommon'),
+  ('dino_skull_fossil', 'epic'),
+  ('dirt', 'common'),
+  ('dirt_seed', 'common'),
+  ('disco_ball', 'rare'),
+  ('disco_ball_seed', 'rare'),
+  ('disco_floor', 'rare'),
+  ('disco_floor_seed', 'rare'),
+  ('disco_weather_machine', 'epic'),
+  ('display_box', 'uncommon'),
+  ('display_box_seed', 'uncommon'),
+  ('diving_board', 'rare'),
+  ('diving_board_seed', 'rare'),
+  ('dolphin', 'rare'),
+  ('dolphin_l', 'legendary'),
+  ('dolphin_m', 'rare'),
+  ('donut_block', 'uncommon'),
+  ('donut_block_seed', 'uncommon'),
+  ('door', 'common'),
+  ('door_mover', 'rare'),
+  ('door_seed', 'common'),
+  ('dragon_hand', 'legendary'),
+  ('dragon_hand_seed', 'legendary'),
+  ('dragon_wings', 'legendary'),
+  ('dreamstone_block', 'uncommon'),
+  ('dreamstone_block_seed', 'uncommon'),
+  ('dresser', 'common'),
+  ('dresser_seed', 'common'),
+  ('drum_note', 'common'),
+  ('drum_note_seed', 'common'),
+  ('drum_set', 'rare'),
+  ('drum_set_seed', 'rare'),
+  ('dungeon_door', 'uncommon'),
+  ('dungeon_door_seed', 'uncommon'),
+  ('dusk_brick_bg', 'rare'),
+  ('dusk_brick_bg_seed', 'rare'),
+  ('dye_blue', 'basic'),
+  ('dye_blue_seed', 'basic'),
+  ('dye_fire', 'basic'),
+  ('dye_fire_seed', 'basic'),
+  ('dye_frost', 'basic'),
+  ('dye_frost_seed', 'basic'),
+  ('dye_galaxy', 'basic'),
+  ('dye_galaxy_seed', 'basic'),
+  ('dye_gold', 'basic'),
+  ('dye_gold_seed', 'basic'),
+  ('dye_lavender', 'basic'),
+  ('dye_lavender_seed', 'basic'),
+  ('dye_mint', 'basic'),
+  ('dye_mint_seed', 'basic'),
+  ('dye_pink', 'basic'),
+  ('dye_pink_seed', 'basic'),
+  ('dye_purple', 'basic'),
+  ('dye_purple_seed', 'basic'),
+  ('dye_rainbow', 'basic'),
+  ('dye_rainbow_seed', 'basic'),
+  ('dye_red', 'basic'),
+  ('dye_red_seed', 'basic'),
+  ('dye_silver', 'basic'),
+  ('dye_silver_seed', 'basic'),
+  ('easel', 'uncommon'),
+  ('easel_seed', 'uncommon'),
+  ('electric_fan', 'uncommon'),
+  ('electric_fan_seed', 'uncommon'),
+  ('elevator', 'rare'),
+  ('elevator_exit', 'basic'),
+  ('elevator_seed', 'rare'),
+  ('emerald_block', 'rare'),
+  ('emerald_block_seed', 'rare'),
+  ('empty_bottle', 'common'),
+  ('empty_can', 'common'),
+  ('evil_brick_background', 'rare'),
+  ('evil_brick_background_seed', 'rare'),
+  ('evil_bricks', 'rare'),
+  ('evil_bricks_seed', 'rare'),
+  ('faceless_head', 'rare'),
+  ('factory_button', 'uncommon'),
+  ('factory_button_seed', 'uncommon'),
+  ('factory_core', 'epic'),
+  ('factory_core_seed', 'epic'),
+  ('factory_cutter', 'epic'),
+  ('factory_cutter_seed', 'epic'),
+  ('factory_gate', 'rare'),
+  ('factory_gate_seed', 'rare'),
+  ('factory_plate', 'uncommon'),
+  ('factory_plate_seed', 'uncommon'),
+  ('factory_wall', 'uncommon'),
+  ('factory_wall_seed', 'uncommon'),
+  ('fairy_wings', 'epic'),
+  ('fall_weather_machine', 'legendary'),
+  ('fire_hydrant', 'uncommon'),
+  ('fire_hydrant_seed', 'uncommon'),
+  ('fire_quiff', 'rare'),
+  ('fire_sword', 'epic'),
+  ('fire_sword_seed', 'epic'),
+  ('fire_wand', 'epic'),
+  ('fire_wand_seed', 'epic'),
+  ('firefly_jar', 'rare'),
+  ('firefly_jar_seed', 'rare'),
+  ('fireplace', 'rare'),
+  ('fireplace_seed', 'rare'),
+  ('fish_fossil', 'rare'),
+  ('fish_tank', 'rare'),
+  ('fish_tank_seed', 'rare'),
+  ('fishbowl', 'rare'),
+  ('fishbowl_seed', 'rare'),
+  ('fishing_rod', 'rare'),
+  ('fishing_rod_seed', 'rare'),
+  ('flame_scythe', 'epic'),
+  ('flame_scythe_seed', 'epic'),
+  ('flashlight', 'common'),
+  ('flashlight_seed', 'common'),
+  ('floor_lamp', 'uncommon'),
+  ('floor_lamp_seed', 'uncommon'),
+  ('flounder', 'common'),
+  ('flounder_l', 'uncommon'),
+  ('flounder_m', 'common'),
+  ('flower_dress', 'uncommon'),
+  ('flower_pot', 'common'),
+  ('flower_pot_seed', 'common'),
+  ('flower_shirt', 'uncommon'),
+  ('flowery_wallpaper', 'common'),
+  ('flowery_wallpaper_seed', 'common'),
+  ('flute_note', 'common'),
+  ('flute_note_seed', 'common'),
+  ('foliage', 'common'),
+  ('foliage_seed', 'common'),
+  ('forest_cape', 'rare'),
+  ('fountain', 'rare'),
+  ('fountain_seed', 'rare'),
+  ('fridge', 'rare'),
+  ('fridge_seed', 'rare'),
+  ('froghat', 'common'),
+  ('froghat_seed', 'common'),
+  ('frost_block', 'uncommon'),
+  ('frost_block_seed', 'uncommon'),
+  ('frosted_quiff', 'rare'),
+  ('fruit_basket', 'common'),
+  ('fruit_basket_seed', 'common'),
+  ('fuel_can', 'uncommon'),
+  ('fuel_can_seed', 'uncommon'),
+  ('fuel_jar', 'rare'),
+  ('fuel_tank', 'rare'),
+  ('fuel_tank_seed', 'rare'),
+  ('furious_scythe', 'legendary'),
+  ('furious_scythe_seed', 'legendary'),
+  ('galaxy_block', 'epic'),
+  ('galaxy_block_seed', 'epic'),
+  ('galaxy_bun', 'epic'),
+  ('galaxy_cape', 'legendary'),
+  ('galaxy_spikes', 'epic'),
+  ('galaxy_wings', 'legendary'),
+  ('gamblers_visor', 'common'),
+  ('gamblers_visor_seed', 'common'),
+  ('gaming_pc', 'rare'),
+  ('gaming_pc_seed', 'rare'),
+  ('garden_scythe', 'rare'),
+  ('garden_scythe_seed', 'rare'),
+  ('generator', 'epic'),
+  ('generator_seed', 'epic'),
+  ('genie_teapot', 'rare'),
+  ('gift_box', 'uncommon'),
+  ('gift_box_seed', 'uncommon'),
+  ('gingerbread_block', 'uncommon'),
+  ('gingerbread_block_seed', 'uncommon'),
+  ('glass_block', 'common'),
+  ('glass_block_seed', 'common'),
+  ('glass_jar', 'uncommon'),
+  ('glass_jar_seed', 'uncommon'),
+  ('glass_pane', 'common'),
+  ('glass_pane_seed', 'common'),
+  ('globe', 'rare'),
+  ('globe_seed', 'rare'),
+  ('glow_block', 'rare'),
+  ('glow_block_seed', 'rare'),
+  ('glowing_black_crystal', 'legendary'),
+  ('glowing_black_crystal_wings', 'legendary'),
+  ('glowing_blue_crystal', 'legendary'),
+  ('glowing_crystal_wings', 'legendary'),
+  ('glowing_green_crystal', 'epic'),
+  ('glowing_green_crystal_wings', 'legendary'),
+  ('glowing_red_crystal', 'epic'),
+  ('glowing_red_crystal_wings', 'legendary'),
+  ('glowing_stone', 'rare'),
+  ('glowing_white_crystal', 'legendary'),
+  ('glowing_white_crystal_wings', 'legendary'),
+  ('gold_bracelet', 'rare'),
+  ('gold_bricks', 'rare'),
+  ('gold_bricks_seed', 'rare'),
+  ('gold_coins_block', 'epic'),
+  ('gold_coins_block_seed', 'epic'),
+  ('gold_rimmed_glasses', 'common'),
+  ('gold_rimmed_glasses_seed', 'common'),
+  ('gold_slippers', 'rare'),
+  ('gold_sneakers', 'rare'),
+  ('gold_tip_top_bun', 'rare'),
+  ('gold_vein', 'legendary'), -- (build p: Legendary now)
+  ('gold_vein_seed', 'legendary'),
+  ('gold_watch', 'rare'),
+  ('golden_aura', 'legendary'),
+  ('golden_block', 'rare'),
+  ('golden_block_seed', 'rare'),
+  ('golden_cape', 'legendary'),
+  ('golden_diaper', 'epic'),
+  ('golden_kraken_beard', 'legendary'),
+  ('golden_pickaxe', 'epic'),
+  ('golden_platform', 'rare'),
+  ('golden_platform_seed', 'rare'),
+  ('golden_rod', 'epic'),
+  ('golden_rod_seed', 'epic'),
+  ('golden_scythe', 'epic'),
+  ('golden_scythe_seed', 'epic'),
+  ('golden_shipwreck', 'basic'),
+  ('golden_shrimp', 'epic'),
+  ('golden_sword', 'epic'),
+  ('golden_sword_seed', 'epic'),
+  ('golden_trophy', 'rare'),
+  ('golden_trophy_seed', 'rare'),
+  ('golden_wings', 'legendary'),
+  ('grandfather_clock', 'rare'),
+  ('grandfather_clock_seed', 'rare'),
+  ('granite_block', 'uncommon'),
+  ('granite_block_seed', 'uncommon'),
+  ('grass', 'common'),
+  ('grass_seed', 'common'),
+  ('green_acid', 'uncommon'),
+  ('green_block', 'common'),
+  ('green_block_seed', 'common'),
+  ('green_blouse', 'common'),
+  ('green_blouse_seed', 'common'),
+  ('green_crystal', 'rare'),
+  ('green_crystal_block', 'epic'),
+  ('green_crystal_wall', 'rare'),
+  ('green_crystal_wings', 'legendary'),
+  ('green_laser_gate', 'rare'),
+  ('green_laser_gate_seed', 'rare'),
+  ('green_plaid_scarf', 'uncommon'),
+  ('green_polo', 'uncommon'),
+  ('green_shirt', 'common'),
+  ('green_shirt_seed', 'common'),
+  ('green_skirt', 'common'),
+  ('green_skirt_seed', 'common'),
+  ('green_slippers', 'common'),
+  ('green_tee', 'common'),
+  ('green_wallpaper', 'common'),
+  ('green_wallpaper_seed', 'common'),
+  ('grey_block', 'common'),
+  ('grey_block_seed', 'common'),
+  ('grey_hair_bun', 'common'),
+  ('grey_hair_bun_seed', 'common'),
+  ('grey_wallpaper', 'common'),
+  ('grey_wallpaper_seed', 'common'),
+  ('grimstone', 'uncommon'),
+  ('grimstone_seed', 'uncommon'),
+  ('guard_glass', 'rare'),
+  ('guard_glass_seed', 'rare'),
+  ('guitar', 'rare'),
+  ('guitar_seed', 'rare'),
+  ('hair_spiky_black', 'common'),
+  ('halloween_weather_machine', 'epic'),
+  ('halo', 'epic'),
+  ('halo_halo', 'uncommon'),
+  ('halo_halo_seed', 'uncommon'),
+  ('hammock', 'uncommon'),
+  ('hammock_seed', 'uncommon'),
+  ('hand_scythe', 'uncommon'),
+  ('hand_scythe_seed', 'uncommon'),
+  ('hanging_guytrap', 'uncommon'),
+  ('hanging_guytrap_seed', 'uncommon'),
+  ('hanging_vines', 'uncommon'),
+  ('hanging_vines_seed', 'uncommon'),
+  ('happy_joy_plaque', 'uncommon'),
+  ('happy_joy_plaque_seed', 'uncommon'),
+  ('hawaiian_polo', 'epic'),
+  ('hawaiian_polo_red', 'epic'),
+  ('hay_bale', 'common'),
+  ('hay_bale_seed', 'common'),
+  ('heart_bow', 'epic'),
+  ('heart_bow_seed', 'epic'),
+  ('heart_tee', 'common'),
+  ('heart_wall_bg', 'rare'),
+  ('heart_wall_bg_seed', 'rare'),
+  ('hero_cape', 'rare'),
+  ('hex_tiles', 'uncommon'),
+  ('hex_tiles_seed', 'uncommon'),
+  ('high_chair', 'uncommon'),
+  ('high_chair_seed', 'uncommon'),
+  ('holey_pants', 'common'),
+  ('hologram_board', 'epic'),
+  ('hologram_sign', 'rare'),
+  ('honey_jar', 'rare'),
+  ('honey_jar_seed', 'rare'),
+  ('honeycomb_block', 'uncommon'),
+  ('honeycomb_block_seed', 'uncommon'),
+  ('hospital_bed', 'uncommon'),
+  ('hospital_bed_seed', 'uncommon'),
+  ('hot_head', 'rare'),
+  ('hot_head_seed', 'rare'),
+  ('hot_pink_highlights', 'common'),
+  ('hot_pink_highlights_seed', 'common'),
+  ('house_entrance', 'uncommon'),
+  ('house_entrance_seed', 'uncommon'),
+  ('ice', 'uncommon'),
+  ('ice_bricks', 'uncommon'),
+  ('ice_bricks_seed', 'uncommon'),
+  ('ice_cream_block', 'uncommon'),
+  ('ice_cream_block_seed', 'uncommon'),
+  ('ice_cream_cart', 'rare'),
+  ('ice_cream_cart_seed', 'rare'),
+  ('ice_crust_block', 'uncommon'),
+  ('ice_crust_block_seed', 'uncommon'),
+  ('ice_platform', 'uncommon'),
+  ('ice_platform_seed', 'uncommon'),
+  ('ice_sculptures', 'uncommon'),
+  ('ice_sculptures_seed', 'uncommon'),
+  ('ice_seed', 'uncommon'),
+  ('ice_sword', 'epic'),
+  ('ice_sword_seed', 'epic'),
+  ('ice_wand', 'epic'),
+  ('ice_wand_seed', 'epic'),
+  ('iron_bars', 'uncommon'),
+  ('iron_bars_seed', 'uncommon'),
+  ('item_vacuum', 'epic'),
+  ('jack_o_lantern', 'uncommon'),
+  ('jack_o_lantern_seed', 'uncommon'),
+  ('jade_block', 'uncommon'),
+  ('jade_block_seed', 'uncommon'),
+  ('jam_jar', 'rare'),
+  ('jam_jar_seed', 'rare'),
+  ('jeans', 'common'),
+  ('jeans_seed', 'common'),
+  ('jelly_block', 'uncommon'),
+  ('jelly_block_seed', 'uncommon'),
+  ('jellyfish', 'common'),
+  ('jellyfish_l', 'uncommon'),
+  ('jellyfish_m', 'common'),
+  ('jetpack', 'rare'),
+  ('jetpack_seed', 'rare'),
+  ('just_one_boxing_glove', 'common'),
+  ('just_one_boxing_glove_seed', 'common'),
+  ('karaoke_machine', 'rare'),
+  ('karaoke_machine_seed', 'rare'),
+  ('katana', 'rare'),
+  ('katana_seed', 'rare'),
+  ('kraken_beard', 'rare'),
+  ('lantern', 'uncommon'),
+  ('lantern_seed', 'uncommon'),
+  ('laser_eyes', 'epic'),
+  ('laser_eyes_seed', 'epic'),
+  ('laser_gun', 'epic'),
+  ('lattice_background', 'common'),
+  ('lattice_background_seed', 'common'),
+  ('lava', 'uncommon'),
+  ('lava_lamp', 'rare'),
+  ('lava_lamp_seed', 'rare'),
+  ('lava_rock', 'uncommon'),
+  ('lava_rock_seed', 'uncommon'),
+  ('lava_seed', 'uncommon'),
+  ('lavender_gown', 'epic'),
+  ('lavender_swept_hair', 'rare'),
+  ('leaf_block', 'common'),
+  ('leaf_block_seed', 'common'),
+  ('leaf_blower', 'rare'),
+  ('leaf_blower_seed', 'rare'),
+  ('leaf_crown', 'epic'),
+  ('leaf_platform', 'uncommon'),
+  ('leaf_platform_seed', 'uncommon'),
+  ('leaf_wings', 'epic'),
+  ('legendary_stone', 'legendary'),
+  ('letter_a', 'basic'),
+  ('letter_a_seed', 'basic'),
+  ('letter_b', 'basic'),
+  ('letter_b_seed', 'basic'),
+  ('letter_c', 'basic'),
+  ('letter_c_seed', 'basic'),
+  ('letter_d', 'basic'),
+  ('letter_d_seed', 'basic'),
+  ('letter_e', 'basic'),
+  ('letter_e_seed', 'basic'),
+  ('letter_f', 'basic'),
+  ('letter_f_seed', 'basic'),
+  ('letter_g', 'basic'),
+  ('letter_g_seed', 'basic'),
+  ('letter_h', 'basic'),
+  ('letter_h_seed', 'basic'),
+  ('letter_i', 'basic'),
+  ('letter_i_seed', 'basic'),
+  ('letter_j', 'basic'),
+  ('letter_j_seed', 'basic'),
+  ('letter_k', 'basic'),
+  ('letter_k_seed', 'basic'),
+  ('letter_l', 'basic'),
+  ('letter_l_seed', 'basic'),
+  ('letter_m', 'basic'),
+  ('letter_m_seed', 'basic'),
+  ('letter_n', 'basic'),
+  ('letter_n_seed', 'basic'),
+  ('letter_o', 'basic'),
+  ('letter_o_seed', 'basic'),
+  ('letter_p', 'basic'),
+  ('letter_p_seed', 'basic'),
+  ('letter_q', 'basic'),
+  ('letter_q_seed', 'basic'),
+  ('letter_r', 'basic'),
+  ('letter_r_seed', 'basic'),
+  ('letter_s', 'basic'),
+  ('letter_s_seed', 'basic'),
+  ('letter_t', 'basic'),
+  ('letter_t_seed', 'basic'),
+  ('letter_u', 'basic'),
+  ('letter_u_seed', 'basic'),
+  ('letter_v', 'basic'),
+  ('letter_v_seed', 'basic'),
+  ('letter_w', 'basic'),
+  ('letter_w_seed', 'basic'),
+  ('letter_x', 'basic'),
+  ('letter_x_seed', 'basic'),
+  ('letter_y', 'basic'),
+  ('letter_y_seed', 'basic'),
+  ('letter_z', 'basic'),
+  ('letter_z_seed', 'basic'),
+  ('lift_gate', 'rare'),
+  ('lift_gate_seed', 'rare'),
+  ('lilac_slippers', 'common'),
+  ('lollipop', 'uncommon'),
+  ('lollipop_seed', 'uncommon'),
+  ('long_black_hair', 'common'),
+  ('long_black_hair_seed', 'common'),
+  ('lucky_cat', 'rare'),
+  ('lucky_cat_seed', 'rare'),
+  ('magic_bacon_wallpaper', 'rare'),
+  ('magic_bacon_wallpaper_seed', 'rare'),
+  ('magic_mushroom', 'rare'),
+  ('magic_mushroom_seed', 'rare'),
+  ('magma_block', 'rare'),
+  ('magma_block_seed', 'rare'),
+  ('mailbox', 'basic'),
+  ('mailbox_seed', 'basic'),
+  ('mannequin', 'uncommon'),
+  ('mannequin_seed', 'uncommon'),
+  ('maple_plank_block', 'uncommon'),
+  ('marble_block', 'uncommon'),
+  ('marble_block_seed', 'uncommon'),
+  ('marble_pillar', 'uncommon'),
+  ('marble_pillar_seed', 'uncommon'),
+  ('marlin', 'rare'),
+  ('marlin_l', 'legendary'),
+  ('marlin_m', 'rare'),
+  ('messy_auburn_tresses', 'common'),
+  ('messy_auburn_tresses_seed', 'common'),
+  ('mic_stand', 'uncommon'),
+  ('mic_stand_seed', 'uncommon'),
+  ('microphone', 'rare'),
+  ('mint_ponytail', 'rare'),
+  ('mint_top_bun', 'rare'),
+  ('moon_rock', 'uncommon'),
+  ('moon_rock_seed', 'uncommon'),
+  ('moon_rock_wall', 'common'),
+  ('moon_rock_wall_seed', 'common'),
+  ('moon_sand', 'uncommon'),
+  ('moon_sand_seed', 'uncommon'),
+  ('moon_sand_wall', 'common'),
+  ('moon_sand_wall_seed', 'common'),
+  ('mosaic_tiles', 'uncommon'),
+  ('mosaic_tiles_seed', 'uncommon'),
+  ('mossy_bricks', 'common'),
+  ('mossy_bricks_seed', 'common'),
+  ('mossy_cobblestone', 'uncommon'),
+  ('mossy_cobblestone_seed', 'uncommon'),
+  ('mud_glob', 'common'),
+  ('mud_glob_seed', 'common'),
+  ('mushroom', 'common'),
+  ('mushroom_block', 'uncommon'),
+  ('mushroom_block_seed', 'uncommon'),
+  ('mushroom_seed', 'common'),
+  ('music_tee', 'rare'),
+  ('name_changer', 'epic'),
+  ('navy_polo', 'uncommon'),
+  ('needle_trap', 'rare'),
+  ('needle_trap_seed', 'rare'),
+  ('neon_blue', 'rare'),
+  ('neon_blue_seed', 'rare'),
+  ('neon_gray', 'rare'),
+  ('neon_gray_seed', 'rare'),
+  ('neon_green', 'rare'),
+  ('neon_green_seed', 'rare'),
+  ('neon_lights', 'rare'),
+  ('neon_lights_seed', 'rare'),
+  ('neon_off', 'rare'),
+  ('neon_off_seed', 'rare'),
+  ('neon_orange', 'rare'),
+  ('neon_orange_seed', 'rare'),
+  ('neon_platform', 'rare'),
+  ('neon_platform_seed', 'rare'),
+  ('neon_purple', 'rare'),
+  ('neon_purple_seed', 'rare'),
+  ('neon_red', 'rare'),
+  ('neon_red_seed', 'rare'),
+  ('neon_white', 'rare'),
+  ('neon_white_seed', 'rare'),
+  ('neon_yellow', 'rare'),
+  ('neon_yellow_seed', 'rare'),
+  ('night_weather_machine', 'epic'),
+  ('nipa_thatch', 'common'),
+  ('nipa_thatch_seed', 'common'),
+  ('noah_rod', 'legendary'),
+  ('noah_rod_seed', 'legendary'),
+  ('note_block', 'uncommon'),
+  ('note_block_seed', 'uncommon'),
+  ('notice_board', 'uncommon'),
+  ('notice_board_seed', 'uncommon'),
+  ('number_0', 'basic'),
+  ('number_0_seed', 'basic'),
+  ('number_1', 'basic'),
+  ('number_1_seed', 'basic'),
+  ('number_2', 'basic'),
+  ('number_2_seed', 'basic'),
+  ('number_3', 'basic'),
+  ('number_3_seed', 'basic'),
+  ('number_4', 'basic'),
+  ('number_4_seed', 'basic'),
+  ('number_5', 'basic'),
+  ('number_5_seed', 'basic'),
+  ('number_6', 'basic'),
+  ('number_6_seed', 'basic'),
+  ('number_7', 'basic'),
+  ('number_7_seed', 'basic'),
+  ('number_8', 'basic'),
+  ('number_8_seed', 'basic'),
+  ('number_9', 'basic'),
+  ('number_9_seed', 'basic'),
+  ('obsidian_block', 'rare'),
+  ('obsidian_block_seed', 'rare'),
+  ('octagon_wall_sign', 'rare'),
+  ('octagon_wall_sign_seed', 'rare'),
+  ('octopus', 'uncommon'),
+  ('octopus_l', 'rare'),
+  ('octopus_m', 'uncommon'),
+  ('oil_drum', 'rare'),
+  ('oil_drum_seed', 'rare'),
+  ('old_shoe', 'basic'),
+  ('old_timey_hat', 'common'),
+  ('old_timey_hat_seed', 'common'),
+  ('olde_timey_radio', 'uncommon'),
+  ('olde_timey_radio_seed', 'uncommon'),
+  ('onyx_block', 'rare'),
+  ('onyx_block_seed', 'rare'),
+  ('orange', 'common'),
+  ('orange_block', 'common'),
+  ('orange_block_seed', 'common'),
+  ('orange_seed', 'common'),
+  ('orange_wallpaper', 'common'),
+  ('orange_wallpaper_seed', 'common'),
+  ('painting_dink_duck', 'common'),
+  ('painting_dink_duck_seed', 'common'),
+  ('painting_yerfdog', 'common'),
+  ('painting_yerfdog_seed', 'common'),
+  ('paper_umbrella', 'rare'),
+  ('paper_umbrella_seed', 'rare'),
+  ('park_bench', 'uncommon'),
+  ('park_bench_seed', 'uncommon'),
+  ('parol', 'rare'),
+  ('parol_seed', 'rare'),
+  ('password_door', 'rare'),
+  ('password_door_seed', 'rare'),
+  ('pastel_aqua_bg', 'common'),
+  ('pastel_aqua_bg_seed', 'common'),
+  ('pastel_blue_bg', 'common'),
+  ('pastel_blue_bg_seed', 'common'),
+  ('pastel_check_bg', 'rare'),
+  ('pastel_check_bg_seed', 'rare'),
+  ('pastel_cream_bg', 'common'),
+  ('pastel_cream_bg_seed', 'common'),
+  ('pastel_lavender_bg', 'common'),
+  ('pastel_lavender_bg_seed', 'common'),
+  ('pastel_mint_bg', 'common'),
+  ('pastel_mint_bg_seed', 'common'),
+  ('pastel_peach_bg', 'common'),
+  ('pastel_peach_bg_seed', 'common'),
+  ('pastel_pink_bg', 'common'),
+  ('pastel_pink_bg_seed', 'common'),
+  ('pastel_tiles', 'uncommon'),
+  ('pastel_tiles_seed', 'uncommon'),
+  ('pastel_yellow_bg', 'common'),
+  ('pastel_yellow_bg_seed', 'common'),
+  ('patent_leather_shoes', 'common'),
+  ('patent_leather_shoes_seed', 'common'),
+  ('pearl_block', 'rare'),
+  ('pearl_block_seed', 'rare'),
+  ('pencil', 'common'),
+  ('pencil_seed', 'common'),
+  ('pet_arctic_fox', 'rare'),
+  ('pet_bat', 'rare'),
+  ('pet_bee', 'common'),
+  ('pet_bone_dragon', 'legendary'),
+  ('pet_bunny', 'common'),
+  ('pet_chick', 'common'),
+  ('pet_cyborg', 'legendary'),
+  ('pet_farmer_cat', 'rare'),
+  ('pet_fox', 'rare'),
+  ('pet_glacier_dragon', 'legendary'),
+  ('pet_green_dragon', 'legendary'),
+  ('pet_husky', 'rare'),
+  ('pet_ice_dragon', 'legendary'),
+  ('pet_jade_dragon', 'legendary'),
+  ('pet_jellyfish', 'rare'),
+  ('pet_kitten', 'common'),
+  ('pet_lion', 'rare'),
+  ('pet_panda', 'rare'),
+  ('pet_parrot', 'rare'),
+  ('pet_pearl_dragon', 'legendary'),
+  ('pet_penguin', 'rare'),
+  ('pet_phoenix', 'legendary'),
+  ('pet_piglet', 'common'),
+  ('pet_puppy', 'common'),
+  ('pet_raptor', 'legendary'),
+  ('pet_shadow_dragon', 'legendary'),
+  ('pet_shark', 'rare'),
+  ('pet_snow_owl', 'rare'),
+  ('pet_sprout_slime', 'common'),
+  ('pet_trex', 'legendary'),
+  ('pet_turtle', 'common'),
+  ('pet_unicorn', 'legendary'),
+  ('phoenix_wings', 'legendary'),
+  ('piano', 'uncommon'),
+  ('piano_note', 'common'),
+  ('piano_note_seed', 'common'),
+  ('piano_seed', 'uncommon'),
+  ('pickaxe', 'rare'),
+  ('pickaxe_seed', 'rare'),
+  ('picket_fence', 'common'),
+  ('picket_fence_seed', 'common'),
+  ('piggy_bank', 'rare'),
+  ('piggy_bank_seed', 'rare'),
+  ('pigtails', 'common'),
+  ('pigtails_seed', 'common'),
+  ('pink_flats', 'common'),
+  ('pink_fluffy_scarf', 'rare'),
+  ('pink_ombre_long_hair', 'rare'),
+  ('pink_polo', 'uncommon'),
+  ('pink_skirt', 'common'),
+  ('pink_slippers', 'common'),
+  ('pink_sundress', 'uncommon'),
+  ('pirate_beard', 'rare'),
+  ('pirate_flag', 'rare'),
+  ('pirate_flag_seed', 'rare'),
+  ('pirate_hat', 'rare'),
+  ('plaid_skirt', 'uncommon'),
+  ('plain_apricot_bg', 'rare'),
+  ('plain_apricot_bg_seed', 'rare'),
+  ('plain_ash_gray_bg', 'rare'),
+  ('plain_ash_gray_bg_seed', 'rare'),
+  ('plain_blue_gray_bg', 'epic'),
+  ('plain_blue_gray_bg_seed', 'epic'),
+  ('plain_butter_bg', 'rare'),
+  ('plain_butter_bg_seed', 'rare'),
+  ('plain_charcoal_bg', 'rare'),
+  ('plain_charcoal_bg_seed', 'rare'),
+  ('plain_coral_bg', 'rare'),
+  ('plain_coral_bg_seed', 'rare'),
+  ('plain_dark_gray_bg', 'rare'),
+  ('plain_dark_gray_bg_seed', 'rare'),
+  ('plain_graphite_bg', 'uncommon'),
+  ('plain_graphite_bg_seed', 'uncommon'),
+  ('plain_gray_bg', 'rare'),
+  ('plain_gray_bg_seed', 'rare'),
+  ('plain_iron_gray_bg', 'rare'),
+  ('plain_iron_gray_bg_seed', 'rare'),
+  ('plain_lilac_bg', 'epic'),
+  ('plain_lilac_bg_seed', 'epic'),
+  ('plain_mauve_bg', 'epic'),
+  ('plain_mauve_bg_seed', 'epic'),
+  ('plain_periwinkle_bg', 'rare'),
+  ('plain_periwinkle_bg_seed', 'rare'),
+  ('plain_portal', 'rare'),
+  ('plain_portal_seed', 'rare'),
+  ('plain_rose_bg', 'rare'),
+  ('plain_rose_bg_seed', 'rare'),
+  ('plain_sage_bg', 'rare'),
+  ('plain_sage_bg_seed', 'rare'),
+  ('plain_sand_bg', 'uncommon'),
+  ('plain_sand_bg_seed', 'uncommon'),
+  ('plain_sky_bg', 'rare'),
+  ('plain_sky_bg_seed', 'rare'),
+  ('plain_slate_bg', 'rare'),
+  ('plain_slate_bg_seed', 'rare'),
+  ('plain_teal_bg', 'rare'),
+  ('plain_teal_bg_seed', 'rare'),
+  ('plain_warm_gray_bg', 'uncommon'),
+  ('plain_warm_gray_bg_seed', 'uncommon'),
+  ('plain_white_tee', 'common'),
+  ('plain_white_tee_seed', 'common'),
+  ('plasma_sword', 'legendary'),
+  ('plasma_sword_seed', 'legendary'),
+  ('plumbing', 'common'),
+  ('plumbing_seed', 'common'),
+  ('pointy_sign', 'common'),
+  ('pointy_sign_seed', 'common'),
+  ('polka_dot_bg', 'rare'),
+  ('polka_dot_bg_seed', 'rare'),
+  ('polka_dot_block', 'common'),
+  ('polka_dot_block_seed', 'common'),
+  ('pool_tiles', 'common'),
+  ('pool_tiles_seed', 'common'),
+  ('poppy', 'common'),
+  ('poppy_seed', 'common'),
+  ('portal', 'rare'),
+  ('portal_seed', 'rare'),
+  ('portcullis', 'uncommon'),
+  ('portcullis_seed', 'uncommon'),
+  ('pot_of_gold', 'none'), -- (build p: taken out of the game)
+  ('pot_of_gold_seed', 'none'),
+  ('potted_fern', 'common'),
+  ('potted_fern_seed', 'common'),
+  ('potted_monstera', 'uncommon'),
+  ('potted_monstera_seed', 'uncommon'),
+  ('potted_tulips', 'common'),
+  ('potted_tulips_seed', 'common'),
+  ('pressure_booster', 'rare'),
+  ('pressure_booster_seed', 'rare'),
+  ('pressure_plate', 'uncommon'),
+  ('pressure_plate_seed', 'uncommon'),
+  ('prism_ring', 'legendary'),
+  ('punch_jammer', 'rare'),
+  ('purple_block', 'common'),
+  ('purple_block_seed', 'common'),
+  ('purple_mohawk', 'common'),
+  ('purple_mohawk_seed', 'common'),
+  ('purple_ombre_long_hair', 'rare'),
+  ('purple_thong', 'common'),
+  ('purple_thong_seed', 'common'),
+  ('purple_wallpaper', 'common'),
+  ('purple_wallpaper_seed', 'common'),
+  ('question_door', 'rare'),
+  ('question_door_seed', 'rare'),
+  ('quilt_block', 'uncommon'),
+  ('quilt_block_seed', 'uncommon'),
+  ('rain_weather_machine', 'epic'),
+  ('rainbow_afro', 'epic'),
+  ('silver_wild_hair', 'rare'),
+  ('silver_full_beard', 'rare'),
+  ('boss_shades', 'rare'),
+  ('rainbow_arch', 'rare'),
+  ('rainbow_arch_seed', 'rare'),
+  ('rainbow_block', 'rare'),
+  ('rainbow_block_seed', 'rare'),
+  ('rainbow_long_hair', 'epic'),
+  ('rainbow_scarf', 'rare'),
+  ('rainbow_shift_block', 'rare'),
+  ('rainbow_shift_block_seed', 'rare'),
+  ('rainbow_wristband', 'uncommon'),
+  ('reaper_scythe', 'legendary'),
+  ('red_aura', 'legendary'),
+  ('red_bandana', 'common'),
+  ('red_block', 'common'),
+  ('red_block_seed', 'common'),
+  ('red_bricks', 'common'),
+  ('red_bricks_seed', 'common'),
+  ('red_coat', 'common'),
+  ('red_coat_seed', 'common'),
+  ('red_crystal', 'rare'),
+  ('red_crystal_block', 'epic'),
+  ('red_crystal_gate', 'epic'),
+  ('red_crystal_wall', 'rare'),
+  ('red_crystal_wings', 'legendary'),
+  ('red_curtain', 'basic'),
+  ('red_fire_eyes', 'legendary'),
+  ('red_flannel', 'uncommon'),
+  ('red_flats', 'common'),
+  ('red_glass_block', 'uncommon'),
+  ('red_glass_block_seed', 'uncommon'),
+  ('red_hair', 'uncommon'),
+  ('red_hair_seed', 'uncommon'),
+  ('red_knit_scarf', 'common'),
+  ('red_laser_gate', 'rare'),
+  ('red_laser_gate_seed', 'rare'),
+  ('red_lock', 'uncommon'),
+  ('red_party_dress', 'rare'),
+  ('red_polo', 'uncommon'),
+  ('red_riding_hood', 'common'),
+  ('red_riding_hood_seed', 'common'),
+  ('red_sneakers', 'uncommon'),
+  ('red_streak_bob', 'rare'),
+  ('red_tee', 'common'),
+  ('red_wallpaper', 'common'),
+  ('red_wallpaper_seed', 'common'),
+  ('red_wood_wall', 'common'),
+  ('red_wood_wall_seed', 'common'),
+  ('red_wristband', 'common'),
+  ('referee_shirt', 'common'),
+  ('referee_shirt_seed', 'common'),
+  ('retro_tv', 'rare'),
+  ('retro_tv_seed', 'rare'),
+  ('rice_cooker', 'uncommon'),
+  ('rice_cooker_seed', 'uncommon'),
+  ('ride_car', 'epic'),
+  ('ride_carpet', 'legendary'),
+  ('ride_cloud', 'legendary'),
+  ('ride_harvester', 'legendary'),
+  ('ride_horse', 'epic'),
+  ('ride_leaf', 'legendary'),
+  ('ride_leaf_green', 'legendary'),
+  ('ride_leaf_yellow', 'legendary'),
+  ('ride_truck', 'legendary'),
+  ('ringer_tee', 'uncommon'),
+  ('rock', 'common'),
+  ('rock_background', 'common'),
+  ('rock_background_seed', 'common'),
+  ('rock_seed', 'common'),
+  ('rocker_jeans', 'rare'),
+  ('rocker_sneakers', 'rare'),
+  ('rocket_ship', 'epic'),
+  ('rocket_ship_seed', 'epic'),
+  ('rocking_horse', 'rare'),
+  ('rocking_horse_seed', 'rare'),
+  ('romantic_bush_block', 'uncommon'),
+  ('romantic_bush_block_seed', 'uncommon'),
+  ('romantic_bushes', 'uncommon'),
+  ('romantic_bushes_seed', 'uncommon'),
+  ('rooster_hat', 'common'),
+  ('rooster_hat_seed', 'common'),
+  ('rose', 'common'),
+  ('rose_quartz_block', 'rare'),
+  ('rose_quartz_block_seed', 'rare'),
+  ('rose_seed', 'common'),
+  ('roulette_block', 'rare'),
+  ('roulette_block_seed', 'rare'),
+  ('royal_cape', 'epic'),
+  ('royal_silk_scarf', 'epic'),
+  ('royal_velvet', 'rare'),
+  ('royal_velvet_seed', 'rare'),
+  ('rubber_duck', 'uncommon'),
+  ('rubber_duck_seed', 'uncommon'),
+  ('ruby_block', 'rare'),
+  ('ruby_block_seed', 'rare'),
+  ('ruffle_blouse', 'uncommon'),
+  ('ruin_bricks', 'uncommon'),
+  ('ruin_bricks_seed', 'uncommon'),
+  ('rustic_fence', 'common'),
+  ('rustic_fence_seed', 'common'),
+  ('rusty_metal', 'uncommon'),
+  ('rusty_metal_seed', 'uncommon'),
+  ('rvb_console', 'none'),
+  ('sailor_dress', 'uncommon'),
+  ('sailor_shirt', 'uncommon'),
+  ('sakura_leaves', 'uncommon'),
+  ('sakura_leaves_seed', 'uncommon'),
+  ('sand', 'common'),
+  ('sand_castle', 'rare'),
+  ('sand_castle_seed', 'rare'),
+  ('sand_seed', 'common'),
+  ('sandstone', 'uncommon'),
+  ('sandstone_bricks', 'common'),
+  ('sandstone_bricks_seed', 'common'),
+  ('sandstone_seed', 'uncommon'),
+  ('santa_hat', 'common'),
+  ('santa_hat_seed', 'common'),
+  ('santa_pants', 'common'),
+  ('santa_pants_seed', 'common'),
+  ('santa_vest', 'common'),
+  ('santa_vest_seed', 'common'),
+  ('sapphire_block', 'rare'),
+  ('sapphire_block_seed', 'rare'),
+  ('saw_blade', 'rare'),
+  ('saw_blade_seed', 'rare'),
+  ('scarecrow', 'uncommon'),
+  ('scarecrow_seed', 'uncommon'),
+  ('school_desk', 'common'),
+  ('school_desk_seed', 'common'),
+  ('screen_door', 'common'),
+  ('screen_door_seed', 'common'),
+  ('sea_turtle', 'uncommon'),
+  ('sea_turtle_l', 'rare'),
+  ('sea_turtle_m', 'uncommon'),
+  ('seahorse', 'common'),
+  ('seahorse_l', 'uncommon'),
+  ('seahorse_m', 'common'),
+  ('seashell', 'uncommon'),
+  ('seashell_seed', 'uncommon'),
+  ('seaweed', 'common'),
+  ('seaweed_seed', 'common'),
+  ('secret_passage', 'rare'),
+  ('secret_passage_seed', 'rare'),
+  ('seraph_wings', 'epic'),
+  ('set_astronaut', 'none'),
+  ('set_autumn_red', 'none'),
+  ('set_biker', 'none'),
+  ('set_cat_hoodie', 'none'),
+  ('set_chill_guy', 'none'),
+  ('set_cozy_night', 'none'),
+  ('set_factory', 'none'),
+  ('set_fishing', 'none'),
+  ('set_gentleman', 'none'),
+  ('set_lady_green', 'none'),
+  ('set_lolo', 'none'),
+  ('set_music', 'none'),
+  ('set_pastel_pop', 'none'),
+  ('set_pink_rock', 'none'),
+  ('set_rvb', 'none'),
+  ('set_skull_beanie', 'none'),
+  ('set_sporty', 'none'),
+  ('set_stage', 'none'),
+  ('set_sunshine', 'none'),
+  ('sexy_boxers', 'common'),
+  ('sexy_boxers_seed', 'common'),
+  ('shades', 'common'),
+  ('shades_seed', 'common'),
+  ('shadow_wings', 'legendary'),
+  ('shallot_mustache', 'common'),
+  ('shallot_mustache_seed', 'common'),
+  ('shark', 'rare'),
+  ('shark_l', 'legendary'),
+  ('shark_m', 'rare'),
+  ('ship_flag', 'basic'),
+  ('shipwreck', 'basic'),
+  ('shovel', 'uncommon'),
+  ('shrimp', 'rare'),
+  ('sidewalk', 'common'),
+  ('sidewalk_seed', 'common'),
+  ('sign', 'common'),
+  ('sign_seed', 'common'),
+  ('signal_jammer', 'rare'),
+  ('silver_streak_long_hair', 'rare'),
+  ('silver_watch', 'uncommon'),
+  ('skeleton', 'epic'),
+  ('skeleton_seed', 'epic'),
+  ('ski_cap', 'common'),
+  ('ski_cap_seed', 'common'),
+  ('skull_sign', 'uncommon'),
+  ('skull_sign_seed', 'uncommon'),
+  ('skull_tee', 'rare'),
+  ('sky_polo', 'uncommon'),
+  ('slate_tiles', 'common'),
+  ('slate_tiles_seed', 'common'),
+  ('slide_ice', 'uncommon'),
+  ('slide_ice_seed', 'uncommon'),
+  ('smarty_pants', 'uncommon'),
+  ('smarty_pants_seed', 'uncommon'),
+  ('smores_staff', 'rare'),
+  ('smores_staff_seed', 'rare'),
+  ('snail', 'uncommon'),
+  ('snow_block', 'common'),
+  ('snow_block_seed', 'common'),
+  ('snow_globe', 'rare'),
+  ('snow_globe_seed', 'rare'),
+  ('snow_weather_machine', 'epic'),
+  ('snowflake_scarf', 'uncommon'),
+  ('snowman', 'uncommon'),
+  ('snowman_seed', 'uncommon'),
+  ('snowy_rocks', 'rare'),
+  ('snowy_rocks_seed', 'rare'),
+  ('solar_panel', 'rare'),
+  ('solar_panel_seed', 'rare'),
+  ('space_boots', 'epic'),
+  ('space_helmet', 'epic'),
+  ('space_suit', 'epic'),
+  ('spear', 'uncommon'),
+  ('spear_seed', 'uncommon'),
+  ('spike_gate', 'rare'),
+  ('spike_gate_seed', 'rare'),
+  ('spikey_hair', 'common'),
+  ('spikey_hair_seed', 'common'),
+  ('spin_trigger', 'rare'),
+  ('spin_trigger_seed', 'rare'),
+  ('splash_ticket', 'none'),
+  ('sponge', 'uncommon'),
+  ('sponge_seed', 'uncommon'),
+  ('spotlight', 'rare'),
+  ('spotlight_seed', 'rare'),
+  ('spring', 'rare'),
+  ('spring_seed', 'rare'),
+  ('squid', 'uncommon'),
+  ('squid_l', 'rare'),
+  ('squid_m', 'uncommon'),
+  ('stage_block', 'basic'),
+  ('stage_platform', 'basic'),
+  ('stage_truss', 'basic'),
+  ('stained_glass', 'rare'),
+  ('stained_glass_seed', 'rare'),
+  ('staircase', 'common'),
+  ('staircase_seed', 'common'),
+  ('stalactite', 'common'),
+  ('stalactite_seed', 'common'),
+  ('star_tee', 'uncommon'),
+  ('starfish', 'uncommon'),
+  ('starfish_seed', 'uncommon'),
+  ('starry_block', 'rare'),
+  ('starry_block_seed', 'rare'),
+  ('starry_wall_bg', 'epic'),
+  ('starry_wall_bg_seed', 'epic'),
+  ('starter_pack', 'none'),
+  ('steam_pipe', 'uncommon'),
+  ('steam_pipe_seed', 'uncommon'),
+  ('steel_beam', 'uncommon'),
+  ('steel_beam_seed', 'uncommon'),
+  ('steel_block', 'uncommon'),
+  ('steel_block_seed', 'uncommon'),
+  ('steel_bridge', 'rare'),
+  ('steel_bridge_seed', 'rare'),
+  ('steel_grate', 'uncommon'),
+  ('steel_grate_seed', 'uncommon'),
+  ('steel_screen_door', 'uncommon'),
+  ('steel_screen_door_seed', 'uncommon'),
+  ('stingray', 'rare'),
+  ('stingray_l', 'legendary'),
+  ('stingray_m', 'rare'),
+  ('stinky_socks', 'common'),
+  ('stinky_socks_seed', 'common'),
+  ('stone_pusher_down', 'rare'),
+  ('stone_pusher_down_seed', 'rare'),
+  ('stone_pusher_left', 'rare'),
+  ('stone_pusher_left_seed', 'rare'),
+  ('stone_pusher_right', 'rare'),
+  ('stone_pusher_right_seed', 'rare'),
+  ('stone_pusher_up', 'rare'),
+  ('stone_pusher_up_seed', 'rare'),
+  ('stone_wall', 'common'),
+  ('stone_wall_seed', 'common'),
+  ('storage_chest', 'uncommon'),
+  ('storage_chest_seed', 'uncommon'),
+  ('stove', 'rare'),
+  ('stove_seed', 'rare'),
+  ('street_sign', 'uncommon'),
+  ('street_sign_seed', 'uncommon'),
+  ('streetlamp', 'uncommon'),
+  ('streetlamp_seed', 'uncommon'),
+  ('striped_polo', 'rare'),
+  ('striped_tee', 'uncommon'),
+  ('stripey_wallpaper', 'common'),
+  ('stripey_wallpaper_seed', 'common'),
+  ('suction_hose', 'rare'),
+  ('suction_hose_seed', 'rare'),
+  ('suction_intake', 'rare'),
+  ('suction_intake_seed', 'rare'),
+  ('sugar_cane', 'uncommon'),
+  ('sugar_cane_seed', 'uncommon'),
+  ('sunflower', 'uncommon'),
+  ('sunflower_seed', 'uncommon'),
+  ('sunny_weather_machine', 'epic'),
+  ('sunset_ponytail', 'rare'),
+  ('sunset_tee', 'rare'),
+  ('super_bounce', 'rare'),
+  ('super_bounce_seed', 'rare'),
+  ('super_crate_box', 'uncommon'),
+  ('super_crate_box_seed', 'uncommon'),
+  ('super_saiyan_hair', 'legendary'),
+  ('sword', 'uncommon'),
+  ('sword_seed', 'uncommon'),
+  ('tan_shirt', 'common'),
+  ('tan_shirt_seed', 'common'),
+  ('tank_lid', 'uncommon'),
+  ('tank_lid_seed', 'uncommon'),
+  ('teddy_bear', 'rare'),
+  ('teddy_bear_seed', 'rare'),
+  ('telescope', 'rare'),
+  ('telescope_seed', 'rare'),
+  ('terracotta_block', 'common'),
+  ('terracotta_block_seed', 'common'),
+  ('thunder_hammer', 'legendary'),
+  ('thunder_hammer_seed', 'legendary'),
+  ('ticket_master', 'none'),
+  ('tie_dyed_shirt', 'uncommon'),
+  ('tie_dyed_shirt_seed', 'uncommon'),
+  ('tiger_block', 'uncommon'),
+  ('tiger_block_seed', 'uncommon'),
+  ('tiny_angel_wings', 'epic'),
+  ('tiny_devil_wings', 'epic'),
+  ('tiny_vampire_wings', 'epic'),
+  ('tire_stack', 'rare'),
+  ('tire_stack_seed', 'rare'),
+  ('toilet', 'uncommon'),
+  ('toilet_seed', 'uncommon'),
+  ('tomato', 'common'),
+  ('tomato_seed', 'common'),
+  ('tombstone', 'uncommon'),
+  ('tombstone_seed', 'uncommon'),
+  ('top_hat', 'uncommon'),
+  ('top_hat_seed', 'uncommon'),
+  ('topaz_block', 'rare'),
+  ('topaz_block_seed', 'rare'),
+  ('torch', 'uncommon'),
+  ('torch_seed', 'uncommon'),
+  ('toy_block', 'uncommon'),
+  ('toy_block_seed', 'uncommon'),
+  ('toy_bricks', 'uncommon'),
+  ('toy_bricks_seed', 'uncommon'),
+  ('toy_car', 'uncommon'),
+  ('toy_car_seed', 'uncommon'),
+  ('toy_robot', 'rare'),
+  ('toy_robot_seed', 'rare'),
+  ('toy_rocket', 'rare'),
+  ('toy_rocket_seed', 'rare'),
+  ('track_shorts', 'uncommon'),
+  ('traffic_cone', 'common'),
+  ('traffic_cone_seed', 'common'),
+  ('treasure_chest', 'epic'),
+  ('treasure_chest_seed', 'epic'),
+  ('tuxedo', 'rare'),
+  ('tuxedo_seed', 'rare'),
+  ('tv_head', 'rare'),
+  ('tv_head_seed', 'rare'),
+  ('unicorn_hair', 'rare'),
+  ('unicorn_hair_seed', 'rare'),
+  ('unicorn_plush', 'rare'),
+  ('unicorn_plush_seed', 'rare'),
+  ('vampire_cape', 'epic'),
+  ('vampire_eyes', 'epic'),
+  ('vampire_face', 'epic'),
+  ('vampire_wings', 'legendary'),
+  ('vending_machine', 'rare'),
+  ('venus_guytrap', 'uncommon'),
+  ('venus_guytrap_seed', 'uncommon'),
+  ('vine_wall', 'common'),
+  ('vine_wall_seed', 'common'),
+  ('viney_block', 'common'),
+  ('viney_block_seed', 'common'),
+  ('viney_wallpaper', 'common'),
+  ('viney_wallpaper_seed', 'common'),
+  ('war_hammer', 'rare'),
+  ('war_hammer_seed', 'rare'),
+  ('water_bucket', 'common'),
+  ('water_bucket_seed', 'common'),
+  ('water_dispenser', 'uncommon'),
+  ('water_dispenser_seed', 'uncommon'),
+  ('water_gun', 'uncommon'),
+  ('water_gun_seed', 'uncommon'),
+  ('watermelon_block', 'uncommon'),
+  ('watermelon_block_seed', 'uncommon'),
+  ('wave_wall_bg', 'rare'),
+  ('wave_wall_bg_seed', 'rare'),
+  ('wedding_dress', 'rare'),
+  ('wedding_dress_seed', 'rare'),
+  ('wet_sponge', 'uncommon'),
+  ('whale', 'legendary'),
+  ('whale_l', 'legendary'),
+  ('whale_m', 'legendary'),
+  ('white_aura', 'legendary'),
+  ('white_beard', 'common'),
+  ('white_beard_seed', 'common'),
+  ('white_block', 'common'),
+  ('white_block_seed', 'common'),
+  ('white_bricks', 'common'),
+  ('white_bricks_seed', 'common'),
+  ('white_crystal', 'epic'),
+  ('white_crystal_block', 'epic'),
+  ('white_crystal_wall', 'rare'),
+  ('white_crystal_wings', 'legendary'),
+  ('white_flats', 'common'),
+  ('white_polo', 'uncommon'),
+  ('white_sneakers', 'common'),
+  ('white_sneakers_seed', 'common'),
+  ('white_tee', 'common'),
+  ('white_wallpaper', 'common'),
+  ('white_wallpaper_seed', 'common'),
+  ('white_wristband', 'common'),
+  ('window', 'common'),
+  ('window_seed', 'common'),
+  ('wisdom_owl', 'epic'),
+  ('wisdom_owl_seed', 'epic'),
+  ('wishing_well', 'rare'),
+  ('wishing_well_seed', 'rare'),
+  ('wood_block', 'common'),
+  ('wood_block_seed', 'common'),
+  ('wood_wall_sign', 'uncommon'),
+  ('wood_wall_sign_seed', 'uncommon'),
+  ('wooden_background', 'common'),
+  ('wooden_background_seed', 'common'),
+  ('wooden_chair', 'common'),
+  ('wooden_chair_seed', 'common'),
+  ('wooden_crate', 'common'),
+  ('wooden_crate_seed', 'common'),
+  ('wooden_platform', 'common'),
+  ('wooden_platform_seed', 'common'),
+  ('wooden_table', 'common'),
+  ('wooden_table_seed', 'common'),
+  ('wooden_window', 'common'),
+  ('wooden_window_seed', 'common'),
+  ('wool_block', 'common'),
+  ('wool_block_seed', 'common'),
+  ('world_lock', 'lock1'),
+  ('world_transfer', 'epic'),
+  ('worm', 'uncommon'),
+  ('wrench', 'basic'),
+  ('x_ray_specs', 'common'),
+  ('x_ray_specs_seed', 'common'),
+  ('yellow_block', 'common'),
+  ('yellow_block_seed', 'common'),
+  ('yellow_polo', 'uncommon'),
+  ('yellow_tee', 'common'),
+  ('yellow_wallpaper', 'common'),
+  ('yellow_wallpaper_seed', 'common')
+on conflict (item) do update set cls = excluded.cls;
+
+-- how many of one class a player may GET from play in an hour
+create or replace function public.bag_cap(p_cls text)
+returns bigint language sql immutable as $$
+  select case p_cls when 'basic' then 20000 when 'common' then 8000 when 'uncommon' then 3000 when 'rare' then 800
+    when 'epic' then 200 when 'legendary' then 50 when 'lock1' then 300 when 'lock2' then 5 when 'lock3' then 1 else 0 end
+$$;
+create or replace function public.bag_cls(p_item text)
+returns text language sql stable security definer set search_path = public as $$
+  select coalesce((select cls from public.item_info where item = p_item), 'legendary')
+$$;
+create or replace function public.bag_qty(p_user uuid, p_item text)
+returns bigint language sql stable security definer set search_path = public as $$
+  select coalesce((select qty from public.bag where user_id = p_user and item = p_item), 0)
+$$;
+-- add (or take, q < 0; never below 0) n of an item
+create or replace function public.bag_add(p_user uuid, p_item text, p_qty bigint)
+returns void language plpgsql security definer set search_path = public as $$
+declare cur bigint;
+begin
+  if p_user is null or p_qty is null or p_qty = 0 or p_item is null or p_item = 'gold' or p_item like 'wkey\_%' then return; end if;
+  if p_item !~ '^[a-z0-9_]{1,40}$' then return; end if;
+  select qty into cur from public.bag where user_id = p_user and item = p_item for update;
+  if cur is null then
+    if p_qty > 0 then insert into public.bag (user_id, item, qty) values (p_user, p_item, p_qty) on conflict (user_id, item) do update set qty = public.bag.qty + excluded.qty; end if;
+  elsif cur + p_qty <= 0 then
+    delete from public.bag where user_id = p_user and item = p_item;
+  else
+    update public.bag set qty = cur + p_qty where user_id = p_user and item = p_item;
+  end if;
+end $$;
+-- a player's first bag: copied once from his save (bag + hotbar + worn)
+create or replace function public.bag_init(p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare d jsonb; e jsonb; k text; v jsonb; tot bigint := 0; nm text;
+begin
+  if p_user is null or exists (select 1 from public.bag_meta where user_id = p_user) then return; end if;
+  insert into public.bag_meta (user_id) values (p_user) on conflict do nothing;
+  select data, username into d, nm from public.players where id = p_user;
+  if d is null then return; end if;
+  if jsonb_typeof(d -> 'inv') = 'array' then
+    for e in select * from jsonb_array_elements(d -> 'inv') loop
+      if jsonb_typeof(e) = 'object' and coalesce(e ->> 'id', '') ~ '^[a-z0-9_]{1,40}$' and jsonb_typeof(e -> 'qty') = 'number'
+         and (e ->> 'qty')::numeric between 1 and 1000000 then
+        perform public.bag_add(p_user, e ->> 'id', floor((e ->> 'qty')::numeric)::bigint);
+        tot := tot + floor((e ->> 'qty')::numeric)::bigint;
+      end if;
+    end loop;
+  end if;
+  if jsonb_typeof(d -> 'equipped') = 'object' then
+    for k, v in select key, value from jsonb_each(d -> 'equipped') loop
+      if jsonb_typeof(v) = 'string' and (v #>> '{}') ~ '^[a-z0-9_]{1,40}$' then perform public.bag_add(p_user, v #>> '{}', 1); end if;
+    end loop;
+  end if;
+  if tot > 3000 then
+    insert into public.cheat_log (player_id, name, what, before_value, after_value) values (p_user, nm, 'bag start', 0, tot);
+  end if;
+end $$;
+-- the bag as { item: qty } and what waits as { item: qty }
+create or replace function public.bag_of(p_user uuid)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'items', coalesce((select jsonb_object_agg(item, qty) from public.bag where user_id = p_user), '{}'::jsonb),
+    'held', coalesce((select jsonb_object_agg(item, qty) from public.bag_held where user_id = p_user), '{}'::jsonb))
+$$;
+create or replace function public.bag_get()
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+begin
+  if auth.uid() is null or public.my_name() is null then raise exception 'Log in first'; end if;
+  perform public.bag_init(auth.uid());
+  return public.bag_of(auth.uid());
+end $$;
+-- GET n of an item from play (the hourly limit, the pool for Shop-only items); returns what was given now
+create or replace function public.bag_earn(p_user uuid, p_item text, p_qty bigint, p_hold boolean)
+returns bigint language plpgsql volatile security definer set search_path = public as $$
+declare c text := public.bag_cls(p_item); r public.bag_rate; g bigint; pool bigint; nm text;
+begin
+  if p_qty <= 0 then return 0; end if;
+  if public.is_gm() then perform public.bag_add(p_user, p_item, p_qty); return p_qty; end if;
+  if c = 'none' then return 0; end if;
+  if public.is_tracked(p_item) then
+    -- Shop-only: only what players lost of it can be picked up again
+    select qty into pool from public.bag_pool where item = p_item for update;
+    g := least(p_qty, coalesce(pool, 0));
+    if g > 0 then
+      update public.bag_pool set qty = qty - g where item = p_item;
+      perform public.bag_add(p_user, p_item, g);
+    end if;
+    return g;
+  end if;
+  insert into public.bag_rate (user_id, cls) values (p_user, c) on conflict do nothing;
+  select * into r from public.bag_rate where user_id = p_user and cls = c for update;
+  if r.hour_start < now() - interval '1 hour' then
+    update public.bag_rate set hour_start = now(), n = 0 where user_id = p_user and cls = c returning * into r;
+  end if;
+  g := least(p_qty, greatest(public.bag_cap(c) - r.n, 0));
+  if g > 0 then
+    update public.bag_rate set n = n + g where user_id = p_user and cls = c;
+    perform public.bag_add(p_user, p_item, g);
+  end if;
+  if g < p_qty and p_hold then
+    insert into public.bag_held (user_id, item, qty) values (p_user, p_item, p_qty - g)
+    on conflict (user_id, item) do update set qty = public.bag_held.qty + excluded.qty;
+    if not exists (select 1 from public.cheat_log where player_id = p_user and what = 'bag held: ' || c and created_at > now() - interval '1 hour') then
+      select name into nm from public.usernames where id = p_user;
+      insert into public.cheat_log (player_id, name, what, before_value, after_value) values (p_user, nm, 'bag held: ' || c, public.bag_cap(c), p_qty - g);
+    end if;
+  end if;
+  return g;
+end $$;
+-- what the game noticed changed in its bag since the server's last answer: { item: +n / -n } (at most 200 items)
+create or replace function public.bag_sync(p_delta jsonb)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare me uuid := auth.uid(); k text; v jsonb; q bigint; have bigint; refused jsonb := '{}'::jsonb; g bigint; h public.bag_held;
+begin
+  if me is null or public.my_name() is null then raise exception 'Log in first'; end if;
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  perform public.bag_init(me);
+  perform 1 from public.bag_meta where user_id = me for update; -- one change at a time per player
+  if jsonb_typeof(p_delta) = 'object' then
+    if (select count(*) from jsonb_object_keys(p_delta)) > 200 then raise exception 'Too many changes at once'; end if;
+    -- losses first (so a swap in one go works), then gains
+    for k, v in select key, value from jsonb_each(p_delta) loop
+      if k !~ '^[a-z0-9_]{1,40}$' or k = 'gold' or k like 'wkey\_%' or jsonb_typeof(v) <> 'number' then continue; end if;
+      q := floor((v #>> '{}')::numeric);
+      if q >= 0 or q < -1000000 then continue; end if;
+      have := public.bag_qty(me, k);
+      perform public.bag_add(me, k, -least(-q, have));
+      if public.is_tracked(k) and least(-q, have) > 0 then
+        insert into public.bag_pool (item, qty) values (k, least(-q, have)) on conflict (item) do update set qty = public.bag_pool.qty + excluded.qty;
+      end if;
+    end loop;
+    for k, v in select key, value from jsonb_each(p_delta) loop
+      if k !~ '^[a-z0-9_]{1,40}$' or k = 'gold' or k like 'wkey\_%' or jsonb_typeof(v) <> 'number' then continue; end if;
+      q := floor((v #>> '{}')::numeric);
+      if q <= 0 or q > 1000000 then continue; end if;
+      g := public.bag_earn(me, k, q, true);
+      if g < q and (public.bag_cls(k) = 'none' or public.is_tracked(k)) then refused := jsonb_set(refused, array[k], to_jsonb(q - g)); end if;
+    end loop;
+  end if;
+  -- what waited: as much as the hour allows now
+  for h in select * from public.bag_held where user_id = me loop
+    g := public.bag_earn(me, h.item, h.qty, false);
+    if g >= h.qty then delete from public.bag_held where user_id = me and item = h.item;
+    elsif g > 0 then update public.bag_held set qty = qty - g where user_id = me and item = h.item;
+    end if;
+  end loop;
+  return public.bag_of(me) || jsonb_build_object('refused', refused);
+end $$;
+-- 100 of a lock -> 1 of the next (p_up), or 1 -> 100 of the one below
+create or replace function public.bag_lock_convert(p_item text, p_up boolean)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare me uuid := auth.uid(); tiers text[] := array['world_lock', 'diamond_lock', 'black_diamond_lock']; i integer; other text; gm boolean := public.is_gm();
+begin
+  if me is null or public.my_name() is null then raise exception 'Log in first'; end if;
+  perform public.bag_init(me);
+  perform 1 from public.bag_meta where user_id = me for update;
+  i := array_position(tiers, p_item);
+  if i is null then raise exception 'That isn''t a lock'; end if;
+  other := tiers[i + case when p_up then 1 else -1 end];
+  if other is null then raise exception 'There is no lock that way' using errcode = 'P0001'; end if;
+  if p_up then
+    if public.bag_qty(me, p_item) < 100 and not gm then raise exception 'You need 100' using errcode = 'P0001'; end if;
+    perform public.bag_add(me, p_item, -100);
+    perform public.bag_add(me, other, 1);
+  else
+    if public.bag_qty(me, p_item) < 1 and not gm then raise exception 'You have none' using errcode = 'P0001'; end if;
+    perform public.bag_add(me, p_item, -1);
+    perform public.bag_add(me, other, 100);
+  end if;
+  return public.bag_of(me);
+end $$;
+
+-- ---------- the trades, gifts, Mailbox, Shop and rewards move the bag too ----------
+create or replace function public.trade_lack(p_id uuid, p_give jsonb)
+returns text language plpgsql volatile security definer set search_path = public as $$
+declare k text; q bigint; have bigint;
+begin
+  perform public.bag_init(p_id);
+  for k, q in select key, public.jnum(value) from jsonb_each(p_give) loop
+    if k = 'gold' then
+      select gold into have from public.wallets where id = p_id;
+      if coalesce(have, 0) < q then return 'Not enough gold for this trade'; end if;
+    elsif k like 'wkey\_%' then
+      null; -- World Keys: world_keys (give_world_key)
+    else
+      if public.is_tracked(k) then
+        select qty into have from public.owned_items where player_id = p_id and item = k;
+        if coalesce(have, 0) < q then return 'Not enough ' || k || ' for this trade'; end if;
+      end if;
+      if public.bag_qty(p_id, k) < q then return 'Not enough ' || k || ' for this trade'; end if;
+    end if;
+    have := null;
+  end loop;
+  return null;
+end $$;
+create or replace function public.trade_move(a uuid, b uuid, p_give jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare k text; q bigint;
+begin
+  perform public.bag_init(a);
+  perform public.bag_init(b);
+  for k, q in select key, public.jnum(value) from jsonb_each(p_give) loop
+    if k = 'gold' then
+      update public.wallets set gold = gold - q where id = a;
+      update public.wallets set gold = gold + q where id = b;
+    elsif k not like 'wkey\_%' then
+      if public.is_tracked(k) then
+        perform public.add_owned(a, k, -q);
+        perform public.add_owned(b, k, q);
+      end if;
+      q := least(q, greatest(public.bag_qty(a, k), case when public.is_gm() then q else 0 end));
+      perform public.bag_add(a, k, -q);
+      perform public.bag_add(b, k, q);
+    end if;
+  end loop;
+end $$;
+revoke execute on function public.trade_lack(uuid, jsonb), public.trade_move(uuid, uuid, jsonb) from public, anon, authenticated;
+
+create or replace function public.give_item(p_to uuid, p_item text, p_qty bigint)
+returns text language plpgsql security definer set search_path = public as $$
+declare had bigint; n bigint;
+begin
+  if public.is_banned() or p_to = auth.uid() or not exists (select 1 from public.usernames where id = p_to) then
+    raise exception 'Can''t give that player items';
+  end if;
+  if p_qty is null or p_qty <= 0 or coalesce(p_item, '') !~ '^[a-z0-9_]{1,40}$' or p_item like 'wkey\_%' then return 'no'; end if;
+  perform public.bag_init(auth.uid());
+  perform public.bag_init(p_to);
+  n := least(p_qty, case when public.is_gm() then p_qty else public.bag_qty(auth.uid(), p_item) end);
+  if public.is_tracked(p_item) then
+    select qty into had from public.owned_items where player_id = auth.uid() and item = p_item for update;
+    had := coalesce(had, 0);
+    if public.is_gm() then had := greatest(had, p_qty); end if;
+    n := least(n, had);
+    perform public.add_owned(auth.uid(), p_item, -n);
+    perform public.add_owned(p_to, p_item, n);
+  end if;
+  if not public.is_gm() then perform public.bag_add(auth.uid(), p_item, -n); end if;
+  perform public.bag_add(p_to, p_item, n);
+  return 'ok';
+end $$;
+
+create or replace function public.gift_send(p_to uuid, p_item text, p_qty bigint)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare had bigint; nid bigint; gm boolean := public.is_gm();
+begin
+  if auth.uid() is null or public.is_banned() or p_to = auth.uid() or not exists (select 1 from public.usernames where id = p_to) then
+    raise exception 'Can''t give that player items';
+  end if;
+  if coalesce(p_item, '') like 'wkey\_%' or coalesce(p_item, '') !~ '^[a-z0-9_]{1,40}$' then return null; end if; -- keys: give_world_key
+  if p_qty is null or p_qty < 1 or p_qty > 100000 then raise exception 'Bad amount'; end if;
+  if (select count(*) from public.gift_escrow where from_id = auth.uid() and created_at > now() - interval '10 seconds') >= 5 then
+    raise exception 'Too many gifts, wait a moment' using errcode = 'P0001';
+  end if;
+  perform public.bag_init(auth.uid());
+  perform 1 from public.bag_meta where user_id = auth.uid() for update;
+  if public.bag_qty(auth.uid(), p_item) < p_qty and not gm then raise exception 'You don''t have that many' using errcode = 'P0001'; end if;
+  if public.is_tracked(p_item) then
+    select qty into had from public.owned_items where player_id = auth.uid() and item = p_item for update;
+    if coalesce(had, 0) < p_qty and not gm then raise exception 'You don''t have that many' using errcode = 'P0001'; end if;
+    if not gm then perform public.add_owned(auth.uid(), p_item, -p_qty); end if;
+  end if;
+  if not gm then perform public.bag_add(auth.uid(), p_item, -p_qty); end if;
+  insert into public.gift_escrow (from_id, to_id, item, qty) values (auth.uid(), p_to, p_item, p_qty) returning id into nid;
+  return nid;
+end $$;
+create or replace function public.gift_take(p_id bigint)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare g public.gift_escrow;
+begin
+  delete from public.gift_escrow where id = p_id and to_id = auth.uid() returning * into g;
+  if not found then return null; end if;
+  if public.is_tracked(g.item) then perform public.add_owned(auth.uid(), g.item, g.qty); end if;
+  perform public.bag_init(auth.uid());
+  perform public.bag_add(auth.uid(), g.item, g.qty);
+  return jsonb_build_object('item', g.item, 'qty', g.qty, 'from', g.from_id);
+end $$;
+create or replace function public.gift_back(p_id bigint)
+returns text language plpgsql security definer set search_path = public as $$
+declare g public.gift_escrow;
+begin
+  delete from public.gift_escrow where id = p_id and (to_id = auth.uid() or from_id = auth.uid()) returning * into g;
+  if not found then return 'gone'; end if;
+  if public.is_tracked(g.item) then perform public.add_owned(g.from_id, g.item, g.qty); end if;
+  perform public.bag_init(g.from_id);
+  perform public.bag_add(g.from_id, g.item, g.qty);
+  return 'back';
+end $$;
+grant execute on function public.gift_send(uuid, text, bigint), public.gift_take(bigint), public.gift_back(bigint) to authenticated;
+
+create or replace function public.mailbox_send(p_world text, p_tile integer, p_subject text, p_body text, p_items jsonb)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); w public.worlds; t integer; s text; b text; e jsonb; clean jsonb := '[]'::jsonb;
+  n integer; nid bigint; have bigint; gm boolean := public.is_gm();
+begin
+  if me is null or public.is_banned() then raise exception 'You can''t send mail' using errcode = '42501'; end if;
+  select * into w from public.worlds where name = p_world;
+  if not found then raise exception 'This world isn''t saved yet' using errcode = 'P0001'; end if;
+  if w.owner is null then raise exception 'Nobody gets mail here: the world isn''t locked' using errcode = 'P0001'; end if;
+  begin
+    t := get_byte(decode(w.data ->> 'fg', 'base64'), p_tile);
+  exception when others then t := -1;
+  end;
+  if t <> 208 then raise exception 'There is no Mailbox there' using errcode = 'P0001'; end if;
+  s := left(btrim(regexp_replace(coalesce(p_subject, ''), '[[:cntrl:]]', ' ', 'g')), 40);
+  b := left(btrim(coalesce(p_body, '')), 300);
+  if s = '' then raise exception 'Write a subject first' using errcode = 'P0001'; end if;
+  if jsonb_typeof(p_items) = 'array' then
+    if jsonb_array_length(p_items) > 5 then raise exception 'At most 5 items' using errcode = 'P0001'; end if;
+    for e in select * from jsonb_array_elements(p_items) loop
+      if jsonb_typeof(e) <> 'array' or coalesce(e ->> 0, '') !~ '^[a-z0-9_]{1,40}$' or (e ->> 0) like 'wkey\_%'
+        or jsonb_typeof(e -> 1) <> 'number' or (e ->> 1)::numeric < 1 or (e ->> 1)::numeric > 200 then
+        raise exception 'Bad item' using errcode = 'P0001';
+      end if;
+      clean := clean || jsonb_build_array(jsonb_build_array(e ->> 0, floor((e ->> 1)::numeric)::integer));
+    end loop;
+  end if;
+  select count(*) into n from public.mailbox_letters where from_id = auth.uid() and created_at > now() - interval '5 seconds';
+  if n > 0 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
+  select count(*) into n from public.mailbox_letters where world = p_world and tile = p_tile;
+  if n >= 50 then raise exception 'This Mailbox is full' using errcode = 'P0001'; end if;
+  -- (build m) every item leaves the sender's bag on the server (Shop-only ones also his owned count)
+  perform public.bag_init(auth.uid());
+  perform 1 from public.bag_meta where user_id = auth.uid() for update;
+  for e in select * from jsonb_array_elements(clean) loop
+    if not gm and public.bag_qty(auth.uid(), e ->> 0) < (e ->> 1)::bigint then
+      raise exception 'You don''t have that many %', e ->> 0 using errcode = 'P0001';
+    end if;
+    if public.is_tracked(e ->> 0) and not gm then
+      select qty into have from public.owned_items where player_id = auth.uid() and item = e ->> 0 for update;
+      if coalesce(have, 0) < (e ->> 1)::bigint then raise exception 'You don''t have that many %', e ->> 0 using errcode = 'P0001'; end if;
+      perform public.add_owned(auth.uid(), e ->> 0, -((e ->> 1)::bigint));
+      have := null;
+    end if;
+    if not gm then perform public.bag_add(auth.uid(), e ->> 0, -((e ->> 1)::bigint)); end if;
+  end loop;
+  insert into public.mailbox_letters (world, tile, from_id, from_name, subject, body, items)
+    values (p_world, p_tile, auth.uid(), me, s, b, clean) returning id into nid;
+  return nid;
+end $$;
+create or replace function public.mailbox_claim(p_id bigint)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare l public.mailbox_letters; e jsonb;
+begin
+  select * into l from public.mailbox_letters where id = p_id for update;
+  if not found then raise exception 'That letter is gone' using errcode = 'P0001'; end if;
+  if not public.mailbox_mine(l.world) then raise exception 'This mail isn''t yours' using errcode = '42501'; end if;
+  update public.mailbox_letters set items = '[]'::jsonb, is_read = true where id = p_id;
+  perform public.bag_init(auth.uid());
+  for e in select * from jsonb_array_elements(l.items) loop
+    if public.is_tracked(e ->> 0) then perform public.add_owned(auth.uid(), e ->> 0, (e ->> 1)::bigint); end if;
+    perform public.bag_add(auth.uid(), e ->> 0, (e ->> 1)::bigint);
+  end loop;
+  return l.items;
+end $$;
+
+create or replace function public.shop_buy(p_item text, p_qty integer)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare pr public.shop_prices; w public.wallets; gm boolean := public.is_gm();
+begin
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  select * into pr from public.shop_prices where item = p_item and qty = p_qty;
+  if not found then raise exception 'That isn''t sold in the Shop' using errcode = 'P0001'; end if;
+  if p_item in ('autumn_chest', 'ride_leaf', 'ride_leaf_green', 'ride_leaf_yellow') and not gm
+     and not (now() >= timestamptz '2026-11-04 00:00:00+08' and now() < timestamptz '2026-12-05 00:00:00+08') then
+    raise exception 'The Autumn event is over' using errcode = 'P0001';
+  end if;
+  perform public.my_wallet();
+  select * into w from public.wallets where id = auth.uid() for update;
+  if not gm then
+    if pr.bc > 0 then
+      if w.bc < pr.bc then raise exception 'Not enough Balb Coins' using errcode = 'P0001'; end if;
+      update public.wallets set bc = bc - pr.bc where id = auth.uid() returning * into w;
+    else
+      if w.gold < pr.gold then raise exception 'Not enough gold' using errcode = 'P0001'; end if;
+      update public.wallets set gold = gold - pr.gold where id = auth.uid() returning * into w;
+    end if;
+  end if;
+  if pr.tracked then perform public.add_owned(auth.uid(), p_item, p_qty); end if;
+  -- (build m) into the bag (a pack's pieces come through play: bag_sync)
+  if public.bag_cls(p_item) <> 'none' then
+    perform public.bag_init(auth.uid());
+    perform public.bag_add(auth.uid(), p_item, p_qty);
+  end if;
+  return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'bag', public.bag_cls(p_item) <> 'none');
+end $$;
+
+create or replace function public.claim_level_reward(p_lv integer)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.wallets; have integer; it text;
+begin
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  if p_lv is null or p_lv not in (50, 70, 80, 90, 100) then raise exception 'No reward for that level' using errcode = 'P0001'; end if;
+  select public.xp_level(total) into have from public.xp_track where player_id = auth.uid();
+  if coalesce(have, 1) < p_lv then
+    raise exception 'The server has you at level % so far. Keep breaking blocks and try again later', coalesce(have, 1)
+      using errcode = 'P0001';
+  end if;
+  perform public.my_wallet();
+  select * into w from public.wallets where id = auth.uid() for update;
+  begin
+    insert into public.level_rewards (player_id, lv) values (auth.uid(), p_lv);
+  exception when unique_violation then
+    raise exception 'You already claimed the level % reward', p_lv using errcode = 'P0001';
+  end;
+  if p_lv = 70 then update public.wallets set gold = gold + 10000 where id = auth.uid() returning * into w;
+  elsif p_lv = 80 then update public.wallets set gold = gold + 20000 where id = auth.uid() returning * into w;
+  elsif p_lv = 90 then update public.wallets set bc = bc + 50 where id = auth.uid() returning * into w;
+  else
+    it := case p_lv when 50 then 'cat_ear_hoodie' else 'golden_pickaxe' end;
+    perform public.add_owned(auth.uid(), it, 1);
+    perform public.bag_init(auth.uid());
+    perform public.bag_add(auth.uid(), it, 1);
+  end if;
+  return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'lv', p_lv);
+end $$;
+grant execute on function public.claim_level_reward(integer) to authenticated;
+
+revoke execute on function public.bag_cap(text), public.bag_cls(text), public.bag_qty(uuid, text), public.bag_add(uuid, text, bigint),
+  public.bag_init(uuid), public.bag_of(uuid), public.bag_earn(uuid, text, bigint, boolean) from public, anon, authenticated;
+revoke execute on function public.bag_get(), public.bag_sync(jsonb), public.bag_lock_convert(text, boolean) from public, anon;
+grant execute on function public.bag_get(), public.bag_sync(jsonb), public.bag_lock_convert(text, boolean) to authenticated;
+
+-- ---------- PRIVACY: who sees where you are ----------
+create table if not exists public.friends (
+  a uuid not null references auth.users (id) on delete cascade,
+  b uuid not null references auth.users (id) on delete cascade,
+  primary key (a, b)
+);
+create table if not exists public.friend_asks (
+  from_id uuid not null references auth.users (id) on delete cascade,
+  to_id uuid not null references auth.users (id) on delete cascade,
+  at timestamptz not null default now(),
+  primary key (from_id, to_id)
+);
+alter table public.friends enable row level security;
+alter table public.friend_asks enable row level security;
+revoke all on public.friends, public.friend_asks from anon, authenticated;
+-- friends both saves already list (made once; mutual only)
+insert into public.friends (a, b)
+select p.id, (f ->> 'id')::uuid from public.players p, jsonb_array_elements(case when jsonb_typeof(p.data -> 'friends') = 'array' then p.data -> 'friends' else '[]'::jsonb end) f
+where coalesce(f ->> 'id', '') ~ '^[0-9a-f-]{36}$'
+  and exists (select 1 from public.players q, jsonb_array_elements(case when jsonb_typeof(q.data -> 'friends') = 'array' then q.data -> 'friends' else '[]'::jsonb end) g
+              where q.id = (f ->> 'id')::uuid and g ->> 'id' = p.id::text)
+  and exists (select 1 from auth.users u where u.id = (f ->> 'id')::uuid)
+on conflict do nothing;
+create or replace function public.friend_remove(p_id uuid)
+returns void language sql security definer set search_path = public as $$
+  delete from public.friends where (a = auth.uid() and b = p_id) or (a = p_id and b = auth.uid());
+$$;
+revoke execute on function public.friend_remove(uuid) from public, anon;
+grant execute on function public.friend_remove(uuid) to authenticated;
+
+-- lobby_send (the inbox messages) also keeps the friendships: a request is remembered; an OK to someone who asked you
+-- makes you friends both ways
+create or replace function public.lobby_send(p_event text, p_to uuid, p_data jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare me text := public.my_name(); d jsonb; n integer;
+begin
+  if me is null or public.is_banned() then raise exception 'You can''t send messages' using errcode = '42501'; end if;
+  if p_event is null or p_event not in ('dm', 'friend_req', 'friend_ok', 'friend_no', 'gift', 'gift_ok', 'gift_no',
+      'trade_req', 'trade_yes', 'trade_no', 'trade_offer', 'trade_accept', 'trade_cancel', 'mail_ping', 'gold_done') then
+    raise exception 'Unknown message' using errcode = 'P0001';
+  end if;
+  if p_to is null or p_to = auth.uid() or not exists (select 1 from public.usernames where id = p_to) then
+    raise exception 'No such player' using errcode = 'P0001';
+  end if;
+  d := case when jsonb_typeof(p_data) = 'object' then p_data else '{}'::jsonb end;
+  if length(d::text) > 4000 then raise exception 'Message too big' using errcode = 'P0001'; end if;
+  if p_event = 'dm' then
+    d := jsonb_set(d, '{text}', to_jsonb(left(btrim(regexp_replace(coalesce(d ->> 'text', ''), '[[:cntrl:]]', ' ', 'g')), 120)));
+    if d ->> 'text' = '' then raise exception 'Write something first' using errcode = 'P0001'; end if;
+  end if;
+  select count(*) into n from public.lobby_sent where from_id = auth.uid() and created_at > now() - interval '10 seconds';
+  if n >= 40 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
+  insert into public.lobby_sent (from_id) values (auth.uid());
+  delete from public.lobby_sent where created_at < now() - interval '1 minute';
+  if p_event = 'friend_req' then
+    insert into public.friend_asks (from_id, to_id) values (auth.uid(), p_to) on conflict (from_id, to_id) do update set at = now();
+  elsif p_event = 'friend_ok' then
+    if exists (select 1 from public.friend_asks where from_id = p_to and to_id = auth.uid())
+       or exists (select 1 from public.friends where a = auth.uid() and b = p_to) then
+      insert into public.friends (a, b) values (auth.uid(), p_to), (p_to, auth.uid()) on conflict do nothing;
+      delete from public.friend_asks where from_id = p_to and to_id = auth.uid();
+    end if;
+  elsif p_event = 'friend_no' then
+    delete from public.friend_asks where from_id = p_to and to_id = auth.uid();
+  end if;
+  d := (d - 'to' - 'from' - 'fn') || jsonb_build_object('to', p_to, 'from', auth.uid(), 'fn', me);
+  perform realtime.send(d, p_event, 'inbox:' || p_to::text, true);
+end $$;
+revoke all on function public.lobby_send(text, uuid, jsonb) from public, anon;
+grant execute on function public.lobby_send(text, uuid, jsonb) to authenticated;
+
+-- everyone online; the world only for yourself, your friends, players in your own world (and GMs)
+create or replace function public.online_people()
+returns table (id uuid, name text, world text) language sql stable security definer set search_path = public as $$
+  with me as (select coalesce((select world from public.world_here where player_id = auth.uid() and at > now() - interval '75 seconds'), '') as w)
+  select u.id, u.name,
+    case when h.player_id = auth.uid() or public.is_gm()
+           or (h.world <> '' and h.world = (select w from me))
+           or exists (select 1 from public.friends f where f.a = auth.uid() and f.b = h.player_id)
+         then h.world else '' end
+  from public.world_here h join public.usernames u on u.id = h.player_id
+  where h.at > now() - interval '75 seconds' and auth.uid() is not null
+  order by h.at desc
+  limit 2000
+$$;
+-- how many players are in each world now (no names)
+create or replace function public.world_counts()
+returns table (world text, n bigint) language sql stable security definer set search_path = public as $$
+  select h.world, count(*) from public.world_here h
+  where h.at > now() - interval '75 seconds' and h.world <> '' and auth.uid() is not null
+  group by h.world
+$$;
+revoke all on function public.online_people(), public.world_counts() from public, anon;
+grant execute on function public.online_people(), public.world_counts() to authenticated;
+
+create or replace function public.board_list(p_world text, p_tile integer)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select case when auth.uid() is null then '[]'::jsonb else
+    coalesce((select jsonb_agg(jsonb_build_object('id', id, 'n', from_name, 't', body,
+      'at', (extract(epoch from created_at) * 1000)::bigint) order by id)
+      from (select * from public.board_posts where world = p_world and tile = p_tile order by id desc limit 100) p), '[]'::jsonb) end
+$$;
+revoke execute on function public.board_list(text, integer) from public, anon;
+grant execute on function public.board_list(text, integer) to authenticated;
+
+-- =====================================================================================================
+-- SPLASH WARS TICKET EXCHANGE (Nov 12 2026, owner, build p): the swim rings (cow / duck 500 tickets, glowing 2,000),
+-- Silver Wild Hair 700, Silver Full Beard 500, Boss Shades 400 (price picked by Claude), Hawaiian Polos 300, Cargo
+-- Shorts 200, Penguin pet 1,500 (spw_shop above, in the SPLASH WARS part). The game: rvb.js (the booth in SPLASHWARS), floaties.js.
+-- Safe to run more than once.
+-- The rings are given only here (spw_shop.excl): they count as Shop-only items from now on (owned_items, the bag pool),
+-- so they can't be made by play or a faked save.
+create or replace function public.is_tracked(p_item text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.shop_prices where item = p_item and tracked)
+      or exists (select 1 from public.spw_shop where item = p_item and excl)
+$$;
+insert into public.item_info (item, cls) values
+  ('cow_swim_ring', 'epic'), ('duck_swim_ring', 'epic'), ('glow_cow_swim_ring', 'legendary'), ('glow_duck_swim_ring', 'legendary'),
+  ('mega_water_gun', 'legendary')
+on conflict (item) do update set cls = excluded.cls;
+-- one prize for its tickets: { got, ...spw_status }
+create or replace function public.spw_exchange(p_item text)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  nm text := public.my_name();
+  pr public.spw_shop;
+  have bigint;
+begin
+  if me is null or nm is null then raise exception 'Log in first'; end if;
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  select * into pr from public.spw_shop where item = p_item;
+  if not found then raise exception 'That isn''t exchanged here' using errcode = 'P0001'; end if;
+  select tickets into have from public.spw_tickets where user_id = me for update;
+  if coalesce(have, 0) < pr.tickets then raise exception 'Not enough tickets' using errcode = 'P0001'; end if;
+  update public.spw_tickets set tickets = tickets - pr.tickets where user_id = me;
+  perform public.bag_init(me);
+  if public.is_tracked(p_item) then perform public.add_owned(me, p_item, pr.qty); end if;
+  perform public.bag_add(me, p_item, pr.qty);
+  return public.spw_status() || jsonb_build_object('got', p_item);
+end $$;
+revoke execute on function public.spw_exchange(text) from public, anon;
+grant execute on function public.spw_exchange(text) to authenticated;
+
+-- =====================================================================================================
+-- (Nov 12 2026, owner, build p) "take Pot of Gold, Coin Fountain and Lucky Cat out of the game, the database too; the
+-- Gold Vein drops coins a little less often and is Legendary". Safe to run more than once.
+-- Pot of Gold and Coin Fountain (and their seeds) are gone: out of every bag, waiting gift / hold list and the pool, and
+-- they can't be got from play any more (class 'none'). The money Lucky Cat used the id `lucky_cat` of the older Lucky
+-- Cat block, which stays (so `lucky_cat` is not touched). The Gold Vein counts as Legendary.
+delete from public.bag where item in ('pot_of_gold', 'pot_of_gold_seed', 'coin_fountain', 'coin_fountain_seed');
+delete from public.bag_held where item in ('pot_of_gold', 'pot_of_gold_seed', 'coin_fountain', 'coin_fountain_seed');
+delete from public.bag_pool where item in ('pot_of_gold', 'pot_of_gold_seed', 'coin_fountain', 'coin_fountain_seed');
+insert into public.item_info (item, cls) values
+  ('pot_of_gold', 'none'), ('pot_of_gold_seed', 'none'), ('coin_fountain', 'none'), ('coin_fountain_seed', 'none'),
+  ('gold_vein', 'legendary'), ('gold_vein_seed', 'legendary')
+on conflict (item) do update set cls = excluded.cls;

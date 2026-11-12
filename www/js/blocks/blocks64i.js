@@ -26,7 +26,7 @@ const B64I = [
   [495, 'fuel_tank', 'Fuel Tank', 'deco', 10, 'Rare', ['#c8303a', '#5a0a10', '#ffd23f'], ['#c8303a', '#ffd23f', '#2a2e36'], 'A heavy steel fuel tank (hard to break) that fills up once a day: its lamp turns green and oil brims over the top when it is ready. Click it and Crude Oil drips out of its tap (' + FUEL_TANK_OIL.join('-') + ' drops). A new one is full 24 hours after you place it. Collect ' + FUEL_JAR_OIL + ' Crude Oil and cook them with a Jar in a Stove to make a Fuel Jar.', ['barrel', 'glass_pane']],
   [496, 'glass_jar', 'Jar', 'deco', 2, 'Uncommon', ['#bfe8ee', '#5a8a94', '#ffffff'], ['#bfe8ee', '#ffffff', '#8a5a2a'], 'An empty glass jar with a cork. You can walk through it. Put it in a Stove with ' + FUEL_JAR_OIL + ' Crude Oil to make a Fuel Jar.', ['glass_pane', 'rock']],
   [497, 'fuel_jar', 'Fuel Jar', 'deco', 3, 'Rare', null, ['#ffb020', '#fff0a0', '#8a4a08'], 'A jar full of glowing refined fuel. Made in a Stove: ' + FUEL_JAR_OIL + ' Crude Oil + 1 Jar inside, shut it, open it.', null],
-  [498, 'gold_vein', 'Gold Vein', 'block', 6, 'Rare', ['#ffd23f', '#5a4a3a', '#fff0a0'], ['#ffd23f', '#8a7a6a', '#c98a12'], 'Hard rock full of veins of real gold. Its tree takes 3 days to grow, then pays a pile of gold.', ['granite_block', 'yellow_block']],
+  [498, 'gold_vein', 'Gold Vein', 'block', 6, 'Legendary', ['#ffd23f', '#5a4a3a', '#fff0a0'], ['#ffd23f', '#8a7a6a', '#c98a12'], 'Hard rock full of veins of real gold. Its tree takes 3 days to grow, then pays a pile of gold.', ['granite_block', 'yellow_block']],
   [499, 'pot_of_gold', 'Pot of Gold', 'deco', 4, 'Rare', ['#ffd23f', '#1c1c24', '#4ad08a'], ['#ffd23f', '#2a2a34', '#fff0a0'], 'A black pot heaped with gold coins. Its tree takes 3 days and 8 hours to grow, then pays a pile of gold.', ['flower_pot', 'honeycomb_block']],
   [500, 'lucky_cat', 'Lucky Cat', 'deco', 4, 'Rare', ['#ffffff', '#e8303e', '#ffd23f'], ['#ffffff', '#ffd23f', '#e8303e'], 'A white beckoning cat holding a gold coin. Its tree takes 3 days and 16 hours to grow, then pays a pile of gold.', ['dice_block', 'white_block']],
   [501, 'coin_fountain', 'Coin Fountain', 'deco', 5, 'Rare', ['#8ad0f8', '#8a8680', '#ffd23f'], ['#c9c5be', '#8ad0f8', '#ffd23f'], 'A marble fountain full of wishing coins. Its tree takes 4 days to grow, then pays the biggest pile of gold.', ['marble_block', 'water_bucket']],
@@ -37,9 +37,24 @@ const B64I = [
   [506, 'firefly_jar', 'Firefly Jar', 'deco', 2, 'Rare', ['#c8ff6a', '#2a4a1a', '#ffffff'], ['#c8ff6a', '#ffffff', '#5a8a2a'], 'A jar of glowing fireflies buzzing around.', ['glass_jar', 'torch']],
   [507, 'copper_block', 'Copper Block', 'block', 4, 'Rare', ['#d8783a', '#6a2a10', '#ffc090'], ['#d8783a', '#ffc090', '#4a9a7a'], 'Shiny copper plates with a touch of green patina.', ['orange_block', 'bricks']],
 ];
+// (owner, Nov 12 2026, build p: "take Pot of Gold, Coin Fountain and Lucky Cat out of the game, the database too") their
+// block numbers stay taken (499-501, never reused) but they are GONE: no item (Pot of Gold / Coin Fountain kept only as
+// retired names so old bags can still show them until they are cleaned out), no seed, no recipe, no coins; their
+// tiles and trees are cleared from a world when it loads, they are taken out of your bag (B64I_GONE below; the server
+// deletes them too, schema.sql). The money Lucky Cat (500) had taken the id `lucky_cat` of the older Lucky Cat block
+// (342, blocks64f.js): that one stays, as it was before Nov 11 (Piggy Bank + White Block, no money tree).
+const B64I_GONE = { 499: 'pot_of_gold', 500: 'lucky_cat', 501: 'coin_fountain' };
 for (const [t, id, name, kind, hits, rarity, seed, fx, desc, rec] of B64I) {
   if (BLOCK[t]) console.error('blocks64i.js: block number used twice: ' + t);
   BLOCK[t] = { id, name, hits, art: kind === 'block' ? 'tex' : 'deco', ...(kind === 'block' ? {} : { solid: false }), fx };
+  if (B64I_GONE[t]) {
+    BLOCK[t].retired = true;
+    if (id !== 'lucky_cat') {
+      ITEMS[id] = { name, kind: 'block', block: t, retired: true, desc: name + ' (taken out of the game).', rarity };
+      ITEMS[id + '_seed'] = { name: name + ' Seed', kind: 'seed', from: id, retired: true, desc: name + ' Seed (taken out of the game).', rarity };
+    }
+    continue;
+  }
   ITEMS[id] = { name, kind: 'block', block: t, desc: desc + (rec ? ' ' + name + ' = ' + rec.map((r) => (ITEMS[r] ? ITEMS[r].name : r)).join(' + ') + '.' : ''), rarity };
   if (!rec) continue; // (the Fuel Jar: Stove only, no seed / tree)
   ITEMS[id + '_seed'] = { name: name + ' Seed', kind: 'seed', from: id, desc: 'Plant it on top of a block to grow a ' + name + ' Tree.', rarity };
@@ -445,10 +460,13 @@ if (ITEMS.stove) ITEMS.stove.desc += ' Cooking: ' + FUEL_JAR_OIL + ' Crude Oil +
 // hours to ripen, and the gold a ripe tree pays (from, to)
 const RICH_TREES = {
   gold_vein: { h: 72, gold: [1500, 2500] },
-  pot_of_gold: { h: 80, gold: [1800, 2800] },
-  lucky_cat: { h: 88, gold: [2000, 3200] },
-  coin_fountain: { h: 96, gold: [2400, 3600] },
+  // (build p: Pot of Gold, Lucky Cat and Coin Fountain taken out of the game)
 };
+// (build p, owner: "Gold Vein: drop coins a little less often, and make it Legendary") its rarity is Legendary now (its
+// drops: blocks and seeds as rarely as a Legendary's), its blocks drop coins 25% of the time (was 40%), 20-80 each
+RARITY_BASE.gold_vein = 90;
+delete RARITY.gold_vein;
+const GOLD_VEIN_COIN = 0.25;
 treeTime = ((prev) =>
   function (seed) {
     const r = RICH_TREES[seed];
@@ -460,12 +478,36 @@ treeGold = ((prev) =>
     if (!r) return prev(seed);
     return r.gold[0] + Math.floor(Math.random() * (r.gold[1] - r.gold[0] + 1));
   })(treeGold);
-// their blocks drop coins more often than other Rare blocks (40%), 20-80 gold
+// their blocks drop coins more often than other blocks (GOLD_VEIN_COIN), 12-36 gold (~30k a 5,000 breaks)
 coinDropChance = ((prev) =>
   function (id) {
-    return RICH_TREES[id] ? 0.4 : prev(id);
+    return RICH_TREES[id] ? GOLD_VEIN_COIN : prev(id);
   })(coinDropChance);
 goldDropAmount = ((prev) =>
   function (id) {
-    return RICH_TREES[id] ? 20 + Math.floor(Math.random() * 61) : prev(id);
+    // (owner: "Gold Vein: about 30k" a 5,000 breaks) 12-36 coins a drop (25% of breaks: ~1,250 x 24 = ~30,000)
+    return RICH_TREES[id] ? 12 + Math.floor(Math.random() * 25) : prev(id);
   })(goldDropAmount);
+
+// ---------- (build p) the removed money blocks: out of every world and every bag ----------
+applyWorld = ((prev) =>
+  function (...a) {
+    const r = prev(...a);
+    try {
+      for (let i = 0; i < fg.length; i++) {
+        const id = B64I_GONE[fg[i]];
+        if (!id) continue;
+        fg[i] = id === 'lucky_cat' && ITEMS.lucky_cat && ITEMS.lucky_cat.block ? ITEMS.lucky_cat.block : 0; // (a Lucky Cat: the old one)
+      }
+      for (const [i, t] of [...trees]) if (t && (t.seed === 'pot_of_gold' || t.seed === 'coin_fountain')) trees.delete(i);
+    } catch (e) {}
+    return r;
+  })(applyWorld);
+const B64I_GONE_ITEMS = ['pot_of_gold', 'pot_of_gold_seed', 'coin_fountain', 'coin_fountain_seed'];
+setInterval(() => {
+  if (typeof inv === 'undefined' || !Array.isArray(inv)) return;
+  for (const id of B64I_GONE_ITEMS) {
+    const n = typeof countItem === 'function' ? countItem(id) : 0;
+    if (n > 0) takeItem(id, n);
+  }
+}, 4000);

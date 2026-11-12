@@ -88,7 +88,10 @@ async function claimReward(r, btn) {
   }
   rewardBusy = false;
   lvClaims.push(r.lv);
-  if (r.kind === 'item') addItem(r.id, 1);
+  if (r.kind === 'item') {
+    if (Wallet.on() && (typeof Bag !== 'undefined' && Bag.on())) Bag.pull(); // (build m: the server put it in your bag)
+    else addItem(r.id, 1);
+  }
   savePlayer();
   renderBars();
   closeDialog();

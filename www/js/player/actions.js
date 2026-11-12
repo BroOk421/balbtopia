@@ -68,13 +68,15 @@ function gotHit(p) {
   // (Oct 27 2026, security) only a punch from a player who is here and next to you (a faked 'hit' from across
   // the map knocked players into lava)
   const from = p && Net.remotes.get(p.from);
-  if (!from || !nearMe(from, 3)) return;
-  const d = p.d || (Math.random() < 0.5 ? -1 : 1);
+  if (!from || !nearMe(from, Math.abs(Number(p && p.d)) > 1 ? 6 : 3)) return; // (the Tsunami Blaster reaches 5 tiles)
+  // (build p) |d| 2 = the Mega Water Gun: pushed twice as hard, a higher hop (never more than 2)
+  const d = Math.max(-2, Math.min(2, Number(p.d) || (Math.random() < 0.5 ? -1 : 1))),
+    big = Math.abs(d) > 1;
   P.vx = d * KNOCKBACK;
-  if (P.ground) P.vy = -180;
-  P.kbT = 0.28;
+  if (P.ground) P.vy = big ? -300 : -180;
+  P.kbT = big ? 0.4 : 0.28;
   P.hitT = 0.35;
-  P.face = -d; // look back at whoever hit you
+  P.face = -Math.sign(d) || 1; // look back at whoever hit you
   P.place = null;
   shake = Math.max(shake, 3);
   Native.haptic('medium');

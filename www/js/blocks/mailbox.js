@@ -269,9 +269,12 @@ async function mbClaim(id) {
     letLocalPut(o);
   }
   let dropped = false;
-  const got = [];
+  const got = [],
+    srv = Net.online && Net.me && (typeof Bag !== 'undefined' && Bag.on());
+  if (srv) Bag.pull(); // (build m: the server put them in your bag)
   for (const [iid, n] of items) {
-    if (roomFor(iid, n)) giveN(iid, n);
+    if (srv);
+    else if (roomFor(iid, n)) giveN(iid, n);
     else {
       spawnDrop(iid, P.x + P.w / 2, P.y + P.h - 10, n, 1.2, playerName);
       dropped = true;
@@ -398,14 +401,16 @@ async function mcSubmit() {
   if (!isMailboxT(fg[d.i])) return toast('The Mailbox is gone'), false;
   for (const s of d.items) if (have(s.id) < s.n) return toast("You don't have " + s.n + ' ' + ITEMS[s.id].name), false;
   const items = d.items.map((s) => [s.id, s.n]);
-  // the items leave the bag now (back if it doesn't go through)
-  for (const [id, n] of items) takeN(id, n);
+  // the items leave the bag now (back if it doesn't go through); with the server bag the server takes them (build m)
+  const srv = Net.online && Net.me && (typeof Bag !== 'undefined' && Bag.on());
+  if (!srv) for (const [id, n] of items) takeN(id, n);
   mcBusy = true;
   try {
     if (Net.online && Net.me) {
       const r = await Net.mailboxSend(w, d.i, sub, text, items);
+      if (srv && !r.err) Bag.pull();
       if (r.err) {
-        for (const [id, n] of items) giveN(id, n);
+        if (!srv) for (const [id, n] of items) giveN(id, n);
         renderBars();
         toast(r.err);
         return false;

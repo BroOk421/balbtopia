@@ -24,16 +24,16 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | Folder | Files |
 |---|---|
 | `core/` | errors, assets, config, native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), main |
-| `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, gmwatch, subscriber, rename, social, globalchat, keys |
+| `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, bag (build m, loaded before main.js), gmwatch, subscriber, rename, social, globalchat, keys |
 | `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, signs |
-| `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb |
+| `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb, spwai (TEMP test, build p) |
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
 | `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
-| `wear/` | wear, clothes, tees, capes, scarves, hairstyles, diaper, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
-| `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides |
+| `wear/` | wear, clothes, tees, oldman (build n, after afro), floaties (build p, after oldman), capes, scarves, hairstyles, diaper, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
+| `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides, megagun (build p, after asteroids.js) |
 | `render/` | render, shadow, portrait, remotefx |
-| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, factorypack, musicpack, hudcard, titlescreen, landinglinks (chatbar.js removed Nov 10 2026) |
+| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
 | `vendor/` | supabase.js |
 
@@ -3871,3 +3871,368 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   sides of the door room, between it and the team rooms; the Gold Lock moved to row 1 col 6 (the centre room's top left
   corner). Only new Red vs Blue worlds get it (the template is laid once, when bought).
 - GAME_BUILD '2026-11-12 d'.
+- Build e (owner, Nov 12 2026):
+  - "The Red vs Blue block disappears; make it another block, broken it floats like a Vending Machine": the console
+    is now its own block, the Red vs Blue Console (block 461, id `rvb_console`, `RVB_CON_T`; 461 was one of the unused
+    numbers 461-462 / 468-470; still free: 462, 468-470). The Arcade Machine (Rare) could break into nothing. breakDrop
+    wrapper: always itself as a floating drop, no seed. Not in the Shop, no recipe. Animated picture `rvbConPic`
+    (red / blue cabinet, VS screen; drawNewBlock wrapper, SHOP_ICON / HD_DECO icon). Can't be broken while a game is on
+    (hitBlockAt wrapper).
+  - Bug "moved the Gold Lock, the console lost its wrench icon and pop-up": the console was only the ONE tile saved
+    as rvb.c, and the world's `rvb` record is the only thing that made it a game world (a save from an older build of
+    the game drops that record). Now the console is found by BLOCK TYPE anywhere in the world (`rvbConsoleAt`,
+    `rvbFindConsole`; worldData keeps rvb.c = where it is now); a world with the console AND both base Checkpoints but
+    no rvb record is still a RvB world (empty teams); old worlds' Arcade Machine at rvb.c turns into the console on load.
+    Wrench with no Gold Lock placed: "Put your Gold Lock back first". The console in a normal world: decoration only.
+  - Water Gun in a RvB world: stops at solid blocks (handfx.js stepShots: `rvbOn()`); the one hit also checks the
+    line from the shooter's hand to his head / middle / feet is clear (`rvbClearLine`, `rvbSees`), so nobody is
+    splashed through a wall. Outside RvB worlds water still goes through blocks (owner, Oct 27 2026).
+- GAME_BUILD '2026-11-12 e'.
+
+## Nov 12 2026, build f: SPLASH WARS (Red vs Blue becomes a summer event)
+
+- Owner: "When you die a countdown 3 2 1, then spawn again. Take it out of the Shop, make it an event only in summer,
+  March 15 to April 15, change its name. A world where players register and queue, then they go to the list, prepare
+  10 s, then a 5 s countdown already at the bottom left and right, then it starts. The winners get 5 tickets each, the
+  losers nothing. The tickets are saved up and exchanged for items (I'll send the list)." Full notes: the SPLASH WARS
+  section at the end of `events/rvb.js` (internal names stay rvb* / spw*).
+- Name: SPLASH WARS (`SPW_NAME`, picked by Claude; teams still RED / BLUE). The Red vs Blue Pack is OUT of the Shop
+  (no SHOP entry; schema.sql set_rvb price row + keep-list entry removed: RE-RUN schema.sql). Worlds already bought
+  keep working as before (owner + console), only renamed.
+- Event world `SPLASHWARS` (`SPW_WORLD`): the pack template, built by the game (rv `SPW_V`), locked by the GM. Open
+  March 15 00:00 to April 15 23:59 PH time every year (`spwInfo` / `spwNow`, server clock skew from moonevent.js
+  `mevSkew`); outside that no way in, hidden from the list (the GM always gets in, to test); at the close players are
+  sent to their lobby. THE GM SHOULD ENTER SPLASHWARS ONCE before March 15 so the server saves it with his lock (same
+  as MOONEVENT; a world first saved by a normal player has no owner).
+- Registration: click (or wrench) the console = `openSpwDesk`: Register / Leave queue, the queue, the match on now,
+  your tickets. No owner runs it: a HOST player's game does (`rvbBoss`, `spwTakeHost`, `spwTick`): the oldest claim
+  (`rvb.hs`) stays host while here; when he leaves the first name A-Z takes over with the state everyone has; new
+  arrivals listen 4 s first. 'reg' / 'unreg' go to the host; 'st' (+ queue `q`, claim `hs`) / 'res' only count from him.
+- Match: 2+ registered -> FILL 15 s (14 = at once) -> first 14 of the queue, RED / BLUE in turn -> WAIT 10 s in the
+  team rooms, team list on top (#rvbTeams) -> READY 5 s at the bases with a big 5 4 3 2 1 (#rvbBig) -> PLAY 5 min ->
+  END 8 s -> idle, teams emptied (register again) -> next match.
+- Dying in any match: ghost, then a big 3 2 1, then back at the base (respawn wrapper, `P.rvbCd`, `RVB_RESPAWN`);
+  sent as `rc` in the position message (net.js) so the others keep him gone; gone players don't block water
+  (Net.bodyAt wrapper).
+- Tickets: item `splash_ticket` "Splash Ticket" (kind material, own icon). Each player of the winning team gets
+  `SPW_WIN_TIX` 5 from the host's result (`rvbPay`, once per match id; a draw / the losers get none). Client-side like
+  other ordinary items (not server-checked).
+- TODO (owner will send the list): the TICKET EXCHANGE: which items cost how many Splash Tickets, and where players
+  exchange them (e.g. a shop pop-up at the SPLASHWARS lobby or a Shop tab). Nothing is exchangeable yet.
+- GAME_BUILD '2026-11-12 f'.
+
+## Nov 12 2026, build g: SPLASH WARS matches made by the SERVER, each in its own new world
+
+- Owner: "When many have registered, make NEW worlds, each one 10 v 10; the world goes away after, then new ones
+  again. And do it on the server side." This REPLACES build f's host-player queue (spwTakeHost / spwTick / spwForm,
+  'reg' / 'unreg' messages and the bag-item tickets are gone). Full notes: the SPLASH WARS section at the end of
+  `events/rvb.js`, and the SPLASH WARS section at the end of `supabase/schema.sql` (RE-RUN schema.sql).
+- Server (schema.sql): tables spw_queue (user, name, at, seen), spw_matches (id = world name 'SPW' + 6, t0, red / blue
+  names + ids, settled, scores, winner), spw_reports, spw_tickets (tickets, wins, played). RPCs for players:
+  `spw_status()` (also keeps you queued: not seen 12 s = off), `spw_register(p_on)`, `spw_report(p_match, p_red, p_blue)`;
+  internal: spw_make (advisory lock; 20 queued = a 10 v 10 at once, else 2+ once the first waited 30 s; RED / BLUE in
+  queue order; several matches at once if there are many), spw_settle (all reported or 15 s after the end: the side
+  2/3 of the reports name wins, else a draw; median score of the agreeing reports; +5 tickets to every winner;
+  played + 1 for all; the world row deleted), spw_event_now (open MMDD 0315-0415 Asia/Manila; the GM may register when
+  closed). save_world returns 'saved' and keeps NOTHING for names ^SPW[A-Z0-9]{6}$. Times must match rvb.js:
+  prep 10 s, countdown 5 s, play 5 min, end 8 s (`spw_len` / `SPW_T`). Tested on a local Postgres 16 with the whole
+  schema.sql (fake auth): queue, 2v1 after 30 s, 10v10 at 20, 12 s timeout, "finish your match first", 1v1 liar =
+  draw, 2v2 split = draw, 3 of 4 agree = win, 1 report after 15 s, permissions (internal functions not callable).
+- Game: SPLASHWARS = the lobby (registration desk only, no match there; `spwLobby()`). It asks spw_status every 2 s
+  (`spwRefresh`); a match of yours still on = `spwGo` -> enterWorld(match id). A match world (`spwIsMatch`, `rvbEv()`):
+  built in a moonWorldsFix wrapper (before the world channel is joined, so the template isn't sent as tile changes),
+  locked by the GM, never saved / listed / typed in; only its players (and the GM) get in. The phase comes from t0 on
+  the server's clock (`spwMatchTick`, `spw.skew`); no host, no 'st'. At the end every player reports his tally; the
+  result pop-up waits for the server's answer (TIME! -> RED / BLUE WINS / DRAW + tickets), then back to SPLASHWARS
+  (5 s after the result, or 30 s after the end at most). 10 a team (`SPW_TEAM`; more room / base spots). #spwBar
+  shows your place in the queue. Offline the same rules run in the game (`spwLocal`, localStorage 'balb_spw_local').
+- Tickets are now the SERVER's (spw_tickets), shown at the desk (TICKETS / WINS / MATCHES). The exchange is still TODO:
+  when the owner sends the price list, add a server RPC (e.g. spw_exchange(item) taking tickets and giving the item
+  through owned_items / the bag like shop_buy) and a pop-up at the SPLASHWARS desk.
+- The GM should enter SPLASHWARS once (any day) so the lobby is saved with his lock. The lobby world still has the
+  30-player limit (WORLD_MAX); players leave it for their match worlds, so the queue keeps moving.
+- GAME_BUILD '2026-11-12 g'.
+
+## Nov 12 2026, build h: SPLASHPRIZE and the Ticket Master
+
+- Owner: "SPLASHWARS is one world; the worlds they play in multiply and go away when done, and come back when new
+  players play. After the game there is a world where they stay; they take the ticket from an NPC: wrench, Take
+  ticket. Only the winners go there; the losers go straight to their own lobby." Then: "after the claim, a next page
+  with GO HOME and a description, to the lobby."
+- Server (schema.sql, RE-RUN): spw_settle no longer adds tickets; it puts 5 for each winner in `spw_prizes` (user,
+  match). `spw_claim()` moves all of mine into spw_tickets and answers status + `got`. spw_status has `prize` (tickets
+  waiting). Tested on the local Postgres: winners get a prize, losers none, claim once (second claim got 0).
+- After a match (rvb.js, the back-to rule in the poll interval): settled and my team won -> SPLASHPRIZE; lost / draw /
+  no answer in 30 s -> LOBBY (my own). The result pop-up says where you go and is closed before the trip. A winner who
+  missed the hall: the SPLASHWARS desk shows "N tickets are waiting" and a GET TICKETS button.
+- SPLASHPRIZE (`SPW_PRIZE`, rv `SPWP_V`, built in the moonWorldsFix wrapper, locked by the GM, hidden from the list
+  and the search for everyone but the GM): a hall (red / blue walls, couches, a Hologram Sign, a door back to
+  SPLASHWARS, the main door). Only players with tickets waiting get in (the GM always).
+- THE TICKET MASTER: block 462 (`SPW_NPC_T`, id ticket_master; 461-462 used now, 468-470 still free), a red / blue mat
+  on the tile; the character standing on it is drawn with drawCharacter (`SPW_NPC`: cap, shades, red tee, Water Gun,
+  his name over his head), faces you, a ticket bobs over him while you have tickets waiting, a wrench by his name
+  when you hold the wrench. Wrench (or click) him in reach: `openSpwPrize` -> TAKE TICKET (`spwTake`, spw_claim) ->
+  the next page: +N tickets, your total, a description, GO HOME = enterWorld(LOBBY).
+- Offline (`spwLocal`): the same, prizes in db.p.
+- GAME_BUILD '2026-11-12 h'.
+
+## Nov 12 2026, build i: event papers in the NEWS (Moon Event, Splash Wars)
+
+- Owner: "make a banner and a description for when the Moon Event is on, and for SPLASHWARS, and put them in the
+  news." NEW `ui/eventnews.js` (after events/rvb.js, before main.js): the game adds EVENT papers to the News by itself,
+  no GM post needed: THE MOON EVENT IS ON! while `mevNowInfo().open` (id 'mev:<ev>': every event is a new paper) and
+  SPLASH WARS: THE SUMMER EVENT! while `spwNow().open` (id 'spw:<year>'). At the top of the list, they pop up once in
+  the lobby like the GM's papers, count in the red number, and go away when the event closes; the GM can't take them
+  down (no x). Banners 640 x 300 drawn in the game (`mevBanner`: space backdrop parts, Saturn, Earth, a comet, the
+  Rocket Ship lifting off from Moon ground, MOON EVENT / EVERY 3 DAYS · 5 PM / OPEN 24 HOURS; `spwBanner`: red | blue
+  painted tiles, a sun, splashes, two Water Guns, the Splash Ticket, SPLASH WARS / SUMMER EVENT / MARCH 15 – APRIL
+  15 / 10 v 10), cached once their pictures and the Press Start 2P font are loaded. The text says how to join, how
+  to play, the prizes and when it ends (the player's own clock / time zone).
+- news.js: `newsExtra()` (the game's papers), `newsIsNew(n)` (text ids are kept seen in localStorage
+  'balb_news_evseen:<name>'; the GM's numbered papers keep the old rule), `n.mkImg` draws a paper's picture, `n.auto`
+  = no take-down button.
+- GAME_BUILD '2026-11-12 i'.
+
+## Nov 12 2026, build j: security fixes (owner: "is there anything else to fix in security?")
+
+- Splash Wars result (schema.sql spw_settle + rvb.js spwLocal): each TEAM's reports give that team's verdict (most of
+  its reports; tie = draw); both teams agree = that result, only one team reported = its verdict, they disagree = a
+  draw. Before, 2/3 of ALL reports decided, so the bigger team of an uneven match (2 v 1, 6 v 5...) could always
+  report itself the winner. Tested: 2v1 lying reds vs an honest blue = draw; honest 2v1 = red; 3v3 with one lying
+  blue = red; only blue reported = blue.
+- Painting (rvb.js netRvb 'pt'): another player's tiles only count within RVB_PAINT_NEAR (6) tiles of where his
+  position says he is, and not while he is dead. Before, a changed game could paint the whole arena from its base,
+  every honest game counted it, and its team won the tickets.
+- Event worlds on the server: save_world never lets a non-GM create SPLASHWARS / SPLASHPRIZE / MOONEVENT and treats
+  every non-GM save there as a visitor's (drops / Vending sales only), even if one was saved without an owner;
+  can_send_build is false there for non-GMs. (The "GM must enter them once first" note is no longer needed for
+  safety; the GM's first visit still saves the built world.)
+- spw_make: pg_try_advisory_xact_lock (no queue of waiting calls) and at most once a second (table spw_tick), since
+  every player in SPLASHWARS / a match calls spw_status every 2 s.
+- Known, NOT fixed (design): water-gun hits ('out') are checked by the one hit (distance 14 tiles + a clear line), not
+  the server; ordinary bag items are client-side (the old design), so the coming ticket exchange should give items
+  through the server (owned_items, like shop_buy) or it is only as safe as the bag.
+- GAME_BUILD '2026-11-12 j'.
+
+## Nov 12 2026, build k: Water Gun jet + hits checked against real shots
+
+- Owner: "go, fix it; and the Water Gun's flash must look different: straight, not spreading." handfx.js:
+  SHOT.water = ONE drop, no spread, speed 520 (was 6 drops, spread 0.07, 430); drawn as a straight jet: a streak from
+  the gun (at most WATER_JET 34 px behind its front; `s.sx/s.sy` = where it left) with a dark-blue edge, light core,
+  white highlight and a round front. The splash where it ends is unchanged. Other players' Water Guns look the same.
+- Red vs Blue / Splash Wars hits (rvb.js): a 'splashed' ('out') message only counts when the hit player's game saw a
+  real water jet of that shooter in the last RVB_SHOT_MS 1.5 s coming at him (Net.onShot wrapper keeps the last 8 per
+  player in `rvbShots`; `rvbShotAtMe`: the line gun -> aim (x1.25) passes within RVB_SHOT_NEAR 30 px + half a body),
+  on top of the 14-tile range and the clear line of sight. A changed game can no longer splash players it never shot at.
+- Still a design limit (needs a decision, not done): ordinary bag items are kept client-side (the player's save), so
+  anything only as safe as the bag. Moving the whole bag to the server is a big change (every item, trade, drop, save).
+  The ticket exchange must give items through the server (owned_items, like shop_buy) when it is made.
+- GAME_BUILD '2026-11-12 k'.
+- Build l (owner's picture of how the water must look): the Water Gun's shot is a DROP, not a streak: a teardrop at
+  the front (point towards the gun, light-blue gradient, white rim, glow, a white shine) and behind it, on one straight
+  line, tiny drops (squares, every 6-12 px, smaller and fainter further back, a few sparkles just off the line) and
+  one little bubble ring, at most WATER_JET 70 px behind and never behind the gun. Each shot has its own `seed` so its
+  trail doesn't flicker. Still one drop, no spread, speed 520.
+- GAME_BUILD '2026-11-12 l'.
+
+## Nov 12 2026, build m: THE BAG ON THE SERVER + privacy
+
+- Owner: "nobody plays yet, so fix it: it really must be on the server, above all the players' privacy."
+  Full notes: schema.sql "SERVER BAG + PRIVACY" (end of the file; RE-RUN schema.sql) and the top of
+  `www/js/online/bag.js`. Supersedes "NOT secured: items come from the client" in the Oct 20 Security notes.
+- SERVER: `bag` (user, item, qty) is the truth of what each player owns (bag + hotbar + worn; not gold / BC = wallets,
+  not World Keys = world_keys). `bag_get()` (first time: `bag_init` copies the save once, > 3,000 logged),
+  `bag_sync(p_delta)` ({ item: +n / -n } from play: losses always taken; gains through `bag_earn`: hourly amount per
+  class `bag_cap` basic 20,000 / common 8,000 / uncommon 3,000 / rare 800 / epic 200 / legendary 50 / World Lock 300 /
+  Diamond Lock 5 / Black Diamond Lock 1, the rest waits in `bag_held` (cheat_log 'bag held: <class>', at most once an
+  hour) and is given when the hour allows; Shop-only (tracked) items only out of `bag_pool` = what players lost of
+  them, so they never grow except through the Shop; class 'none' (packs, rvb_console, ticket_master, splash_ticket)
+  never from play), `bag_lock_convert(item, up)` (100 <-> 1 locks). `item_info` = every game item's class, made from
+  the game's ITEMS (1,608 items, Nov 12 2026): ADD NEW ITEMS THERE (an unknown item counts as 'legendary').
+  Moved on the server for EVERY item now (not only Shop-only ones): trade_move / trade_lack (bag checked), give_item,
+  gift_send (every item but World Keys waits in gift_escrow) / gift_take / gift_back, mailbox_send / mailbox_claim,
+  shop_buy (into the bag unless the class is 'none'; returns `bag`), claim_level_reward.
+- GAME (bag.js `Bag`): off offline / for a GM / on an old server. `Bag.start()` after login (signInOnline wrapper);
+  every 1.5 s `sync`: delta = what the game has (`local()`: bag + worn + `stash`) - the server's last answer (`base`);
+  the answer is applied as target = server + (now - what was sent), so play during the request isn't lost or doubled.
+  What doesn't fit waits in `stash`; what the server says you don't have leaves the bag (then the worn slot). Toasts
+  for the stash and for held items. Flows the server moves no longer change the bag themselves when `Bag.on()`; they
+  call `Bag.pull()`: social.js applyTrade (only World Keys move locally) / sendGift / giftBack / receiving a gift
+  (`giftHeld`: every item but keys goes through gift_send), mailbox.js send / claim, shop.js buy (not packs),
+  compressLock / breakLock (`Bag.lockConvert`), levels.js item rewards.
+- PRIVACY: `online_people()` gives WHERE a player is only to his friends (server table `friends`, mutual: lobby_send
+  remembers friend_req in `friend_asks`; a friend_ok to someone who asked = friends both ways; friend_no clears the
+  ask; `friend_remove(id)` from the Friends tab's x; mutual friends already in saves were copied once) and to players
+  in the same world (GMs see all); everyone else sees only that he is online. `world_counts()` = players per world
+  (no names): net.js `Net.worldCounts`, used by the world list's live worlds (worldgrid.js) and the 30-player limit
+  (worlds.js). `board_list` needs a login. Checked: every table has row level security; players read only their own
+  save; DMs / trades / gifts / friend requests already went through the server inbox (lobby_send, build v).
+  Left as is: `login_email(name)` (needed before login) shows the login address of a name, which is the account's
+  FIRST name for renamed accounts; the world channel carries the positions of the players in that world (like seeing
+  them there).
+- TESTED: the whole schema.sql on a local Postgres 16 (twice: safe to re-run; fake auth): bag copy from a save, play
+  gains / losses, refused fake Shop item and console, legendary 50 + 20 held -> given after the hour, clamp, Shop-only
+  pool (1 dropped -> 1 picked up, the 2nd refused), gifts (too many refused), trades both ways, locks up / down,
+  friends (an OK nobody asked for does nothing), world counts, anon / internal functions refused; and the game against
+  the REAL functions through a test bridge (scripts not shipped): login copy, +30 dirt, fake Shop item taken back,
+  hourly limit + held toast, losses, a server gift appearing, lock compress / break, play during a request (no double),
+  a full trade (5 dirt for 4 rock: both sides right on the server and in the bag). Splash Wars, console, water tests
+  still pass. (Splash Wars' spw_make runs at most once a second, so back-to-back calls in a test may not make a match
+  until 1 s later.)
+- GAME_BUILD '2026-11-12 m'.
+
+## Nov 12 2026, build n: the cool old man's hair, beard, mustache and shades
+
+- Owner (his picture of the character in a tank top with them): "add this hair, beard, mustache and shades too,
+  accurate to the character's size". NEW `wear/oldman.js` (after afro.js): Silver Wild Hair (hair, Rare; white
+  spiky hair round a bald top + white eyebrows drawn right over the character's own, frame x 54-67 / 91-101, y 47-50),
+  Silver Full Beard (stache, Rare; with sideburns, open at the mouth), Silver Mustache (mouth slot, Uncommon; so it is
+  worn WITH the beard, like the picture), Boss Shades (face, Rare). Shop WEAR (prices picked by Claude): 12,000 /
+  9,000 / 5,000 / 6,000 gold; schema.sql shop_prices rows + keep list + item_info classes (RE-RUN schema.sql).
+- Pictures: `art-source/oldman/oldman_cut.py` cuts `oldman_ref.png` into www/assets/items/oldman_{hair,beard,
+  mustache,shades}.png at 2x frame size. His picture is the idle frame drawn bigger but not in the same proportions
+  (the face is ~10% shorter), so it is lined up on the eyebrows (picture y 329.5 = frame 48.9) and the mouth (picture
+  735, 548 = frame 75.5, 95) with KX 5.32 / KY 4.74; the places on the 118 x 215 frame are `OLDMAN_AT`. The shades'
+  pixels are cut out of the hair and the beard (they are drawn under them: face, then stache, mouth, then hair); the
+  tank top's neckline and the lens shine are left out of the beard. Checked in the game: facing right / left, with a
+  cap on top (hatfit), bag icons.
+- GAME_BUILD '2026-11-12 n'.
+- Build o (owner, with a close-up of the shades: "there is white under them, it should be skin too; and separate: the
+  hair, the beard WITH the mustache, the shades"): the Silver Mustache item is gone (never released); the Silver Full
+  Beard is the beard + sideburns + mustache in one picture (oldman_cut.py saves `beard_all`; oldman_mustache.png
+  deleted), Shop 12,000 (was 9,000). Boss Shades: the character's eye whites reach frame y 83, the shades end at
+  81.1, so a drawWorn wrapper paints frame x 45-104, y 80-84.5 in the wearer's skin colour (`oldmanSkin`: the skin
+  picture's cheek pixel at 60, 88, cached per skin) before the worn items. Checked on peach, brown and deep skins.
+  schema.sql: silver_mustache price / keep-list / item_info rows removed, beard 12,000.
+- GAME_BUILD '2026-11-12 o'.
+
+## Build p (Nov 12 2026): swim rings + SPLASH WARS Ticket Exchange
+- Owner (with a picture of two characters in a cow and a duck swim ring): "add these swim rings, worn in the shorts
+  slot; exchanged for tickets in the Splash event, 500 each; glowing ones with a sparkling border, 2k each; also the
+  shades, the old man's hair, the beard, the Hawaiian shirts and tatang's shorts: hair 700, beard 500, Hawaiian 300,
+  shorts 200; and give the ticket exchange a barrier so players can't cover it."
+- NEW `wear/floaties.js` (after oldman.js): cow_swim_ring, duck_swim_ring (Epic), glow_cow_swim_ring,
+  glow_duck_swim_ring (Legendary), all slot 'pants', NOT in the Shop. outfitBody wrapper drops the pants (white briefs
+  show); drawWorn wrapper draws the ring over body + shirt (before face/beard/hair) when `floatShown(c)` (not dead,
+  resting, swimming). Glowing: gold shadow glow (pulsing), 1 px gold border, 7 sparkles running round the border
+  (ANIM_N 8 frames x 110 ms). Pictures: `art-source/floaties/floaties_cut.py` + `floaties_ref.png` ->
+  assets/items/floatie_{cow,duck}.png (2x frame size). Owner: "not accurate, must look like my picture" -> FLOAT_PICS
+  [x, y, w, h] lined up with his picture (4.0 px across / 4.7 up-down, bottom on the briefs, head past the front hand,
+  tail behind the back arm) and the BACK ARM drawn again over the ring like his picture (FLOAT_ARM region of the
+  dressed body, kept by the outfitBody wrapper in `floatLast`, drawn by the drawWorn wrapper; not on jump frames).
+- Ticket Exchange (rvb.js, end): server table `spw_shop` (item, tickets, excl) + RPC `spw_exchange(p_item)` (takes
+  tickets, add_owned if tracked, bag_add); spw_status returns `shop` {item: tickets}. `excl` items (the 4 rings) count
+  as Shop-only: is_tracked() redefined at the END of schema.sql to include them (owned_items, bag_pool; can't be
+  earned by play). Prices: rings 500, glowing 2,000, Silver Wild Hair 700, Silver Full Beard 500, Boss Shades 400
+  (Claude's pick: owner gave none), Hawaiian Polo / Red Hawaiian Polo 300, Cargo Shorts 200, Penguin pet (pet_penguin, Shop item, tracked) 1,500
+  (added after; 11th prize on the floor at (37, 53), rv SPW:4) (Claude read "tatang's
+  shorts" as the Lolo set's Cargo Shorts; change in spw_shop + SPW_SHOP_OFF if he meant another).
+- The booth: SPLASHWARS world rv 'SPW:3' (rebuilt once; owner: "make the place smaller" -> 7 x 5 tiles). `spwBooth()`: maze cleared x 12-41; a tunnel along the floor
+  row from the lobby's bottom-left (x 42-49, y 53) to the arena; a GLASS BOX x 32-38, y 49-53 (glass walls + roof)
+  with 10 Display Boxes (SPW_SHELF, two shelves; the price tags under them were REMOVED, owner: "remove those"), and the clerk "Tatang" (block 462, like
+  the Ticket Master, wearing the prizes) at (35, 53); shelves y 50-51, x 33-37. Players can't get in, so nobody covers it. Click/wrench anything
+  in the box within SPW_BOOTH_NEAR (8) tiles -> `openSpwShop` (ticket balance, grid, pick, EXCHANGE); after an
+  exchange Bag.pull(). Offline: spwLocal 'spw_exchange'.
+- Owner then: the glowing duck "not accurate" -> glow only OUTSIDE the black outline (no tint over the ring), thinner
+  rim + softer glow; the duck's glow is white-blue (FLOAT_GLOW; gold on the yellow duck blurred it into a blob); both
+  rings moved forward; then (owner: "move the duck right, even with the cow") duck at x -2, same bottom as the cow; then (owner: "lower, so the briefs don't show") both 8 px
+  lower (bottom at frame y 168, under the briefs).
+- RE-RUN schema.sql. GAME_BUILD '2026-11-12 p'.
+- TEMPORARY (owner: "just put a button, I'll have it deleted later once I've tried the game: PLAY WITH AI"): NEW
+  `events/spwai.js` (after rvb.js). The SPLASHWARS desk gets PLAY WITH AI -> your own test world SPLASHAI + 4 chars
+  (never saved / listed, match template, you are its "owner" so the local RvB engine runs it), 10 v 10: you + 9 AI on
+  RED, 10 AI on BLUE (Net.remotes bots: walk/jump to unpainted spots, paint, shoot the nearest enemy in sight; out ->
+  back at base after 3 s; your hits via Net.sendRvb 'out' caught there). No server, no tickets. Console in the test
+  world: PLAY AGAIN / LEAVE. TO REMOVE: delete the file and its <script> tag; nothing else uses it.
+- Owner: "add the penguin pet to the exchange 1.5k, the water gun 800, and a bigger water gun, 3k, with a glow".
+  spw_shop + SPW_SHOP_OFF: pet_penguin 1,500, water_gun 800, mega_water_gun 3,000 (excl: only here). NEW
+  `items/megagun.js` (after asteroids.js): Mega Water Gun (Legendary tool, no recipe/seed, not in Shop) = the soaker
+  shape recoloured (purple body, glowing aqua tank, gold), drawn GUN_SIZE 1.3 x the Water Gun in the hand with a
+  pulsing aqua glow (asteroids.js GUN_SIZE / GUN_GLOW hooks in drawGunAt + drawJumpTool). Shoots the same water as the
+  Water Gun (handfx.js WATER_GUNS / isWaterGun; remotefx, scythes NO_V_SWING, rvb rvbArm keeps it in hand) - looks
+  only, no advantage in matches. Booth: a third shelf (y 52, SPW_V 'SPW:4'); Tatang holds the Mega Water Gun.
+- Owner (with his picture of a purple / pink blaster): "give it a stroke, and put the penguin on the exchanger; like
+  this if it can be drawn" -> the Mega Water Gun is now HIS picture: `art-source/megagun/megagun_cut.py` +
+  megagun_ref.png -> assets/items/mega_water_gun.png (128 x 128 hand picture: barrel up-right, grip middle (33, 43) of
+  his picture on the hand spot, 2 px dark outline = the stroke). megagun.js loads it as HDT_ART (soaker in mega
+  colours only until it loads). MEGA_SIZE 1.15, a soft PINK glow. Tatang (SPW_CLERK, id 'npc_tatang') has the Penguin
+  pet (equipped.pet; pets.js draws it behind him).
+- Owner: "point like the Nocturn when it breaks: it comes out of the very tip; with the mega gun the other player
+  flies back harder; make it splashy, held down lots of water; the water and the gun a little darker; a different
+  name" ->
+  - ALL water guns: the water starts at the gun's MUZZLE. asteroids.js `GUN_TIP` (muzzle in 32-unit tool space:
+    water_gun [21.4, 5.2], mega [15.9, 10.2]) + `gunNoteTip` (every drawGunAt / drawJumpTool: tip and barrel
+    direction in world px per player, via reaperscythe.js noctBody like the Nocturn) -> `gunTips`. handfx.js
+    `waterShot` (yours, others' via Net.onShot, the AI's in spwai.js) marks the shot `who`; `waterFromTip` moves it to
+    the tip once the barrel points at the target (first frames of the pose can swing up), within 0.15 s; not drawn
+    until then.
+  - mega_water_gun renamed TSUNAMI BLASTER (id kept): rate 0.09 (held down = a stream; main.js repeats act at the
+    tool's rate; click wait 90 ms), each shot = jet + MEGA_SPRAY 4 smaller drops (s.sc, not lead), darker water
+    (s.dark palette in the water drawing), picture 20% darker (megagun_cut.py DARK 0.8), MEGA_SIZE 1.25. A hit sends
+    Net.hit d = +-2: actions.js gotHit clamps |d| <= 2 (face = sign), 2 = twice the push and a higher hop; net.js
+    clamps the shove it shows too. In SPLASH WARS a hit is still just "out".
+- Owner: "with it [Tsunami Blaster] a longer range: 5 tiles; remove the box-like water effects; add to the exchange
+  Water Bucket 50 tickets for 20, Sand 10 tickets for 30, Beach Umbrella 5 tickets for 20; and make the beach umbrella
+  look professional: like the blue umbrella, but bent" ->
+  - handfx.js clampAim: the Tsunami Blaster aims up to 5 tiles (max(5, REACH)); its water has no square bits (round
+    trail drops, no sparkles; splash kind 'mwater' = no square splash particles); actions.js gotHit accepts its push
+    (|d| 2) from 6 tiles.
+  - spw_shop.qty (alter table add column; default 1): water_bucket 50 x20, sand 10 x30, beach_umbrella 5 x20;
+    spw_exchange gives pr.qty; spw_status `shop_qty`. rvb.js SPW_QTY_OFF / spwQty ("for 20" in the grid); a 16th
+    display slot on the floor at (37, 53); SPW_V 'SPW:5'.
+  - Beach Umbrella block (297) picture: art-source/beachumbrella/beach_umbrella_build.py -> assets/items/
+    beach_umbrella.png (128 px): the Blue Umbrella's open picture (no handle, long shaft), tilted 18 deg, in a sand
+    mound; blocks64d.js draws it into B64D_PIC.beach_umbrella once loaded.
+- RE-RUN schema.sql.
+- Owner: "take the sand mound off the beach umbrella, straight on the ground" -> beach_umbrella_build.py: no mound, the
+  shaft's foot at the tile's bottom (80, 128).
+- Owner: "the guns point where the mouse points, but only after you fire, so they don't go up-down-up-down; the Laser
+  Gun too" -> asteroids.js (after drawJumpTool): swingTurn wrapper = guns (GUN_IDS: Water Gun, Tsunami Blaster,
+  Laser Gun) never swing, the arm points straight at the spot; a step wrapper keeps YOUR arm pointing at the mouse
+  (P.punch { aim: true }, following ptr, facing it) for GUN_AIM_HOLD 0.8 s after each real shot / punch (before the
+  first shot the gun hangs as usual); net.js keeps a remote player's gun pointing at his last spot as long between
+  shots. The Laser Gun's asteroid pull (laserCh) still holds it forward as before.
+- Owner: "the laser isn't lined up with the gun's end" -> GUN_TIP.laser_gun [20.1, 5.9] (its emitter); the quick
+  beams (yours: startPunch wrapper; others': remotefx.js) carry `who` and start at gunTips' tip when the barrel points
+  at the spot (hidden for up to 90 ms while it turns), else at the old shoulder + 17 px point.
+- Owner: "on a ride it isn't lined up with the pointer; with a water gun the dragon pets mustn't breathe fire (other
+  items fine); the storage icon: stretch it and centre it like an item" ->
+  - asteroids.js swingTurn wrapper: the spot is turned back through the current canvas transform (a ride draws the
+    rider lifted / tilted) before aiming, so on every ride the gun points at the pointer.
+  - pets.js (ground dragons + sky dragons): no fireball for a punch while holding a Water Gun / Tsunami Blaster
+    (isWaterGun(c.hand)), nor for a gun's held aim punch (c.punch.aim). Other items as before.
+  - megagun.js SHOP_ICON: the picture cut to the gun's own box, scaled to fill 56 of 64 px, centred, pink glow.
+- Owner: "still the same on the flying rides (leaf, cloud, carpet)" -> the GUN itself now turns in the hand so its
+  BARREL'S LINE goes through the spot (not just the arm): swingTurn hands the spot (screen px) along on a copy of the
+  hand point (`hand.aim`, kept through a ride's later drawing of the arm), drawGunAt turns the gun with `gunAimTurn`
+  (atan2 of the spot seen from the grip + asin(GUN_AXIS offset / distance) + 45 deg; GUN_AXIS: water_gun 3.5,
+  laser_gun 4.25, mega 4.5 in 32-unit space). In the air (jump pose, drawJumpTool) the same, from drawJumping's
+  ox / oy (`gunJumpO`).
+- Owner: "still not from the gun's point on the leaf / carpet / cloud rides; the Water Gun and Laser Gun too" ->
+  gunNoteTip no longer goes through the body's drawBehind transform (rides draw the rider with transforms it doesn't
+  see): the tip is taken in SCREEN px from the canvas transform and turned to world px with the ox / oy the character
+  is drawn with (`gunDrawO`, set by asteroids.js's drawCharacter wrapper). On the drop shadow's canvas shadow.js now
+  exposes `shadowOff` (its offset to the screen); `gunScreenPt` turns the aim spot into the canvas being drawn on
+  (this also fixes a small aim error on foot). Same for all three guns.
+- Owner: "take Pot of Gold, Coin Fountain and Lucky Cat out of the game, the database too; Gold Vein: a bit lower coin
+  chance, make it Legendary" -> blocks64i.js `B64I_GONE` {499 pot_of_gold, 500 lucky_cat (money one), 501
+  coin_fountain}: numbers stay taken, BLOCK kept (retired) for old worlds; no recipe / seed / coins; their tiles are
+  cleared when a world loads (a 500 tile becomes the OLD Lucky Cat 342, whose id `lucky_cat` the money one had taken;
+  that older Lucky Cat stays in the game, Piggy Bank + White Block), Pot of Gold / Coin Fountain trees removed, and
+  the items + seeds taken out of your bag (every 4 s; kept as retired ITEMS names only so a bag can show them until
+  then). data/farming.json: their 3 recipes removed (CRLF file kept). RICH_TREES: only gold_vein; Gold Vein shown
+  Legendary, RARITY_BASE.gold_vein = 90 (Legendary drops), coin chance GOLD_VEIN_COIN 0.25 (was 0.4), 20-80 each
+  (~64k gold per 5,000 breaks, was ~100k); its tree still pays 1,500-2,500 every 72 h. schema.sql (end): bag /
+  bag_held / bag_pool rows of pot_of_gold, coin_fountain (+ seeds) deleted, item_info 'none' for them, gold_vein
+  'legendary'. RE-RUN schema.sql.
+- Owner: "raise the others to 1k, 2k, 3k, 5k, 7k, 9k and the Legendary ones 12k, 14k, 15k, by rarity" (coins per
+  5,000 breaks) -> config.js COIN_PER_5K { Rare [16-40 -> 1,000-3,000], Epic [41-80 -> 5,000-9,000], Legendary
+  [81-130 -> 12,000-15,000] }; farming.js goldDropAmount (ordinary blocks): mean = target / (5000 x chance), each drop
+  50-150% of it. Money blocks / Gold Vein unchanged. (Server earn_gold still caps 10,000 gold an hour.)
+- Owner: "Gold Vein: about 30k" -> its coin drops 12-36 (25% of breaks): ~29-30k per 5,000 breaks.
+- Owner: "make the limit 30k an hour" -> schema.sql earn_gold: lim 30,000 per rolling hour (was 10,000; held + logged
+  above it). RE-RUN schema.sql.
+- Owner: "only the exchanger himself opens the pop-up, not clicks round him; bring him a bit closer, to the right" ->
+  booth moved to x 34-40 (SPW_V 'SPW:6'), Tatang at (39, 53) by the right-hand glass (players stand at x 41 out of
+  the tunnel), shelves x 35-39 (the 16th on the floor at 35, 53). The booth act wrapper opens the pop-up only for a
+  click on Tatang's tile or the one above it; other clicks in the booth do nothing. Sign: "click Tatang ...".

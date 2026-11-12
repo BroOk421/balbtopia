@@ -887,7 +887,7 @@ drawCharacter = ((prev) =>
 // (owner, Nov 2 2026) EVERY hand tool / weapon swings in this V (arm and weapon at an angle, like the scythe), the
 // Guitar too (held by the neck, its body out at the end), instead of straight along the arm. Not: the Water Gun and
 // the Dragon Hand (they don't swing), the Feather Bow (aims), the scythes (their own swing above).
-const NO_V_SWING = new Set(['water_gun', 'dragon_hand', 'heart_bow']);
+const NO_V_SWING = new Set(['water_gun', 'mega_water_gun', 'dragon_hand', 'heart_bow']);
 const vSwing = (id) => !!TOOLS[id] && !isScythe(id) && !NO_V_SWING.has(id);
 const PICK_SWING_TURN = SCY_HANDLE_ANG + SCY_SWING_TURN + Math.PI / 4 + 0.4; // +0.4: a bit more forward, so its short head stays off the face
 drawArmWithTool = ((prev) =>

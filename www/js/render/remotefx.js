@@ -46,9 +46,9 @@ Net.onPunchFx = (r, p) => {
     const sx = r.x + r.w / 2,
       sy = r.y + r.h * 0.42,
       d = Math.hypot(p.x - sx, p.y - sy) || 1;
-    laserBeams.push({ x0: sx + ((p.x - sx) / d) * 17, y0: sy + ((p.y - sy) / d) * 17, x1: p.x, y1: p.y, t0: now, ms: LASER_QUICK_MS });
+    laserBeams.push({ x0: sx + ((p.x - sx) / d) * 17, y0: sy + ((p.y - sy) / d) * 17, x1: p.x, y1: p.y, t0: now, ms: LASER_QUICK_MS, who: r.name }); // (from his gun's tip: asteroids.js gunTips)
   }
-  if (h === 'water_gun') return; // water never hurts blocks (handfx.js)
+  if (h === 'water_gun' || h === 'mega_water_gun') return; // water never hurts blocks (handfx.js)
   // punching another player: the same little yellow sparks as yours (actions.js punchPlayer)
   const onMe = !P.dead && p.x > P.x - 3 && p.x < P.x + P.w + 3 && p.y > P.y - 2 && p.y < P.y + P.h + 2,
     body = onMe || (Net.bodyAt && Net.bodyAt(p.x, p.y));

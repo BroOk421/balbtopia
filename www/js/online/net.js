@@ -544,7 +544,7 @@ const Net = (() => {
         else if (payload) {
           // someone else got punched: nudge them here too so it shows right away
           const r = N.remotes.get(payload.to);
-          if (r) r.shove = (payload.d || 1) * 10;
+          if (r) r.shove = Math.max(-2, Math.min(2, Number(payload.d) || 1)) * 10;
         }
       })
       .on('broadcast', { event: 'shot' }, ({ payload }) => payload && N.onShot && N.onShot(payload))
@@ -767,6 +767,7 @@ const Net = (() => {
       typing: !!p.ty,
       joke: p.jk === 1 ? 'wacky' : p.jk === 2 ? 'troll' : false,
       dance: !!p.dn, // /dance (jump.js)
+      rvbCd: !!p.rc, // (events/rvb.js) still dead, counting down to come back
       emo,
       seen: now,
     });
@@ -798,6 +799,7 @@ const Net = (() => {
       wr: hand === 'wrench' ? 1 : undefined, // the Wrench is selected (the little mark over the head, liven.js)
       fl: myFlag || undefined, // the player's flag (flags.js)
       hu: P.hitT > 0 ? 1 : 0, // (no blinking for lava burns, owner Nov 1 2026)
+      rc: P.dead && P.rvbCd > 0 ? 1 : undefined, // dead in a Splash Wars match, counting 3 2 1 (events/rvb.js): stay gone
       rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
       ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)
       jk: { wacky: 1, troll: 2 }[jokeOn()] || undefined, // /facejoke or /troll face (render.js)
@@ -1152,7 +1154,7 @@ const Net = (() => {
         continue;
       }
       // dead: stay where they fell until the ghost is gone, then show up where they really are (the door)
-      if (r.dead && (r.dead.t += dt) >= DEATH_TIME) {
+      if (r.dead && (r.dead.t += dt) >= DEATH_TIME && !r.rvbCd) {
         r.dead = null;
         r.x = r.tx;
         r.y = r.ty;
@@ -1184,7 +1186,11 @@ const Net = (() => {
       r.x += (r.tx - r.x) * k;
       r.y += (r.ty - r.y) * k;
       if (r.walking) r.walkPh += dt * (typeof walkRate === 'function' ? walkRate(r.vx || 160) : 10); // strides for everyone, as fast as they walk
-      if (r.punch && (r.punch.t += dt) >= PUNCH_TIME) r.punch = null;
+      if (r.punch && (r.punch.t += dt) >= PUNCH_TIME) {
+        // (build p) a gun keeps pointing at the last spot a while between shots (asteroids.js GUN_AIM_HOLD)
+        if (typeof GUN_IDS !== 'undefined' && GUN_IDS.has(r.hand) && (r.punch.hold = (r.punch.hold || 0) + dt) < GUN_AIM_HOLD) r.punch.t = 0.45 * PUNCH_TIME;
+        else r.punch = null;
+      }
       if (r.angry > 0) r.angry -= dt;
       if (r.place && ((r.place.t += dt) >= PLACE_POSE || r.walking || Math.abs(r.tx - r.place.sx) > 1.5 || Math.abs(r.ty - r.place.sy) > 1.5)) r.place = null;
       if (r.say && (r.say.t -= dt) <= 0) r.say = null;
@@ -1253,6 +1259,7 @@ const Net = (() => {
   // 75 s, real names, '' = own lobby / PLAY screen); the lobby channel's presence (names and worlds any game can make
   // up) is only used when the server is too old, and to know when to ask again.
   N.people = new Map();
+  N.worldCounts = null; // world -> players there (server world_counts), null = not known (old server)
   const presPeople = new Map();
   let peopleOn = true,
     peopleBusy = false,
@@ -1281,6 +1288,12 @@ const Net = (() => {
       N.people.clear();
       for (const row of res.data || [])
         if (row.id !== N.me.id) N.people.set(row.id, { name: String(row.name || ''), world: String(row.world || '') });
+      // (build m, privacy) the server only says WHERE your friends and players in your world are; how many are in
+      // each world comes as counts (no names)
+      try {
+        const c = await sb.rpc('world_counts');
+        if (!c.error && Array.isArray(c.data)) N.worldCounts = new Map(c.data.map((r) => [String(r.world || ''), +r.n || 0]));
+      } catch (e) {}
       if (lobbyH.people) lobbyH.people();
     }
     if (peopleAgain) {

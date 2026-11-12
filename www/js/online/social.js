@@ -513,7 +513,7 @@ Net.onLobby('people', () => refreshMenu('friends'));
 const pendingGifts = new Map();
 // (Oct 27 2026, security) online, Shop-only items go through the server (gift_send / gift_take / gift_back,
 // schema.sql): the sender must really own them, and the receiver gets only what the server hands over
-const giftHeld = (id) => Wallet.on() && SHOP.some((s) => s.id === id);
+const giftHeld = (id) => Wallet.on() && (SHOP.some((s) => s.id === id) || ((typeof Bag !== 'undefined' && Bag.on()) && !isKeyId(id)));
 // is there room in the bag for n of id? (like addItem, without adding or a toast)
 const giftRoom = (id, n) =>
   isGM() || n <= inv.filter((s) => s.id === id).reduce((r, s) => r + Math.max(0, MAXSTACK - s.qty), 0) + Math.max(0, bagSize() - bagCount()) * MAXSTACK;
@@ -532,7 +532,8 @@ async function sendGift(o, id, qty) {
     return toast('You only have ' + have(id));
   }
   const gid = Math.random().toString(36).slice(2, 10);
-  takeN(id, qty);
+  if (eid && (typeof Bag !== 'undefined' && Bag.on())) Bag.pull(); // (the server took them out of your bag)
+  else takeN(id, qty);
   pendingGifts.set(gid, {
     id,
     qty,
@@ -562,7 +563,8 @@ async function giftBack(gid, msg) {
       return toast(r === 'gone' ? g.name + ' got your gift' : "Couldn't check the gift. Ask a GM if it's missing");
     }
   }
-  giveN(g.id, g.qty);
+  if (g.eid && (typeof Bag !== 'undefined' && Bag.on())) Bag.pull(); // (back in your bag on the server)
+  else giveN(g.id, g.qty);
   savePlayer();
   toast(msg);
 }
@@ -571,7 +573,7 @@ Net.onLobby('gift', async (p) => {
     qty = Math.floor(Number(p.qty));
   const name = String(p.fn || 'Someone').slice(0, 16);
   if (!tradable(id) || !(qty >= 1 && qty <= 100000)) return Net.lsend('gift_no', p.from, { gid: p.gid });
-  if (Wallet.on() && SHOP.some((s) => s.id === id)) {
+  if (Wallet.on() && (SHOP.some((s) => s.id === id) || p.eid)) {
     if (p.eid) {
       // a Shop-only item: what the server hands over, nothing else (room checked first: once taken it is ours)
       if (!giftRoom(id, qty)) return Net.lsend('gift_no', p.from, { gid: p.gid, full: 1 });
@@ -582,7 +584,8 @@ Net.onLobby('gift', async (p) => {
       if (!r) return Net.lsend('gift_no', p.from, { gid: p.gid });
       id = r.item;
       qty = r.qty;
-      if (!giveN(id, qty)) {
+      if ((typeof Bag !== 'undefined' && Bag.on())) Bag.pull(); // (in your bag on the server already)
+      else if (!giveN(id, qty)) {
         // (only if the server's amount was more than the message said) pass the server's count back
         Wallet.rpc('give_item', { p_to: p.from, p_item: id, p_qty: qty }).catch(() => {});
         return toast("A gift didn't fit in your bag and went back");
@@ -765,9 +768,14 @@ async function tryFinishTrade() {
 }
 // the bags change (the server already moved gold and Shop-only items when w is given)
 function applyTrade(t, w) {
-  for (const x of t.mine) if (!(w && x.id === 'gold')) takeN(x.id, x.qty);
+  // (build m) with the server bag the server already moved every item: only World Keys move here, then the bag is
+  // asked for again (bag.js)
+  const srv = !!w && (typeof Bag !== 'undefined' && Bag.on()),
+    here = (x) => !(w && x.id === 'gold') && !(srv && !isKeyId(x.id));
+  for (const x of t.mine) if (here(x)) takeN(x.id, x.qty);
   for (const x of t.mine) if (isKeyId(x.id)) giveKeyTo(keyWorld(x.id), t.with); // World Keys move on the server too
-  for (const x of t.theirs) if (!(w && x.id === 'gold')) giveN(x.id, x.qty);
+  for (const x of t.theirs) if (here(x)) giveN(x.id, x.qty);
+  if (srv) Bag.pull();
   if (w) Wallet.show(w);
   savePlayer();
   flyItems('me', t.with, t.mine, true); // each side tells the world about its own items
@@ -809,6 +817,7 @@ function friendsTab(el) {
     li.querySelector('[data-a="rm"]').onclick = async () => {
       if (!(await ask('Remove friend', 'Remove ' + f.name + ' from your friends?', 'Remove', 'Keep'))) return;
       myFriends.splice(myFriends.indexOf(f), 1);
+      if (Wallet.on()) Wallet.rpc('friend_remove', { p_id: f.id }).catch(() => {}); // (build m: who sees where you are)
       savePlayer();
       renderMenu();
     };

@@ -248,6 +248,53 @@ for (const id of [LASER_ID, 'water_gun']) SHOP_ICON[id] = () => toolSprite(id);
 // arm wrapper (sleeves, watches, the space suit) still works.
 const GUN_IDS = new Set(['water_gun', LASER_ID]),
   GUN_BIG = 1.4,
+  GUN_SIZE = {}, // (build p) a gun drawn bigger still: id -> times GUN_BIG (megagun.js)
+  GUN_GLOW = {}, // (build p) id -> function that sets a glow (shadow) on g before the gun is drawn (megagun.js)
+  // (build p, owner: "like the Nocturn when it breaks: it comes out of the very tip") where the muzzle is in the
+  // gun's picture (32-unit tool space, like GRIP): every time a gun is drawn its tip is noted in world px per player
+  // (`gunTips`), and the water starts there (handfx.js)
+  GUN_TIP = { water_gun: [21.4, 5.2], laser_gun: [20.1, 5.9] }, // (laser: its emitter, laserShape u 44, v -1.5)
+  gunTips = new Map(), // player name -> { x, y, t }
+  // how far the barrel's line runs above the grip (32-unit tool space): the aim turns the gun so that LINE (not the
+  // grip) goes through the spot
+  GUN_AXIS = { water_gun: 3.5, laser_gun: 4.25 };
+// a point on the screen (device px) in the coordinates of the canvas being drawn on now (the drop shadow's own canvas
+// is the screen moved by shadow.js shadowOff)
+function gunScreenPt(x, y) {
+  const off = typeof shadowG !== 'undefined' && g === shadowG && typeof shadowOff !== 'undefined' && shadowOff;
+  return off ? new DOMPoint(x - off.x, y - off.y) : new DOMPoint(x, y);
+}
+// the turn that puts the barrel's line through a point (q: that point seen from the grip, before any turn)
+function gunAimTurn(id, q, k) {
+  const d = Math.hypot(q.x, q.y) || 1,
+    o = (GUN_AXIS[id] || 3.5) * k;
+  return Math.atan2(q.y, q.x) + Math.asin(Math.max(-0.9, Math.min(0.9, o / d))) + Math.PI / 4; // (barrel at -45 deg in the picture)
+}
+function gunNoteTip(id, k) {
+  // (build p, owner: "on the flying rides the water doesn't come out of the gun's point") the tip in SCREEN px straight
+  // from the canvas transform, then to world px with the ox / oy the character is being drawn with (`gunDrawO`,
+  // drawCharacter wrapper below): rides lift / tilt the rider with transforms the body's own drawBehind doesn't see.
+  // On the screen canvas, a fade layer of its size, a ride's scratch pass (same transform), or the drop shadow's own
+  // canvas (shadow.js shadowOff: its offset back to the screen).
+  const tip = GUN_TIP[id],
+    o = gunDrawO;
+  if (!tip || !o || !o.c || !o.c.name) return;
+  const cvs = g.canvas,
+    onShadow = typeof shadowG !== 'undefined' && g === shadowG && typeof shadowOff !== 'undefined' && shadowOff,
+    dx = onShadow ? shadowOff.x : 0,
+    dy = onShadow ? shadowOff.y : 0;
+  if (!(onShadow || cvs === cv || (cvs.width === cv.width && cvs.height === cv.height) || (typeof rideScratch !== 'undefined' && rideScratch && g === rideScratch))) return;
+  const c = o.c;
+  if (c.hand !== id && !(c.equipped && c.equipped.hand === id)) return;
+  const M = g.getTransform(),
+    world = (px, py) => {
+      const p = M.transformPoint(new DOMPoint(px, py));
+      return [(p.x + dx - o.ox) / Z, (p.y + dy - o.oy) / Z];
+    },
+    [x, y] = world((tip[0] - GRIP[0]) * k, (tip[1] - GRIP[1]) * k),
+    [hx, hy] = world(0, 0); // the hand (the grip): tip - hand = where the barrel points
+  gunTips.set(c.name, { x, y, ax: x - hx, ay: y - hy, t: now });
+}
   GUN_IDLE_BEND = 0.12,
   GUN_BLANK = document.createElement('canvas');
 GUN_BLANK.width = GUN_BLANK.height = 1;
@@ -258,19 +305,23 @@ toolSprite = ((prev) =>
     if (gunBlank && GUN_IDS.has(id)) return GUN_BLANK;
     return prev(id);
   })(toolSprite);
+let gunDrawO = null; // { c, ox, oy } of the character being drawn (gunNoteTip)
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
-    const was = gunIdle;
+    const was = gunIdle,
+      wasO = gunDrawO;
+    gunDrawO = { c, ox, oy };
     gunIdle = !!(c && c.ground !== false && !c.walking && !c.punch && !c.place && !c.rest && !c.dead);
     try {
       return prev(c, ox, oy);
     } finally {
       gunIdle = was;
+      gunDrawO = wasO;
     }
   })(drawCharacter);
 function drawGunAt(id, hand, turn, toolTurn, lift) {
   const s = toolSprite(id),
-    sz = (17 * GUN_BIG) / (CHAR_H / FR.h),
+    sz = (17 * GUN_BIG * (GUN_SIZE[id] || 1)) / (CHAR_H / FR.h),
     k = sz / 32,
     px = SHOULDER[0] - FR.w / 2,
     py = SHOULDER[1];
@@ -279,9 +330,13 @@ function drawGunAt(id, hand, turn, toolTurn, lift) {
   g.rotate(turn);
   g.translate(-px, -py);
   g.translate(hand[0] - FR.w / 2, hand[1] - lift * (FR.h / CHAR_H));
+  // (build p) aiming (swingTurn put the spot on the hand, in screen px): the barrel's line right through it
+  if (hand.aim) toolTurn = gunAimTurn(id, g.getTransform().inverse().transformPoint(hand.aim), k);
   g.rotate(toolTurn);
   g.imageSmoothingEnabled = false;
+  if (GUN_GLOW[id]) GUN_GLOW[id]();
   g.drawImage(s, -GRIP[0] * k, -GRIP[1] * k, sz, sz);
+  gunNoteTip(id, k);
   g.restore();
 }
 drawArmWithTool = ((prev) =>
@@ -297,6 +352,17 @@ drawArmWithTool = ((prev) =>
     }
   })(drawArmWithTool);
 // in the air: the usual jump angle, the bigger picture
+let gunJumpO = null; // { ox, oy } of the jump being drawn (drawJumping wrapper), to aim at a world spot
+drawJumping = ((prev) =>
+  function (c, ox, oy, ...rest) {
+    const was = gunJumpO;
+    gunJumpO = { ox, oy };
+    try {
+      return prev(c, ox, oy, ...rest);
+    } finally {
+      gunJumpO = was;
+    }
+  })(drawJumping);
 drawJumpTool = ((prev) =>
   function (c, f) {
     const eq = c.equipped || {},
@@ -304,7 +370,7 @@ drawJumpTool = ((prev) =>
     if (!GUN_IDS.has(id)) return prev(c, f);
     const s = toolSprite(id);
     if (!s) return;
-    const sz = (17 * GUN_BIG) / (CHAR_H / FR.h),
+    const sz = (17 * GUN_BIG * (GUN_SIZE[id] || 1)) / (CHAR_H / FR.h),
       k = sz / 32,
       [hx, hy] = JUMP_HAND[f],
       sc = CHAR_H / FR.h;
@@ -312,12 +378,63 @@ drawJumpTool = ((prev) =>
     g.translate((hx - JUMP_PAD - FR.w / 2) * sc * Z, 0);
     g.translate(0, jumpTop + (hy - JUMP_PAD) * sc * Z);
     g.scale(sc * Z, sc * Z);
-    g.rotate(JUMP_TOOL_TURN);
+    // (build p, owner: "on the flying rides it still isn't lined up") in the air (jumping, the Leaf / Cloud / Carpet
+    // rides) the gun is turned in the raised hand to point right at the spot while you shoot / aim (c.punch); the
+    // spot is turned back through the canvas transform (rides move the rider) like swingTurn
+    let turn = JUMP_TOOL_TURN;
+    if (c.punch && Number.isFinite(c.punch.x) && gunJumpO)
+      turn = gunAimTurn(id, g.getTransform().inverse().transformPoint(gunScreenPt(gunJumpO.ox + c.punch.x * Z, gunJumpO.oy + c.punch.y * Z)), k);
+    g.rotate(turn);
     g.imageSmoothingEnabled = false;
+    if (GUN_GLOW[id]) GUN_GLOW[id]();
     g.drawImage(s, -GRIP[0] * k, -GRIP[1] * k, sz, sz);
+    gunNoteTip(id, k);
     g.restore();
   })(drawJumpTool);
 if (typeof NO_V_SWING !== 'undefined') NO_V_SWING.add(LASER_ID); // aimed, not swung like a sword
+
+// ---------- aiming the guns (owner, Nov 12 2026, build p: "the guns point where the mouse points, but only after you
+// fire, so they don't go up, down, up, down; the Laser Gun too") ----------
+// - Firing a gun no longer swings the arm up and back down: the arm (and the gun in it) points straight at the spot
+//   (swingTurn wrapper: the swing's end pose), for you and everyone else.
+// - After a shot your arm keeps pointing at the mouse, following it, for GUN_AIM_HOLD s (every new shot starts it
+//   again; holding the button down keeps it up). Before the first shot the gun hangs as usual.
+// - Others' arms stay up between their shots for the same time, at the last spot (net.js remote punch).
+const GUN_AIM_HOLD = 0.8;
+swingTurn = ((prev) =>
+  function (c, ...rest) {
+    if (!c || !c.punch || !GUN_IDS.has(c.hand)) return prev(c, ...rest);
+    const c2 = Object.create(c),
+      [, , , ox, oy] = rest;
+    c2.punch = { ...c.punch, t: 0.45 * PUNCH_TIME }; // (the swing's end: pointing right at it)
+    // (owner: "on a ride it isn't lined up with the pointer") a ride draws the rider moved (lifted onto the seat,
+    // tilted): turn the spot on the screen back through what is drawn now, so the arm still points right at it
+    const M = g.getTransform(),
+      spot = Number.isFinite(ox) ? gunScreenPt(ox + c.punch.x * Z, oy + c.punch.y * Z) : null; // (on this canvas)
+    if (spot) {
+      const q = M.inverse().transformPoint(spot);
+      c2.punch.x = (q.x - ox) / Z;
+      c2.punch.y = (q.y - oy) / Z;
+    }
+    const r = prev(c2, ...rest);
+    // the spot on the screen goes along with the hand (a ride draws the arm later, with this same transform)
+    if (spot && r && r.parts) return { ...r, parts: { ...r.parts, hand: Object.assign([...r.parts.hand], { aim: spot }) } };
+    return r;
+  })(swingTurn);
+step = ((prev) =>
+  function (dt) {
+    const r = prev(dt);
+    if (!GUN_IDS.has(hand) || P.dead || doorTrip) return r;
+    // a real shot (a new punch, not our own held one) starts the hold again
+    if (P.punch && !P.punch.aim) P.gunAimT = now;
+    if (P.gunAimT && now - P.gunAimT < GUN_AIM_HOLD * 1000) {
+      if (!P.punch || P.punch.aim) P.punch = { t: 0.45 * PUNCH_TIME, x: ptr.x, y: ptr.y, aim: true };
+      else (P.punch.x = ptr.x), (P.punch.y = ptr.y);
+      const cx = P.x + P.w / 2;
+      if (Math.abs(ptr.x - cx) > 2 && !(typeof sittingNow === 'function' && sittingNow())) P.face = ptr.x > cx ? 1 : -1;
+    } else if (P.punch && P.punch.aim) P.punch = null;
+    return r;
+  })(step);
 
 // ---------- the item info: a live countdown under Status (owner, build z) ----------
 const laserCdText = () => (laserReady() ? 'READY' : laserClock(laserLeft()));
@@ -584,7 +701,7 @@ startPunch = ((prev) =>
     const r = prev(wx, wy);
     if (hand === LASER_ID && !laserNoBeam && !laserCh) {
       const m = laserFrom(wx, wy);
-      laserBeams.push({ x0: m.x, y0: m.y, x1: wx, y1: wy, t0: now, ms: LASER_QUICK_MS });
+      laserBeams.push({ x0: m.x, y0: m.y, x1: wx, y1: wy, t0: now, ms: LASER_QUICK_MS, who: playerName });
     }
     return r;
   })(startPunch);
@@ -688,8 +805,20 @@ drawSetupBadges = ((prev) =>
         laserBeams.splice(n, 1);
         continue;
       }
-      const X0 = ox + b.x0 * z,
-        Y0 = oy + b.y0 * z,
+      // (build p, owner: "the laser isn't lined up with the gun's end") it starts at the gun's tip as it is drawn now
+      // (gunTips, like the water); not shown while the gun is still turning towards the spot
+      let x0 = b.x0,
+        y0 = b.y0;
+      const tip = b.who && gunTips.get(b.who);
+      if (tip && now - tip.t < 150) {
+        const dx = b.x1 - tip.x,
+          dy = b.y1 - tip.y,
+          ok = (tip.ax * dx + tip.ay * dy) / ((Math.hypot(tip.ax, tip.ay) || 1) * (Math.hypot(dx, dy) || 1)) > 0.75;
+        if (!ok && now - b.t0 < 90) continue;
+        if (ok) (x0 = tip.x), (y0 = tip.y);
+      }
+      const X0 = ox + x0 * z,
+        Y0 = oy + y0 * z,
         X1 = ox + b.x1 * z,
         Y1 = oy + b.y1 * z;
       g.globalAlpha = 1 - k;

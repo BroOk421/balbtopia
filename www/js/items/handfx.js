@@ -1,7 +1,7 @@
 // Hand items that DO something (owner, Oct 26 2026). Loaded after weapons2.js.
 // - Chainsaw: its chain runs (the teeth move, the motor shakes a little) while you hold it (`CHAINSAW_PICS`,
 //   toolSprite is wrapped).
-// - Water Gun: clicking shoots a spray of water drops at the point you aim at. It never hurts blocks (holding it
+// - Water Gun: clicking shoots a straight jet of water at the point you aim at (Nov 12 2026; was a spray of drops). It never hurts blocks (holding it
 //   down does nothing to them). Another player the water hits is pushed away from you (Net.hit, like a punch), but
 //   not while a Punch Blocker is on in the world (the water still splashes).
 // - Heartbow: clicking shoots an arrow at the point you aim at. A player it hits is knocked back (same rule as
@@ -29,15 +29,19 @@ toolSprite = ((prev) => (id) => (id === 'chainsaw' ? CHAINSAW_PICS[Math.floor(no
 
 // ---------- shots ----------
 const SHOTS = [];
+const WATER_JET = 70; // world px: the Water Gun drop's trail of tiny drops is at most this long behind it
 const SHOT = {
-  water: { speed: 430, life: 1.5, grav: 0, n: 6, spread: 0.07 },
+  // (owner, Nov 12 2026: "the Water Gun's spray must look different: straight, not spreading") one straight jet:
+  // one drop, no spread, drawn as a streak of water from the gun (see drawLiveFx below); was 6 drops, spread 0.07
+  water: { speed: 520, life: 1.5, grav: 0, n: 1, spread: 0 },
   arrow: { speed: 560, life: 1.5, grav: 0, n: 1, spread: 0 },
 };
 // (owner, Oct 27 2026) a shot flies only to the point you clicked and stops there, and that point is kept inside
 // the same square of tiles you can break / place in (REACH round your tile, +1 with Red Visor / Laser Eyes)
 function clampAim(tx, ty) {
   const p = playerTile(),
-    r = REACH + (laserFace(equipped) ? 1 : 0) + (hand === 'heart_bow' ? BOW_RANGE : 0),
+    // (build p, owner: "with the Tsunami Blaster a longer range: 5 tiles")
+    r = hand === 'mega_water_gun' ? Math.max(5, REACH) + (laserFace(equipped) ? 1 : 0) : REACH + (laserFace(equipped) ? 1 : 0) + (hand === 'heart_bow' ? BOW_RANGE : 0),
     hp = handPoint(P),
     x0 = (p.x - r) * TS + 1,
     x1 = (p.x + r + 1) * TS - 1,
@@ -118,10 +122,11 @@ function addShot(k, x, y, tx, ty, mine) {
   for (let n = 0; n < S.n; n++) {
     const aa = a + (Math.random() - 0.5) * S.spread * 2,
       sp = S.speed * (0.85 + Math.random() * 0.3);
-    SHOTS.push({ k, x, y, vx: Math.cos(aa) * sp, vy: Math.sin(aa) * sp, t: 0, life: S.life, left: dist * (n === 0 ? 1 : 0.9 + Math.random() * 0.14), mine, hit: false, lead: n === 0 });
+    SHOTS.push({ k, x, y, sx: x, sy: y, seed: 1 + Math.floor(Math.random() * 2147483000), vx: Math.cos(aa) * sp, vy: Math.sin(aa) * sp, t: 0, life: S.life, left: dist * (n === 0 ? 1 : 0.9 + Math.random() * 0.14), mine, hit: false, lead: n === 0 });
   }
 }
 function splash(x, y, k) {
+  if (k === 'mwater') return; // (build p, owner: "remove the box-like water effects") the Tsunami Blaster: no square bits
   for (let n = 0; n < (k === 'water' ? 8 : 5); n++)
     parts.push({
       x,
@@ -135,16 +140,65 @@ function splash(x, y, k) {
 }
 // a hit on another player: pushed away from the shooter (not with a Punch Blocker on)
 function shotHit(r, s) {
-  splash(s.x, s.y, s.k);
+  splash(s.x, s.y, s.dark ? 'mwater' : s.k);
   if (!s.mine) return;
   if (typeof jammed === 'function' && jammed(PUNCH_JAMMER)) return;
-  Net.hit(r, Math.sign(s.vx) || P.face);
-  Native.haptic('light');
+  // (build p, owner: "with the Mega Water Gun the other player flies back harder") d 2 = twice the push
+  Net.hit(r, (Math.sign(s.vx) || P.face) * (s.mega ? 2 : 1));
+  Native.haptic(s.mega ? 'medium' : 'light');
+}
+// (build p) a water shot by `who` (a player's name): it starts at his gun's TIP once the gun has been drawn aiming
+// there (asteroids.js gunTips, like the Nocturn's beam: "it comes out of the very tip"), until then at the hand.
+// The Mega Water Gun (megagun.js): darker water, harder push, and a splashy spray of extra drops round the jet.
+function waterShot(who, x, y, tx, ty, mine, mega) {
+  const n0 = SHOTS.length;
+  addShot('water', x, y, tx, ty, mine);
+  if (mega)
+    for (let k = 0; k < MEGA_SPRAY; k++) {
+      const a = Math.atan2(ty - y, tx - x) + (Math.random() - 0.5) * 0.32,
+        d = Math.hypot(tx - x, ty - y) * (0.55 + Math.random() * 0.4);
+      addShot('water', x, y, x + Math.cos(a) * d, y + Math.sin(a) * d, mine);
+      const e = SHOTS[SHOTS.length - 1];
+      e.lead = false; // (only the main jet pushes / splashes someone out)
+      e.sc = 0.5 + Math.random() * 0.25;
+    }
+  for (let k = n0; k < SHOTS.length; k++) {
+    const e = SHOTS[k];
+    e.who = who;
+    e.born = now;
+    e.tgx = e.sx + e.vx / Math.hypot(e.vx, e.vy) * e.left;
+    e.tgy = e.sy + e.vy / Math.hypot(e.vx, e.vy) * e.left;
+    if (mega) (e.mega = true), (e.dark = true);
+  }
+}
+const MEGA_SPRAY = 4;
+// the shot moves to the gun's tip as soon as it has been drawn (within its first 0.15 s)
+function waterFromTip(e) {
+  if (!e.who || e.t > 0.15) return void (e.who = null);
+  const tip = typeof gunTips !== 'undefined' && gunTips.get(e.who);
+  if (!tip || tip.t <= e.born) return;
+  const sp = Math.hypot(e.vx, e.vy),
+    dx = e.tgx - tip.x,
+    dy = e.tgy - tip.y,
+    L = Math.hypot(dx, dy) || 1;
+  // only once the barrel points at the target (the shooting pose; the first frames can still show the gun swinging up)
+  const al = Math.hypot(tip.ax, tip.ay) || 1;
+  if ((tip.ax * dx + tip.ay * dy) / (al * L) < 0.75 && e.t < 0.12) return;
+  const went = Math.min(sp * e.t, L * 0.9);
+  e.sx = tip.x;
+  e.sy = tip.y;
+  e.vx = (dx / L) * sp;
+  e.vy = (dy / L) * sp;
+  e.x = tip.x + (dx / L) * went;
+  e.y = tip.y + (dy / L) * went;
+  e.left = L - went;
+  e.who = null;
 }
 function stepShots(dt) {
   for (let k = SHOTS.length - 1; k >= 0; k--) {
     const s = SHOTS[k],
       G = SHOT[s.k].grav;
+    if (s.who) waterFromTip(s);
     s.t += dt;
     // move in small steps so a fast shot can't skip over a thin player or a block
     const steps = Math.ceil((Math.hypot(s.vx, s.vy) * dt) / 4);
@@ -156,9 +210,11 @@ function stepShots(dt) {
       s.vy += (G * dt) / steps;
       const tx = Math.floor(s.x / TS),
         ty = Math.floor(s.y / TS);
-      // water goes through blocks (owner, Oct 27 2026); arrows stop at them
-      if (!inW(tx, ty) || (s.k !== 'water' && solidAt(tx, ty))) {
-        splash(s.x, s.y, s.k);
+      // water goes through blocks (owner, Oct 27 2026); arrows stop at them. In a Red vs Blue world water stops at
+      // solid blocks too (owner, Nov 12 2026: "the water gun must not go through blocks with collision: only in the
+      // open can a player be shot"); rvb.js `rvbOn`
+      if (!inW(tx, ty) || ((s.k !== 'water' || (typeof rvbOn === 'function' && rvbOn())) && solidAt(tx, ty))) {
+        splash(s.x, s.y, s.dark ? 'mwater' : s.k);
         gone = true;
         break;
       }
@@ -166,11 +222,11 @@ function stepShots(dt) {
       if (r) {
         // one push per spray: only the first drop to reach someone pushes them
         if (s.lead || s.k === 'arrow') shotHit(r, s);
-        else splash(s.x, s.y, s.k);
+        else splash(s.x, s.y, s.dark ? 'mwater' : s.k);
         gone = true;
       } else if (s.left <= 0) {
         // reached the clicked point: it ends there
-        splash(s.x, s.y, s.k);
+        splash(s.x, s.y, s.dark ? 'mwater' : s.k);
         gone = true;
       }
     }
@@ -190,11 +246,75 @@ drawLiveFx = ((prev) =>
     for (const s of SHOTS) {
       const x = ox + s.x * Z,
         y = oy + s.y * Z;
+      if (s.k === 'water' && s.who) continue; // (not drawn until it has moved to the gun's tip)
       if (s.k === 'water') {
-        g.fillStyle = '#4aa0d8';
-        g.fillRect(x - 1.5 * Z, y - 1.5 * Z, 3 * Z, 3 * Z);
-        g.fillStyle = '#c8ecff';
-        g.fillRect(x - 1.5 * Z, y - 1.5 * Z, 1.5 * Z, 1.5 * Z);
+        // (owner's picture, Nov 12 2026) a water DROP: a teardrop at the front (its point towards the gun), and behind
+        // it a straight line of tiny drops and one little bubble, smaller and fainter the further back (at most
+        // WATER_JET px, never behind the gun)
+        const sp = Math.hypot(s.vx, s.vy) || 1,
+          ux = s.vx / sp,
+          uy = s.vy / sp,
+          back = Math.min(WATER_JET, Math.hypot(s.x - (s.sx ?? s.x), s.y - (s.sy ?? s.y)));
+        let r = s.seed || 1;
+        const rnd = () => ((r = (r * 16807) % 2147483647) / 2147483647);
+        g.save();
+        for (let d = 7, k = 0; d < back; d += 6 + rnd() * 6, k++) {
+          const f = 1 - d / WATER_JET,
+            side = (rnd() - 0.5) * 1.4,
+            px = x - (ux * d - uy * side) * Z,
+            py = y - (uy * d + ux * side) * Z,
+            sz = (0.9 + f * 1.3) * Z;
+          g.globalAlpha = 0.35 + f * 0.65;
+          if (k === 2) {
+            g.strokeStyle = s.dark ? '#6a9ad8' : '#bfe8ff';
+            g.lineWidth = 0.7 * Z;
+            g.beginPath();
+            g.arc(px, py, 1.8 * Z, 0, Math.PI * 2);
+            g.stroke();
+          } else if (s.dark) {
+            // (the Tsunami Blaster: round drops, no square bits)
+            g.fillStyle = k % 3 ? '#9ec4f0' : '#3a74c8';
+            g.beginPath();
+            g.arc(px, py, sz / 2, 0, Math.PI * 2);
+            g.fill();
+          } else {
+            g.fillStyle = k % 3 ? '#e8faff' : '#8ad0f8';
+            g.fillRect(px - sz / 2, py - sz / 2, sz, sz);
+          }
+          // now and then a sparkle a little off the line
+          if (!s.dark && rnd() < 0.18) {
+            g.fillStyle = '#d8f4ff';
+            g.fillRect(px + (rnd() < 0.5 ? -1 : 1) * 3.5 * Z, py + (rnd() - 0.5) * 2 * Z, 0.8 * Z, 0.8 * Z);
+          }
+        }
+        g.globalAlpha = 1;
+        // the teardrop
+        // (build p, owner: "a little darker, the water": the Mega Water Gun's) s.dark: deeper blues; s.sc: a spray drop
+        const R = 3.2 * Z * (s.sc || 1);
+        g.translate(x, y);
+        g.rotate(Math.atan2(uy, ux));
+        g.shadowColor = s.dark ? 'rgba(40,100,200,.8)' : 'rgba(120,210,255,.8)';
+        g.shadowBlur = 3 * Z;
+        const grd = g.createLinearGradient(-3.4 * R, 0, R, 0);
+        grd.addColorStop(0, s.dark ? '#5a96dc' : '#9ee0ff');
+        grd.addColorStop(0.6, s.dark ? '#2462b4' : '#4ab4ec');
+        grd.addColorStop(1, s.dark ? '#143c84' : '#2a86cc');
+        g.fillStyle = grd;
+        g.beginPath();
+        g.moveTo(-3.4 * R, 0);
+        g.quadraticCurveTo(-1.2 * R, -0.95 * R, 0, -R);
+        g.arc(0, 0, R, -Math.PI / 2, Math.PI / 2);
+        g.quadraticCurveTo(-1.2 * R, 0.95 * R, -3.4 * R, 0);
+        g.fill();
+        g.shadowBlur = 0;
+        g.strokeStyle = s.dark ? '#a8c8f0' : '#e8faff';
+        g.lineWidth = 0.7 * Z;
+        g.stroke();
+        g.fillStyle = s.dark ? 'rgba(220,235,255,.85)' : 'rgba(255,255,255,.9)';
+        g.beginPath();
+        g.arc(0.25 * R, -0.35 * R, 0.4 * R, 0, Math.PI * 2);
+        g.fill();
+        g.restore();
       } else {
         // the arrow picture (ARROW_PIC: big detailed pixels), turned the way it flies, with a faint streak behind
         const q = ARROW_PX * Z,
@@ -218,16 +338,20 @@ Net.onShot = (p) => {
   const r = Net.remotes.get(p.id);
   if (!r || !SHOT[p.k]) return;
   const h = handPoint(r);
-  addShot(p.k, h.x, h.y, p.tx, p.ty, false);
+  if (p.k === 'water') waterShot(r.name, h.x, h.y, p.tx, p.ty, false, r.hand === 'mega_water_gun');
+  else addShot(p.k, h.x, h.y, p.tx, p.ty, false);
   if (Math.abs(p.tx - (r.x + r.w / 2)) > 2) r.face = p.tx > r.x + r.w / 2 ? 1 : -1;
 };
 
 // ---------- clicking with the Water Gun / Heartbow ----------
 let shotT = 0;
+// (build p) the Water Gun and the Mega Water Gun (megagun.js) shoot the same water
+const WATER_GUNS = new Set(['water_gun', 'mega_water_gun']),
+  isWaterGun = (id) => WATER_GUNS.has(id);
 const actNoShot = act; // the act from before the Water Gun / Heartbow (for doors you stand in)
 act = ((prev) =>
   function () {
-    if (P.dead || doorTrip || (hand !== 'water_gun' && hand !== 'heart_bow')) return prev();
+    if (P.dead || doorTrip || (!isWaterGun(hand) && hand !== 'heart_bow')) return prev();
     // (owner, Nov 2 2026) the Feather Bow does nothing (no shot, no pose) when the tile you click is out of reach:
     // the same square as breaking, where the cursor square turns red (`inReach`; BOW_RANGE's extra tile no longer
     // lets it shoot at a red square)
@@ -235,10 +359,10 @@ act = ((prev) =>
       const tu = tileUnder();
       if (!inReach(tu.x, tu.y)) return;
     }
-    if (now - shotT < (hand === 'water_gun' ? 140 : 380)) return; // a short wait between shots
+    if (now - shotT < (hand === 'mega_water_gun' ? 90 : isWaterGun(hand) ? 140 : 380)) return; // a short wait between shots
     shotT = now;
     if (hand === 'heart_bow') P.bowT = now; // the bow's draw / twang animation
-    const k = hand === 'water_gun' ? 'water' : 'arrow',
+    const k = isWaterGun(hand) ? 'water' : 'arrow',
       aimAt = clampAim(ptr.x, ptr.y),
       tx = aimAt.x,
       ty = aimAt.y;
@@ -246,7 +370,8 @@ act = ((prev) =>
     const cx = P.x + P.w / 2;
     if (Math.abs(tx - cx) > 2 && !sittingNow()) P.face = tx > cx ? 1 : -1;
     const hp = handPoint(P);
-    addShot(k, hp.x, hp.y, tx, ty, true);
+    if (k === 'water') waterShot(playerName, hp.x, hp.y, tx, ty, true, hand === 'mega_water_gun');
+    else addShot(k, hp.x, hp.y, tx, ty, true);
     Net.sendShot(k, hp.x, hp.y, tx, ty);
     if (k === 'water') {
       // water never hurts blocks: just the swing (the gun lifted in the back hand) and the spray

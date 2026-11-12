@@ -111,6 +111,7 @@ function compressLock(id) {
   const have = countItem(id);
   if (have < LOCK_STEP)
     return toast('You need ' + LOCK_STEP + ' ' + ITEMS[id].name + 's for a ' + ITEMS[next].name + ' (you have ' + have + ')');
+  if ((typeof Bag !== 'undefined' && Bag.on())) return void Bag.lockConvert(id, true).then((ok) => ok && lockFx(next, 1, LOCK_STEP + ' ' + ITEMS[id].name + 's → 1 ' + ITEMS[next].name + '!'));
   takeLocks(id, LOCK_STEP);
   if (!addItem(next, 1)) {
     addItem(id, LOCK_STEP);
@@ -123,6 +124,10 @@ function breakLock(id) {
   const k = LOCK_TIERS.indexOf(id),
     prev = LOCK_TIERS[k - 1];
   if (!prev || countItem(id) < 1) return;
+  if ((typeof Bag !== 'undefined' && Bag.on())) {
+    if (!roomFor(prev, LOCK_STEP)) return toast('No room in your bag for ' + LOCK_STEP + ' ' + ITEMS[prev].name + 's');
+    return void Bag.lockConvert(id, false).then((ok) => ok && lockFx(prev, LOCK_STEP, '1 ' + ITEMS[id].name + ' → ' + LOCK_STEP + ' ' + ITEMS[prev].name + 's'));
+  }
   takeLocks(id, 1);
   if (!addItem(prev, LOCK_STEP)) {
     addItem(id, 1);
@@ -491,7 +496,9 @@ function buy(s) {
         if (/not enough (gold|balb)/i.test(err)) return goTopUp(s);
         return toast(err);
       }
-      addItem(s.id, n);
+      // (build m) with the server bag the server put it there (a pack's pieces still come the old way)
+      if ((typeof Bag !== 'undefined' && Bag.on()) && ITEMS[s.id] && ITEMS[s.id].kind !== 'set') Bag.pull();
+      else addItem(s.id, n);
       updateGold(true);
       savePlayer();
       closeShop();

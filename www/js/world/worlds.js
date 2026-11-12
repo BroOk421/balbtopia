@@ -395,7 +395,8 @@ async function enterWorldNow(name) {
     // presence, Net.people). Its owner and the GM always get in; your own LOBBY never counts.
     if (name !== LOBBY_WORLD && name !== worldName && !isGM() && !(w && w.owner && lc(w.owner) === lc(playerName))) {
       let n = 0;
-      for (const p of Net.people.values()) if (p.world === name) n++;
+      if (Net.worldCounts) n = Net.worldCounts.get(name) || 0; // (build m: counts, the server no longer says where everyone is)
+      else for (const p of Net.people.values()) if (p.world === name) n++;
       if (n >= WORLD_MAX) {
         toast(name + ' is full (' + WORLD_MAX + ' players). Try again later.');
         return false;

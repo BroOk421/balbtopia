@@ -21,9 +21,26 @@ let newsAll = [], // [{ id, title, body, kind, at, hasImg, img? }] newest first
   newsErr = null;
 const newsSeenKey = () => 'balb_news_seen:' + lc(typeof playerName !== 'undefined' ? playerName || '' : '');
 const newsSeen = () => +(localStorage.getItem(newsSeenKey()) || 0) || 0;
+// (Nov 12 2026) the game's own event papers (eventnews.js) have text ids ('mev:12', 'spw:2027'): seen ones are kept in
+// a list of their own; the GM's papers keep the number rule
+const newsEvSeenKey = () => 'balb_news_evseen:' + lc(typeof playerName !== 'undefined' ? playerName || '' : '');
+const newsEvSeen = () => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(newsEvSeenKey()) || '[]'));
+  } catch (e) {
+    return new Set();
+  }
+};
+const newsIsNew = (n) => (typeof n.id === 'string' ? !newsEvSeen().has(n.id) : n.id > newsSeen());
+// papers the game adds by itself (eventnews.js replaces this): newest first, shown above the GM's
+let newsExtra = () => [];
 function newsMarkSeen(id) {
   try {
-    if (id > newsSeen()) localStorage.setItem(newsSeenKey(), String(id));
+    if (typeof id === 'string') {
+      const s = newsEvSeen();
+      s.add(id);
+      localStorage.setItem(newsEvSeenKey(), JSON.stringify([...s].slice(-40)));
+    } else if (id > newsSeen()) localStorage.setItem(newsSeenKey(), String(id));
   } catch (e) {}
   newsDot();
 }
@@ -44,10 +61,12 @@ async function newsRefresh() {
       newsErr = null;
     }
   } else newsAll = newsLocal();
+  newsAll = [...newsExtra(), ...newsAll.filter((n) => typeof n.id !== 'string')];
   newsDot();
   return newsAll;
 }
 async function newsImgOf(n) {
+  if (!n.img && n.mkImg) n.img = n.mkImg(); // (the game's event papers draw their banner)
   if (n.img || !n.hasImg) return n.img || null;
   if (typeof Net !== 'undefined' && Net.online && Net.newsImg) n.img = await Net.newsImg(n.id).catch(() => null);
   return n.img || null;
@@ -125,19 +144,18 @@ async function openNewsList() {
   }
   await newsRefresh();
   if (el.hidden) return;
-  const ul = el.querySelector('.nl-ul'),
-    seen = newsSeen();
+  const ul = el.querySelector('.nl-ul');
   ul.innerHTML = '';
   if (newsErr && gm) ul.innerHTML = `<li class="nl-empty">${newsEsc(newsErr)}</li>`;
   else if (!newsAll.length) ul.innerHTML = '<li class="nl-empty">No news yet.</li>';
   for (const n of newsAll) {
     const li = document.createElement('li');
     li.innerHTML =
-      `<button class="nl-row${n.id > seen ? ' new' : ''}" type="button"><span class="np-stamp ${n.kind === 'event' ? 'ev' : ''}">${n.kind === 'event' ? 'EVENT' : 'UPDATE'}</span>` +
+      `<button class="nl-row${newsIsNew(n) ? ' new' : ''}" type="button"><span class="np-stamp ${n.kind === 'event' ? 'ev' : ''}">${n.kind === 'event' ? 'EVENT' : 'UPDATE'}</span>` +
       `<span class="nl-t">${newsEsc(n.title || '(no title)')}</span><span class="nl-d">${newsEsc(newsDate(n.at))}</span></button>` +
-      (gm ? '<button class="nl-del" type="button" aria-label="Take it down">x</button>' : '');
+      (gm && !n.auto ? '<button class="nl-del" type="button" aria-label="Take it down">x</button>' : '');
     li.querySelector('.nl-row').onclick = () => openNewsPaper(n, true);
-    if (gm)
+    if (gm && !n.auto)
       li.querySelector('.nl-del').onclick = () =>
         dialog('Take it down?', 'Take "' + newsEsc(n.title || 'this news') + '" down for everyone?', [
           { label: 'Cancel', cls: 'ghost', run: () => {} },
@@ -238,7 +256,7 @@ newsBtn.onclick = () => (newsAnyOpen() ? newsCloseAll() : openNewsList());
 function newsPlace() {} // (it sits in the row now; kept for old callers)
 function newsDot() {
   const b = newsBtn.querySelector('.badge'),
-    n = newsAll.filter((x) => x.id > newsSeen()).length;
+    n = newsAll.filter(newsIsNew).length;
   b.hidden = !n;
   b.textContent = n > 9 ? '9+' : String(n || '');
 }
@@ -249,7 +267,7 @@ async function newsMaybePop() {
   if (!inWorld || worldName !== LOBBY_WORLD || newsAnyOpen() || (typeof entering !== 'undefined' && entering)) return;
   if ($('start') && !$('start').hidden) return;
   await newsRefresh();
-  const n = newsAll.find((x) => x.id > newsSeen());
+  const n = newsAll.find(newsIsNew);
   if (!n || worldName !== LOBBY_WORLD || newsAnyOpen()) return;
   newsPopT = now;
   openNewsPaper(n, false);

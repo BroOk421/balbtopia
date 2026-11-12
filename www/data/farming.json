@@ -6710,33 +6710,6 @@
     },
     {
       "seeds": [
-        "flower_pot",
-        "honeycomb_block"
-      ],
-      "result": "pot_of_gold",
-      "source": "balbtopia",
-      "note": "Pot of Gold = Flower Pot + Honeycomb Block (Balbtopia recipe, Nov 11 2026)"
-    },
-    {
-      "seeds": [
-        "dice_block",
-        "white_block"
-      ],
-      "result": "lucky_cat",
-      "source": "balbtopia",
-      "note": "Lucky Cat = Dice Block + White Block (Balbtopia recipe, Nov 11 2026)"
-    },
-    {
-      "seeds": [
-        "marble_block",
-        "water_bucket"
-      ],
-      "result": "coin_fountain",
-      "source": "balbtopia",
-      "note": "Coin Fountain = Marble Block + Water Bucket (Balbtopia recipe, Nov 11 2026)"
-    },
-    {
-      "seeds": [
         "barrel",
         "black_block"
       ],

@@ -487,7 +487,8 @@ function drawBig(key, c, ox, oy, id) {
     w = frames[0].width * S,
     h = frames[0].height * S;
   // a dragon: a new punch at something solid -> shoot at it
-  if (p.ball && c.punch && c.punch !== s.lastPunch) {
+  // (build p, owner) not with a Water Gun / Tsunami Blaster in hand, nor for a gun's held aim (asteroids.js)
+  if (p.ball && c.punch && c.punch !== s.lastPunch && !c.punch.aim && !(typeof isWaterGun === 'function' && isWaterGun(c.hand))) {
     s.lastPunch = c.punch;
     const tx = Math.floor(c.punch.x / TS),
       ty = Math.floor(c.punch.y / TS);
@@ -593,7 +594,7 @@ function drawSky(key, c, ox, oy, id) {
     S = petScale(p),
     w = frames[0].width * S,
     h = frames[0].height * S;
-  if (c.punch && c.punch !== s.lastPunch) {
+  if (c.punch && c.punch !== s.lastPunch && !c.punch.aim && !(typeof isWaterGun === 'function' && isWaterGun(c.hand))) { // (build p: not with a water gun)
     s.lastPunch = c.punch;
     const tx = Math.floor(c.punch.x / TS),
       ty = Math.floor(c.punch.y / TS);
