@@ -334,6 +334,7 @@ function drawGunAt(id, hand, turn, toolTurn, lift) {
   if (hand.aim) toolTurn = gunAimTurn(id, g.getTransform().inverse().transformPoint(hand.aim), k);
   g.rotate(toolTurn);
   g.imageSmoothingEnabled = false;
+  if (typeof twoHandAt === 'function') twoHandAt(id, k); // (Nov 13 2026) the other hand, behind the gun (megagun.js)
   if (GUN_GLOW[id]) GUN_GLOW[id]();
   g.drawImage(s, -GRIP[0] * k, -GRIP[1] * k, sz, sz);
   gunNoteTip(id, k);

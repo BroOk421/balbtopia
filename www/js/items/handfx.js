@@ -40,8 +40,9 @@ const SHOT = {
 // the same square of tiles you can break / place in (REACH round your tile, +1 with Red Visor / Laser Eyes)
 function clampAim(tx, ty) {
   const p = playerTile(),
-    // (build p, owner: "with the Tsunami Blaster a longer range: 5 tiles")
-    r = hand === 'mega_water_gun' ? Math.max(5, REACH) + (laserFace(equipped) ? 1 : 0) : REACH + (laserFace(equipped) ? 1 : 0) + (hand === 'heart_bow' ? BOW_RANGE : 0),
+    // (build p, owner: "with the Tsunami Blaster a longer range: 5 tiles"; Nov 13 2026: "the normal Water Gun the same
+    // range as the mega") both water guns aim up to 5 tiles
+    r = isWaterGun(hand) ? Math.max(5, REACH) + (laserFace(equipped) ? 1 : 0) : REACH + (laserFace(equipped) ? 1 : 0) + (hand === 'heart_bow' ? BOW_RANGE : 0),
     hp = handPoint(P),
     x0 = (p.x - r) * TS + 1,
     x1 = (p.x + r + 1) * TS - 1,
@@ -348,6 +349,9 @@ let shotT = 0;
 // (build p) the Water Gun and the Mega Water Gun (megagun.js) shoot the same water
 const WATER_GUNS = new Set(['water_gun', 'mega_water_gun']),
   isWaterGun = (id) => WATER_GUNS.has(id);
+// (owner, Nov 13 2026: "the normal Water Gun: one at a time, held down like the mega, but one straight jet") held down it
+// fires every 0.09 s like the Tsunami Blaster (main.js repeats act at the tool's rate), each shot ONE drop (no spray)
+if (TOOLS.water_gun) TOOLS.water_gun.rate = 0.09;
 const actNoShot = act; // the act from before the Water Gun / Heartbow (for doors you stand in)
 act = ((prev) =>
   function () {
@@ -359,7 +363,7 @@ act = ((prev) =>
       const tu = tileUnder();
       if (!inReach(tu.x, tu.y)) return;
     }
-    if (now - shotT < (hand === 'mega_water_gun' ? 90 : isWaterGun(hand) ? 140 : 380)) return; // a short wait between shots
+    if (now - shotT < (isWaterGun(hand) ? 90 : 380)) return; // a short wait between shots
     shotT = now;
     if (hand === 'heart_bow') P.bowT = now; // the bow's draw / twang animation
     const k = isWaterGun(hand) ? 'water' : 'arrow',
@@ -376,6 +380,7 @@ act = ((prev) =>
     if (k === 'water') {
       // water never hurts blocks: just the swing (the gun lifted in the back hand) and the spray
       P.punch = { t: 0, x: tx, y: ty };
+      P.angry = ANGRY_TIME; // (owner, Nov 13 2026) shooting makes the angry face, like breaking (others: net.js 'punch')
       Net.sendPunch(tx, ty);
       Sfx.play('water', 0.5);
       return;
@@ -546,6 +551,7 @@ drawArmWithTool = ((prev) =>
     g.translate(hand[0] - FR.w / 2, hand[1] - lift * (FR.h / CHAR_H));
     g.rotate(swing ? toolTurn + Math.PI : GTR_TURN);
     g.imageSmoothingEnabled = false;
+    if (!swing && typeof twoHandAt === 'function') twoHandAt(id, k, grip); // (Nov 13 2026) the other hand on the neck (megagun.js)
     g.drawImage(s, -grip[0] * k, -grip[1] * k, sz, sz);
     g.restore();
     g.imageSmoothingEnabled = true;

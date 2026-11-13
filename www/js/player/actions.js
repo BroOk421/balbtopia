@@ -68,7 +68,9 @@ function gotHit(p) {
   // (Oct 27 2026, security) only a punch from a player who is here and next to you (a faked 'hit' from across
   // the map knocked players into lava)
   const from = p && Net.remotes.get(p.from);
-  if (!from || !nearMe(from, Math.abs(Number(p && p.d)) > 1 ? 6 : 3)) return; // (the Tsunami Blaster reaches 5 tiles)
+  // (the Tsunami Blaster and, since Nov 13 2026, the Water Gun reach 5 tiles)
+  const far = Math.abs(Number(p && p.d)) > 1 || (from && typeof isWaterGun === 'function' && isWaterGun(from.hand));
+  if (!from || !nearMe(from, far ? 6 : 3)) return;
   // (build p) |d| 2 = the Mega Water Gun: pushed twice as hard, a higher hop (never more than 2)
   const d = Math.max(-2, Math.min(2, Number(p.d) || (Math.random() < 0.5 ? -1 : 1))),
     big = Math.abs(d) > 1;

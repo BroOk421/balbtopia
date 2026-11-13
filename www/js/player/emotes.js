@@ -4,7 +4,8 @@
 //   hand, pumps twice and comes down. Bare-handed, the fist shows a thumb sticking up.
 // - /love: both eyes turn into hearts that beat (a double pulse like a heartbeat), and little hearts float up from
 //   the head, spinning as they rise.
-// - /omg: a "wow" face: the mouth a round O, the eyes wide open with tiny shaking pupils, the brows up; both hands
+// - /omg: a "wow" face: the mouth a round O, the brows up, the character's own normal eyes (owner, Nov 13 2026; they
+//   were wide with tiny shaking pupils); both hands
 //   go up beside the head and shake.
 // - /sleep: eyes shut, a snore now and then (the chat mouths), the body sways a little, Zzz float up. Lasts until you
 //   move (type /sleep again to wake up).
@@ -148,14 +149,15 @@ function emoMasks() {
   }
   return EMO_MASK;
 }
-// from a dressed body picture: the body without the raised arm(s) (the cut closed with outline) and each arm alone
+// from a dressed body picture: the body without the raised arm(s) (the cut closed with outline) and each arm alone.
+// `both`: true = both arms, false = the back arm, 'front' = only the front arm (megagun.js: the hand on the grip)
 const EMO_CUTS = new WeakMap();
 function emoCut(dressed, both) {
   const ms = emoMasks();
   if (!ms || !dressed || dressed.width !== FR.w || dressed.height !== FR.h) return null;
   let per = EMO_CUTS.get(dressed);
   if (!per) EMO_CUTS.set(dressed, (per = {}));
-  const key = both ? 'two' : 'one';
+  const key = both === 'front' ? 'front' : both ? 'two' : 'one';
   if (per[key] !== undefined) return per[key];
   let res = null;
   try {
@@ -169,7 +171,7 @@ function emoCut(dressed, both) {
     const src = x.getImageData(0, 0, W, H),
       p = src.data,
       cut = new Uint8Array(W * H),
-      arms = both ? ['back', 'front'] : ['back'],
+      arms = both === 'front' ? ['front'] : both ? ['back', 'front'] : ['back'],
       out = {};
     for (const a of arms) {
       const m = ms[a].m,
@@ -219,7 +221,7 @@ function emoCut(dressed, both) {
     }
     emoStroke(keep, W, H, near);
     x.putImageData(new ImageData(keep, W, H), 0, 0);
-    res = { body: cv, back: out.back, front: out.front || null };
+    res = { body: cv, back: out.back || null, front: out.front || null };
   } catch (e) {
     res = null;
   }
@@ -468,11 +470,9 @@ function drawEmoFace(c, top, sc, dy) {
     x.ellipse(99, 86, 4.5, 3.2, 0, 0, Math.PI * 2);
     x.fill();
   } else if (k === 'omg') {
-    const pop = Math.min(1, el / 160),
-      jit = () => (Math.random() - 0.5) * 1.4;
-    // wipe the calm eyes, brows and mouth
+    const pop = Math.min(1, el / 160);
+    // wipe the calm brows and mouth (owner, Nov 13 2026: the character's own normal eyes stay, no wide eyes)
     x.fillStyle = face;
-    for (const e of EMO_EYES) x.fillRect(...e.box);
     x.fillRect(50, 43, 22, 10);
     x.fillRect(86, 43, 20, 10);
     x.fillRect(66, 89, 20, 10);
@@ -485,26 +485,6 @@ function drawEmoFace(c, top, sc, dy) {
     x.moveTo(84, 42 - 2 * pop);
     x.quadraticCurveTo(95, 33 - 3 * pop, 104, 45 - 2 * pop);
     x.stroke();
-    // wide round eyes, tiny shaking pupils
-    for (const e of EMO_EYES) {
-      const rx = 13.5 * e.sx * (0.85 + 0.15 * pop),
-        ry = 15.5 * (0.85 + 0.15 * pop);
-      x.fillStyle = '#ffffff';
-      x.beginPath();
-      x.ellipse(e.cx, e.cy, rx, ry, 0, 0, Math.PI * 2);
-      x.fill();
-      x.lineWidth = 3.6;
-      x.strokeStyle = '#0c0808';
-      x.stroke();
-      const px = e.cx + jit(),
-        py = e.cy + jit();
-      x.fillStyle = '#0c0808';
-      x.beginPath();
-      x.ellipse(px, py, 4.6 * e.sx, 5.2, 0, 0, Math.PI * 2);
-      x.fill();
-      x.fillStyle = '#ffffff';
-      x.fillRect(px - 2.5 * e.sx, py - 3, 1.8, 1.8);
-    }
     // the mouth: a round "O", opening wide at the start
     const open = emoBack(Math.min(1, el / 220));
     x.fillStyle = '#3a1410';

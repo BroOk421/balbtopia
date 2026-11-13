@@ -599,7 +599,11 @@ function drawCharacter(c, ox, oy) {
     frameKey = swinging ? 'noarm_' + c.skin : punching ? 'punch_' + c.skin : dw ? dw.key : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
   // /thumbsup and /omg (emotes.js): the dressed body with the raised arm(s) cut off; they are drawn raised further down
   const emoArms = !punching && !walking && !dw && typeof emoArmPose === 'function' ? emoArmPose(c, outfitBody(body, frameKey, eq)) : null;
-  g.drawImage(emoArms ? emoArms.body : outfitBody(body, frameKey, eq), (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
+  // both hands on it (megagun.js twoHandArm): shooting a gun / holding the Guitar, the front arm is cut off too; it is
+  // drawn holding the tool further down (behind it)
+  const shown0 = tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null,
+    gunArm = !emoArms && shown0 && typeof twoHandArm === 'function' ? twoHandArm(c, outfitBody(body, frameKey, eq), shown0, swinging, !punching && !walking && !dw && !c.walking) : null;
+  g.drawImage(gunArm ? gunArm.body : emoArms ? emoArms.body : outfitBody(body, frameKey, eq), (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
   if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
@@ -610,10 +614,12 @@ function drawCharacter(c, ox, oy) {
   // the tool in the hand: the one you hold, or else the one in your Hand slot, so the pickaxe stays in
   // your hand while you hold a block, a seed or the wrench (only a swing draws it elsewhere)
   const shown = tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null;
+  if (gunArm) gunArm.draw(top + dy * sc * Z, sc); // (only queued: drawn behind the tool as the tool is drawn, megagun.js)
   if (emoArms) emoArms.draw(shown, top, sc, dy); // the raised arm(s), with the weapon / tool in the hand
   else if (shown && !swinging) drawHeldTool(shown, top, sc, 0, c.skin, im, frameKey);
   g.restore();
   if (swinging) drawToolSwing(c, cx, top, sc, ox, oy);
+  if (gunArm) gunArm.finish();
   // Laser Eyes: every punch is a laser
   if (laserFace(eq) && c.punch) drawLaser(c, cx, top, sc, ox, oy);
   g.imageSmoothingEnabled = false;

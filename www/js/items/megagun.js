@@ -95,3 +95,90 @@ GUN_GLOW[MEGA_GUN] = () => {
   g.shadowColor = `rgba(255,90,190,${0.45 + 0.3 * p})`;
   g.shadowBlur = (1.5 + 1.5 * p) * Z;
 };
+
+// ---------- both hands on it (owner, Nov 13 2026) ----------
+// "while shooting the Tsunami Blaster raise the right hand, onto the handle; the one hand just hangs down" then "the
+// right hand should be BEHIND", then "the same for the Guitar so it doesn't look held with one hand, and the Laser Gun
+// and Water Gun too". The FRONT arm (screen right when facing right) is cut off the dressed body (emotes.js
+// emoCut 'front', the same cut as /omg) and drawn turned round its shoulder so its hand is on TWO_HAND[id].at (a point
+// on the tool picture in 32-unit tool space, like GRIP / GUN_TIP), stretched / shortened a little (TWO_HAND_STRETCH)
+// as the tool turns, BEHIND the tool: render.js queues it (twoHandArm(...).draw) before the tool is drawn; the tool's
+// drawing calls twoHandAt(id, k, grip) right before its picture (asteroids.js drawGunAt; the Guitar's drawArmWithTool
+// in handfx.js), with the canvas already turned the tool's way, which works out the point and draws the arm there;
+// .finish() after the tool draws it hanging if the tool never drew.
+// When: the guns while shooting / aiming (the gun pose, c.punch); the Guitar while held standing still (and while
+// playing it, /dance), not while swinging it or walking. Never in the air, on a portrait, resting (rest.js draws those).
+const TWO_HAND = {
+  // the Tsunami Blaster: its front (pink) handle, low on it (his picture megagun_ref.png px 61, 47 -> tool space;
+  // megagun_cut.py: his picture turned 45 deg, HAND (33, 43) on GRIP). (The back handle is right at the front
+  // shoulder, a straight arm can't reach it; the back hand holds it.)
+  [MEGA_GUN]: { at: ((rx, ry) => [7 + ((rx - 33 + ry - 43) * Math.SQRT1_2) / 4, 25 + ((ry - 43 - (rx - 33)) * Math.SQRT1_2) / 4])(61, 47), when: 'shoot' },
+  water_gun: { at: [14.5, 16.5], when: 'shoot' }, // under the barrel, on the pump
+  [LASER_ID]: { at: [13.5, 17], when: 'shoot' }, // under the silver barrel
+  leaf_blower: { at: [24.5, 10.9], when: 'hold', reach: 1.4 }, // under the Guitar's neck, the arm stretched out (behind the guitar)
+};
+const TWO_HAND_STRETCH = [0.8, 1.2];
+let twoHandTodo = null; // the front arm waiting to be drawn, behind the tool (twoHandArm)
+function twoHandAt(id, k, grip = GRIP) {
+  const t = TWO_HAND[id];
+  if (!t || !twoHandTodo) return;
+  const pt = g.getTransform().transformPoint(new DOMPoint((t.at[0] - grip[0]) * k, (t.at[1] - grip[1]) * k)),
+    f = twoHandTodo;
+  twoHandTodo = null;
+  g.save();
+  g.shadowBlur = 0;
+  g.shadowColor = 'transparent';
+  f(pt);
+  g.restore();
+}
+// render.js drawCharacter: { body, draw, finish } or null. `swinging`: a tool swing / gun pose; `still`: standing, not
+// punching / placing / walking
+function twoHandArm(c, dressed, shown, swinging, still) {
+  const t = TWO_HAND[shown];
+  if (!t || c.ground === false || c.portrait || c.rest) return null;
+  if (t.when === 'shoot' ? !(swinging && c.hand === shown) : !still) return null;
+  const ms = typeof emoMasks === 'function' && emoMasks(),
+    cut = ms && emoCut(dressed, 'front');
+  if (!cut || !cut.front) return null;
+  twoHandTodo = null;
+  let todo = null;
+  return {
+    body: cut.body,
+    // queued inside the body's transform (translate(cx, 0), scale(face, 1)), before the tool is drawn
+    draw(top, sc) {
+      const M = g.getTransform();
+      todo = twoHandTodo = (pt) => {
+        todo = null;
+        g.setTransform(M);
+        g.translate(0, top);
+        g.scale(sc * Z, sc * Z);
+        g.imageSmoothingEnabled = true;
+        const S = ms.front.shoulder,
+          H = ms.front.hand,
+          sx = S[0] - FR.w / 2,
+          sy = S[1];
+        if (pt) {
+          const q = g.getTransform().inverse().transformPoint(pt),
+            a0 = Math.atan2(H[1] - S[1], H[0] - S[0]),
+            len = Math.hypot(H[0] - S[0], H[1] - S[1]),
+            f = Math.max(TWO_HAND_STRETCH[0], Math.min(t.reach || TWO_HAND_STRETCH[1], Math.hypot(q.x - sx, q.y - sy) / len));
+          g.translate(sx, sy);
+          g.rotate(Math.atan2(q.y - sy, q.x - sx));
+          g.scale(f, 1);
+          g.rotate(-a0);
+          g.translate(-sx, -sy);
+        }
+        g.drawImage(cut.front, -FR.w / 2, 0);
+      };
+    },
+    // after the tool: if it never drew, the arm hangs as usual
+    finish() {
+      if (twoHandTodo === todo) twoHandTodo = null;
+      if (todo) {
+        g.save();
+        todo(null);
+        g.restore();
+      }
+    },
+  };
+}

@@ -4236,3 +4236,105 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   booth moved to x 34-40 (SPW_V 'SPW:6'), Tatang at (39, 53) by the right-hand glass (players stand at x 41 out of
   the tunnel), shelves x 35-39 (the 16th on the floor at 35, 53). The booth act wrapper opens the pop-up only for a
   click on Tatang's tile or the one above it; other clicks in the booth do nothing. Sign: "click Tatang ...".
+
+## Nov 13 2026, build a: Water Gun like the Tsunami Blaster, two hands on the Tsunami Blaster, angry face, /omg eyes
+- Owner: "the normal Water Gun the same range as the mega, one at a time, held down like the mega but one straight jet";
+  handfx.js: clampAim gives BOTH water guns (isWaterGun) 5 tiles; TOOLS.water_gun.rate 0.09 (held down = a stream,
+  main.js), click wait 90 ms; still ONE drop a shot (the mega keeps its MEGA_SPRAY). actions.js gotHit accepts a
+  push from 6 tiles when the shooter holds a water gun (was 3 for the Water Gun).
+- Owner: "shooting the Water Gun and Tsunami Blaster makes the angry face, like breaking" -> handfx.js water shot sets
+  P.angry = ANGRY_TIME (others already got it from net.js 'punch').
+- Owner: "/omg (wow): the character's normal eyes" -> emotes.js omg no longer wipes / redraws the eyes (brows up and
+  the O mouth stay).
+- Owner: "raise the right hand when shooting the mega; it just hangs down, it should be on the handle" then "the right
+  hand should be BEHIND". megagun.js gunFrontArm (render.js hook `gunArm`, only while swinging = shooting / aiming on
+  the ground): the FRONT arm is cut off the dressed body (emotes.js emoCut(dressed, 'front'), new 'front' mode) and
+  drawn turned round its shoulder (stretch 0.8-1.2) so the hand is on the gun's FRONT (pink) handle,
+  MEGA_HOLD_AT [61, 47] in megagun_ref.png px (Claude's reading of "first handle": the back handle is right at the
+  front shoulder, a straight arm can't reach it; the back hand holds it). Drawn BEHIND the gun: render.js queues it
+  (gunArm.draw) before drawToolSwing, the GUN_GLOW wrapper (runs in drawGunAt right before the picture, already turned)
+  works out the hold point and draws the arm, gunArm.finish() draws it hanging if the gun never drew.
+- Owner then: "the same for the Guitar so it doesn't look held with one hand, and the Laser Gun and Water Gun too" ->
+  the two-hand code is general now (megagun.js `TWO_HAND` { id: { at: point in 32-unit tool space, when } },
+  `twoHandArm(c, dressed, shown, swinging, still)` from render.js, `twoHandAt(id, k, grip)` called right before the
+  tool's picture by asteroids.js drawGunAt and handfx.js's Guitar drawArmWithTool). Guns (Tsunami Blaster, Water Gun
+  [14.5, 16.5] under the barrel, Laser Gun [13.5, 17]) while shooting / aiming; the Guitar [18.5, 12.5] on its neck
+  whenever held standing still (and playing it with /dance), not swinging / walking / in the air / resting.
+  The front hand is always drawn behind the tool.
+- Owner: "the Guitar: under the neck, only the underside of the arm showing, the arm stretched like the Water Gun"
+  -> TWO_HAND.leaf_blower at [24.5, 10.9] (under the neck, further out), `reach` 1.4 (the arm may stretch to 1.4x).
+- Owner: "the gloves must be worn on the character's hand, and its effect: the glove flies to what it hits" + his
+  picture (Bald_Pixel_Boxer_Sprite: the glove on the back hand at the hip, red round fist, white cuff on top). NEW
+  `items/glovepunch.js` (after megagun.js): the Boxing Glove (just_one_boxing_glove) is drawn as GLOVE_PIC (14 x 17
+  cells of GLOVE_CELL 2.4 body px, made in code: red fist lit top-left, white cuff + red tag, shine, thumb line,
+  dark outline) ON the back hand, upright in the arm's space (turns with the arm, e.g. /thumbsup). Punching: no swing
+  (NO_V_SWING; swingTurn wrapper points the arm at the spot like the guns) and the glove flies off the hand to the
+  spot and back (punchReach of the real punch.t; drawToolSwing wrapper hands the spot as `gloveFly`), with three
+  speed streaks behind it (on the far side on the way back); the bare hand shows meanwhile. Hits unchanged.
+- GAME_BUILD '2026-11-13 a'.
+- Owner then (gloves): "the effect glove small, growing; it must not leave the hand (still worn, only an effect glove);
+  the push on another player stronger like the Tsunami Blaster; remove the wind lines at its end; bigger when idle"
+  -> glovepunch.js: the worn glove stays on the hand (upright in the arm's space, so its fist points at the spot
+  while punching), GLOVE_CELL 3.1; a separate glove effect flies hand -> spot in the first GLOVE_FLY_OUT 55% of the
+  punch, growing GLOVE_FLY_SIZE 0.35 -> 1.45 x, then fades there; streaks removed; punchPlayer wrapper sends
+  Net.hit d = +-2 with the glove (gotHit / net.js already handle 2).
+
+## Nov 13 2026, build b: Tribal Tattoo (topless shirt)
+- Owner (picture Bald_Tribal_Tattoo_Pixel_Sprite, then a close-up of the chest: "add this to the t-shirts, the topless
+  one, accurate; the body itself must look like this when worn"). NEW `wear/topless.js` (after floaties.js):
+  `tribal_tattoo` "Tribal Tattoo", Shirt slot, Rare, Shop WEAR 10,000 gold (Claude's price; schema.sql shop_prices row
+  + keep list + item_info 'rare': RE-RUN schema.sql). outfitBody wrapper: the body is dressed with a hidden pure
+  magenta marker shirt (TOPLESS_MARK, never an item) to find the tank-top pixels of any picture; those become the
+  wearer's skin (legSkin, shaded by the marker's brightness), then `assets/items/topless_tattoo.png` (118 x 215 on the
+  idle frame, made by art-source/topless/topless_cut.py from his picture topless_ref.png, lined up on the torso:
+  frame x = 58.5 + (px - 600) / 5.2, y = 109 + (py - 600) / 6.5) is laid on: alpha 255 tattoo ink (on skin), 253
+  his body lines (on the bare top), 254 abs / chest / nipple shading (skin x rgb x 1.25, contrast x1.35). Other
+  pictures: moved by the top's top-left corner vs the idle frame's (TOPLESS_TOP), skipped when the top's width is
+  off by more than 8. Checked on idle, walk, punch frames and peach / tan / deep skins.
+- GAME_BUILD '2026-11-13 b'.
+- Owner: "the glove effect starts at the idle size and grows" -> glovepunch.js GLOVE_FLY_SIZE [1, 1.9]. (A change to the
+  Tribal Tattoo's chest at the same time was undone at the owner's word: he will erase the strip by hand.)
+
+## Nov 13 2026, build c: Ceiling Spotlight + Christmas Lights (Music Pack)
+- Owner (picture of a dark room with two lamps hanging in the top corners and a string of coloured lights): "a
+  spotlight on the ceiling too, in the Music Pack, animated; and a Christmas light, animated, one block; with more
+  beside it, it gets longer, joined". NEW `gameplay/xmaslights.js` (after concert.js). Blocks 510 `ceiling_spotlight`
+  and 511 `christmas_lights` (permanent, walk-through, set-only: no recipe / rarity, a broken one drops itself;
+  NEXT FREE BLOCK: 512; 468-470 still free too).
+  - Ceiling Spotlight: the Spotlight's stand + head drawn flipped from the tile's top with a ceiling plate
+    (paintCeilMount); the head swings (ceilState = spotState(i * 7 + 3)) and its beam shines DOWN (drawCeilBeams,
+    drawSetupBadges wrapper, 'lighter', the same rainbow colours as the Spotlight).
+  - Christmas Lights: a sagging green wire near the tile's top with XMAS_BULBS 3 bulbs (colours round XMAS_COLS by
+    their place along the row, each twinkling on its own beat with a glow). A neighbour left / right = the wire runs
+    to that edge, so a row is one long string; a string's ends hang from little hooks.
+  - Music Pack (STAGE_SET.get): + 2 Ceiling Spotlights, + 10 Christmas Lights (desc rebuilt). schema.sql item_info
+    'basic' for both (RE-RUN schema.sql).
+- Owner, about the Tribal Tattoo strip: he will erase it by hand in www/assets/items/topless_tattoo.png (x 34-47 and
+  75-83, y 124-151; make pixels transparent, never repaint them: the alpha values 255 / 254 / 253 mean ink / shading /
+  body lines).
+- Owner: "line the light ray up with the lamp itself, like the Spotlight" -> drawCeilBeams: dx = -sin(ang) (the
+  flipped head turned by -ang points that way; the beam swung the other way before).
+- Owner (his edited porcelain/idle_open.png: the grey bit of the tank top between the back hand and the body made
+  see-through, x 34-37 y 137-145, and an outline column x 38 y 136-145): "do it like this on all of them" -> the same
+  pixels changed on every skin's idle_open / idle_half / idle_closed / punch_body / walk_stride_00-11 (frames where
+  that strip sits 2 rows higher / lower got it moved with them; the old strip was checked to be there first). The
+  dance / jump / swim / walk_step / diaper frames are other poses: unchanged. topless.js TOPLESS_TOP -> [37, 109, 44]
+  (the top's corner on the idle frame now).
+- Owner: "the middle doesn't point, the line is crooked from the light itself; make a left and a right" -> block 510
+  is now Ceiling Spotlight (Left) (aimed down-left), NEW block 512 `ceiling_spotlight_right` (down-right): each
+  CEIL_AIM 0.62 rad from straight down, swaying CEIL_SWAY 0.1 (no swinging across), beam from the lens along the
+  head; Music Pack: 2 Left + 2 Right + 10 Christmas Lights; schema.sql item_info 'basic' (RE-RUN). NEXT FREE BLOCK 513.
+- Owner: "align the light with the end of the lamp's circle, like the Spotlight" -> drawNewBlock works out the lens'
+  FRONT (CEIL_LENS_FRONT 2.5 px past its middle line), its two ends and the head's axis from the very transform the
+  head is drawn with and keeps them per tile (CEIL_GEO); drawCeilBeams starts the beam there, as wide as the lens,
+  along that axis. Then (owner's close-ups of the Spotlight: "the beam must sit on both ends of the lens") the beam
+  starts ON the lens' middle line (CEIL_LENS_FRONT 0), and CEIL_GEO is kept in the canvas' OWN px (another
+  drawNewBlock wrapper moves / scales the tile before ours, so tile-relative numbers came out ~0.1 tile off); the
+  beam uses it only when it was noted this frame (t === now) on an untransformed canvas.
+- GAME_BUILD '2026-11-13 c'.
+- Owner (his animated GIF of Christmas lights: "change the Christmas light, like this") -> art-source/xmas/xmas_cut.py
+  cuts xmas_lights_ref.gif (8 frames x 180 ms) into www/assets/items/christmas_lights.png (170 x 57 a frame, stacked).
+  drawXmas draws one frame across the tile's top (frame offset by the tile so a row doesn't blink together); with a
+  neighbour, a piece of the same dark green wire runs from the string's peak (XMAS_PEAK 30 / 310 of 340) to the
+  tile's edge at the peak's height, so a row is one garland. The bag / Shop icon is frame 0.
+
