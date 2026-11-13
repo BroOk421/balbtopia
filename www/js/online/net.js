@@ -10,7 +10,7 @@
 // Servers that haven't run the new schema yet: everything falls back to the old way (N.secure false, public channels).
 //
 // Realtime (world:NAME and build:NAME):
-//   p        position, facing, walking, skin and clothes, about 5 times a second (POS_EVERY; others glide between)
+//   p        position, facing, walking, skin and clothes, about 4 times a second, only a slow heartbeat when alone (POS_EVERY / SOLO_BEAT; others glide between)
 //   punch    someone threw a punch at a point
 //   tiles    blocks, backgrounds, trees or the world owner changed
 //   drop     a floating drop appeared (or got bigger)
@@ -571,6 +571,10 @@ const Net = (() => {
       // the owner moved this world to a new name (World Transfer): ask the server where to, then follow (rename.js)
       .on('broadcast', { event: 'moved' }, () => N.onMoved && N.onMoved(name))
       .on('broadcast', { event: 'sync_req' }, ({ payload }) => onSyncReq(payload))
+      // someone came in: send our position now, so they see us even if we were alone (heartbeat only) before
+      .on('presence', { event: 'join' }, ({ key }) => {
+        if (N.me && key !== N.me.id) sendPos(true);
+      })
       .on('presence', { event: 'leave' }, ({ key }) => {
         gone.set(key, now);
         const r = N.remotes.get(key);
@@ -773,9 +777,29 @@ const Net = (() => {
     });
     if (!r.walking) r.walkPh = 0;
   }
-  // how often our position goes out (s). Was 0.1 (10 a second); 5 a second halves the realtime messages, which
-  // count against Supabase's limit (Free: 100 a second for the whole project, sent and received)
-  const POS_EVERY = 0.2;
+  // how often our position goes out (s). Was 0.1, then 0.2; 4 a second (owner, Nov 13 2026) cuts realtime messages
+  // again, which count against Supabase's limit (Free: 100 a second for the whole project, sent and received)
+  const POS_EVERY = 0.25;
+  // (owner, Nov 13 2026) alone in a world: nobody to send our position to, so only a slow heartbeat goes out
+  // (SOLO_BEAT s, a safety net in case someone's presence was missed). Someone joining gets a full one at once.
+  const SOLO_BEAT = 4;
+  // standing still with others here: the same position goes out again only this often (ms). Was 1500; others drop a
+  // player after 8 s with no message (N.tick), so 3 s still leaves room for a lost one (owner, Nov 13 2026)
+  const IDLE_BEAT = 3000;
+  // how often built / broken tiles are gathered into one 'tiles' message (s). Was 0.1; 0.25 joins more changes per
+  // message when breaking fast, others see them a little later (owner, Nov 13 2026)
+  const TILES_EVERY = 0.25;
+  function othersHere() {
+    if (N.remotes.size) return true;
+    if (!ch) return false;
+    try {
+      const st = ch.presenceState();
+      for (const k in st) if (k !== N.me.id) return true;
+    } catch (e) {
+      return true; // can't tell: send as before
+    }
+    return false;
+  }
   let lastPos = '',
     posT = 0,
     tileT = 0,
@@ -806,18 +830,27 @@ const Net = (() => {
       dn: P.dance ? 1 : undefined, // dancing (/dance, jump.js)
       em: typeof emoToNet === 'function' ? emoToNet() : undefined, // emote (/thumbsup, /love, /omg, /sleep: emotes.js)
     };
+    if (!force && !othersHere() && now - beatT < SOLO_BEAT * 1000) return; // alone: heartbeat only
     const j = JSON.stringify(p);
-    if (!force && j === lastPos && now - beatT < 1500) return;
+    if (!force && j === lastPos && now - beatT < IDLE_BEAT) return;
     lastPos = j;
     beatT = now;
     send('p', p);
   }
+  // (owner, Nov 13 2026) at most one punch / place animation every PUNCH_NET_MS: held-down tools (the Water Gun fires
+  // every 0.09 s and punches each time) sent one per action; others only see the arm move, so a few a second is plenty
+  const PUNCH_NET_MS = 240;
+  let punchSentAt = 0;
   N.sendPunch = (x, y, kind) => {
-    if (N.me) send('punch', { id: N.me.id, x: Math.round(x), y: Math.round(y), k: kind || undefined });
+    if (!N.me || !othersHere() || now - punchSentAt < PUNCH_NET_MS) return;
+    punchSentAt = now;
+    send('punch', { id: N.me.id, x: Math.round(x), y: Math.round(y), k: kind || undefined });
   };
   // floating drops: everyone in the world sees the same ones
+  // (owner, Nov 13 2026) alone in the world: drops, takes, coin merges, deaths, block 'show' / signs / songs and
+  // board pings aren't sent (nobody to get them). They are all in worldData, so whoever comes in gets them from sync.
   N.sendDrop = (d) => {
-    if (N.me)
+    if (N.me && othersHere())
       send('drop', { s: N.me && N.me.id, u: d.uid, id: d.id, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined, k: d.ck || undefined });
   };
   N.sendRoid = (p) => {
@@ -830,11 +863,11 @@ const Net = (() => {
     if (N.me) send('moved', {});
   };
   N.sendDie = () => {
-    if (N.me) send('die', { id: N.me.id });
+    if (N.me && othersHere()) send('die', { id: N.me.id });
   };
   // coins that joined (coins.js): the 5 that went and the new one
   N.sendMerge = (us, d) => {
-    if (N.me)
+    if (N.me && othersHere())
       send('merge', { us, d: { u: d.uid, q: d.qty, x: Math.round(d.x), y: Math.round(d.y), a: Date.now() - d.born, b: d.by || undefined, k: d.ck } });
   };
   // ---------- Suggestion Board posts (board.js; schema.sql board_posts) ----------
@@ -853,21 +886,21 @@ const Net = (() => {
   N.boardPost = async (i, text) => {
     const { error } = await sb.rpc('board_post', { p_world: joinedName, p_tile: i, p_text: text });
     if (error) return boardErr(error);
-    send('board', { i });
+    if (othersHere()) send('board', { i });
     return null;
   };
   N.boardDelete = async (i, id) => {
     const { error } = await sb.rpc('board_delete', { p_id: id });
     if (error) return boardErr(error);
-    send('board', { i });
+    if (othersHere()) send('board', { i });
     return null;
   };
   N.boardClear = async (i) => {
     const { error } = await sb.rpc('board_clear', { p_world: joinedName, p_tile: i });
-    if (!error) send('board', { i });
+    if (!error && othersHere()) send('board', { i });
   };
   N.takeDrop = (u) => {
-    if (N.me) send('take', { u, by: N.me.id });
+    if (N.me && othersHere()) send('take', { u, by: N.me.id });
   };
   // a Vending Machine: builders send any change on build:; a visitor's sale goes on world: (others check it)
   N.sendVend = (i, v) => {
@@ -877,17 +910,17 @@ const Net = (() => {
     if (N.me) send('vacc', p);
   };
   N.sendShow = (i, k, v) => {
-    if (N.me) sendB('show', { i, k, v });
+    if (N.me && othersHere()) sendB('show', { i, k, v });
   };
   N.sendSign = (i, text) => {
-    if (N.me) sendB('sign', { i, text });
+    if (N.me && othersHere()) sendB('sign', { i, text });
   };
   N.sendSong = (i, s) => {
-    if (N.me) sendB('song', { i, s });
+    if (N.me && othersHere()) sendB('song', { i, s });
   };
   // the world's song list (the owner's saved songs, music.js): i -1 so older games ignore it
   N.sendSongList = (ol) => {
-    if (N.me) sendB('song', { i: -1, ol });
+    if (N.me && othersHere()) sendB('song', { i: -1, ol });
   };
   // world chat: null when it went out, or why not (shown to the player; the message then wasn't sent).
   // New servers: send_chat puts the real name on it and sends it on chat:NAME (players can't send there).
@@ -1003,16 +1036,48 @@ const Net = (() => {
   // after a big change everyone makes the same way (Clear World): don't send it tile by tile
   N.resnap = () => snapshot();
   // a gift or trade happened here: everyone else in the world sees the items fly
-  N.sendFly = (from, to, items) => send('fly', { from, to, items });
+  N.sendFly = (from, to, items) => othersHere() && send('fly', { from, to, items });
   // you punched another player: they get knocked back on their screen
   // a shot from a hand item (water from the Water Gun, an arrow from the Heartbow; handfx.js): others only see it fly
   // ex: extra fields for that kind of shot (remotefx.js: the Laser Gun's radiation sends the asteroid's id)
+  // (owner, Nov 13 2026) not sent when alone. Water Gun shots (every 0.09 s held down) go out together, one message
+  // every SHOT_EVERY ms at most: the newest shot in x / y / tx / ty, the earlier aims of the batch in `a` ([tx, ty],
+  // oldest first); handfx.js plays them one after another. The first shot after a pause goes out at once. Only the
+  // shooter decides hits, so this is just what others see (rvb.js checks a splash against the shots it heard: an
+  // 'rvb' message first sends any shots still waiting, flushShots).
+  const SHOT_EVERY = 250,
+    SHOT_BATCH_MAX = 8;
+  let shotQ = null,
+    shotSentAt = 0;
+  function flushShots() {
+    if (!shotQ) return;
+    const q = shotQ;
+    shotQ = null;
+    shotSentAt = now;
+    if (!q.a.length) delete q.a;
+    send('shot', q);
+  }
   N.sendShot = (k, x, y, tx, ty, ex) => {
-    if (N.me) send('shot', { ...(ex || {}), id: N.me.id, k, x: Math.round(x), y: Math.round(y), tx: Math.round(tx), ty: Math.round(ty) });
+    if (!N.me || !othersHere()) return void (shotQ = null);
+    const m = { ...(ex || {}), id: N.me.id, k, x: Math.round(x), y: Math.round(y), tx: Math.round(tx), ty: Math.round(ty) };
+    if (k !== 'water') {
+      flushShots();
+      return send('shot', m);
+    }
+    if (!shotQ && now - shotSentAt >= SHOT_EVERY) {
+      shotSentAt = now;
+      return send('shot', m);
+    }
+    if (shotQ) {
+      shotQ.a.push([shotQ.tx, shotQ.ty]);
+      if (shotQ.a.length > SHOT_BATCH_MAX - 1) shotQ.a.shift();
+      Object.assign(shotQ, m, { a: shotQ.a });
+    } else shotQ = { ...m, a: [] };
   };
   // Red vs Blue (events/rvb.js): on the world channel, so players without build rights can send too; the receiver
   // looks the sender up by id (N.remotes: names checked by the server)
   N.sendRvb = (p) => {
+    flushShots(); // (a splash is checked against the shots heard: they must get there first)
     if (N.me) send('rvb', { ...p, id: N.me.id });
   };
   N.hit = (r, dir) => {
@@ -1074,7 +1139,8 @@ const Net = (() => {
       msg.atm = atmList();
       snapATM = tk;
     }
-    if (Object.keys(msg).length) sendB('tiles', msg);
+    // alone: nobody to tell (the snapshot is already updated; whoever comes in gets the whole world from sync_req)
+    if (Object.keys(msg).length && othersHere()) sendB('tiles', msg);
   }
   function applyTiles(m) {
     if (!snapFg) return;
@@ -1201,13 +1267,14 @@ const Net = (() => {
         if (Math.abs(r.shove) < 0.2) r.shove = 0;
       }
     }
+    if (shotQ && now - shotSentAt >= SHOT_EVERY) flushShots();
     posT += dt;
     tileT += dt;
     if (posT >= POS_EVERY) {
       posT = 0;
       sendPos(false);
     }
-    if (tileT >= 0.1) {
+    if (tileT >= TILES_EVERY) {
       tileT = 0;
       diffTiles();
     }
@@ -1272,7 +1339,7 @@ const Net = (() => {
     if (lobbyH.people) lobbyH.people();
   }
   async function refreshPeople() {
-    if (!peopleOn || !N.secure || !N.me) return usePresence();
+    if (!peopleOn || !N.secure || !N.me) return needLobby(), usePresence();
     if (peopleBusy) return void (peopleAgain = true);
     peopleBusy = true;
     let res;
@@ -1282,7 +1349,7 @@ const Net = (() => {
     peopleBusy = false;
     if (res && res.error && (res.error.code === 'PGRST202' || res.error.code === '42883')) {
       peopleOn = false;
-      return usePresence();
+      return needLobby(), usePresence();
     }
     if (res && !res.error) {
       N.people.clear();
@@ -1368,6 +1435,7 @@ const Net = (() => {
       if (!error) return;
       if (error.code === 'PGRST202' || error.code === '42883' || /realtime\.send/i.test(error.message || '')) {
         srvInbox = false; // the server can't do it yet: the old way, this message too
+        needLobby();
         lobbyBroadcast(ev, to, data);
       } else if (error.code === 'P0001' || error.code === '42501') toast(error.message);
       else console.warn('lobby_send', error);
@@ -1394,10 +1462,31 @@ const Net = (() => {
         srvInbox = false;
         inbox = null;
         dropChannel(c);
+        needLobby();
       }
     });
   }
+  // (owner, Nov 13 2026) the shared 'lobby' channel's presence sent an update to EVERY online player each time anyone
+  // logged in, moved to another world or left (grows with players x players). A server with lobby_send (our own
+  // inbox:<id>) and online_people no longer needs it: messages come on the inbox and the list of who is online comes
+  // from the hello every 20 s (HELLO_EVERY; so a friend coming online / moving shows up to 20 s later). The lobby
+  // channel is only joined for an old server (needLobby: no inbox, no online_people, no private channels).
+  let lobbyWanted = false;
+  function needLobby() {
+    if (lobbyWanted) return;
+    lobbyWanted = true;
+    joinLobbyCh();
+  }
   N.joinLobby = () => {
+    if (!sb || !N.me) return;
+    if (!lobbyWanted && N.secure && srvInbox && peopleOn && privRT) {
+      startHello();
+      joinInbox();
+      return;
+    }
+    needLobby();
+  };
+  function joinLobbyCh() {
     if (!sb || !N.me || lobby) return;
     const c = sb.channel('lobby', chOpts(true));
     lobby = c;
@@ -1419,7 +1508,7 @@ const Net = (() => {
       if (status === 'CHANNEL_ERROR' && privRT && !lobbyJoined && lobby === c) {
         privRT = false; // see openWorld: the server isn't set up for private channels yet
         lobby = null;
-        dropChannel(c).then(() => N.joinLobby());
+        dropChannel(c).then(() => joinLobbyCh());
         return;
       }
       if (status === 'SUBSCRIBED') {
@@ -1429,9 +1518,11 @@ const Net = (() => {
         joinInbox();
       }
     });
-  };
+  }
   N.lobbyWorld = (name) => {
-    if (lobby && lobbyJoined) lobby.track({ name: playerName, world: name });
+    // the presence only carries our world when the server can't tell (no online_people); otherwise every move would
+    // send an update to everyone in the lobby channel for nothing
+    if (lobby && lobbyJoined && !(peopleOn && N.secure)) lobby.track({ name: playerName, world: name });
   };
 
   // ---------- email (stored in the "mail" table) ----------

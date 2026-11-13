@@ -335,13 +335,24 @@ drawLiveFx = ((prev) =>
     return prev();
   })(drawLiveFx);
 // another player shot: show it flying from their hand
-Net.onShot = (p) => {
-  const r = Net.remotes.get(p.id);
-  if (!r || !SHOT[p.k]) return;
+// (owner, Nov 13 2026) Water Gun shots come in batches (net.js SHOT_EVERY): the earlier aims in `a`, oldest first,
+// then the newest in tx / ty; they are played one after another, spread over the time until the next batch
+function remoteShot(id, k, tx, ty) {
+  const r = Net.remotes.get(id);
+  if (!r || !SHOT[k] || !Number.isFinite(tx) || !Number.isFinite(ty)) return;
   const h = handPoint(r);
-  if (p.k === 'water') waterShot(r.name, h.x, h.y, p.tx, p.ty, false, r.hand === 'mega_water_gun');
-  else addShot(p.k, h.x, h.y, p.tx, p.ty, false);
-  if (Math.abs(p.tx - (r.x + r.w / 2)) > 2) r.face = p.tx > r.x + r.w / 2 ? 1 : -1;
+  if (k === 'water') waterShot(r.name, h.x, h.y, tx, ty, false, r.hand === 'mega_water_gun');
+  else addShot(k, h.x, h.y, tx, ty, false);
+  if (Math.abs(tx - (r.x + r.w / 2)) > 2) r.face = tx > r.x + r.w / 2 ? 1 : -1;
+}
+Net.onShot = (p) => {
+  if (!Net.remotes.get(p.id) || !SHOT[p.k]) return;
+  const a = p.k === 'water' && Array.isArray(p.a) ? p.a.slice(-7).filter((t) => Array.isArray(t)) : [];
+  if (!a.length) return remoteShot(p.id, p.k, +p.tx, +p.ty);
+  const gap = Math.min(90, 250 / (a.length + 1));
+  remoteShot(p.id, p.k, +a[0][0], +a[0][1]);
+  for (let j = 1; j < a.length; j++) setTimeout(() => remoteShot(p.id, p.k, +a[j][0], +a[j][1]), j * gap);
+  setTimeout(() => remoteShot(p.id, p.k, +p.tx, +p.ty), a.length * gap);
 };
 
 // ---------- clicking with the Water Gun / Heartbow ----------

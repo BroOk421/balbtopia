@@ -5,7 +5,7 @@
 // Now, whenever the rAF loop has stalled (hidden tab, alt-tabbed, window behind another: see build t below), a
 // worker timer (keepalive-worker.js, not slowed down by the browser) runs BG_TICK_MS ticks: the game clock `now` moves on, physics steps (so a falling player still lands), Net.tick sends the position
 // heartbeat, the hello to the server is kept up (Net.helloDue) and the AFK check runs. Nothing is drawn. AFK
-// (afk.js, 15 min with no key / click / tap) still logs the player out, hidden or not; that is the only way out.
+// (afk.js, 5 min with no key / click / tap) still logs the player out, hidden or not; that is the only way out.
 // The Supabase realtime socket's own heartbeat also runs on this worker file (net.js), so the connection and the
 // presence stay up. Note: a phone app put in the background is paused by Android itself; this is for browser tabs.
 // Loaded right before main.js.

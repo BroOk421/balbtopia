@@ -1,11 +1,11 @@
-// Away too long (owner, Oct 24 2026; 15 minutes since Oct 25 2026): after AFK_MS without a key, click, tap or mouse
+// Away too long (owner, Oct 24 2026; 15 minutes since Oct 25 2026, 5 minutes since Nov 13 2026): after AFK_MS without a key, click, tap or mouse
 // move, the game saves, logs the account out (the session is forgotten, so the password is needed again) and goes
 // back to the log in screen. Time counts by the clock, so a phone that slept in the background is logged out as soon
 // as it wakes up. Closing the game does not get round it (owner, Oct 25 2026): the last time the player did something
 // is kept in localStorage (`AFK_KEY`), and opening the game more than AFK_MS after that starts at the log in screen.
 // No note is shown on the log in screen any more (owner).
 // ===== afk =====
-const AFK_MS = 15 * 60 * 1000,
+const AFK_MS = 5 * 60 * 1000, // (owner, Nov 13 2026: 5 minutes, was 15; an AFK player still receives every realtime message of their world)
   AFK_KEY = 'balbtopia.lastActive';
 let afkLast = Date.now(),
   afkGone = false,

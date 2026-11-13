@@ -70,7 +70,7 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
 | `physics.js` | Movement, platforms, lava burns, `die` / `respawn`, `stepFx` (drop pickup + vacuum, particles) |
 | `render.js` | All drawing: tiles, characters (angry face, weak face, ghost with wings), drops, name tags, lock sprites |
 | `farming.js` | Planting, splicing, trees; recipes come from `data/farming.json` |
-| `net.js` | Supabase: accounts, saves, realtime world channel (`p`, `punch`, `tiles`, `drop`, `take`, `chat`, `clear`, `die`, `sync`), lobby (DMs, trades, gifts) |
+| `net.js` | Supabase: accounts, saves, realtime world channel (`p`, `punch`, `tiles`, `drop`, `take`, `chat`, `clear`, `die`, `sync`), lobby (DMs, trades, gifts). Position `p` every `POS_EVERY` 0.25 s; alone in a world (`othersHere`: no remotes, no other presence key) only a `SOLO_BEAT` 4 s heartbeat, and no `punch` or `tiles` (never gate `sync`: a sync_req may come before the presence join); also not sent alone: drop, take, merge, die, fly, show, sign, song, board. `punch` at most every `PUNCH_NET_MS` 240 ms. Water Gun `shot`s batched every `SHOT_EVERY` 250 ms (newest in tx/ty, earlier aims in `a`; handfx.js `remoteShot` plays them in turn, rvb.js counts them all; `N.sendRvb` flushes waiting shots first). No shared `lobby` channel when the server has inbox + online_people (`needLobby` joins it only for an old server; friends list updates with the 20 s hello). AFK logout 5 min (afk.js `AFK_MS`, was 15); standing still with others: same position again every `IDLE_BEAT` 3 s (was 1.5; others drop a player after 8 s); tiles gathered every `TILES_EVERY` 0.25 s (was 0.1); a presence `join` sends a full position at once (owner, Nov 13 2026) |
 | `lock.js` | World Lock access rules (`isOwner`, `hasAccess`, `canEdit`) and the lock window |
 | `social.js` | `dialog()` pop-up helper, trade/friends/messages/email/gifts, world chat (CHAT button) |
 | `weather.js` | Snow Weather Machine block and the snowy weather: winter backdrop, falling snow, white flash |
@@ -1276,7 +1276,7 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
   - Daily quests: a Rare-or-higher (Balb Coin) quest asks 150-200 for every seed / block count (plant, break, send
     blocks, send seeds; `QUEST_RARE_N`, `questBig(id|kind)` = fixed per quest so every device agrees). Harvest counts
     unchanged; Common / Uncommon quests unchanged.
-  - AFK logout after 15 min (`AFK_MS`, was 30) and no note on the log in screen. Closing the game doesn't get round it:
+  - AFK logout after 15 min (`AFK_MS`, was 30; 5 min since Nov 13 2026) and no note on the log in screen. Closing the game doesn't get round it:
     the last activity is kept in localStorage `balbtopia.lastActive` (every 5 s while active + on pagehide); opening
     the game AFK_MS or more after it clears the offline session and sets `FORGET_KEY` / drops `ALIVE_KEY` so
     `initOnline` signs the online session out (wrapped `initAuth`).

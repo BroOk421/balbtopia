@@ -775,8 +775,10 @@ Net.onShot = ((prev) =>
   function (p) {
     if (p && p.k === 'water' && rvbOn() && Net.remotes.get(p.id)) {
       const l = (rvbShots.get(p.id) || []).filter((s) => now - s.t < RVB_SHOT_MS);
+      // (Nov 13 2026) a batch of Water Gun shots (net.js SHOT_EVERY): the earlier aims in `a` count too
+      if (Array.isArray(p.a)) for (const t of p.a.slice(-7)) if (Array.isArray(t)) l.push({ t: now, x: +p.x || 0, y: +p.y || 0, tx: +t[0] || 0, ty: +t[1] || 0 });
       l.push({ t: now, x: +p.x || 0, y: +p.y || 0, tx: +p.tx || 0, ty: +p.ty || 0 });
-      rvbShots.set(p.id, l.slice(-8));
+      rvbShots.set(p.id, l.slice(-16));
     }
     return prev && prev(p);
   })(Net.onShot);

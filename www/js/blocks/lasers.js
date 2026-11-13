@@ -88,23 +88,42 @@ genWorld = function (...a) {
   lzReady = worldName;
   return r;
 };
+// (owner, Nov 13 2026) only the player who placed a gate sends its start at once (Net.tileMine: their own change, not
+// sent yet). Everyone else who notices a new gate (placed by someone else, or an old gate with no time saved) waits
+// LZ_WAIT_MS + a random bit and sends only if no time came in by then: one message per gate instead of one from
+// every player in the world.
+const LZ_WAIT_MS = 1000,
+  lzWait = new Map(); // tile -> when our own time goes out (if nobody else's came)
 const _onShowLz = Net.onShow;
 Net.onShow = (p) => {
   if (p && p.k === 'lz') {
-    if (Number.isInteger(p.i) && p.i >= 0 && p.i < fg.length) lzSet(p.i, +p.v);
+    if (Number.isInteger(p.i) && p.i >= 0 && p.i < fg.length) {
+      const mine = lzT.get(p.i);
+      // ours is clearly earlier (we placed it but our first send was missed): send ours, the earliest wins everywhere
+      if (!lzSet(p.i, +p.v) && mine && LASER_BY_T[fg[p.i]] && +p.v - mine.t > 50) Net.sendShow(p.i, 'lz', mine.t);
+      lzWait.delete(p.i);
+    }
     return;
   }
   return _onShowLz(p);
 };
 // note new gates, forget gone ones (a few times a second)
 setInterval(() => {
-  if (!inWorld || lzReady !== worldName || !fg) return;
+  if (!inWorld || lzReady !== worldName || !fg) return lzWait.clear();
   const nowMs = Date.now();
   for (let i = 0; i < fg.length; i++)
     if (LASER_BY_T[fg[i]] && !lzT.has(i)) {
       lzSet(i, nowMs);
-      Net.sendShow(i, 'lz', nowMs);
+      if (Net.tileMine && !Net.tileMine(i)) lzWait.set(i, nowMs + LZ_WAIT_MS + Math.random() * 1500);
+      else Net.sendShow(i, 'lz', nowMs);
     }
+  for (const [i, at] of lzWait) {
+    if (!LASER_BY_T[fg[i]] || !lzT.has(i)) lzWait.delete(i);
+    else if (nowMs >= at) {
+      lzWait.delete(i);
+      Net.sendShow(i, 'lz', lzT.get(i).t);
+    }
+  }
   for (const [i, e] of lzT) if (!LASER_BY_T[fg[i]] && nowMs - e.seen > LZ_KEEP_MS) lzT.delete(i);
 }, 150);
 // how far out the beams of the gate on tile i are (0 .. 1) right now
