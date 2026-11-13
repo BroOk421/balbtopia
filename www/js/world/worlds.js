@@ -49,30 +49,49 @@ const fromB64 = (b, into) => {
 // Block numbers above 254 (owner, Oct 26 2026: more blocks than one byte holds). fg is a Uint16Array in memory, but
 // the saved `fg` stays ONE BYTE per tile (the server's lock checks read those bytes): 0-254 as they are, 255 means
 // "look in `fgx`", which holds the number - 254 (so blocks 255-509). Saves made before this have no fgx.
+// (Nov 13 2026) Blocks 510+ (Ceiling Spotlights, Christmas Lights) were saved as 509 (fgx tops out at 255) and came
+// back as Octagon Wall Signs. Now fgx 255 + `fgy` (one more byte per tile, only saved when a world has such a block)
+// = 509 + fgy: blocks up to 764. Old saves / no fgy = 509 as before. The server keeps fgy like any other field.
 const FG_EXT = 255;
 function fgBytes() {
   const lo = new Uint8Array(fg.length),
     hi = new Uint8Array(fg.length);
+  let top = null;
   for (let i = 0; i < fg.length; i++) {
     const t = fg[i];
     if (t < FG_EXT) lo[i] = t;
-    else (lo[i] = FG_EXT), (hi[i] = Math.min(255, t - 254));
+    else {
+      lo[i] = FG_EXT;
+      hi[i] = Math.min(255, t - 254);
+      // (also for 509 itself, as a 0: then a world with fgx 255 anywhere always carries a fresh fgy, never an old one)
+      if (t >= 509) (top ||= new Uint8Array(fg.length))[i] = Math.min(255, t - 509);
+    }
   }
-  return [lo, hi];
+  return [lo, hi, top];
 }
-function setFgBytes(loB64, hiB64) {
+function setFgBytes(loB64, hiB64, topB64) {
   const lo = new Uint8Array(fg.length),
-    hi = new Uint8Array(fg.length);
+    hi = new Uint8Array(fg.length),
+    top = typeof topB64 === 'string' ? new Uint8Array(fg.length) : null;
   fromB64(loB64, lo);
   if (typeof hiB64 === 'string') fromB64(hiB64, hi);
-  for (let i = 0; i < fg.length; i++) fg[i] = lo[i] !== FG_EXT ? lo[i] : hi[i] && BLOCK[254 + hi[i]] ? 254 + hi[i] : 0;
+  if (top) fromB64(topB64, top);
+  for (let i = 0; i < fg.length; i++) {
+    if (lo[i] !== FG_EXT) {
+      fg[i] = lo[i];
+      continue;
+    }
+    const t = hi[i] === 255 && top && top[i] ? 509 + top[i] : 254 + hi[i];
+    fg[i] = hi[i] && BLOCK[t] ? t : 0;
+  }
 }
 function worldData() {
-  const [fgLo, fgHi] = fgBytes(),
+  const [fgLo, fgHi, fgTop] = fgBytes(),
     dl = savedDrops(MAX_DROPS);
   return {
     fg: toB64(fgLo),
     fgx: toB64(fgHi),
+    ...(fgTop ? { fgy: toB64(fgTop) } : {}), // (only when a block 509+ is in the world)
     bg: toB64(bg),
     vari: toB64(vari),
     door: [door.x, door.y],
@@ -147,7 +166,7 @@ function savedDrops(cap) {
 }
 // skew: how far our clock is ahead of the clock that wrote w (for the age of drops)
 function applyWorld(w, skew = 0) {
-  setFgBytes(w.fg, w.fgx);
+  setFgBytes(w.fg, w.fgx, w.fgy);
   fromB64(w.bg, bg);
   fromB64(w.vari, vari);
   migrateTiles(); // items that moved between block and background (blocks.js)
@@ -173,7 +192,7 @@ function applyWorld(w, skew = 0) {
   setOwnerSongs(w.osongs);
   drops.length = 0;
   for (const [uid, id, qty, x, y, born, by, ck] of w.drops || [])
-    if (typeof uid === 'string' && (id === 'gold' || ITEMS[id]) && qty > 0)
+    if (typeof uid === 'string' && (id === 'gold' || ITEMS[id] || (typeof isKeyId === 'function' && isKeyId(id) && ensureKey(id))) && qty > 0)
       drops.push({ uid, id, qty, x, y, age: 1, minAge: 0, ph: Math.random() * 6.28, born: (+born || 0) + skew, by: by || null, ck: id === 'gold' && COIN_LOOK[ck] ? ck : undefined });
   // a new world: nothing seen go away yet
   dropSeen.clear();

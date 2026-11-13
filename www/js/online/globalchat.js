@@ -9,28 +9,32 @@
 //  - SYSTEM lines are the game's notices (ui.js toast, no pop-up any more). Nobody chats there (owner, Nov 10 2026:
 //    "system should have no input"): with the SYSTEM mode or the SYSTEM tab picked, the box and Send are hidden.
 //    /commands are typed in LOCAL mode.
-//  - SHOUT needs a Microphone (Shop, 2,000 gold); each message uses one up (the server takes it: GMs free). Only
+//  - SHOUT needs a Microphone (Shop, 20,000 gold since Nov 13 2026); reaches at most 100 players online (server
+//    send_broadcast picks them: the sender's world first, then random; a GM's shout: everyone); each message uses one up (the server takes it: GMs free); one shout
+//    every GSHOUT_WAIT (5 min) per player (server send_broadcast too; the wait counts down by the mic count). Only
 //    shouts sent while you are online show. "/go" (any mode) sends you to the world of the newest shout.
 //  - LOCAL: only the players in your world (social.js sendChat: speech bubble, /commands as before).
 //  - FRIEND: goes to every friend who is online (a 'dm' marked fc, social.js gotDM); private messages from the
 //    wrench / Menu show here too.
 //  - Tapping a name: Message / Add friend / Block (hides that player's lines for 10 minutes) / Close.
-// Online: schema.sql global_chat + send_broadcast (real names, the sender's world, live on the 'global' topic; the
-// table is also read every 8 s so nothing is missed). Offline: only your own shouts, on this device.
+// Online: schema.sql global_chat + send_broadcast (real names, the sender's world; live on each picked player's own
+// inbox since Nov 13 2026; the table is also read as a backup, see gPoll). Offline: only your own shouts, on this device.
 // ===== globalchat (the chat) =====
 const GCHAT_MAX = 120, // letters in one shout
   GCHAT_KEEP = 60, // shouts kept for /go
   CHAT_KEEP = 150, // lines kept in the panel
-  FCHAT_MAX_TO = 20, // friend chat goes to at most this many online friends (the server allows 40 sends / 10 s)
+  FCHAT_MAX_TO = 20,
+  GSHOUT_WAIT = 5 * 60 * 1000, // (owner, Nov 13 2026) one shout every 5 minutes (the server checks it too; GMs: no wait) // friend chat goes to at most this many online friends (the server allows 40 sends / 10 s)
   GMUTE_MS = 10 * 60 * 1000; // how long Block hides someone
 ITEMS.microphone = {
   name: 'Microphone',
   kind: 'consumable',
-  desc: 'Shout to everyone online: each message you send in SHOUT mode in the chat (top left) uses one.',
+  desc: 'Shout to up to 100 players online (the ones in your world first): each message you send in SHOUT mode in the chat (top left) uses one. One shout every 5 minutes.',
   rarity: 'Rare',
-  noDrop: true, // (the server counts who bought one: a dropped one couldn't be used by whoever picks it up)
+  // (owner, Nov 13 2026) droppable and tradable: the server now takes the shout's Microphone out of the server BAG
+  // (send_broadcast), where a picked-up / traded one is too (it was noDrop while it came out of owned_items)
 };
-SHOP.push({ id: 'microphone', gold: 2000, cat: 'world' });
+SHOP.push({ id: 'microphone', gold: 20000, cat: 'world' }); // (owner, Nov 13 2026: 20,000, was 2,000; schema.sql shop_prices too)
 
 let gmsgs = [], // shouts [{ id, u, n, w, t, at }] oldest first (for /go and to skip ones already shown)
   gLast = 0, // newest shout id seen
@@ -103,7 +107,7 @@ function gShow(open) {
     gUnread = 0;
     gBadge();
     gRender(true);
-    gPoll();
+    gPoll(true);
   } else $('gText').blur();
 }
 // open the panel, optionally in a mode, with the cursor in the box (Enter on a keyboard: social.js openChat)
@@ -124,10 +128,30 @@ $('gTabs').onclick = (e) => {
 };
 // SYSTEM (mode or tab): no box, nothing can be sent
 const chatReadOnly = () => chatMode === 'sys' || chatTab === 'sys';
+// (owner, Nov 13 2026) no chatting in the LOBBY world, for everyone: only /commands (social.js sendChat; server send_chat)
+const chatInLobby = () => typeof inWorld !== 'undefined' && inWorld && typeof worldName !== 'undefined' && worldName === LOBBY_WORLD;
+function gPlaceholder(m) {
+  if (m === 'sys') return '';
+  if (m === 'shout') {
+    const left = gShoutLeft();
+    return left ? 'You can shout again in ' + gClock(left) : 'Shout to 100 players (1 Microphone, once every 5 min)';
+  }
+  if (m === 'friend') return 'To your online friends…';
+  return chatInLobby() ? 'Only /commands in the LOBBY (/help)' : 'Say something here… (/help)';
+}
+// (owner, Nov 13 2026) SHOUT while the 5 minutes run: the box and Send are switched off (the box shows the time
+// left); LOCAL / FRIEND are not affected
 function gFormState() {
-  const ro = chatReadOnly();
+  const ro = chatReadOnly(),
+    wait = !ro && chatMode === 'shout' && gShoutLeft() > 0,
+    inp = $('gText');
   gEl.querySelector('.gform').classList.toggle('ro', ro);
-  if (ro) $('gText').blur();
+  gEl.querySelector('.gform').classList.toggle('wait', wait);
+  inp.disabled = wait;
+  $('gSend').disabled = wait;
+  const ph = gPlaceholder(chatMode);
+  if (inp.placeholder !== ph) inp.placeholder = ph;
+  if (ro || wait) inp.blur();
 }
 function chatSetMode(m) {
   if (!CHAT_MODES.some(([k]) => k === m)) return;
@@ -135,8 +159,6 @@ function chatSetMode(m) {
   const btn = $('gModeBtn');
   btn.textContent = CHAT_MODES.find(([k]) => k === m)[1];
   btn.className = 'gmodebtn gm-' + m;
-  $('gText').placeholder =
-    m === 'sys' ? '' : m === 'shout' ? 'Shout to everyone (1 Microphone)' : m === 'friend' ? 'To your online friends…' : 'Say something here… (/help)';
   $('gText').maxLength = m === 'local' ? CHAT_MAX : GCHAT_MAX;
   gMicShow();
   gFormState();
@@ -182,10 +204,33 @@ function gRender(toEnd) {
   if (atEnd) ul.scrollTop = ul.scrollHeight;
   gMicShow();
 }
-function gMicShow() {
-  const mics = countItem('microphone');
-  $('gMic').textContent = chatMode !== 'shout' ? '' : isGM() ? 'GM' : mics + ' mic' + (mics === 1 ? '' : 's');
+// when you may shout again (ms, this device; kept per player so a reload doesn't reset it)
+// (function declarations: chatSetMode -> gMicShow runs before this line while the file loads)
+function gShoutKey() {
+  return 'balbtopia.gshout.' + lc(typeof playerName === 'string' ? playerName : '');
 }
+function gShoutLeft() {
+  let at = 0; // (GMs wait too: owner, Nov 13 2026)
+  try {
+    at = +localStorage.getItem(gShoutKey()) || 0;
+  } catch (e) {}
+  return Math.max(0, at + GSHOUT_WAIT - Date.now());
+}
+function gClock(ms) {
+  const s = Math.ceil(ms / 1000);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+function gMicShow() {
+  const mics = countItem('microphone'),
+    left = gShoutLeft();
+  $('gMic').textContent = chatMode !== 'shout' ? '' : (isGM() ? 'GM' : mics + ' mic' + (mics === 1 ? '' : 's')) + (left ? ' · ' + gClock(left) : '');
+}
+// the wait counting down (mic count + the box), the box coming back on when it ends, the LOBBY placeholder
+setInterval(() => {
+  if (!gOpenNow) return;
+  if (chatMode === 'shout') gMicShow();
+  gFormState();
+}, 1000);
 // the closed bar: the newest line that isn't hidden
 let tickKey = -1;
 function gTick() {
@@ -301,11 +346,23 @@ function gBadge() {
   b.hidden = !gUnread;
   b.textContent = gUnread > 99 ? '99+' : String(gUnread);
 }
-Net.onGlobal = (p) => gAdd([p]);
-// keep up: join the live topic once online, and read the table every 8 s
-async function gPoll() {
+// shouts that came in live (ids): one read from the table that wasn't = the live topic doesn't work (Net.globalBroken)
+const gLiveIds = new Set();
+Net.onGlobal = (p) => {
+  if (p && Number.isFinite(p.id)) gLiveIds.add(p.id);
+  gAdd([p]);
+};
+// keep up: join the live topic once online, and read the table only as a backup (Nov 13 2026, to save database use):
+// every 8 s while the live topic is down or doesn't work (Net.globalDead), every GPOLL_LIVE_MS while it works (shouts
+// come live then), and once when the panel is opened
+const GPOLL_LIVE_MS = 30000;
+let gPollAt = 0;
+async function gPoll(force) {
   if (!(Net.online && Net.me && account)) return;
   Net.joinGlobal();
+  const since = Date.now() - gPollAt;
+  if (gPrimed && Net.globalLive && (force === true ? since < 10000 : since < GPOLL_LIVE_MS)) return; // (opening the panel again and again: at most once every 10 s)
+  gPollAt = Date.now();
   if (!gPrimed) {
     // just came online: skip everything said before now
     const old = await Net.globalList(0).catch(() => null);
@@ -315,7 +372,10 @@ async function gPoll() {
     return;
   }
   const l = await Net.globalList(gLast).catch(() => null);
-  if (l && l.length) gAdd(l);
+  if (!l || !l.length) return;
+  // a shout older than a few seconds that the live topic never brought: it doesn't work, back to every 8 s
+  if (!Net.globalDead && l.some((m) => !gLiveIds.has(m.id) && !gmsgs.some((o) => o.id === m.id) && Date.now() - m.at > 6000)) Net.globalBroken();
+  gAdd(l);
 }
 setInterval(gPoll, 8000);
 setInterval(() => gOpenNow && gRender(), 60000); // a Block running out shows that player's messages again
@@ -323,17 +383,29 @@ setInterval(() => gOpenNow && gRender(), 60000); // a Block running out shows th
 // ---------- sending (the box at the bottom; where it goes = the MODE button) ----------
 // returns false when nothing went out (the text stays in the box), 'keep' when another pop-up opened, else true
 async function gSendShout(text) {
-  if (!isGM() && countItem('microphone') < 1) return toast('You need a Microphone to shout (Shop, 2,000 gold)'), false;
+  if (!isGM() && countItem('microphone') < 1) return toast('You need a Microphone to shout (Shop, 20,000 gold)'), false;
   if (Date.now() - gSentT < 3000) return toast('Too fast! Wait a few seconds'), false;
+  const left = gShoutLeft();
+  if (left) return toast('You can shout again in ' + gClock(left)), false;
   gSentT = Date.now();
   const world = inWorld && worldName !== LOBBY_WORLD ? worldName : '';
   if (Net.online && Net.me) {
     const r = await Net.globalSend(text, world);
     if (r.err) return toast(r.err), false;
-    if (!isGM()) takeItem('microphone', 1);
+    // the server took the Microphone out of its bag: with the server bag on, ask it (taking one here as well would
+    // make bag.js send the loss again, a second one gone); else (old server / GM) take it here like before
+    if (!isGM()) typeof Bag !== 'undefined' && Bag.on() ? Bag.pull() : takeItem('microphone', 1);
+    try {
+      localStorage.setItem(gShoutKey(), String(Date.now()));
+    } catch (e) {}
     gAdd([{ id: r.id, u: Net.me.id, n: playerName, w: world, t: text, at: Date.now() }]);
+    // the server sends it to everyone on the live topic, us too: not back in 5 s = the live topic doesn't work here
+    setTimeout(() => !gLiveIds.has(r.id) && Net.globalBroken(), 5000);
   } else {
     if (!isGM()) takeItem('microphone', 1);
+    try {
+      localStorage.setItem(gShoutKey(), String(Date.now()));
+    } catch (e) {}
     gAdd([{ id: Date.now(), u: 'local', n: playerName, w: world, t: text, at: Date.now() }]);
   }
   renderBars();
@@ -373,6 +445,11 @@ async function gSend(byEnter) {
   let r = false;
   try {
     if (/^\/go\b/i.test(text)) r = gGo();
+    else if (chatInLobby() && text[0] !== '/') {
+      // (owner, Nov 13 2026) no chatting in the LOBBY, any mode, for everyone: only /commands
+      toast('No chatting in the LOBBY: only /commands (/help)');
+      r = false;
+    }
     else if (chatMode === 'shout') r = await gSendShout(text);
     else if (chatMode === 'friend') r = gSendFriends(text);
     else r = await sendChat(text); // LOCAL (social.js: /commands, spam limit, speech bubble)
@@ -383,6 +460,7 @@ async function gSend(byEnter) {
   } finally {
     gBusy = false;
     $('gSend').disabled = false;
+    gFormState(); // (a shout just sent: the 5 minutes start, SHOUT switches off)
   }
   if (r === false) return;
   inp.value = '';

@@ -1382,8 +1382,12 @@ const Net = (() => {
       c.on('broadcast', { event: ev }, ({ payload }) => {
         if (payload && payload.to === N.me.id && lobbyH[ev]) lobbyH[ev](payload);
       });
+    // (Nov 13 2026) shouts come here now: send_broadcast sends each one to the inboxes of the (at most 100) players
+    // it picked, no longer on the shared 'global' topic
+    c.on('broadcast', { event: 'g' }, ({ payload }) => payload && N.onGlobal && N.onGlobal({ ...payload, id: +payload.id, at: Date.now(), live: true }));
     c.subscribe((status) => {
       if (inbox !== c) return;
+      N.globalLive = status === 'SUBSCRIBED' && !N.globalDead;
       if (status === 'SUBSCRIBED') iJoined = true;
       else if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !iJoined) {
         // no realtime rule for inbox: yet (old schema): keep the lobby broadcasts
@@ -1485,12 +1489,20 @@ const Net = (() => {
             : N.dbError(error),
     };
   };
-  let gch = null;
-  N.joinGlobal = () => {
-    if (!sb || !N.me || gch) return;
-    gch = sb.channel('global', chOpts(false));
-    gch.on('broadcast', { event: 'g' }, ({ payload }) => payload && N.onGlobal && N.onGlobal({ ...payload, id: +payload.id, at: Date.now() })).subscribe();
+  // (Nov 13 2026) globalLive: our inbox (where shouts come, see joinInbox) is joined AND works, so globalchat.js reads
+  // the table far less often. globalDead: a shout was seen that never came live: the table is read every 8 s again.
+  // (No inbox: old server / public channels -> never live, the table is read every 8 s.)
+  N.globalLive = false;
+  N.globalDead = false;
+  N.globalBroken = () => {
+    if (N.globalDead) return;
+    N.globalDead = true;
+    N.globalLive = false;
+    console.warn('Global Chat: shouts are not coming live, reading the table every 8 s');
   };
+  // (kept for globalchat.js: shouts come on our inbox now, which the lobby joins (joinLobby -> joinInbox) once it knows
+  // whether private channels work; the old shared 'global' topic isn't joined any more)
+  N.joinGlobal = () => {};
   // ---------- the GM's updates (mailbox.js; schema.sql announcements) ----------
   N.annList = async () => {
     if (!sb || !N.me) return null;

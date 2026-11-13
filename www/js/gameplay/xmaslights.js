@@ -14,25 +14,36 @@
 //   (concert.js STAGE_SET, set_stage) now also gives 2 Ceiling Spotlights and 10 Christmas Lights.
 // - (owner: "make a left and a right") Block 512 `ceiling_spotlight_right`: 510 is now the LEFT one (aimed down-left),
 //   512 the RIGHT one (down-right), each CEIL_AIM from straight down, swaying CEIL_SWAY; the Music Pack gives 2 of each.
-// NEXT FREE BLOCK: 513. Loaded after concert.js.
+// - (owner, Nov 13 2026: "make one in the centre of the ceiling too") Block 513 `ceiling_spotlight_center`: aimed
+//   straight down, swaying CEIL_SWAY like the others; the Music Pack gives 2.
+// - (Nov 13 2026 bug, owner's video: "objects flying around") the lamp asked `blockLayers()` to know which canvas it was
+//   on, but fish.js wraps blockLayers() to DRAW THE FISH TANKS: they were drawn again inside the lamp's flipped, turned
+//   transform (huge tilted tanks, glass and fish swinging with the lamp). It now reads BLOCK_LAYERS.g, which draws nothing.
+// NEXT FREE BLOCK: 514. Loaded after concert.js.
 // ===== christmas lights =====
 const CEIL_SPOT_T = 510, // (the Left one; id ceiling_spotlight kept)
   XMAS_T = 511,
   CEIL_SPOT_R_T = 512,
-  CEIL_SIDE = { [CEIL_SPOT_T]: 1, [CEIL_SPOT_R_T]: -1 }, // +1 points down-left, -1 down-right
+  CEIL_SPOT_C_T = 513,
+  CEIL_SIDE = { [CEIL_SPOT_T]: 1, [CEIL_SPOT_R_T]: -1, [CEIL_SPOT_C_T]: 0 }, // +1 points down-left, -1 down-right, 0 straight down
+  isCeilSpot = (t) => CEIL_SIDE[t] !== undefined,
+  CEIL_BY_ID = { ceiling_spotlight: CEIL_SPOT_T, ceiling_spotlight_right: CEIL_SPOT_R_T, ceiling_spotlight_center: CEIL_SPOT_C_T },
   CEIL_AIM = 0.62, // radians from straight down
   CEIL_SWAY = 0.1; // a little sway round it (owner: aimed left / right, not swinging across)
 {
   if (BLOCK[CEIL_SPOT_T]) console.error('xmaslights.js: block number used twice: ' + CEIL_SPOT_T);
   if (BLOCK[XMAS_T]) console.error('xmaslights.js: block number used twice: ' + XMAS_T);
   if (BLOCK[CEIL_SPOT_R_T]) console.error('xmaslights.js: block number used twice: ' + CEIL_SPOT_R_T);
+  if (BLOCK[CEIL_SPOT_C_T]) console.error('xmaslights.js: block number used twice: ' + CEIL_SPOT_C_T);
   BLOCK[CEIL_SPOT_T] = { id: 'ceiling_spotlight', name: 'Ceiling Spotlight (Left)', hits: 3, art: 'deco', solid: false, fx: ['#3a3a48', '#ffe070', '#7af0ff'] };
   BLOCK[CEIL_SPOT_R_T] = { id: 'ceiling_spotlight_right', name: 'Ceiling Spotlight (Right)', hits: 3, art: 'deco', solid: false, fx: ['#3a3a48', '#ffe070', '#7af0ff'] };
+  BLOCK[CEIL_SPOT_C_T] = { id: 'ceiling_spotlight_center', name: 'Ceiling Spotlight (Center)', hits: 3, art: 'deco', solid: false, fx: ['#3a3a48', '#ffe070', '#7af0ff'] };
   BLOCK[XMAS_T] = { id: 'christmas_lights', name: 'Christmas Lights', hits: 1, art: 'deco', solid: false, fx: ['#2e7a34', '#ff3a4a', '#ffd23f'] };
   ITEMS.ceiling_spotlight = { name: 'Ceiling Spotlight (Left)', kind: 'block', block: CEIL_SPOT_T, desc: 'A stage light that hangs from the ceiling, aimed down to the LEFT: its coloured beam sways a little. Hang one on each side of a stage with the Right one. Best in the dark (Blackout Machine). From the Music Pack.' };
   ITEMS.ceiling_spotlight_right = { name: 'Ceiling Spotlight (Right)', kind: 'block', block: CEIL_SPOT_R_T, desc: 'A stage light that hangs from the ceiling, aimed down to the RIGHT: its coloured beam sways a little. Hang one on each side of a stage with the Left one. Best in the dark (Blackout Machine). From the Music Pack.' };
+  ITEMS.ceiling_spotlight_center = { name: 'Ceiling Spotlight (Center)', kind: 'block', block: CEIL_SPOT_C_T, desc: 'A stage light that hangs from the ceiling, aimed STRAIGHT DOWN: its coloured beam sways a little. Hang it over the middle of a stage, between the Left and Right ones. Best in the dark (Blackout Machine). From the Music Pack.' };
   ITEMS.christmas_lights = { name: 'Christmas Lights', kind: 'block', block: XMAS_T, desc: 'A string of twinkling coloured lights. Put them side by side and they join into one long string. From the Music Pack.' };
-  STAGE_SET.get.push(['ceiling_spotlight', 2], ['ceiling_spotlight_right', 2], ['christmas_lights', 10]);
+  STAGE_SET.get.push(['ceiling_spotlight', 2], ['ceiling_spotlight_right', 2], ['ceiling_spotlight_center', 2], ['christmas_lights', 10]);
   ITEMS.set_stage.desc = 'You get: ' + STAGE_SET.get.map(([id, n]) => n + ' ' + ITEMS[id].name).join(', ') + '. They go in your bag.';
 }
 
@@ -57,8 +68,9 @@ const ceilState = (i, t) => {
 drawNewBlock = ((prev) =>
   function (b, x, y, px, py, T) {
     if (b.id === 'christmas_lights') return drawXmas(x, y, px, py, T);
-    if (b.id !== 'ceiling_spotlight' && b.id !== 'ceiling_spotlight_right') return prev(b, x, y, px, py, T);
-    const s = ceilState(at(x, y), fg[at(x, y)]),
+    const ct = CEIL_BY_ID[b.id];
+    if (ct === undefined) return prev(b, x, y, px, py, T);
+    const s = ceilState(at(x, y), ct), // (by the block drawn, not fg: the place preview draws a block that isn't there yet)
       k = T / 64;
     g.save();
     g.imageSmoothingEnabled = false;
@@ -73,7 +85,7 @@ drawNewBlock = ((prev) =>
     // (owner: "line the light up with the end of the lamp's circle") where the lens' FRONT is, worked out from the very
     // transform the head was just drawn with, so the beam starts right on the lens (drawCeilBeams)
     // (in the canvas' own px: other wrappers of drawNewBlock may move / scale the tile before it gets here)
-    if (g === blockLayers().g || g.canvas === cv) {
+    if (g === BLOCK_LAYERS.g || g.canvas === cv) { // (NOT blockLayers(): fish.js draws the Fish Tanks from it, see the top)
       const M = g.getTransform(),
         pt = (u, v) => M.transformPoint(new DOMPoint(u * k, v * k)),
         f = pt(0, -(SPOT_LENS + CEIL_LENS_FRONT)),
@@ -109,6 +121,7 @@ const ceilIcon = (t) =>
   })());
 SHOP_ICON.ceiling_spotlight = () => ceilIcon(CEIL_SPOT_T);
 SHOP_ICON.ceiling_spotlight_right = () => ceilIcon(CEIL_SPOT_R_T);
+SHOP_ICON.ceiling_spotlight_center = () => ceilIcon(CEIL_SPOT_C_T);
 // the beams, pointing down (like drawSpotBeams, mirrored)
 function drawCeilBeams(ox, oy, T) {
   const vx0 = Math.max(0, Math.floor(-ox / T) - SPOT_LEN),
@@ -118,7 +131,7 @@ function drawCeilBeams(ox, oy, T) {
   let any = false;
   for (let y = vy0; y <= vy1; y++)
     for (let x = vx0; x <= vx1; x++) {
-      if (!CEIL_SIDE[fg[at(x, y)]]) continue;
+      if (!isCeilSpot(fg[at(x, y)])) continue;
       if (!any) {
         g.save();
         g.globalCompositeOperation = 'lighter';

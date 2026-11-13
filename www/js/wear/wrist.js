@@ -371,7 +371,8 @@ outfitBody = ((prev) =>
           p[i + 1] = rgb[1];
           p[i + 2] = rgb[2];
         }
-        if (wa) {
+        // (owner, Nov 13 2026) jumping: only the strap shows, the round face (and its twinkle) comes back on landing
+        if (wa && bands.pose !== 'jump') {
           // the case on the middle of his strap
           let n = 0,
             sx = 0,

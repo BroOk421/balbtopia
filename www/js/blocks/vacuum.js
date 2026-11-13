@@ -149,6 +149,7 @@ function vacTick() {
   const got = new Map(); // tile -> [drops]
   for (const d of drops) {
     if (d.mg || d.stored || d.age < VAC_MIN_AGE || (d.outT && now - d.outT < OUT_MS)) continue;
+    if (typeof isKeyId === 'function' && isKeyId(d.id)) continue; // (a dropped World Key: only a player picks it up)
     if ((typeof dropHidden === 'function' && dropHidden(d)) || (typeof dropShutIn === 'function' && dropShutIn(d))) continue;
     const pool = d.id === 'gold' ? coins : items.filter((m) => m.id === d.id && m.room >= d.qty);
     let best = null,

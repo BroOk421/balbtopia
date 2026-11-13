@@ -1,7 +1,7 @@
 // GENIE TEAPOT and DAILY QUESTS (owner, Oct 2026). The Genie Teapot is a block from the Shop (WORLD, 1,000 gold).
 // Wrench it: a pop-up with what it does and today's quest. A quest is one of: harvest trees, break blocks, plant
 // seeds (a count, kept while you play), or send blocks / seeds (SEND takes them out of the bag). When it's done, CLAIM
-// gives a reward (owner, Oct 23 2026: 1 Balb Coin for a rare quest, random gold for a common one). One quest a day, new every day at midnight Philippine time, the same for a player all day
+// gives a reward (since Nov 13 2026: HARD quests, 1 or 2 parts, 1 Balb Coin per part, no gold; see "the quests" below). One quest a day, new every day at midnight Philippine time, the same for a player all day
 // (picked from the day and the player's name).
 // Online the server decides: quest_today says the day, whether today's reward was claimed and (build w) whether
 // today's quest is a Balb Coin or a gold one; claim_daily_quest pays that kind once a day (supabase/schema.sql).
@@ -14,7 +14,7 @@ ITEMS.genie_teapot = {
   name: 'Genie Teapot',
   kind: 'block',
   block: TEAPOT,
-  desc: 'A magic teapot. Wrench it for a daily quest; finish it for a reward: 1 Balb Coin for a rare quest, random gold for a common one. A new quest every day.',
+  desc: 'A magic teapot. Wrench it for a hard daily quest (sometimes with two parts); finish it for Balb Coins: 1 for each part. A new quest every day.',
   rarity: 'Rare',
 };
 const isTeapotT = (t) => t === TEAPOT;
@@ -127,63 +127,105 @@ SHOP.push({ id: 'genie_teapot', gold: 1000, cat: 'world' });
 // ---------- the quests ----------
 // what a day's quest can be (owner, Oct 21 2026: harder, and by rarity). Three general ones with big counts, then
 // for every growable block of rarity 1 to QUEST_MAX_R (farming.js rarityOf: Dirt 1, Rock 3, Lava 5, spliced = sum)
-// a harvest / plant / break / send quest whose count comes from its rarity: rarer = fewer, but each one is harder
-// to get (Dirt: harvest 16 trees, send 200; rarity 16: harvest 4 trees, send 29). Built once the recipes are in and
-// sorted by id, so every device gets the same list (the day's quest = hash(day + name) into it).
-const QUEST_MAX_R = 20;
-const QUEST_GENERAL = [
-  { k: 'harvest', n: 12 },
-  { k: 'break', n: 150 },
-  { k: 'plant', n: 20 },
+// ---------- the quests (owner, Nov 13 2026: "make the quests hard: 200 of a block, or 200 each; break 10k blocks;
+// sometimes 2 requirements; no gold reward any more, Balb Coins only") ----------
+// A day's quest has 1 or 2 PARTS (online the server says how many: quest_today `parts`, the same pick it pays by;
+// offline a pick from the day and the name). Each part is one of:
+//   any block:  break QUEST_ANY break (3,000 / 5,000 / 10,000) blocks, harvest 100-150 trees, plant 200-300 seeds
+//   one item:   send 200 of a block, send 50 of its seeds, break 250 of it, harvest 40 of its trees, plant 100 of its seeds
+// Two parts are never the same kind of thing for the same item; sometimes both are "send 200" of two blocks (200 each).
+// The reward: 1 Balb Coin per part (QUEST_BC_PER_PART), paid by the server once a day (claim_daily_quest).
+// Items: blocks with seeds (they can be farmed), not retired, rarity up to QUEST_MAX_R (so 200 can really be farmed).
+const QUEST_MAX_R = 20,
+  QUEST_TWO_PER_MILLE = 350, // offline: how often a day has 2 parts (the server's quest_parts_for uses the same)
+  QUEST_BC_PER_PART = 1;
+const QUEST_ANY = [
+  { k: 'break', n: [3000, 5000, 10000], w: 3 },
+  { k: 'harvest', n: [100, 150], w: 2 },
+  { k: 'plant', n: [200, 300], w: 2 },
 ];
-const questCount = (base, min, r, p = 0.5) => Math.max(min, Math.round(base / Math.pow(r, p)));
-// Rare tier and up = a Balb Coin quest (questKind below); their seed / block counts: QUEST_RARE_N[0]..[1]
-const QUEST_RARE_N = [150, 200];
-const questRare = (r) => ['Rare', 'Epic', 'Legendary'].includes(rarityTier(r));
-function questBig(key) {
-  let h = 2166136261;
-  for (const ch of key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return QUEST_RARE_N[0] + ((h >>> 0) % (QUEST_RARE_N[1] - QUEST_RARE_N[0] + 1));
-}
-let questList = null,
-  questKey = '';
-function questPool() {
+const QUEST_ITEM = [
+  { k: 'give', n: 200, w: 5 },
+  { k: 'give', seed: true, n: 50, w: 1 },
+  { k: 'break', n: 250, w: 2 },
+  { k: 'harvest', n: 40, w: 2 },
+  { k: 'plant', n: 100, w: 1 },
+];
+let questItemsC = null,
+  questItemsKey = '';
+function questItems() {
   const key = Object.keys(SPLICE).length + ':' + Object.keys(ITEMS).length;
-  if (questList && questKey === key) return questList;
-  const list = [...QUEST_GENERAL],
-    ids = Object.keys(ITEMS)
-      .filter((id) => {
-        const it = ITEMS[id];
-        if (!it || it.kind !== 'block' || it.retired || !ITEMS[id + '_seed'] || ITEMS[id + '_seed'].retired) return false;
-        const r = rarityOf(id);
-        return r && r <= QUEST_MAX_R;
-      })
-      .sort();
-  for (const id of ids) {
-    const r = rarityOf(id),
-      // a Rare (Balb Coin) quest (owner, Oct 25 2026): every seed / block count is 150-200, fixed per quest so every
-      // device shows the same number (harvesting trees keeps its own count)
-      rare = questRare(r),
-      n = (k, normal) => (rare ? questBig(id + '|' + k) : normal);
-    list.push(
-      { k: 'harvest', id, r, n: questCount(16, 2, r) },
-      { k: 'plant', id, r, n: n('plant', questCount(24, 3, r)) },
-      { k: 'break', id, r, n: n('break', questCount(120, 10, r)) },
-      { k: 'give', id, r, n: n('give', questCount(200, 5, r, 0.7)) },
-      { k: 'give', id: id + '_seed', r, n: n('seed', questCount(30, 2, r)) },
-    );
+  if (questItemsC && questItemsKey === key) return questItemsC;
+  questItemsKey = key;
+  return (questItemsC = Object.keys(ITEMS)
+    .filter((id) => {
+      const it = ITEMS[id];
+      if (!it || it.kind !== 'block' || it.retired || !ITEMS[id + '_seed'] || ITEMS[id + '_seed'].retired) return false;
+      const r = rarityOf(id);
+      return r && r <= QUEST_MAX_R;
+    })
+    .sort());
+}
+const questHash = (s) => {
+  let h = 2166136261;
+  for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return h >>> 0;
+};
+// a small seeded random (mulberry32): the same day + name = the same quest everywhere
+function questRng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const questPickW = (rnd, list) => {
+  let s = list.reduce((a, o) => a + o.w, 0) * rnd();
+  for (const o of list) if ((s -= o.w) < 0) return o;
+  return list[list.length - 1];
+};
+// one part: { k, id (block, or block_seed for seeds; none = any), n }
+function questPart(rnd) {
+  const items = questItems();
+  if (!items.length || rnd() < 0.35) {
+    const a = questPickW(rnd, QUEST_ANY);
+    return { k: a.k, n: a.n[Math.floor(rnd() * a.n.length)] };
   }
-  questKey = key;
-  return (questList = list);
+  const t = questPickW(rnd, QUEST_ITEM),
+    id = items[Math.floor(rnd() * items.length)];
+  return { k: t.k, id: t.seed ? id + '_seed' : id, n: t.n, r: rarityOf(id) };
+}
+// the day's quest: { parts: [...], key }
+function questBuild(day, name, nParts) {
+  const rnd = questRng(questHash(day + '|' + (name || '').toLowerCase() + '|v2'));
+  const parts = [questPart(rnd)];
+  if (nParts > 1) {
+    // sometimes "200 each" of two blocks
+    const items = questItems();
+    if (items.length > 1 && rnd() < 0.4) {
+      const a = items[Math.floor(rnd() * items.length)];
+      let b = items[Math.floor(rnd() * items.length)];
+      if (b === a) b = items[(items.indexOf(a) + 1) % items.length];
+      parts[0] = { k: 'give', id: a, n: 200, r: rarityOf(a) };
+      parts.push({ k: 'give', id: b, n: 200, r: rarityOf(b) });
+    } else
+      for (let t = 0; t < 8 && parts.length < 2; t++) {
+        const p = questPart(rnd);
+        if (!parts.some((o) => o.k === p.k && (o.id || '') === (p.id || ''))) parts.push(p);
+      }
+  }
+  return { parts, key: parts.map((p) => p.k + ':' + (p.id || '') + ':' + p.n).join('|') };
 }
 // today in the Philippines, 'YYYY-MM-DD' (online the server's day is used once known)
 const manilaDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
 let questDay = null; // the server's day (online)
-// (build w) online, the SERVER decides whether today's quest pays a Balb Coin or gold (schema.sql quest_kind_for,
-// sent by quest_today); the quest is then picked from the quests of that kind. { day, kind }
+// online the SERVER says how many parts today has (quest_today `parts`): { day, parts }
 let questSrv = null,
   questSyncing = null;
-// ask the server for today's day / kind / claimed (after loading the player, on opening a teapot, when the day changes)
+// ask the server for today's day / parts / claimed (after loading the player, on opening a teapot, when the day changes)
 function questSync() {
   if (typeof Wallet === 'undefined' || !Wallet.on()) return Promise.resolve();
   if (questSyncing) return questSyncing;
@@ -191,7 +233,7 @@ function questSync() {
     .then((t) => {
       if (!t || !t.day) return;
       questDay = String(t.day).slice(0, 10);
-      if (t.kind === 'bc' || t.kind === 'gold') questSrv = { day: questDay, kind: t.kind };
+      questSrv = { day: questDay, parts: t.parts === 2 ? 2 : 1 };
       todayQuest();
       if (t.done) quest.done = true;
       if (typeof t.bc === 'number') (P.bc = t.bc), updateGold();
@@ -200,124 +242,115 @@ function questSync() {
     .finally(() => (questSyncing = null));
   return questSyncing;
 }
-// the player's quest progress (saved with the player): { day, key: which quest, n: count so far, sent: items sent,
-// done: reward claimed }
-let quest = { day: '', key: '', n: 0, sent: false, done: false };
+// the player's progress (saved with the player): { day, key, n: [count per part], sent: [sent per part], done }
+const questFresh = (day = '') => ({ day, key: '', n: [0, 0], sent: [false, false], done: false });
+let quest = questFresh();
 function todayQuest() {
   const day = questDay || manilaDay();
   if (quest.day !== day) {
-    quest = { day, key: '', n: 0, sent: false, done: false };
-    if (questSrv && questSrv.day !== day) questSync(); // a new day: ask the server for its kind
+    quest = questFresh(day);
+    if (questSrv && questSrv.day !== day) questSync(); // a new day: ask the server again
   }
-  let h = 2166136261;
-  for (const ch of day + '|' + (playerName || '').toLowerCase()) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  let pool = questPool();
-  const kind = questSrv && questSrv.day === day ? questSrv.kind : null;
-  if (kind) {
-    const same = pool.filter((q) => questKind(q) === kind);
-    if (same.length) pool = same;
-  }
-  const q = pool[(h >>> 0) % pool.length],
-    key = q.k + ':' + (q.id || '') + ':' + q.n;
-  // the quest changed (the server's kind came in after counting started): its count starts again
-  if (quest.key !== key && !quest.done) Object.assign(quest, { key, n: quest.key ? 0 : quest.n, sent: quest.key ? false : quest.sent });
-  quest.key = key;
+  const nParts =
+    questSrv && questSrv.day === day ? questSrv.parts : questHash(day + ':' + (playerName || '').toLowerCase()) % 1000 < QUEST_TWO_PER_MILLE ? 2 : 1;
+  const q = questBuild(day, playerName, nParts);
+  // the quest changed (the server's answer came in after counting started): its counts start again
+  if (quest.key !== q.key && !quest.done && quest.key) Object.assign(quest, { n: [0, 0], sent: [false, false] });
+  quest.key = q.key;
   return q;
 }
 const thingName = (id, n) => {
   const nm = ITEMS[id] ? ITEMS[id].name : id;
   return n !== 1 && / (Seed|Block)$/.test(nm) ? nm + 's' : nm; // 50 Dirt, 5 Dirt Seeds, 10 Wood Blocks
 };
-function questText(q) {
-  const what = q.id ? (ITEMS[q.id] ? ITEMS[q.id].name : q.id) : '';
-  if (q.k === 'harvest') return 'Harvest ' + q.n + ' ' + (q.id ? what + ' ' : '') + (q.n === 1 ? 'tree' : 'trees');
-  if (q.k === 'break') return 'Break ' + q.n + ' ' + (q.id ? what : q.n === 1 ? 'block' : 'blocks');
-  if (q.k === 'plant') return 'Plant ' + q.n + ' ' + (q.id ? what + ' ' : '') + (q.n === 1 ? 'seed' : 'seeds');
-  return 'Send ' + q.n + ' ' + thingName(q.id, q.n);
+function questText(p) {
+  const what = p.id ? (ITEMS[p.id] ? ITEMS[p.id].name : p.id) : '',
+    n = p.n.toLocaleString();
+  if (p.k === 'harvest') return 'Harvest ' + n + ' ' + (p.id ? what + ' ' : '') + 'trees';
+  if (p.k === 'break') return 'Break ' + n + ' ' + (p.id ? what : 'blocks');
+  if (p.k === 'plant') return 'Plant ' + n + ' ' + (p.id ? what + ' ' : '') + 'seeds';
+  return 'Send ' + n + ' ' + thingName(p.id, p.n);
 }
 // counting: harvest a ripe tree (farming.js), break a block (actions.js), plant a seed (farming.js)
 function questTick(k, id) {
   const q = todayQuest();
-  if (quest.done || q.k !== k || quest.n >= q.n) return;
-  if (q.id && q.id !== id) return;
-  quest.n++;
-  if (quest.n === q.n) toast('Daily quest done! Wrench a Genie Teapot to claim your reward');
+  if (quest.done) return;
+  let hit = false;
+  q.parts.forEach((p, j) => {
+    if (p.k !== k || (p.id && p.id !== id) || quest.n[j] >= p.n) return;
+    quest.n[j]++;
+    hit = quest.n[j] === p.n;
+  });
+  if (hit && questReady(q)) toast('Daily quest done! Wrench a Genie Teapot to claim your reward');
+  else if (hit) toast('One part of the daily quest done!');
 }
-const questReady = (q) => (q.k === 'give' ? quest.sent : quest.n >= q.n);
-
-// ---------- the reward (owner, Oct 23 2026) ----------
-// A RARE quest (rarity tier Rare or higher) gives 1 Balb Coin; every other one
-// (Common, Uncommon and the three general quests) gives a random amount of gold, picked when you CLAIM. Online the server rolls the amount (claim_daily_quest
-// with p_kind, supabase/schema.sql); the ranges here are only for the pop-up text and offline play. Keep both the same.
-const QUEST_REWARD = { bc: [1, 1], gold: [250, 1000] }; // rare: always 1 Balb Coin (owner, Oct 23 2026)
-const questKind = (q) => (q.r && ['Rare', 'Epic', 'Legendary'].includes(rarityTier(q.r)) ? 'bc' : 'gold');
-const rewardText = (kind) => {
-  const [a, b] = QUEST_REWARD[kind];
-  if (a === b) return a.toLocaleString() + (kind === 'bc' ? ' Balb Coin' + (a === 1 ? '' : 's') : ' gold');
-  return a.toLocaleString() + '-' + b.toLocaleString() + (kind === 'bc' ? ' Balb Coins' : ' gold') + ' <small>(random)</small>';
-};
-const rollReward = (kind) => {
-  const [a, b] = QUEST_REWARD[kind];
-  return kind === 'bc' ? a + Math.floor(Math.random() * (b - a + 1)) : a + 50 * Math.floor(Math.random() * ((b - a) / 50 + 1));
-};
+const partReady = (p, j) => (p.k === 'give' ? !!quest.sent[j] : quest.n[j] >= p.n);
+const questReady = (q) => q.parts.every(partReady);
+const questBc = (q) => q.parts.length * QUEST_BC_PER_PART;
 
 // ---------- the pop-up ----------
 let teapotAt = null; // the teapot tile last wrenched: the coin flies from there
 async function openTeapot(x, y) {
   if (!canEdit(false, at(x, y))) return;
   teapotAt = { x, y };
-  // online: the server's day, and whether today's coin was already claimed (e.g. on another device)
+  // online: the server's day, and whether today's reward was already claimed (e.g. on another device)
   await questSync();
   showTeapot();
 }
 function showTeapot() {
   const q = todayQuest(),
-    kind = questKind(q),
-    give = q.k === 'give',
-    has = give ? have(q.id) : 0,
-    prog = give ? (quest.sent ? q.n : Math.min(has, q.n)) : Math.min(quest.n, q.n),
-    pct = Math.round((prog / q.n) * 100);
+    bc = questBc(q),
+    canSend = q.parts.some((p, j) => p.k === 'give' && !quest.sent[j] && have(p.id) >= p.n);
+  const rows = q.parts
+    .map((p, j) => {
+      const give = p.k === 'give',
+        has = give ? have(p.id) : 0,
+        prog = give ? (quest.sent[j] ? p.n : Math.min(has, p.n)) : Math.min(quest.n[j], p.n),
+        pct = Math.round((prog / p.n) * 100),
+        note = partReady(p, j) ? '<span class="qpok">Done</span>' : give ? `You have ${has.toLocaleString()} / ${p.n.toLocaleString()}` : `${prog.toLocaleString()} / ${p.n.toLocaleString()}`;
+      return `<div class="qtask">${q.parts.length > 1 ? j + 1 + '. ' : ''}${esc(questText(p))}</div><div class="qbar"><i style="width:${pct}%"></i></div><div class="qnote">${note}</div>`;
+    })
+    .join('');
   const state = quest.done
     ? '<p class="qdone">Done for today! A new quest comes at midnight.</p>'
     : questReady(q)
       ? '<p class="qok">Quest done: claim your reward.</p>'
-      : give
-        ? `<p class="snote">You have ${has.toLocaleString()} / ${q.n}. Press SEND when you have them all; they are taken from your bag.</p>`
-        : `<p class="snote">${prog} / ${q.n} so far.</p>`;
+      : q.parts.some((p) => p.k === 'give')
+        ? '<p class="snote">SEND takes the items out of your bag (each part on its own, once you have them all).</p>'
+        : '';
   const body = dialog(
     'GENIE TEAPOT',
     `<div class="sdet qwin"><div class="spic big"></div>
-      <p>Rub, rub... The genie gives you one quest a day. Finish it for a reward: <b>1 Balb Coin</b> for a rare quest, <b>gold</b> (random) for a common one.</p>
-      <div class="qbox"><div class="qlabel">TODAY'S QUEST${q.r ? ' · ' + rarityTier(q.r).toUpperCase() : ''}</div><div class="qtask">${esc(questText(q))}</div>
-        <div class="qbar"><i style="width:${pct}%"></i></div>
-        <div class="qrew">Reward: ${kind === 'bc' ? '<canvas class="bcc" width="64" height="64"></canvas>' : '<canvas class="bcc" width="32" height="32"></canvas>'} ${rewardText(kind)}</div></div>
+      <p>Rub, rub... The genie gives you one hard quest a day, sometimes with two parts. Finish it for <b>Balb Coins</b>: 1 for each part.</p>
+      <div class="qbox"><div class="qlabel">TODAY'S QUEST${q.parts.length > 1 ? ' · 2 PARTS' : ''}</div>${rows}
+        <div class="qrew">Reward: <canvas class="bcc" width="64" height="64"></canvas> ${bc} Balb Coin${bc === 1 ? '' : 's'}</div></div>
       ${state}</div>`,
     quest.done
       ? [{ label: 'Close', run: () => {} }]
-      : give && !quest.sent
+      : questReady(q)
         ? [
             { label: 'Close', cls: 'ghost', run: () => {} },
-            ...(has >= q.n ? [{ label: 'SEND', run: () => (sendQuest(q), false) }] : []),
+            { label: 'CLAIM', run: () => (claimQuest(), false) },
           ]
-        : questReady(q)
-          ? [
-              { label: 'Close', cls: 'ghost', run: () => {} },
-              { label: 'CLAIM', run: () => (claimQuest(), false) },
-            ]
-          : [{ label: 'Close', run: () => {} }],
+        : [{ label: 'Close', cls: canSend ? 'ghost' : '', run: () => {} }, ...(canSend ? [{ label: 'SEND', run: () => (sendQuest(q), false) }] : [])],
   );
   body.querySelector('.spic').appendChild(decoCanvas('genie_teapot'));
-  const rc = body.querySelector('.qrew canvas').getContext('2d');
-  if (kind === 'bc') rc.drawImage(balbCoin(), 0, 0);
-  else drawCoin(rc);
+  body.querySelector('.qrew canvas').getContext('2d').drawImage(balbCoin(), 0, 0);
 }
+// SEND: every "send" part you have all of goes out of the bag
 function sendQuest(q) {
-  if (quest.sent || have(q.id) < q.n) return showTeapot();
-  takeN(q.id, q.n);
-  quest.sent = true;
-  renderBars();
-  savePlayer();
-  Sfx.play('pickup');
+  let any = false;
+  q.parts.forEach((p, j) => {
+    if (p.k !== 'give' || quest.sent[j] || have(p.id) < p.n) return;
+    takeN(p.id, p.n);
+    quest.sent[j] = true;
+    any = true;
+  });
+  if (any) {
+    renderBars();
+    savePlayer();
+    Sfx.play('pickup');
+  }
   showTeapot();
 }
 let claiming = false;
@@ -325,32 +358,16 @@ async function claimQuest() {
   const q = todayQuest();
   if (claiming || quest.done || !questReady(q)) return;
   claiming = true;
-  let kind = questKind(q),
-    shown = kind === 'bc' ? P.bc | 0 : P.gold; // the counter keeps this until the coin lands
+  const shown = P.bc | 0; // the counter keeps this until the coin lands
   let got = 0;
   try {
     if (Wallet.on()) {
-      let w;
-      try {
-        w = await Wallet.rpc('claim_daily_quest', { p_day: quest.day, p_kind: kind });
-      } catch (e) {
-        // a server without the new function (schema.sql not run again yet): the old 1 Balb Coin
-        if (!/could not find|does not exist|schema cache/i.test(e.message || '')) throw e;
-        w = await Wallet.rpc('claim_daily_quest', { p_day: quest.day });
-        kind = 'bc';
-        shown = P.bc | 0;
-      }
-      got = w && w.got > 0 ? w.got : 1;
-      // the server pays its own kind (build w): show that one
-      if (w && (w.kind === 'bc' || w.kind === 'gold') && w.kind !== kind) {
-        kind = w.kind;
-        shown = kind === 'bc' ? P.bc | 0 : P.gold;
-      }
+      const w = await Wallet.rpc('claim_daily_quest', { p_day: quest.day, p_kind: 'bc' });
+      got = w && w.got > 0 ? w.got : questBc(q);
       Wallet.show(w);
     } else {
-      got = rollReward(kind);
-      if (kind === 'bc') P.bc = (P.bc | 0) + got;
-      else P.gold += got;
+      got = questBc(q);
+      P.bc = (P.bc | 0) + got;
     }
   } catch (e) {
     claiming = false;
@@ -363,40 +380,10 @@ async function claimQuest() {
   }
   claiming = false;
   quest.done = true;
+  if (typeof achAdd === 'function') achAdd('quests', 1); // (achievements.js)
   savePlayer();
   closeDialog(); // so the coin can be seen flying
-  if (kind === 'bc') bcReward(got, shown);
-  else goldReward(got, shown);
-}
-// the same flight for a gold reward: the big gold coin, "+N gold" in gold, then the gold counter pops
-function goldReward(n, shown) {
-  $('goldN').textContent = goldShort(shown);
-  const t = teapotAt,
-    pic = document.createElement('canvas');
-  pic.width = pic.height = 32;
-  drawCoin(pic.getContext('2d'));
-  const from = t ? () => ({ x: t.x * TS + 16, y: t.y * TS + 6 }) : () => ({ x: P.x + P.w / 2, y: P.y - 40 }),
-    land = () => {
-      updateGold(true);
-      Sfx.play('pickup');
-      Native.haptic('medium');
-      toast('+' + n.toLocaleString() + ' gold!');
-    };
-  if (P.dead) return land();
-  flyers.push({
-    id: 'gold',
-    qty: n,
-    pic,
-    label: '+' + n.toLocaleString() + ' gold',
-    col: '#ffd23f',
-    spark: ['#fff6c8', '#ffd23f', '#b8860b'],
-    size: 16,
-    from,
-    to: posOf('me'),
-    t0: now + 120,
-    dur: 1000,
-    land,
-  });
+  bcReward(got, shown);
 }
 // the reward animation (like items in a trade): the Balb Coin flies in an arc from the teapot to the player with
 // "+1 Balb Coin", bursts into green sparkles, and only then the counter goes up and its coin pops
@@ -446,10 +433,12 @@ const _applyPlayerQ = applyPlayer;
 applyPlayer = function (p) {
   _applyPlayerQ(p);
   const s = p && p.quest;
+  // (Nov 13 2026) n / sent are one per part now; an old save (one number) counts for the first part
+  const arr = (v, f) => (Array.isArray(v) ? [f(v[0]), f(v[1])] : [f(v), f(undefined)]);
   quest =
     s && typeof s.day === 'string'
-      ? { day: s.day.slice(0, 10), key: typeof s.key === 'string' ? s.key : '', n: Math.max(0, s.n | 0), sent: !!s.sent, done: !!s.done }
-      : { day: '', key: '', n: 0, sent: false, done: false };
+      ? { day: s.day.slice(0, 10), key: typeof s.key === 'string' ? s.key : '', n: arr(s.n, (x) => Math.max(0, x | 0)), sent: arr(s.sent, (x) => !!x), done: !!s.done }
+      : questFresh();
   questSrv = null;
   questSync(); // today's kind from the server (online)
 };

@@ -831,9 +831,9 @@ function render() {
   drawBg();
   Sfx.loop('rain', weatherNow === 'rain' && inWorld); // rain sound while it rains (sound.js)
   Sfx.loop('fireplace', inWorld, fireplaceVol()); // crackling fire near a Fireplace
-  // weather (snow / rain) sits behind the world, over the backdrop only (weather.js)
-  if (weatherNow === 'snow') drawSnow();
-  else if (weatherNow === 'rain') drawRain();
+  // weather (rain / sand / leaves) sits behind the world, over the backdrop only (weather.js); the SNOW falls in front
+  // of everything (owner, Nov 13 2026), see drawWeatherFlash below
+  if (weatherNow === 'rain') drawRain();
   else if (weatherNow === 'desert') drawSand();
   else if (weatherNow === 'fall' && typeof drawFall === 'function') drawFall(); // falling leaves (autumn.js)
   const sx = (Math.random() - 0.5) * shake,
@@ -1070,7 +1070,10 @@ function render() {
     g.fillText(f.s, ox + f.x * Z, oy + f.y * Z);
     g.globalAlpha = 1;
   }
-  // the white flash when the weather changes (the snow / rain itself is drawn behind the world, above)
+  // (owner, Nov 13 2026: "the snow particles over everything") the snow falls in front of the blocks, the players, the
+  // drops and the particles (rain / sand / leaves stay behind the world, above)
+  if (weatherNow === 'snow') drawSnow();
+  // the white flash when the weather changes
   drawWeatherFlash();
   // cursor square
   if (ptr.inside && $('inv').hidden) {
@@ -1677,11 +1680,12 @@ function bubbleLines(text, maxW) {
   return lines;
 }
 function drawBubble(text, x, y, a) {
-  g.font = `${5 * Z}px "Press Start 2P", monospace`;
+  // (owner, Nov 13 2026: "a little smaller") 4 world px letters (was 5), lines and padding to match
+  g.font = `${4 * Z}px "Press Start 2P", monospace`;
   const lines = bubbleLines(text, CHAT_BUBBLE_W * Z),
-    lh = 7 * Z,
-    w = Math.max(...lines.map((l) => g.measureText(l).width)) + 8 * Z,
-    h = lines.length * lh + 5 * Z;
+    lh = 5.8 * Z,
+    w = Math.max(...lines.map((l) => g.measureText(l).width)) + 7 * Z,
+    h = lines.length * lh + 4.5 * Z;
   g.globalAlpha = a;
   g.fillStyle = '#fffaf0';
   g.strokeStyle = '#1c1033';
@@ -1693,7 +1697,7 @@ function drawBubble(text, x, y, a) {
   g.fillStyle = '#1c1033';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  lines.forEach((l, k) => g.fillText(l, x, y - h + 2.5 * Z + lh * (k + 0.5) + Z * 0.5));
+  lines.forEach((l, k) => g.fillText(l, x, y - h + 2.25 * Z + lh * (k + 0.5) + Z * 0.4));
   g.textBaseline = 'alphabetic';
   g.globalAlpha = 1;
 }
@@ -2108,14 +2112,16 @@ function drawDropBox(id, qty, x, y, s) {
   const ins = (s - 2) * Z;
   drawIcon(id, x - ins / 2, y - ins / 2, ins);
   if (qty > 1) {
-    const fs = Math.max(7, Math.round(4.2 * Z));
-    g.font = 'bold ' + fs + 'px monospace';
+    // (owner, Nov 13 2026: "inside the box, a thicker font") bottom right INSIDE the box, Rubik 800 (index.html loads it)
+    const fs = Math.max(7, Math.round(B * (qty > 99 ? 0.26 : 0.31))); // (owner: a little smaller, was 0.38 / 0.32)
+    g.font = '800 ' + fs + 'px Rubik, system-ui, sans-serif';
     g.textAlign = 'right';
     g.textBaseline = 'alphabetic';
     g.lineWidth = Math.max(2, fs / 4);
+    g.lineJoin = 'round';
     g.strokeStyle = '#1a1420';
-    const tx = x0 + B + p,
-      ty = y0 + B + p;
+    const tx = x0 + B - lw - Math.max(1, Math.round(B * 0.07)),
+      ty = y0 + B - lw - Math.max(1, Math.round(B * 0.08));
     g.strokeText(String(qty), tx, ty);
     g.fillStyle = '#ffffff';
     g.fillText(String(qty), tx, ty);

@@ -337,6 +337,11 @@ function stepFx(dt) {
         dropHint(d);
         continue;
       }
+      // (owner, Nov 13 2026) a dropped World Key: the server must hand it over first (keys.js pickKeyDrop)
+      if (typeof isKeyId === 'function' && isKeyId(d.id)) {
+        pickKeyDrop(d);
+        continue;
+      }
       // gold is money, not a bag item (the counter goes up when the coin reaches you); online it goes to the
       // wallet on the server (economy.js)
       const ok = d.id === 'gold' ? (Wallet.earn(d.qty), true) : addItem(d.id, d.qty);

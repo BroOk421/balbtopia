@@ -771,7 +771,8 @@ begin
   select * into k from public.world_keys where world = p_world for update;
   if found and lower(k.owner_name) = lower(r.owner) then
     if k.holder_id = auth.uid() then return 'already'; end if;
-    raise exception 'The key of this world is already out' using errcode = 'P0001';
+    -- (Nov 13 2026) a DROPPED key (nobody holds it): the owner takes a new one, the dropped one stops working
+    if k.holder_id is not null then raise exception 'The key of this world is already out' using errcode = 'P0001'; end if;
   end if;
   delete from public.world_keys where world = p_world; -- an old key from a former owner
   insert into public.world_keys (world, holder_id, owner_name) values (p_world, auth.uid(), r.owner);
@@ -798,7 +799,8 @@ declare me text := public.my_name(); k public.world_keys; r public.worlds; lv in
 begin
   if me is null or public.is_banned() then raise exception 'Not signed in' using errcode = '42501'; end if;
   select * into k from public.world_keys where world = p_world for update;
-  if not found or k.holder_id <> auth.uid() then raise exception 'This key doesn''t work' using errcode = 'P0001'; end if;
+  -- (is distinct from: a dropped key has no holder, and "null <> me" would have let anyone through)
+  if not found or k.holder_id is distinct from auth.uid() then raise exception 'This key doesn''t work' using errcode = 'P0001'; end if;
   select * into r from public.worlds where name = p_world for update;
   if not found or r.owner is null or lower(r.owner) <> lower(k.owner_name) then
     delete from public.world_keys where world = p_world;
@@ -815,6 +817,39 @@ begin
   returning lockv into lv;
   return jsonb_build_object('r', 'owner', 'v', lv);
 end $$;
+
+-- (owner, Nov 13 2026) World Keys can be DROPPED: the key then lies in that world (holder_id null, dropped_in) and
+-- the first player IN that world (world_here) who picks it up holds it (pick_world_key). The owner can GET THE KEY
+-- again while it lies somewhere: the dropped one stops working.
+alter table public.world_keys alter column holder_id drop not null;
+alter table public.world_keys add column if not exists dropped_in text;
+alter table public.world_keys add column if not exists dropped_at timestamptz;
+create or replace function public.drop_world_key(p_world text, p_in text)
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  if public.my_name() is null or public.is_banned() then raise exception 'Not signed in' using errcode = '42501'; end if;
+  if coalesce(p_in, '') !~ '^[A-Z0-9]{1,16}$' or p_in = 'LOBBY'
+     or not exists (select 1 from public.world_here where player_id = auth.uid() and world = p_in and at > now() - interval '75 seconds') then
+    raise exception 'You can''t drop the key here' using errcode = 'P0001';
+  end if;
+  update public.world_keys set holder_id = null, dropped_in = p_in, dropped_at = now()
+  where world = p_world and holder_id = auth.uid();
+  if not found then raise exception 'You don''t hold the key of %', p_world using errcode = 'P0001'; end if;
+  return 'ok';
+end $$;
+create or replace function public.pick_world_key(p_world text)
+returns text language plpgsql security definer set search_path = public as $$
+declare here text;
+begin
+  if public.my_name() is null or public.is_banned() then raise exception 'Not signed in' using errcode = '42501'; end if;
+  select world into here from public.world_here where player_id = auth.uid() and at > now() - interval '75 seconds';
+  update public.world_keys set holder_id = auth.uid(), dropped_in = null, dropped_at = null
+  where world = p_world and holder_id is null and dropped_in is not null and dropped_in = here;
+  if not found then raise exception 'This key isn''t here any more' using errcode = 'P0001'; end if;
+  return 'ok';
+end $$;
+revoke all on function public.drop_world_key(text, text), public.pick_world_key(text) from public, anon;
+grant execute on function public.drop_world_key(text, text), public.pick_world_key(text) to authenticated;
 
 -- the worlds whose key this player holds (the game fixes the keys in the bag to match)
 create or replace function public.my_world_keys()
@@ -986,6 +1021,8 @@ begin
   if me is null or public.is_banned() then raise exception 'You can''t chat' using errcode = '42501'; end if;
   if p_world !~ '^[A-Z0-9]{1,16}$' then raise exception 'Bad world name'; end if;
   if public.world_banned(p_world) then raise exception 'You are banned from this world' using errcode = '42501'; end if;
+  -- (owner, Nov 13 2026) nobody chats in the LOBBY (only /commands, which never reach the server)
+  if p_world = 'LOBBY' then raise exception 'No chatting in the LOBBY (only /commands)' using errcode = 'P0001'; end if;
   t := left(btrim(regexp_replace(coalesce(p_text, ''), '[[:cntrl:]]', ' ', 'g')), 80); -- CHAT_MAX
   if t = '' then return 'empty'; end if;
   select count(*) into n from public.chat_sent where from_id = auth.uid() and created_at > now() - interval '5 seconds';
@@ -1233,7 +1270,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('galaxy_wings', 1, 20000, true, 0),
   ('piano', 1, 3000, true, 0),
   ('genie_teapot', 1, 1000, true, 0),
-  ('microphone', 1, 2000, true, 0), -- globalchat.js: one Global Chat broadcast each
+  ('microphone', 1, 20000, true, 0), -- globalchat.js: one Global Chat broadcast each (20,000 since Nov 13 2026)
   -- outfit sets (sets.js): the set gives its pieces, which have recipes no more but aren't tracked
   ('set_gentleman', 1, 20000, false, 0),
   ('set_sporty', 1, 20000, false, 0),
@@ -1576,12 +1613,20 @@ revoke execute on function public.add_owned(uuid, text, bigint), public.vend_tra
 -- (287) in 1,000, the share of Balb Coin quests in the game's quest list (120 of 418 in Oct 2026). The game then picks
 -- its quest from the quests of that kind (quests.js todayQuest), and claim_daily_quest pays the server's kind
 -- whatever the game asks for.
+-- (owner, Nov 13 2026: "no gold reward any more, Balb Coins only; harder quests, sometimes 2 requirements") every
+-- quest pays Balb Coins now; quest_parts_for says whether a player's day has 1 or 2 parts (QUEST_TWO_PER_MILLE 350 in
+-- 1,000, the same as quests.js), and a quest pays 1 Balb Coin per part.
 create or replace function public.quest_kind_for(p_id uuid, p_day date)
 returns text language sql immutable as $$
-  select case when (('x' || substr(md5(p_day::text || ':' || p_id::text), 1, 8))::bit(32)::bigint % 1000) < 287
-              then 'bc' else 'gold' end
+  select 'bc'::text
 $$;
 revoke all on function public.quest_kind_for(uuid, date) from public, anon, authenticated;
+create or replace function public.quest_parts_for(p_id uuid, p_day date)
+returns integer language sql immutable as $$
+  select case when (('x' || substr(md5(p_day::text || ':parts:' || p_id::text), 1, 8))::bit(32)::bigint % 1000) < 350
+              then 2 else 1 end
+$$;
+revoke all on function public.quest_parts_for(uuid, date) from public, anon, authenticated;
 create or replace function public.quest_today()
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare d date := (now() at time zone 'Asia/Manila')::date; w public.wallets;
@@ -1589,7 +1634,7 @@ begin
   perform public.my_wallet();
   select * into w from public.wallets where id = auth.uid();
   return jsonb_build_object('day', d, 'done', w.quest_day is not distinct from d, 'bc', w.bc,
-                            'kind', public.quest_kind_for(auth.uid(), d));
+                            'kind', 'bc', 'parts', public.quest_parts_for(auth.uid(), d));
 end $$;
 -- QUEST PLAY TIME (Oct 25 2026, build v): the game counts a quest's blocks / seeds / trees itself, so a changed game
 -- could claim without playing. A claim now needs real time online today, counted by the server from the game's hellos
@@ -1626,24 +1671,27 @@ grant execute on function public.quest_today(), public.claim_daily_quest(date) t
 -- Keep the ranges the same as QUEST_REWARD in www/js/gameplay/quests.js. The one-argument version above stays for old builds.
 create or replace function public.claim_daily_quest(p_day date, p_kind text)
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare d date := (now() at time zone 'Asia/Manila')::date; w public.wallets; n bigint;
+declare d date := (now() at time zone 'Asia/Manila')::date; w public.wallets; n bigint; parts integer; have integer;
 begin
   if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
   if p_kind is null or p_kind not in ('bc', 'gold') then raise exception 'Unknown reward' using errcode = 'P0001'; end if;
-  p_kind := public.quest_kind_for(auth.uid(), d); -- (build w) the server's kind, not the game's
   if p_day is distinct from d then raise exception 'A new day started: open the teapot again' using errcode = 'P0001'; end if;
   perform public.my_wallet();
   select * into w from public.wallets where id = auth.uid() for update;
   if w.quest_day is not distinct from d then raise exception 'You already did today''s quest' using errcode = 'P0001'; end if;
-  perform public.quest_play_check(p_kind);
-  if p_kind = 'bc' then
-    n := 1;
-    update public.wallets set bc = bc + n, quest_day = d where id = auth.uid() returning * into w;
-  else
-    n := 250 + 50 * floor(random() * 16)::bigint;
-    update public.wallets set gold = gold + n, quest_day = d where id = auth.uid() returning * into w;
+  -- (Nov 13 2026) Balb Coins only: 1 per part of the server's pick (whatever an old game asks for)
+  parts := public.quest_parts_for(auth.uid(), d);
+  -- real time online today first (the game counts the quest itself): 15 minutes per part (GMs: not checked)
+  if not public.is_gm() then
+    execute 'select public.played_today($1)' into have using auth.uid();
+    if coalesce(have, 0) < 15 * 60 * parts then
+      raise exception 'Play a little longer today first (% more min)', greatest(1, ceil((15 * 60 * parts - coalesce(have, 0)) / 60.0)::integer)
+        using errcode = 'P0001';
+    end if;
   end if;
-  return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'got', n, 'kind', p_kind);
+  n := parts;
+  update public.wallets set bc = bc + n, quest_day = d where id = auth.uid() returning * into w;
+  return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'got', n, 'kind', 'bc');
 end $$;
 grant execute on function public.claim_daily_quest(date, text) to authenticated;
 
@@ -2208,24 +2256,68 @@ create index if not exists global_chat_from on public.global_chat (from_id, crea
 alter table public.global_chat enable row level security;
 revoke all on public.global_chat from anon, authenticated;
 grant select on public.global_chat to authenticated;
+-- (Nov 13 2026) a shout reaches at most SHOUT_REACH online players (send_broadcast picks them): `to_ids` = who got it;
+-- only they (and the sender) can read it back from the table. Older rows (to_ids null) stay readable by everyone.
+alter table public.global_chat add column if not exists to_ids uuid[];
 drop policy if exists "global chat: read" on public.global_chat;
-create policy "global chat: read" on public.global_chat for select to authenticated using (not public.is_banned());
+create policy "global chat: read" on public.global_chat for select to authenticated using (
+  not public.is_banned() and (to_ids is null or from_id = auth.uid() or auth.uid() = any (to_ids))
+);
 create or replace function public.send_broadcast(p_text text, p_world text)
 returns bigint language plpgsql security definer set search_path = public as $$
-declare me text := public.my_name(); t text; w text; n integer; nid bigint;
+declare me text := public.my_name(); t text; w text; n integer; nid bigint; ids uuid[]; gm boolean := public.is_gm();
+  pl jsonb; r uuid;
+  shout_reach constant integer := 100; -- (owner, Nov 13 2026: 100 to save, was 200) at most this many online players get a shout (GMs: everyone)
 begin
   if me is null or public.is_banned() then raise exception 'You can''t broadcast' using errcode = '42501'; end if;
   t := left(btrim(regexp_replace(coalesce(p_text, ''), '[[:cntrl:]]', ' ', 'g')), 120);
   if t = '' then raise exception 'Write something first' using errcode = 'P0001'; end if;
-  select count(*) into n from public.global_chat where from_id = auth.uid() and created_at > now() - interval '3 seconds';
-  if n > 0 then raise exception 'Too fast! Wait a few seconds' using errcode = 'P0001'; end if;
-  perform public.use_owned('microphone'); -- one Microphone per broadcast (GMs: free); none = an error
-  w := case when coalesce(p_world, '') ~ '^[A-Z0-9]{1,16}$' then p_world else '' end;
-  insert into public.global_chat (from_id, from_name, world, body) values (auth.uid(), me, w, t) returning id into nid;
-  delete from public.global_chat where id < nid - 200;
+  -- (Nov 13 2026, owner) one shout every 5 minutes per player, GMs too. Says how long is left, e.g. "4:12".
   begin
-    perform realtime.send(jsonb_build_object('id', nid, 'u', auth.uid(), 'n', me, 'w', w, 't', t), 'g', 'global', true);
-  exception when others then null; -- (the game also reads the table every few seconds)
+    select ceil(extract(epoch from (max(created_at) + interval '5 minutes' - now())))::integer into n
+      from public.global_chat where from_id = auth.uid() and created_at > now() - interval '5 minutes';
+    if n > 0 then
+      raise exception 'You can shout again in %:%', n / 60, lpad((n % 60)::text, 2, '0') using errcode = 'P0001';
+    end if;
+  end;
+  -- (Nov 13 2026) the whole server: at most one shout every 10 s (GMs skip the line). Checked BEFORE the Microphone
+  -- is used, so a refused shout costs nothing. The lock makes two shouts at the same moment take turns.
+  if not gm then
+    perform pg_advisory_xact_lock(hashtext('balbtopia.global_chat'));
+    select count(*) into n from public.global_chat where created_at > now() - interval '10 seconds';
+    if n > 0 then raise exception 'Someone just shouted! Try again in a few seconds' using errcode = 'P0001'; end if;
+  end if;
+  -- one Microphone per shout (GMs: free), taken from the server BAG (Nov 13 2026: Microphones can be dropped / picked
+  -- up / traded now, and the bag is where those end up; owned_items only follows along)
+  if not gm then
+    perform public.bag_init(auth.uid());
+    perform 1 from public.bag_meta where user_id = auth.uid() for update;
+    if public.bag_qty(auth.uid(), 'microphone') < 1 then
+      raise exception 'You need a Microphone to shout (Shop, 20,000 gold)' using errcode = 'P0001';
+    end if;
+    perform public.bag_add(auth.uid(), 'microphone', -1);
+    update public.owned_items set qty = greatest(qty - 1, 0) where player_id = auth.uid() and item = 'microphone';
+  end if;
+  w := case when coalesce(p_world, '') ~ '^[A-Z0-9]{1,16}$' then p_world else '' end;
+  -- who hears it: players online now (said hello in the last 75 s, world_here), the sender's own world first, then
+  -- the others in random order; at most shout_reach of them (a GM's shout: everyone online)
+  select coalesce(array_agg(player_id), '{}') into ids from (
+    select h.player_id from public.world_here h
+    where h.at > now() - interval '75 seconds' and h.player_id <> auth.uid()
+      and not exists (select 1 from public.bans b where b.id = h.player_id)
+    order by (w <> '' and h.world = w) desc, random()
+    limit case when gm then 100000 else shout_reach end
+  ) x;
+  insert into public.global_chat (from_id, from_name, world, body, to_ids)
+    values (auth.uid(), me, w, t, ids || auth.uid()) returning id into nid;
+  delete from public.global_chat where id < nid - 200;
+  -- live: on each listener's own inbox (only they can listen there), the sender too (the game checks it came back)
+  pl := jsonb_build_object('id', nid, 'u', auth.uid(), 'n', me, 'w', w, 't', t);
+  begin
+    foreach r in array (ids || auth.uid()) loop
+      perform realtime.send(pl, 'g', 'inbox:' || r::text, true);
+    end loop;
+  exception when others then null; -- (the game also reads the table now and then)
   end;
   return nid;
 end $$;
@@ -2384,7 +2476,7 @@ create or replace function public.drop_ok(d jsonb)
 returns boolean language sql immutable as $$
   select jsonb_typeof(d) = 'array' and jsonb_array_length(d) between 7 and 8
     and jsonb_typeof(d -> 0) = 'string' and length(d ->> 0) between 1 and 40
-    and coalesce(d ->> 1, '') ~ '^[a-z0-9_]{1,40}$'
+    and coalesce(d ->> 1, '') ~ '^([a-z0-9_]{1,40}|wkey_[A-Z0-9]{1,16})$' -- (Nov 13 2026: a dropped World Key too)
     and jsonb_typeof(d -> 2) = 'number' and (d ->> 2)::numeric between 1 and 999999
     and jsonb_typeof(d -> 3) = 'number' and jsonb_typeof(d -> 4) = 'number' and jsonb_typeof(d -> 5) = 'number'
 $$;
@@ -4710,6 +4802,7 @@ insert into public.item_info (item, cls) values
   ('stage_truss', 'basic'),
   ('ceiling_spotlight', 'basic'), -- xmaslights.js (Nov 13 2026): Music Pack blocks
   ('ceiling_spotlight_right', 'basic'),
+  ('ceiling_spotlight_center', 'basic'), -- (Nov 13 2026: aimed straight down)
   ('christmas_lights', 'basic'),
   ('stained_glass', 'rare'),
   ('stained_glass_seed', 'rare'),

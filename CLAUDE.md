@@ -33,7 +33,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | `wear/` | wear, clothes, tees, oldman (build n, after afro), floaties (build p, after oldman), capes, scarves, hairstyles, diaper, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
 | `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides, megagun (build p, after asteroids.js) |
 | `render/` | render, shadow, portrait, remotefx |
-| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks (chatbar.js removed Nov 10 2026) |
+| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks, achievements (Nov 13 2026, right before main.js) (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
 | `vendor/` | supabase.js |
 
@@ -1348,8 +1348,8 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
     messages for `GMUTE_MS` 10 min, localStorage `balbtopia.gmute`) / Close. Server (schema.sql): `global_chat` table
     (readable by everyone signed in), `send_broadcast(text, world)` (real name, 120 letters, 1 per 3 s, uses a
     Microphone, keeps 200, `realtime.send` event 'g' on topic 'global'; the receive policy now allows 'global'),
-    `shop_prices` row microphone. The game joins 'global' (`Net.joinGlobal`) and also reads the table every 8 s
-    (`Net.globalList(after)`), so nothing is lost if realtime is off. Offline: only your own messages.
+    `shop_prices` row microphone. The game joins 'global' (`Net.joinGlobal`) and also reads the table as a backup
+    (`Net.globalList(after)`; since Nov 13 2026 every 8 s only while the live topic is down, see that day's note), so nothing is lost if realtime is off. Offline: only your own messages.
   - Re-run schema.sql. GAME_BUILD '2026-10-25 i'.
 - Oct 25 2026 (owner, later 9): Mailbox shows "MAIL" under the slot (1 px font, light with a dark drop shadow, centred),
   like the owner's mockup. GAME_BUILD '2026-10-25 j'.
@@ -4337,4 +4337,150 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   drawXmas draws one frame across the tile's top (frame offset by the tile so a row doesn't blink together); with a
   neighbour, a piece of the same dark green wire runs from the string's peak (XMAS_PEAK 30 / 310 of 340) to the
   tile's edge at the peak's height, so a row is one garland. The bag / Shop icon is frame 0.
+- Nov 13 2026 (owner: "is chat heavy on the database? make it cheaper and safe"; he asked about sending shouts to only
+  some random players: NOT done, a Microphone costs 2,000 gold and /go needs everyone to see the same shout):
+  - globalchat.js `gPoll`: the `global_chat` table is read every 8 s ONLY while the live 'global' topic is down
+    (`Net.globalLive`, set by the channel's subscribe status in net.js `joinGlobal`); while it is up, every
+    `GPOLL_LIVE_MS` (2 min) as a safety net, and when the panel opens (`gPoll(true)`, at most once every 10 s).
+    Before, every online player read it every 8 s (~13.5M requests a month at 1,000 players x 1 h a day).
+  - schema.sql `send_broadcast`: the whole server takes at most one shout every 10 s (GMs skip it; an advisory lock
+    so two at once take turns), checked BEFORE `use_owned('microphone')`, so a refused shout uses no Microphone
+    ("Someone just shouted! Try again in a few seconds"). Just this function: supabase/migration_2026-11-13_shout_limit.sql.
+  - Run the migration (or re-run schema.sql).
+- Nov 13 2026, later (owner's video: "the microphone doesn't trigger any more; fix the ceiling spotlight left / right,
+  make one in the centre too; there's a bug, objects flying around"). GAME_BUILD '2026-11-13 d'.
+  - FLYING OBJECTS: xmaslights.js asked `blockLayers()` (to know which canvas the lamp was on), but fish.js wraps
+    blockLayers() to DRAW THE FISH TANKS (drawAquariums): every lamp drew all Fish Tanks + their fish again inside its
+    flipped, turned transform (huge tilted tanks / glass / fish swinging with the lamp). Now `BLOCK_LAYERS.g`.
+    Never call blockLayers() from a drawing function (it draws).
+  - NEW block 513 `ceiling_spotlight_center` (Ceiling Spotlight (Center), aimed straight down, CEIL_SWAY like the
+    others; `CEIL_SIDE` 0, so `isCeilSpot(t)` checks `!== undefined`; the lamp's side comes from `CEIL_BY_ID[b.id]`, not
+    fg, so the place preview works). Music Pack + 2. schema.sql item_info 'basic' (also in the migration file).
+  - SAVE FORMAT: blocks 510+ were saved as 509 (fgx tops out at 255) and came back as Octagon Wall Signs (the Ceiling
+    Spotlights and Christmas Lights never survived a reload). worlds.js fgBytes / setFgBytes: fgx 255 + NEW `fgy` (one
+    byte a tile, written whenever the world has a block 509+, 0 for 509) = 509 + fgy, so blocks go up to 764. Old saves
+    (no fgy) read 509 as before. The server keeps fgy as it is (alock_guard / alock_restore only touch fg / bg / vari /
+    fgx; a lock does not guard swapping one 510+ block for another, only placing / breaking). NEXT FREE BLOCK 514
+    (468-470 still free). Lamps placed before this build were already saved as Octagon Wall Signs: place them again.
+  - MICROPHONE: the shouts reached other players through the table read, not the live 'global' topic (when private
+    channels were refused, net.js `privRT` false, 'global' is joined as a PUBLIC channel, but send_broadcast sends a
+    PRIVATE message: never received). With the read every 2 min it looked broken. Now: GPOLL_LIVE_MS 30 s while live,
+    and `Net.globalBroken()` (globalDead) puts it back to every 8 s for the session when a shout turns up in the table
+    that never came live (older than 6 s), or our own shout doesn't come back live within 5 s.
+- Nov 13 2026, later still. GAME_BUILD '2026-11-13 e'.
+  - Owner asked for the Spotlight beams over the players, then took it back ("leave it"): the beams stay where they
+    were (drawSetupBadges: behind the players).
+  - SNOW over everything (owner): render.js draws `drawSnow()` near the end of the world pass (after the particles and
+    floating text, right before drawWeatherFlash), so the flakes fall in front of the blocks, players and drops. Rain,
+    sand and falling leaves still sit behind the world (top of render()).
+  - SHOUT: one every 5 minutes per player (owner). globalchat.js `GSHOUT_WAIT`; when you shouted is kept per player in
+    localStorage `balbtopia.gshout.<name>`; the wait counts down after the mic count (`gMicShow`, "3 mics · 4:12",
+    ticking every second while the panel is open in SHOUT mode); placeholder says "once every 5 min". Server
+    send_broadcast: the same 5 min per player (GMs skip it), error "You can shout again in 4:12" (also in
+    migration_2026-11-13_shout_limit.sql, together with the 10 s whole-server limit). gShoutLeft / gClock / gShoutKey are
+    FUNCTION declarations on purpose: chatSetMode('local') -> gMicShow runs while the file is still loading.
+  - AMOUNTS (owner: numbers for how many of a block, bottom right): GMs see them too now (bag cells, hotbar, the item
+    pop-up title, Info "Amount"); the old "GM bag shows no amounts" rule is gone. Still only for stacks of 2+.
 
+- Nov 13 2026 (owner: "a bit bigger amounts, on the hotbar slots too and on floating items"). GAME_BUILD '2026-11-13 f'.
+  Bag cells and hotbar `.n` 7px -> 10px (landscape-phone bag 6px -> 8px), white with a dark outline all round,
+  z-index over the icon. Floating drops (render.js drawDropBox): the number 4.2 * Z -> 5.6 * Z (at least 9 px), round
+  stroke joins. Still only stacks of 2+.
+- Nov 13 2026 (owner: "put it inside the box, a thicker font"). GAME_BUILD '2026-11-13 g'. The amounts use Rubik 800
+  (index.html Google Fonts link now loads Rubik 400;500;800): bag / hotbar `.n` var(--body) 800, 12px (landscape-phone
+  bag 10px), right 3px / bottom 2px. Floating drops: the number sits INSIDE the drop box's bottom-right corner, size
+  from the box (0.38 of it, 0.32 for 3 digits), '800 ... Rubik' with a dark round-joined outline.
+- Nov 13 2026 (owner: "the floating one a little smaller, just right"). GAME_BUILD '2026-11-13 h'. Drop box number:
+  0.31 of the box (0.26 for 3 digits), at least 7 px, outline fs / 4.
+- Nov 13 2026 (owner: "Microphone 20k each; a shout reaches only 200 online players (worlds hold 30); 5 min wait after a
+  shout"). GAME_BUILD '2026-11-13 i'.
+  - Price 20,000 (globalchat.js SHOP + schema.sql shop_prices; the migration file updates the row).
+  - REACH: send_broadcast picks the listeners itself: players online now (world_here, hello in the last 75 s, not
+    banned, not the sender), the sender's world first, then random, at most `shout_reach` 200 (a constant at the top
+    of the function; a GM's shout: everyone online). It stores them in `global_chat.to_ids` (sender included) and sends
+    the shout (event 'g') to each one's own 'inbox:<id>' (+ the sender's, so the game sees it came back). RLS "global
+    chat: read": only the sender and to_ids can read a row (old rows, to_ids null: everyone), so the backup table read
+    can't leak it to the others. The shared 'global' topic is NOT used any more: net.js joinInbox listens for 'g' and
+    sets `Net.globalLive`; `Net.joinGlobal` is a no-op kept for globalchat.js. No inbox (old server / public channels)
+    = never live = the table every 8 s (it still only returns the rows meant for you).
+  - The 5 min wait per player (and 10 s for the whole server) were already in (see above).
+  - Tested on a local Postgres 16 with stubs: 300 online -> 200 + sender got it, all 19 others in the sender's world
+    in, banned / offline players out, one Microphone used, a second shout refused ("You can shout again in 5:00") with
+    no Microphone used, RLS: sender 1 / a listener 1 / a player not picked 0, a GM's shout reached all 299 + self.
+- Nov 13 2026 (owner: "even just 100 online players, to save"). GAME_BUILD '2026-11-13 j'. send_broadcast
+  `shout_reach` 100 (was 200; schema.sql + migration file), texts in globalchat.js say 100. Re-tested on the local
+  Postgres: 100 + sender got it, all 19 in the sender's world still in, a player not picked can't read it.
+- Nov 13 2026 (owner, with a screenshot: "a few minutes and I can shout again: 5 minutes, SHOUT switched off but LOCAL
+  still works; smaller text over the head; in the LOBBY nobody chats, only commands; the Microphone droppable and
+  tradable; the world key droppable too"). GAME_BUILD '2026-11-13 k'.
+  - He was a GM, and GMs skipped the 5 min: now GMs wait too (globalchat.js gShoutLeft, server send_broadcast). While
+    it runs, SHOUT mode greys out the box and Send (`.gform.wait`, gFormState / gPlaceholder: "You can shout again in
+    4:57", ticking every second); LOCAL / FRIEND stay on. (gFormState / gPlaceholder / chatInLobby were written by a
+    first try of this request that stopped when the session restarted; checked and kept.)
+  - LOBBY: no chatting in any mode, for everyone, only /commands (globalchat.js gSend, social.js sendChat, server
+    send_chat refuses 'LOBBY'); the box says "Only /commands in the LOBBY (/help)".
+  - Speech bubble (render.js drawBubble): letters 4 * Z (was 5), lines 5.8 * Z, padding to match.
+  - MICROPHONE droppable / tradable / mailable (noDrop gone). send_broadcast takes it out of the server BAG
+    (bag_qty / bag_add, owned_items follows), so a picked-up or traded one works; the game then calls Bag.pull()
+    instead of takeItem when the server bag is on (else bag.js would send the loss a second time).
+  - WORLD KEYS droppable (not in the LOBBY): keys.js dropKeyFromSlot -> server drop_world_key(world, here) (holder_id
+    null, dropped_in, only if you hold it and are in that world) -> a normal drop. Touching it: physics.js ->
+    keys.js pickKeyDrop -> pick_world_key (only a player in dropped_in, first come) -> into the bag; "isn't here any
+    more" = taken / dead: the drop goes away for everyone. get_world_key lets the owner take a NEW key while one
+    lies somewhere (the dropped one dies). Vacuums skip keys. netDrop / applyWorld make the key item (ensureKey) for
+    key drops; drop_ok accepts wkey_ ids. SECURITY FIX: use_world_key checked `holder_id <> me`, which a null holder
+    (a dropped key) would have passed: now `is distinct from`.
+  - All of it in migration_2026-11-13_shout_limit.sql. Tested on the local Postgres (bag mic, picked-up mic, no mic,
+    GM wait, LOBBY chat refused; keys: drop elsewhere refused, pick from another world refused, using a dropped key
+    refused, first picker wins, owner re-take kills the dropped one) and in headless Chromium (SHOUT greyed for 5:00
+    after a shout with LOCAL still on, LOBBY chat refused, smaller bubble).
+- Nov 13 2026 (owner: "Genie Teapot quests hard too: 200 of a block or 200 each, break 10k blocks, sometimes 2
+  requirements; no gold reward, Balb Coins only; and in the Profile achievements, icons only, a pop-up on hover, dark
+  until you get it; lots of them, from the game"). GAME_BUILD '2026-11-13 l'.
+  - quests.js "the quests": a day = 1 or 2 PARTS (online the server's `quest_parts_for`, 350 in 1,000 days have 2;
+    offline the same share from a hash). A part: any block (break 3,000 / 5,000 / 10,000, harvest 100-150 trees, plant
+    200-300 seeds) or one item (send 200 of a block, send 50 of its seeds, break 250 of it, harvest 40 of its trees,
+    plant 100 of its seeds); 2 parts are never the same thing, and 40% of 2-part days are "send 200 each" of two blocks.
+    Items: farmable blocks (have a seed), rarity <= QUEST_MAX_R 20. Picked by `questBuild(day, name, parts)` with a
+    seeded random (mulberry32 on the day + name + 'v2'), the same on every device. Progress `quest.n` / `quest.sent` are
+    per part now (old saves: the one number goes to part 1). The pop-up lists each part with its bar; SEND sends every
+    "send" part you have all of. Reward: 1 Balb Coin per part, nothing else (gold rewards and goldReward are gone).
+  - Server: quest_kind_for always 'bc'; quest_parts_for(id, day); quest_today also returns `parts`; claim_daily_quest
+    pays `parts` Balb Coins whatever the game asks for (old builds asking 'gold' get Balb Coins), after 15 min of play
+    today per part (GMs not checked). quest_play_check stays for nothing. Tested on the local Postgres (1 part: refused
+    at 10 min, paid 1 at 16; 2 parts: refused at 20 min, paid 2 at 31, old 1-argument call too; once a day).
+  - NEW ui/achievements.js (see its header): 59 achievements in 3 tiers (bronze / silver / gold ring), icons = the
+    game's own items (fall back to Dirt if an id is missing) or pictures made there (level stars, gold coin, Balb Coin,
+    World Key, heart, skull). Lifetime counts wrap questTick / placeFx / splice / reel / die / applyTrade / gSendShout /
+    enterWorldNow (+ achAdd('quests') from claimQuest); values read live for level, gold, Balb Coins, days, locked
+    worlds, friends, different items, pets, wings, rides, World Key. Saved in the player save as `ach` { s, g, w }.
+    Profile: "Achievements n / 59" grid under the character card; locked = grayscale + very dark; hover / focus / tap =
+    a dark pop-up (name, tier, what to do, a progress bar "1,234 / 10,000" or "Unlocked"). New ones: a SYSTEM chat
+    line (toast when the panel can't show); the first check after loading is silent.
+- Nov 13 2026 (owner: "no slots for the achievements; a badge like the trophy, and a pop-up that lists them; draw the
+  pictures differently, not paired with the items"). GAME_BUILD '2026-11-13 m'. achievements.js: the Profile grid is
+  gone; a square badge button (`#pAch`, ACH_BTN_SVG, a gold medal on a ribbon, blue dot = how many unlocked) goes right
+  after the trophy in levels.js `.prow`; it opens ACHIEVEMENTS (openAchievements: "13 of 59 unlocked" and a scrolling
+  list, each row a badge, name, tier tag, what to do, a bar or "Unlocked"; locked rows dark). Badges are drawn there
+  (achBadge): bronze = round medal, silver = shield, gold = 16-point star with two red ribbons; a dark middle with a
+  16 x 16 symbol (ACH_GLYPH: pick, brick, sprout, tree, dna, fish, coin, gem, scroll, cal, lock, globe, moon, key,
+  heart, swap, horn, chest, paw, wing, wheel, skull; drawn on its own canvas and scaled up without smoothing) or the
+  level number (`num`). No item pictures any more.
+- Nov 13 2026 (owner's video: "the tattoo is fine worn but jumping it's gone / he looks different, swimming too; the
+  watch: jumping, the round face goes and only the black shows, back on landing; achievements listed like that but 6
+  columns, the rest scrolls, bronze / silver / gold together; the world pop-up: recent visits"). GAME_BUILD '2026-11-13 n'.
+  - topless.js: pictures that aren't the idle frame's shape (jump: the top drawn ~1.5x wider; swim: lying down) get the
+    idle frame's chest stretched over their bare top's box (TOPLESS_TOP now has the idle top's height, 48), turned a
+    quarter for swim (su = v, sv = 1 - u: the neck towards the head on the right). Only ink (255) and shading (254),
+    only on the bare top; the body lines (253) are left off there (they looked like straps).
+  - wrist.js: in the jump pictures a watch paints only its strap (no case, no wristFace, so no twinkle); landing
+    brings the face back. Swimming unchanged.
+  - achievements.js openAchievements: GOLD / SILVER / BRONZE groups, each a 6-column grid of badges (.achgrid), the
+    groups scroll (.achscroll); hover / focus / tap a badge = the box under them (.achinfo) shows name, tier, what to
+    do, bar or "Unlocked".
+  - worldgrid.js: RECENT VISITS (`wgRecent`, WG_RECENT 6, newest first, no LOBBY), a 3-across row of blue bricks above
+    the list (#wrecent, with "RECENT VISITS" / "WORLDS" labels), hidden while a name is typed; filled by an
+    enterWorldNow wrapper, saved in the player save as `recent`.
+- Nov 13 2026 ("is the achievements pop-up responsive on mobile?"). Checked in headless Chromium at phone sizes: portrait
+  390 x 844 fit; landscape 844 x 390 / 740 x 360 cut off the Close button. style.css (end): in landscape with height
+  <= 520px the badge area scrolls in max(96px, 100dvh - 248px), smaller gaps / info box. GAME_BUILD '2026-11-13 o'.

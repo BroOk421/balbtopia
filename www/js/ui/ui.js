@@ -270,10 +270,10 @@ function askDrop(id, slot) {
   const s = inv[slot] && inv[slot].id === id ? inv[slot] : inv.find((o) => o.id === id);
   if (!inWorld || P.dead || !s) return;
   if (id === 'wrench') return toast("You can't drop your " + ITEMS[id].name);
-  if (ITEMS[id].key) return toast('A World Key can only be traded or given');
   if (ITEMS[id].bound) return toast(ITEMS[id].name + ' is yours only: it can\'t be dropped or traded');
   if (ITEMS[id].noDrop) return toast(ITEMS[id].name + " can't be dropped (it can be traded)");
   if (worldName === LOBBY_WORLD && !canEdit(true)) return toast("You can't drop items in the lobby");
+  if (ITEMS[id].key) return dropKeyFromSlot(s); // (owner, Nov 13 2026: World Keys can be dropped; keys.js)
   // a GM's items never run out: always ask how many (up to a full stack), and nothing leaves the bag
   if (isGM()) return askQty('DROP', id, MAXSTACK, 'Drop', (q) => spawnItemDrop(id, q), 'Up to', 1);
   if (s.qty > 1) return askQty('DROP', id, s.qty, 'Drop', (q) => dropFromSlot(s, q), 'In this slot');
@@ -314,7 +314,7 @@ function renderBars() {
       const s = k >= HB_FIRST ? hbStack(k) : inv.find((o) => o.id === id);
       b.appendChild(iconCanvas(id).cloneNode());
       b.lastChild.getContext('2d').drawImage(iconCanvas(id), 0, 0);
-      b.insertAdjacentHTML('beforeend', `<span class="n">${s && s.qty > 1 && !isGM() ? s.qty : ''}</span>`);
+      b.insertAdjacentHTML('beforeend', `<span class="n">${s && s.qty > 1 ? s.qty : ''}</span>`); // (Nov 13 2026: GMs see it too)
       b.setAttribute('aria-label', ITEMS[id].name);
     }
     b.insertAdjacentHTML('afterbegin', `<span class="k">${(k + 1) % 10}</span>`);
@@ -542,7 +542,8 @@ function renderInvNow() {
       const ic = iconCanvas(s.id).cloneNode();
       ic.getContext('2d').drawImage(iconCanvas(s.id), 0, 0);
       b.appendChild(ic);
-      if (s.qty > 1 && !gm) b.insertAdjacentHTML('beforeend', `<span class="n">${s.qty}</span>`); // a GM's bag shows no amounts
+      // how many, bottom right (owner, Nov 13 2026: for GMs too; was hidden in a GM's bag since build m)
+      if (s.qty > 1) b.insertAdjacentHTML('beforeend', `<span class="n">${s.qty}</span>`);
       if (hand === s.id) b.insertAdjacentHTML('beforeend', '<span class="hand">HAND</span>');
       b.setAttribute('aria-label', it.name + ' x' + s.qty);
       holdToHotbar(b, i); // press and hold: drag it onto the hotbar
@@ -799,7 +800,7 @@ function openPop(i) {
   const s = inv[i],
     it = ITEMS[s.id],
     pop = $('pop');
-  $('popTitle').textContent = it.name + (s.qty > 1 && !isGM() ? ' ×' + s.qty : '');
+  $('popTitle').textContent = it.name + (s.qty > 1 ? ' ×' + s.qty : '');
   $('aUse').textContent =
     it.kind === 'clothing'
       ? 'Wear'
@@ -913,7 +914,7 @@ $('aInfo').onclick = () => {
         ? 'In hand'
         : 'In bag';
   $('infoDl').innerHTML =
-    `<dt>Type</dt><dd>${type}</dd><dt>Rarity</dt><dd>${rarityOf(s.id) ? rarityOf(s.id) + ' · ' + rarityTier(rarityOf(s.id)) : it.rarity}</dd>${extra}<dt>Status</dt><dd>${status}</dd>${isGM() ? '' : `<dt>Amount</dt><dd>${s.qty}</dd>`}`;
+    `<dt>Type</dt><dd>${type}</dd><dt>Rarity</dt><dd>${rarityOf(s.id) ? rarityOf(s.id) + ' · ' + rarityTier(rarityOf(s.id)) : it.rarity}</dd>${extra}<dt>Status</dt><dd>${status}</dd><dt>Amount</dt><dd>${s.qty}</dd>`;
   $('pop').hidden = true;
   $('info').hidden = false;
   $('infoOk').focus();

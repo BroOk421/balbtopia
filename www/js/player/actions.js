@@ -554,7 +554,7 @@ const nearMe = (r, n) => remoteNear(r, P.x + P.w / 2, P.y + P.h / 2, n);
 // (Oct 27 2026, security) s = the sender's id: only a player who is here, near the drop, may make or change one
 const DROP_REACH = 8; // tiles (blocks break up to a few tiles away; drops spread a little)
 function netDrop(p) {
-  if (!p || typeof p.u !== 'string' || !(p.id === 'gold' || ITEMS[p.id])) return;
+  if (!p || typeof p.u !== 'string' || !(p.id === 'gold' || ITEMS[p.id] || (typeof isKeyId === 'function' && isKeyId(p.id) && ensureKey(p.id)))) return;
   const from = Net.remotes.get(p.s);
   // (the coin boss, the lowest id here, also fixes up coins from anywhere: coins.js)
   const boss = from && [...Net.remotes.keys(), Net.me && Net.me.id].every((id) => !id || String(p.s) <= String(id));

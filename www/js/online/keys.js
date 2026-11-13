@@ -5,8 +5,12 @@
 // The SERVER keeps who holds each key (supabase/schema.sql: world_keys, get/give/use_world_key, my_world_keys); the
 // item in the bag only shows it, so a key can't be made up. A trade or gift moves it on the server too (the giver's
 // game calls give_world_key), and after logging in the bag is matched to the server's list (syncKeys).
-// One key per world, item id "wkey_" + world name, never stacked with another world's key. Keys can't be dropped,
-// thrown away, sold in a Vending Machine or put in a Display Box. Online with the new server only (Net.secure).
+// One key per world, item id "wkey_" + world name, never stacked with another world's key. Keys can't be thrown
+// away, sold in a Vending Machine or put in a Display Box. Online with the new server only (Net.secure).
+// (owner, Nov 13 2026) Keys CAN be dropped now (not in the LOBBY): the server notes it lies in this world
+// (drop_world_key) and the first player in that world to touch it gets it (pick_world_key). Vacuums leave keys alone.
+// The owner can GET THE KEY again while one lies somewhere: the dropped one then stops working (it vanishes when
+// touched).
 // ===== keys =====
 const KEY_PREFIX = 'wkey_';
 const isKeyId = (id) => typeof id === 'string' && /^wkey_[A-Z0-9]{1,16}$/.test(id);
@@ -73,6 +77,48 @@ const keyRpc = async (fn, args) => {
 function giveKeyTo(world, toId) {
   if (!Net.secure) return;
   keyRpc('give_world_key', { p_world: world, p_to: toId }).catch((e) => toast("The key of " + world + " couldn't be passed on: " + e.message));
+}
+// drop a key from the bag (ui.js askDrop): the server first, then it floats here like any drop
+let keyDropBusy = false;
+async function dropKeyFromSlot(s) {
+  if (!Net.online || !Net.secure) return toast('A World Key can only be dropped when playing online');
+  if (keyDropBusy || !inWorld || P.dead) return;
+  keyDropBusy = true;
+  try {
+    await keyRpc('drop_world_key', { p_world: keyWorld(s.id), p_in: worldName });
+    dropFromSlot(s, 1);
+    savePlayer();
+  } catch (e) {
+    toast("The key couldn't be dropped: " + e.message);
+  } finally {
+    keyDropBusy = false;
+  }
+}
+// touching a dropped key (physics.js): the server hands it over (first come), then it goes into the bag
+async function pickKeyDrop(d) {
+  if (d.keyBusy || !Net.online || !Net.secure) return;
+  d.keyBusy = true;
+  try {
+    await keyRpc('pick_world_key', { p_world: keyWorld(d.id) });
+  } catch (e) {
+    if (/isn't here any more/i.test(e.message)) {
+      // somebody else got it, or the owner took a new key: this one is dead, it goes away for everyone
+      const k = drops.indexOf(d);
+      if (k >= 0) drops.splice(k, 1);
+      Net.takeDrop(d.uid);
+      toast('This key doesn\'t work any more');
+    } else setTimeout(() => (d.keyBusy = false), 3000); // (no answer: try again in a moment)
+    return;
+  }
+  const k = drops.indexOf(d);
+  if (k >= 0) drops.splice(k, 1);
+  Net.takeDrop(d.uid);
+  ensureKey(d.id);
+  if (!inv.some((o) => o.id === d.id)) addItem(d.id, 1);
+  if (typeof flyToBag !== 'function' || !flyToBag(d.id, d.x, d.y)) vacs.push({ id: d.id, qty: 1, x: d.x, y: d.y, t: 0, to: null });
+  Sfx.play('pickup');
+  renderBars();
+  savePlayer();
 }
 // after logging in: the bag's keys = the server's list (adds missing ones, takes out keys we no longer hold)
 async function syncKeys() {

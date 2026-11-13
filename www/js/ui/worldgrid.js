@@ -8,10 +8,33 @@
 //   where somebody is now (Net.people), picked at random once per opening of the pop-up and marked with a little
 //   green dot and how many are there; at most WG_MAX worlds in all (the box still scrolls). A typed name filters it;
 //   a new name still shows "New world" first.
+// - (owner, Nov 13 2026: "in the world pop-up, put the recent visits: the worlds you went into") RECENT VISITS:
+//   the last WG_RECENT worlds you entered (newest first, not the LOBBY), as bricks above the list, with the same live
+//   dot. Kept in the player save (`recent`), filled by an enterWorldNow wrapper. Hidden while a name is typed.
 // Loaded right before main.js (after every listWorlds / renderWorldList wrapper).
 // ===== worldgrid =====
 const WG_MAX = 10,
-  WG_LIVE = 5;
+  WG_LIVE = 5,
+  WG_RECENT = 6;
+let wgRecent = []; // worlds you went into, newest first (saved with the player)
+enterWorldNow = ((prev) =>
+  async function (name) {
+    const r = await prev.apply(this, arguments);
+    if (inWorld && worldName === name && name !== LOBBY_WORLD && /^[A-Z0-9]{1,16}$/.test(name)) {
+      wgRecent = [name, ...wgRecent.filter((w) => w !== name)].slice(0, WG_RECENT);
+    }
+    return r;
+  })(enterWorldNow);
+playerData = ((prev) =>
+  function () {
+    return Object.assign(prev(), { recent: wgRecent.slice(0, WG_RECENT) });
+  })(playerData);
+applyPlayer = ((prev) =>
+  function (p) {
+    const r = prev(p);
+    wgRecent = Array.isArray(p && p.recent) ? p.recent.filter((w) => typeof w === 'string' && /^[A-Z0-9]{1,16}$/.test(w) && w !== LOBBY_WORLD).slice(0, WG_RECENT) : [];
+    return r;
+  })(applyPlayer);
 let wgLive = null; // the random live worlds picked for this opening of the pop-up
 function wgLiveWorlds(skip) {
   if (wgLive) return wgLive;
@@ -61,6 +84,25 @@ renderWorldList = function () {
       if (names.has(w) && w !== LOBBY_WORLD) liveBy.set(w, (liveBy.get(w) || 0) + (live.some((l) => l.name === w) ? 0 : 1));
     }
   const all = base.concat(live.map((l) => ({ name: l.name, owner: null, live: l.live }))).filter((w) => w.name.includes(q));
+  // RECENT VISITS (above the list; not while a name is typed)
+  let rec = $('wrecent');
+  if (!rec) {
+    rec = document.createElement('div');
+    rec.id = 'wrecent';
+    $('wlist').before(rec);
+  }
+  const recent = q ? [] : wgRecent.filter((n) => !(typeof worldHidden === 'function' && worldHidden(n)));
+  rec.hidden = !recent.length;
+  if (recent.length) {
+    const nOf = (n) => liveBy.get(n) || (typeof Net !== 'undefined' && Net.worldCounts && Net.worldCounts.get(n)) || 0;
+    rec.innerHTML = `<p class="wrlabel">RECENT VISITS</p><ul class="wlist wgrid wrgrid">${recent
+      .map((n) => {
+        const k = nOf(n);
+        return `<li><button class="wrow wbrick${n === worldName ? ' here' : ''}" data-w="${n}"><span class="wn">${n}</span>${k ? `<span class="wlive" title="${k} here">${k}</span>` : ''}</button></li>`;
+      })
+      .join('')}</ul><p class="wrlabel">WORLDS</p>`;
+    rec.querySelectorAll('[data-w]').forEach((b) => (b.onclick = () => goWorld(b.dataset.w)));
+  }
   const ul = $('wlist');
   ul.innerHTML = '';
   ul.classList.add('wgrid');
@@ -105,6 +147,10 @@ renderWorldList = function () {
     '.wrow.wbrick .wlive{position:absolute;top:3px;right:4px;font-size:9px;line-height:1;color:#c8ffd0;padding-left:9px;' +
       'background:radial-gradient(circle at 3px 50%,#3ee07a 2.5px,transparent 3px)}',
     '.wrow.wbrick .wt.mevclock{position:absolute;bottom:2px;right:4px;font-size:9px}',
+    // (Nov 13 2026) RECENT VISITS: a smaller 3-across grid above the list, and a small label over each part
+    '#wrecent .wrlabel{margin:4px 0 2px;font:8px var(--pixel);letter-spacing:1px;color:var(--muted)}',
+    '#wrecent .wlist.wrgrid{grid-template-columns:1fr 1fr 1fr;max-height:none;margin:2px 0 6px}',
+    '#wrecent .wrow.wbrick{min-height:30px;padding:7px 4px;background:linear-gradient(#3d5a8a,#30476e)}',
   ].join('\n');
   document.head.appendChild(st);
 }

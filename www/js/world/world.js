@@ -1,6 +1,6 @@
 // World size, generation and the autotile mask.
 // ===== world =====
-// fg holds block numbers up to 509 (Uint16; saved as one byte + `fgx`, see worlds.js fgBytes)
+// fg holds block numbers up to 764 (Uint16; saved as one byte + `fgx` (+ `fgy` for 510+), see worlds.js fgBytes)
 const fg = new Uint16Array(WW * WH),
   bg = new Uint8Array(WW * WH),
   vari = new Uint8Array(WW * WH);

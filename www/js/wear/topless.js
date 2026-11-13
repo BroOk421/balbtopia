@@ -34,7 +34,7 @@ TOPLESS_IMG.onload = () => {
 };
 TOPLESS_IMG.src = 'assets/items/topless_tattoo.png';
 const TOPLESS_CACHE = new Map(),
-  TOPLESS_TOP = [37, 109, 44]; // the idle frame's tank top: left column, top row, width (after the owner's Nov 13 edit of the idle frames)
+  TOPLESS_TOP = [37, 109, 44, 48]; // the idle frame's tank top: left column, top row, width, height (after the owner's Nov 13 edit of the idle frames)
 const isMark = (p, i) => p[i + 3] > 100 && p[i] > 60 && p[i + 1] < 40 && p[i + 2] > 60 && Math.abs(p[i] - p[i + 2]) < 24;
 outfitBody = ((prev) =>
   function (im, key, eq, bands) {
@@ -102,6 +102,38 @@ outfitBody = ((prev) =>
             } else if (bare[k]) {
               for (let ch = 0; ch < 3; ch++) p[i + ch] = Math.min(255, (p[i + ch] * O[j + ch] * 1.25) / 255);
             }
+          }
+      }
+      // (owner, Nov 13 2026: "the tattoo is fine worn, but jumping it's gone and he looks different, swimming too") the
+      // other pictures (jumping: the top drawn bigger; swimming: lying down): the idle frame's chest is stretched over
+      // this picture's bare top (its box), turned a quarter for swimming (the neck towards the head on the right), so
+      // the abs, lines and tattoo show there too. Only on the bare top: the shoulder ink on the arms stays off.
+      else if (O && x1 >= 0 && !(W === FR.w && Math.abs(x1 - x0 + 1 - TOPLESS_TOP[2]) <= 8)) {
+        let y1 = -1;
+        for (let k = 0; k < W * H; k++) if (bare[k]) y1 = (k / W) | 0;
+        const bw = x1 - x0 + 1,
+          bh = y1 - y0 + 1,
+          swim = /^swim_/.test(key),
+          [sx0, sy0, sw] = TOPLESS_TOP,
+          sh = TOPLESS_TOP[3];
+        for (let ty = y0; ty <= y1; ty++)
+          for (let tx = x0; tx <= x1; tx++) {
+            const k = ty * W + tx;
+            if (!bare[k]) continue;
+            const u = (tx - x0 + 0.5) / bw,
+              v = (ty - y0 + 0.5) / bh,
+              // where this pixel is on the idle frame's top (0..1 across, 0..1 down)
+              su = swim ? v : u,
+              sv = swim ? 1 - u : v,
+              ox = Math.floor(sx0 + su * sw),
+              oy = Math.floor(sy0 + sv * sh),
+              j = (oy * FR.w + ox) * 4,
+              a = O[j + 3],
+              i = k * 4;
+            // (the idle frame's body lines, alpha 253, are left off here: on these pictures they looked like straps)
+            if (a < 254) continue;
+            if (a === 254) for (let ch = 0; ch < 3; ch++) p[i + ch] = Math.min(255, (p[i + ch] * O[j + ch] * 1.25) / 255);
+            else (p[i] = O[j]), (p[i + 1] = O[j + 1]), (p[i + 2] = O[j + 2]);
           }
       }
       x.putImageData(d, 0, 0);

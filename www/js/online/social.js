@@ -908,6 +908,8 @@ async function sendChat(raw) {
   const text = String(raw || '').trim().slice(0, CHAT_MAX);
   if (!text || chatBusy) return false;
   if (text[0] === '/') return chatCommand(text); // /pull, /kick, /ban, /facejoke, /troll: never sent as chat
+  // (owner, Nov 13 2026) nobody chats in the LOBBY, only /commands (globalchat.js gSend says so first; server send_chat)
+  if (typeof inWorld !== 'undefined' && inWorld && worldName === LOBBY_WORLD) return toast('No chatting in the LOBBY: only /commands (/help)'), false;
   if (chatWait()) return toast('Too fast! Wait ' + chatWait() + 's before chatting again'), false;
   const t = Date.now();
   chatTimes = chatTimes.filter((s) => t - s < CHAT_WINDOW * 1000);
