@@ -909,6 +909,18 @@ function cutterSide(x, y) {
   for (const ok of [(j) => trees.has(j), (j) => cutterMayCut(j), (j) => !fg[j]]) for (const s of sides) if (ok(at(x, y + s))) return s;
   return sides[0];
 }
+// a cut as one CLICK on tile (x, y): useATM and its wrappers (ATM, Bait Basket, Fuel Tank); true = it paid out.
+// The clicker's own startPunch is skipped (no arm swing: the blade did it).
+function cutterClick(x, y) {
+  if (typeof useATM !== 'function' || typeof atmReady !== 'function' || !atmReady(at(x, y))) return false;
+  const sp = startPunch;
+  startPunch = () => {};
+  try {
+    return !!useATM(x, y);
+  } finally {
+    startPunch = sp;
+  }
+}
 function cutterStrike(i, actor) {
   const [x, y] = machXY(i),
     s = cutterSide(x, y);
@@ -926,6 +938,9 @@ function cutterStrike(i, actor) {
     const keepShake = shake;
     if (trees.has(j)) {
       if (treeProgress(trees.get(j)) >= 1) punchTree(tx, ty); // ripe: harvested (unripe trees are left alone)
+    } else if (cutterClick(tx, ty)) {
+      // (owner, Nov 16 2026: "like the scythe's hopping laser, a cut counts as one click") a full ATM / Bait Basket /
+      // Fuel Tank pays out, the same as clicking it (autumnbeam.js autumnClick); an empty one is cut like any block
     } else if (cutterMayCut(j)) {
       // (owner, Nov 11 2026: "not 1 hit, too OP: it depends on the block, only +1 on a normal punch") each cut is
       // CUT_HITS punches (a normal punch + 1); a hard block takes a few signals (its damage stays while they come:

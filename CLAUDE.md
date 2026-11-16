@@ -4484,3 +4484,7 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 - Nov 13 2026 ("is the achievements pop-up responsive on mobile?"). Checked in headless Chromium at phone sizes: portrait
   390 x 844 fit; landscape 844 x 390 / 740 x 360 cut off the Close button. style.css (end): in landscape with height
   <= 520px the badge area scrolls in max(96px, 100dvh - 248px), smaller gaps / info box. GAME_BUILD '2026-11-13 o'.
+- Nov 16 2026 (owner: "the Factory Cutter: one cut = one click, like the scythe's hopping laser"): machines.js
+  `cutterClick` (in cutterStrike, before the normal cut): a FULL ATM / Bait Basket / Fuel Tank the blade cuts into pays
+  out, the same as clicking it (useATM and its wrappers, startPunch skipped, like autumnbeam.js autumnClick); an empty one
+  is cut like any block (CUT_HITS). Only the actor's game does it.
