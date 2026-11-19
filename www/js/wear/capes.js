@@ -160,9 +160,11 @@ drawBehind = function (c, top, sc, dy) {
   capeOldBehind(only({ ...eq, aura: null, back: null }), top, sc, dy);
 };
 // the clasp first, so a scarf or face item still goes over it; not on the swimming pose (no cape is drawn there)
-const capeOldWorn = drawWorn;
+const capeOldWorn = drawWorn,
+  CAPE_CLASP = false; // the clasp picture (made for the old big-headed body)
 drawWorn = function (c, top, sc, dy = 0) {
   const eq = (c && c.equipped) || {};
-  if (isCape(eq.back) && !(typeof swimPose === 'function' && swimPose(c))) drawWearArt(eq.back, top, sc, dy, 0, eq.back + ':clasp');
+  // (Nov 19 2026, owner) no clasp on the blocky body: it sat at the old body's neck, which is the new face
+  if (CAPE_CLASP && isCape(eq.back) && !(typeof swimPose === 'function' && swimPose(c))) drawWearArt(eq.back, top, sc, dy, 0, eq.back + ':clasp');
   return capeOldWorn(c, top, sc, dy);
 };

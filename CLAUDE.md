@@ -100,6 +100,7 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
 | `groundhold.js` | `shownGround()`: "on the ground" for drawing / sending stays true 150 ms after the last grounded step (not while rising), so asteroids / Arrow Gates don't flicker the jump / landing pose |
 | `reaperscythe.js` | Nocturn Scythe (id `reaper_scythe`; Shop TOOLS 100,000, Legendary, tracked): owner's animated GIF; handle + blade body frozen from frame 0, only the green flames animate (`art-source/items/reaper_scythe_build.py` -> `assets/items/reaper_scythe.png`, 10 frames of 288 px in scythes.js picture space); hooks `scythePic` / `scyFrame` / `scyDraw`; glow and rising flames; NO crescent slash: every swing shoots the Laser Gun's asteroid-breaking radiation (`drawRadiation`, squeezed across its line: width thins full -> nothing over `NOCT_BEAM.ms`); comes out of the blade's TIP (`NOCT_TIP`, tracked every frame through `drawBehind`'s transform -> `noctTips`; riding, the arm is drawn on the screen canvas, so the canvas point is kept), started in `startPunch` (you, held OR worn in the Hand slot) / `stepToolFx` (others' punches), drawn from `drawWater` over everything. Loaded right after scythes.js |
 | `scarfreaper.js` | Royal Silk Scarf: a green-flame reaper (owner's 4 frames, `assets/items/reaper_scarf.png`, cut by `art-source/items/reaper_cut.py`, then `reaper_freeze.py`: its scythe is frame 0's in every frame, or it looked like two scythes) FLIES with you like the flying dragon pets (trails behind at head height, leans, faces the way it flies); stays BEHIND you (`REAPER.back` 36, no idle passes: crossing over you looked like two reapers on dark worlds); fades in on wear, out on unwear (per player name). Drawn via `drawPetOf(...,'big')` (NOT in rides.js's own rider passes: `RIDE_PASS` / `c.rideBase`, or it showed twice), grows shadow.js `petBox`; Profile picture / Mannequin keep a still version in `drawBehind`. Loaded last before main.js |
+| `nostroke.js` | (render/, Nov 19 2026 h/i, owner) Outlines of hand tools: only COMMON ones have none, the Guitar a light one (`NOSTROKE_SOFT`), Uncommon and up keep theirs (pickaxes: none, wear.js): wraps toolSprite / scythePic / wearIcon (TOOLS ids) and copies each picture once without its outline (`noStroke`: dark pixels, lightness < `NOSTROKE_DARK` 72, touching see-through). Loaded LAST before main.js |
 | `prismtrail.js` | Phantom Ring (id `prism_ring`, ring slot, `trail` in wrist.js RINGS): wherever he goes (ground or air), every `PRISM.gap` 15 world px a copy of the CHARACTER WITH HIS AURA (stripped copy drawn a second time by `prismSnap`: no pet / flying dragon, ride, ring, neck scarf (Royal Silk Scarf's reaper), punch, name tag, drop shadow; box widened for the aura with `auraHalfW`; riding, at the ride's height `rideRiseOf` in rides.js and in the rider's pose: standing rides don't walk, on the carpet not even jumping) is LEFT on that spot and never moves; it lives `PRISM.life` 2 s, starts in his own colours, darkens towards `PRISM.tint` and fades. Max `PRISM.max` 7 (an 8th pushes out the oldest). Note: a copy frame draws the character twice (particles a drawCharacter wrapper spawns may double then). Loaded LAST before main.js (outermost drawCharacter wrapper) |
 | `wingsopen.js` | Demon / Dragon / Galaxy / Phoenix / Shadow Wings: folded (original) on the ground, SPREAD (owner's pictures, `wings_<name>_open.png`) the whole time in the air |
 | `crystalwings.js` | Crystal Wings in 5 colours (Blue = the old `crystal_wings`; red / green / white / black new, recoloured), spread in the air; made in a Stove: 20 crystals of the colour + 10 Green Acid + 5 White Crystals |
@@ -4488,3 +4489,75 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   `cutterClick` (in cutterStrike, before the normal cut): a FULL ATM / Bait Basket / Fuel Tank the blade cuts into pays
   out, the same as clicking it (useATM and its wrappers, startPunch skipped, like autumnbeam.js autumnClick); an empty one
   is cut like any block (CUT_HITS). Only the actor's game does it.
+
+- Nov 19 2026 (build '2026-11-19 a', owner: "use this as the default character itself"): the STANDING FRAMES of every
+  skin are now the owner's blocky 32 x 35 sprite (`art-source/character/default_look.aseprite`: bald, white sando, navy
+  shorts; walking legs from `walkleft.aseprite`), cut by `art-source/character/blocky_cut.py <root>` (reads the
+  .aseprite files itself) -> `<skin>/idle_open|half|closed.png`, `punch_body.png`, `walk_stride_00..11.png`,
+  `angry_face.png`, `arm_front.png`, and `mask_idle|punch|walk_00..11.png` (R shorts + shins, G feet). Mirrored (the
+  sprite faces left), x6 whole pixels, feet on row 213, 1 px cut each side. Walking: the two sleeve layers swing from
+  the shoulder in OPPOSITE directions, one full swing per 12-frame cycle; legs = walk frame 0 then 1. The replaced
+  base_owner frames / masks are kept in `art-source/character/old_frames_base_owner/`.
+  - `js/render/blockybody.js` (right after render.js): angry face = `angry_face.png`; talking mouth off for now.
+    hudcard.js `PCARD_NECK` 10 (was 15.5).
+  - Build '2026-11-19 b' (owner): the body frames have NO sleeves (cutting the punching arm out left bits behind);
+    both sleeves (`<skin>/sleeve_back.png`, `sleeve_front.png`) are drawn by `blockySleeves` from render.js
+    drawCharacter ('back' before the body, 'front' after the face), turned round their shoulders (`BLOCKY.back` /
+    `front`, frame px): walking = opposite swing (`BLOCKY.swing`); punch / place = the FRONT sleeve (screen left when
+    facing right) turns only CLOCKWISE from hanging down until it points at the block (x punchReach), then back;
+    drawPunch is a no-op. Jumping: `js/player/blockyjump.js` (after jump.js) wraps jumpFrame -> sets `c._bj`
+    ('up' / 'down') and returns -1 (the old jump_00..02 pictures are unused); render.js draws
+    `<skin>/blocky_jump_up|down.png` (jump.aseprite's wide-eyed o-mouth face: looking up / down); going up both
+    arms are raised in towards the chest (`BLOCKY.jumpUp`, both in front), falling they hang down.
+  - NOT refitted yet (still placed for the old big head / body): hats, hair, face items, shirts, held tools and tool
+    swings (SHOULDER / armParts), emote faces, /facejoke, sitting, swimming, dancing, sleeping, diapers.
+  - Build '2026-11-19 c' (owner sent an updated jump.aseprite): going up, the feet are tucked in one row (the jump
+    file's own shape is used for blocky_jump_up / down; falling = normal legs). Re-run blocky_cut.py after any change.
+  - Build '2026-11-19 d' (owner's video of the look he wants + jump.aseprite with raised brows):
+    - Punch / place: the front sleeve swings FORWARD (the short way) until it points at the block (was clockwise).
+    - Going up: both arms thrown forward (`BLOCKY.jumpFar` -1.6 far arm straight out, `jumpNear` -2.4 near arm up by
+      the face); falling: hanging; arms ease between poses (`BLOCKY.ease`, per player in `BLOCKY_ARM`).
+    - Landing (`c._bj` 'land', jump.js LAND_CROUCH_MS): squashed on the feet (`BLOCKY_LAND` 1.18 x 0.8, outer
+      drawCharacter wrapper in blockyjump.js), half-shut eyes (the blink frame).
+    - Swimming: upright, no more drawSwimming: blockyjump.js wraps swimPose to always answer false and set
+      `c._swim`; both arms circle forward half a turn apart (`BLOCKY.swimMs` 700), both drawn in front. (Capes,
+      floaties etc. now treat a swimmer as not swimming.)
+  - Build '2026-11-19 e' (owner): new default_look.aseprite (fixes a pixel left at the shoulder when an arm goes up;
+    frames re-cut with blocky_cut.py). Softer jump: config.js GRAVITY / RISE_GRAVITY x0.72, JUMP_V / WING_JUMP_V /
+    APEX_VY x0.85, MAX_FALL 810 (physics.js FALL_GRAVITY = RISE_GRAVITY follows); BURN_UP 400 -> 340. Measured in
+    Chromium: same height (~94 px), up ~0.52 s, down ~0.56 s (about 18% slower each way).
+  - Build '2026-11-19 f' (owner, dpickaxe.aseprite: how the pickaxe is held):
+    - Pickaxes on the blocky body: held in the FRONT sleeve's hand, head down in front, handle across
+      (`BLOCKY_AXE_MAP` = the file's 'axe' layer, recoloured per pickaxe from TOOLS head / handle, no outline), drawn
+      under the front sleeve and turning with it (walk swing, punch). `blockyOwnsTool(id)` (= /pickaxe$/):
+      render.js then skips drawHeldTool / drawToolSwing (no arm cut out of the body) for it. Other tools unchanged.
+    - wear.js pickaxeSprite: the dark outline is gone (icons too), like the owner's diamond_pickaxe.png.
+    - Swimming: the far sleeve stays BEHIND the chest (only the near one is drawn in front).
+    - Walking: the sleeves swing a bit faster than the legs (`BLOCKY.swingSpeed` 1.35, from the smooth c.walkPh).
+  - Build '2026-11-19 g' (owner: "every wearable weapon in the hand like the pickaxe, the handle straight"): every hand
+    tool / weapon with TOOLS art (swords, axes, hammers, wands, chainsaw, pencil, flashlight, scythes incl. the
+    Nocturn Scythe...) is held in the FRONT sleeve's hand (`BLOCKY_HAND` [0, 5.5] sprite px from the front shoulder),
+    turned so the handle is LEVEL, pointing forward, head out in front, under the sleeve and turning with it (walk
+    swing, forward punch swing). Tool pictures: grip GRIP, +45 deg (their handle is at -45), `BLOCKY_TOOL_LEN` 17
+    world px; scythes: scyDraw with -SCY_HANDLE_ANG (and the crescent slash started from blockyTool, since
+    drawToolSwing isn't called for them). `blockyOwnsTool` now = every TOOLS id except `BLOCKY_TOOL_SKIP` (Feather Bow,
+    Guitar, umbrella, Water Gun, Fishing Rod, Spear, Dragon Hand, Boxing Glove, wrench), GUN_IDS and TWO_HAND (those
+    keep their old drawing, still placed for the old body). Pickaxes keep their own drawn picture (`blockyIsPick`).
+  - Build '2026-11-19 h' (owner: no stroke on the code-drawn weapons): `js/render/nostroke.js` (last before main.js)
+    strips the dark outline off every TOOLS picture: held, swung, scythes, bag / hotbar / shop icons.
+  - Build '2026-11-19 i' (owner): capes.js `CAPE_CLASP` false: no cape clasp (it sat on the new face). Outlines: only
+    Common tools lose theirs (Flashlight, Pencil, Boxing Glove), the Guitar keeps 40% of its outline, every Uncommon
+    and up tool keeps it; the pickaxes stay without (the owner's diamond_pickaxe.png).
+  - Build '2026-11-19 j' (owner): no outline on the Leaf Glider (all 3 colours) and its trail petals: rides.js
+    `mapNoOutline` takes the outline colour off the edge of LEAF_MAP ('a', drawn from `LEAF_MAP_CLEAN`) and of
+    PETAL_MAPS ('0'). LEAF_MAP itself is unchanged (its size is still used for the feet / hover).
+  - Build '2026-11-19 k' (owner): more tools held by the blocky front sleeve (`BLOCKY_TOOL_SKIP` now only Feather Bow,
+    the rods, Dragon Hand, Boxing Glove, wrench):
+    - Blue Umbrella: closed = shaft level forward in the hand; open in the air = the FRONT hand raised straight up
+      (`blockyUmbOpen`, umbrella.js UMB_CUR / umbPaint), no extra arm: render.js skips emoArmPose / twoHandArm when
+      the blocky sleeve holds the tool (`bOwn`). Paper umbrella, Guitar (under the front sleeve), Spear (hidden while
+      thrown, handfx spearHide) like the other tools.
+    - Guns (GUN_IDS: Water Gun, Laser Gun, Mega Water Gun): GUN_BIG / GUN_SIZE size, barrel level; shooting turns the
+      front arm so the barrel points at the spot (front angle = the spot's angle); gunNoteTip notes the muzzle so the
+      water / laser starts there. The Mega Water Gun is held in one hand on the blocky body.
+    - render.js: bsl.tool is set when bsl is made (both sleeve calls know the tool).

@@ -15,7 +15,7 @@
 // Loaded after portrait.js / globalchat.js / asteroids.js, before main.js.
 // ===== hud card =====
 const PCARD_SLOTS = ['hair', 'hat', 'face', 'mask', 'mouth', 'stache', 'ear'], // worn on the head (like bath.js BATH_KEEP)
-  PCARD_NECK = 15.5, // world px above the bottom of charPortrait's box: the chin / neck line (the bare body's narrowest row)
+  PCARD_NECK = 10, // world px above the bottom of charPortrait's box: the chin line (10 on the blocky body of Nov 19 2026; was 15.5)
   PCARD_MS = 600;
 const PCARD = document.createElement('div');
 PCARD.className = 'pcard';

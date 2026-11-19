@@ -1260,8 +1260,9 @@ function pickaxeSprite(id, stars) {
     }
   // a bright glint on the head
   for (const [x, y] of [[15, 7], [16, 7], [17, 8]]) if (px[y * N + x]) px[y * N + x] = '#ffffff';
-  // outline round everything
+  // no outline round it any more (owner, Nov 19 2026: "remove the pickaxe's strokes"); the old loop is kept off
   const out = px.slice();
+  if (false)
   for (let y = 0; y < N; y++)
     for (let x = 0; x < N; x++) {
       if (px[y * N + x]) continue;

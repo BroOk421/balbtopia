@@ -562,8 +562,11 @@ function drawCharacter(c, ox, oy) {
   const wkey = style === 'step' ? 'walkstep_' : 'walk_';
   const canWalk = !!IMG[wkey + c.skin + '_0'],
     wf = Math.floor(c.walkPh) % 12;
-  const walking = c.walking && canWalk;
   const punching = !!(c.punch || c.place);
+  // blocky body (blockybody.js): in the air the jump face picture (c._bj 'up' / 'down', set by blockyjump.js)
+  // ('land': the half-shut eyes of the blink frame, the body squashed by blockyjump.js)
+  const bj = !punching && c._bj && typeof blockyImg === 'function' ? (c._bj === 'land' ? IMG['skin_' + c.skin + '_half'] : blockyImg(c.skin, 'blocky_jump_' + c._bj)) : null;
+  const walking = c.walking && canWalk && !bj;
   // walking in a Diamond / Golden Diaper: the owner's own walking frames (diaper.js)
   const dw = walking && !punching ? diaperFrame(c, wf) : null;
   const im = punching
@@ -572,7 +575,7 @@ function drawCharacter(c, ox, oy) {
         ? dw.im
         : walking
           ? IMG[wkey + c.skin + '_' + wf]
-          : IMG['skin_' + c.skin + '_' + fr],
+          : bj || IMG['skin_' + c.skin + '_' + fr],
     sc = CHAR_H / FR.h;
   const bodyDy = dw ? dw.dy : walking && !punching ? WALK_BOB[style][wf] / 2 : 0; // in sprite px (scaled by sc)
   // skins without walk frames yet fall back to a small bounce
@@ -583,7 +586,8 @@ function drawCharacter(c, ox, oy) {
     dy = punching ? 0 : bodyDy,
     tool = heldTool(c.hand);
   // with a tool the arm just swings it (drawn after the body); bare hands stretch out (drawn first)
-  const swinging = !!(tool && c.punch && c.hand !== 'wrench');
+  // (a pickaxe on the blocky body is held and swung by its front sleeve: blockybody.js blockyOwnsTool)
+  const swinging = !!(tool && c.punch && c.hand !== 'wrench') && !(typeof blockyOwnsTool === 'function' && blockyOwnsTool(c.hand));
   if (punching && !swinging) drawPunch(c, cx, top, sc, ox, oy);
   g.save();
   g.translate(cx, 0);
@@ -594,21 +598,28 @@ function drawCharacter(c, ox, oy) {
   g.imageSmoothingEnabled = true;
   // back items and the back of long hair sit behind the body
   drawBehind(c, top, sc, dy);
+  // the blocky body's sleeves (blockybody.js): the back one behind the body
+  const bsl = typeof blockySleeves === 'function' ? { wf, walking, punching, bj: bj ? c._bj : null, cx, ox, oy, tool: tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null } : null;
+  const bOwn = !!(bsl && bsl.tool && blockyOwnsTool(bsl.tool)); // held by the blocky front sleeve: no old arm poses
+  if (bsl) blockySleeves(c, 'back', top, sc, dy, bsl);
   // swinging a tool: the body without its back arm (that arm swings); else the normal frame
   const body = swinging ? noBackArm(c.skin) : im,
-    frameKey = swinging ? 'noarm_' + c.skin : punching ? 'punch_' + c.skin : dw ? dw.key : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
+    frameKey = swinging ? 'noarm_' + c.skin : bj ? 'skin_' + c.skin + '_bj' + c._bj : punching ? 'punch_' + c.skin : dw ? dw.key : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
   // /thumbsup and /omg (emotes.js): the dressed body with the raised arm(s) cut off; they are drawn raised further down
-  const emoArms = !punching && !walking && !dw && typeof emoArmPose === 'function' ? emoArmPose(c, outfitBody(body, frameKey, eq)) : null;
+  const emoArms = !punching && !walking && !dw && !bOwn && typeof emoArmPose === 'function' ? emoArmPose(c, outfitBody(body, frameKey, eq)) : null;
   // both hands on it (megagun.js twoHandArm): shooting a gun / holding the Guitar, the front arm is cut off too; it is
   // drawn holding the tool further down (behind it)
   const shown0 = tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null,
-    gunArm = !emoArms && shown0 && typeof twoHandArm === 'function' ? twoHandArm(c, outfitBody(body, frameKey, eq), shown0, swinging, !punching && !walking && !dw && !c.walking) : null;
+    gunArm = !emoArms && !bOwn && shown0 && typeof twoHandArm === 'function' ? twoHandArm(c, outfitBody(body, frameKey, eq), shown0, swinging, !punching && !walking && !dw && !c.walking) : null;
   g.drawImage(gunArm ? gunArm.body : emoArms ? emoArms.body : outfitBody(body, frameKey, eq), (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
   if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else drawTalk(c, top, sc, dy, MOUTH_Y);
   if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, dy); // /love heart eyes, /omg, /sleep (emotes.js)
+  if (bsl) {
+    blockySleeves(c, 'front', top, sc, dy, bsl); // the front sleeve (and the back one too while it is raised)
+  }
   drawWorn(c, top, sc, dy);
   drawAuraFront(c, top, sc, dy); // the aura's lightning, in front of everything else on the body
   // the tool in the hand: the one you hold, or else the one in your Hand slot, so the pickaxe stays in
@@ -616,7 +627,7 @@ function drawCharacter(c, ox, oy) {
   const shown = tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null;
   if (gunArm) gunArm.draw(top + dy * sc * Z, sc); // (only queued: drawn behind the tool as the tool is drawn, megagun.js)
   if (emoArms) emoArms.draw(shown, top, sc, dy); // the raised arm(s), with the weapon / tool in the hand
-  else if (shown && !swinging) drawHeldTool(shown, top, sc, 0, c.skin, im, frameKey);
+  else if (shown && !swinging && !(typeof blockyOwnsTool === 'function' && blockyOwnsTool(shown))) drawHeldTool(shown, top, sc, 0, c.skin, im, frameKey);
   g.restore();
   if (swinging) drawToolSwing(c, cx, top, sc, ox, oy);
   if (gunArm) gunArm.finish();

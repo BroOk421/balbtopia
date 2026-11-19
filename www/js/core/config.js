@@ -797,13 +797,16 @@ const CAM_LAG = 0.1; // how far (share of the screen) the camera may trail behin
 // lighter (RISE_GRAVITY), and lighter still near the top (below APEX_VY px/s: x APEX_K) so you hang there for a
 // moment. The way DOWN is the normal GRAVITY. Let go early and normal gravity takes over (short hop).
 // JUMP_V / WING_JUMP_V are worked out so the jumps are just as high as before (about 96 / 81 px).
-const GRAVITY = 1700,
-  RISE_GRAVITY = 1150,
-  APEX_VY = 110,
+// Nov 19 2026 (owner: the jump was a bit fast, slow the rise and the fall a little): both gravities x0.72 and the
+// jump speeds x0.85 (= sqrt 0.72), so the jumps are just as HIGH but take ~18% longer; fastest fall 950 -> 810.
+// (was GRAVITY 1700, RISE_GRAVITY 1150, JUMP_V 461, WING_JUMP_V 423, MAX_FALL 950)
+const GRAVITY = 1224,
+  RISE_GRAVITY = 828,
+  APEX_VY = 94,
   APEX_K = 0.6,
-  JUMP_V = 461,
-  WING_JUMP_V = 423,
-  MAX_FALL = 950;
+  JUMP_V = 391,
+  WING_JUMP_V = 359,
+  MAX_FALL = 810;
 const DROP_SIZE = 15; // size of a floating drop in world pixels (was 11; owner wanted drops bigger)
 // in a locked world, visitors without access can see floating drops but can only pick them up
 // once nobody has collected them for this long (the owner and players with access can always)

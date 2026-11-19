@@ -586,9 +586,25 @@ function leafBit(n, col) {
   );
   return (LEAF_BITS[k] = cv);
 }
+// (owner, Nov 19 2026) no outline on the Leaf Glider: the outline-colour pixels (`ol`) on the edge of a map (touching
+// see-through, 8 neighbours) are taken off the leaf and its petals
+function mapNoOutline(rows, ol) {
+  const at = (i, j) => (j >= 0 && j < rows.length && i >= 0 && i < rows[j].length ? rows[j][i] : '.');
+  return rows.map((row, j) =>
+    [...row]
+      .map((ch, i) => {
+        if (ch !== ol) return ch;
+        for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) if ((a || b) && at(i + a, j + b) === '.') return '.';
+        return ch;
+      })
+      .join(''),
+  );
+}
+const LEAF_MAP_CLEAN = mapNoOutline(LEAF_MAP, 'a');
+for (let n = 0; n < PETAL_MAPS.length; n++) PETAL_MAPS[n] = mapNoOutline(PETAL_MAPS[n], '0');
 function paintLeaf(state, f, r) {
   const F = ridePainter(1);
-  F.map(LEAF_MAP, -LEAF_MAP[0].length / 2, -LEAF_MAP.length, (r && LEAF_PALS[r.pal]) || LEAF_PAL);
+  F.map(LEAF_MAP_CLEAN, -LEAF_MAP[0].length / 2, -LEAF_MAP.length, (r && LEAF_PALS[r.pal]) || LEAF_PAL);
   return { back: new Map(), front: F.m, bob: 0 };
 }
 // the trail of one character (in world px, so the leaves stay where they came out while he
