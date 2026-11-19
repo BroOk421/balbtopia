@@ -5,7 +5,14 @@
 // cell = FE_CELL body px), 3 flame shapes played 0-1-2-1, plus a spark that floats off now and then. wearArt picks
 // the frame from ANIM_N.
 // ===== fire eyes =====
-const FE_CELL = 4,
+// (owner, Nov 19 2026 build s: "put them right on the eyes") the blocky body's eyes are two same-size squares on the
+// frame (x 42-77 and 84-117, y 75-98): both fires use the near eye's shape, 3 px cells (33 px wide), centred on each
+// eye, the round bottom ending on the eye's bottom row (`FE_EYES`); the flame tips rise above the eye
+const FE_EYES = [
+  [60, 99],
+  [101, 99],
+]; // [middle x, bottom y + 1] of each eye on the frame
+const FE_CELL = 3,
   FE_ORDER = [0, 1, 2, 1],
   FE_MS = 110;
 ANIM_N.blue_fire_eyes = ANIM_N.red_fire_eyes = [FE_MS, FE_ORDER.length * 2]; // 8 frames: the flame cycle twice, the spark on its own beat
@@ -41,28 +48,16 @@ function feShape(tops, bots) {
   }
   return rows;
 }
-const FE_MAPS = [
-  // the near eye (left on screen): 11 cells wide
-  {
-    x: 32,
-    y: 30,
-    frames: [
-      feShape([8, 5, 4, 5, 3, 0, 3, 2, 4, 3, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
-      feShape([8, 6, 3, 5, 4, 1, 2, 3, 3, 4, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
-      feShape([7, 5, 4, 4, 3, 0, 4, 2, 4, 2, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
-    ],
-  },
-  // the far eye: 7 cells wide (the face is turned)
-  {
-    x: 81,
-    y: 30,
-    frames: [
-      feShape([7, 4, 5, 0, 3, 2, 5], [11, 12, 13, 13, 13, 12, 11]),
-      feShape([7, 5, 4, 1, 2, 3, 5], [11, 12, 13, 13, 13, 12, 11]),
-      feShape([6, 4, 5, 0, 4, 2, 5], [11, 12, 13, 13, 13, 12, 11]),
-    ],
-  },
+const FE_NEAR = [
+  feShape([8, 5, 4, 5, 3, 0, 3, 2, 4, 3, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
+  feShape([8, 6, 3, 5, 4, 1, 2, 3, 3, 4, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
+  feShape([7, 5, 4, 4, 3, 0, 4, 2, 4, 2, 6], [11, 12, 13, 13, 13, 13, 13, 13, 13, 12, 11]),
 ];
+const FE_MAPS = FE_EYES.map(([cx, by]) => ({
+  x: Math.round(cx - (FE_NEAR[0][0].length * FE_CELL) / 2),
+  y: by - FE_NEAR[0].length * FE_CELL,
+  frames: FE_NEAR,
+}));
 const feHash = (a, b) => {
   const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
   return s - Math.floor(s);

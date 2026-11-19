@@ -1,13 +1,13 @@
 // Level rewards + flags in the account screens (owner, Oct 24 2026).
 // - Levels come only from breaking blocks (menu.js xpNeed / addXP). Reaching a reward level unlocks a reward that is
-//   claimed from Menu -> Profile -> the square trophy button: level 50 Cat Ear Hoodie, 70 10,000 gold, 80 20,000 gold,
+//   claimed from Menu -> Profile -> the square trophy button: 70 10,000 gold (level 50's Cat Ear Hoodie was deleted with
+//   every shirt, Nov 19 2026 build p), 80 20,000 gold,
 //   90 50 Balb Coins, 100 Golden Pickaxe (`bound`: can't be traded, dropped, displayed or put on a Mannequin; it is
 //   no longer sold in the Shop). Online the server pays out once per level (`claim_level_reward`, schema.sql: checks
 //   the server's own XP count, LEVEL CHECK, not the level in the save); offline it is local. Claimed levels are kept in the player save (`lvc`).
 // - Flags: a strip of flags in the Register form (optional) and a FLAG button in the Profile (flags.js).
 // ===== levels =====
 const LEVEL_REWARDS = [
-  { lv: 50, kind: 'item', id: 'cat_ear_hoodie' },
   { lv: 70, kind: 'gold', n: 10000 },
   { lv: 80, kind: 'gold', n: 20000 },
   { lv: 90, kind: 'bc', n: 50 },

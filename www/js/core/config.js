@@ -222,16 +222,6 @@ const ITEMS = {
     desc: "Plant it on top of a block to grow a Lava Tree.",
     rarity: "Uncommon",
   },
-  hair_spiky_black: {
-    name: "Spiky Black Hair",
-    kind: "clothing",
-    slot: "hair",
-    sprite: "hair",
-    icon: "icon_hair",
-    off: DATA.hairOffset,
-    desc: "Messy, spiky black hair that sits a little over the eyes.",
-    rarity: "Common",
-  },
 };
 // chance that breaking a block also drops its seed
 // chance that a broken block drops itself (blocks not listed always drop)
@@ -270,8 +260,7 @@ const TREE_FRUIT = [1, 4]; // blocks a ripe tree gives (min, max)
 // built-in recipes; data/farming.json replaces them when the game is served (npm run serve, the app, GitHub Pages)
 // (the same list as data/farming.json; classic recipes first, then Balbtopia's own)
 const SPLICE = {
-  "blue_block+wood_block": "blue_jeans", // the old default clothes (Oct 26 2026)
-  "dirt+white_block": "white_sneakers",
+  "bolo+iron_bars": "knife", // rodknife.js (Nov 20 2026)
   "death_spikes+steel_block": "spike_gate", // blocks64b.js (Oct 26 2026)
   "blue_block+crystal_block": "sapphire_block",
   "crystal_block+orange_block": "topaz_block",
@@ -587,35 +576,14 @@ const SPLICE = {
   "dark_purple_block+portcullis": "steel_block",
   "steel_block+yellow_block": "golden_block",
   "black_block+steel_block": "boombox",
-  "grass+mushroom": "shallot_mustache",
-  "grey_block+lava": "santa_pants",
-  "lava+red_block": "hot_head",
-  "black_block+mushroom": "top_hat",
-  "mushroom+red_block": "red_riding_hood",
-  "red_bricks+white_block": "santa_hat",
-  "brown_block+grass": "biker_stache",
-  "amber_glass+white_block": "x_ray_specs",
-  "blue_block+mushroom": "ski_cap",
   "black_block+yellow_block": "flashlight",
   "wood_block+yellow_block": "pencil",
-  "white_block+yellow_block": "rooster_hat",
-  "wooden_window+yellow_block": "gold_rimmed_glasses",
-  "bush+white_block": "white_beard",
-  "aqua_block+bush": "froghat",
-  "lava+white_block": "santa_vest",
   "red_block+window": "cyclopean_visor",
   "blueberry+red_block": "just_one_boxing_glove",
   "bed+super_crate_box": "backpack",
-  "olde_timey_radio+wood_block": "tv_head",
-  "brown_block+olde_timey_radio": "old_timey_hat",
-  "rainbow_block+white_wallpaper": "smarty_pants",
-  "rose+white_wallpaper": "wedding_dress",
   "death_spikes+rock_background": "sword",
   "lava+steel_block": "jetpack",
-  "barn_door+white_block": "bridal_veil",
-  "danger_sign+purple_block": "purple_thong",
   "cave+portcullis": "pickaxe",
-  "dark_green_block+green_block": "gamblers_visor",
   "dirt+dirt": "grass",
   "rock+rock": "lava",
   "cave+cave": "dark_cave",
@@ -774,7 +742,10 @@ function loadFarming() {
     .finally(boot);
 }
 const START_WORLD = "START";
-const CHAR_H = 32; // drawn height of the character in world pixels (one tile = TS)
+// drawn height of the character's 118 x 215 frame in world pixels. The blocky body fills rows 46-214 of it (168 px; the
+// rows above are room for hats / hair), so 41 makes the BODY as tall as one tile (TS 32): 168 / 215 * 41 = 32 (owner,
+// Nov 19 2026 build l: "the character the same size as a tile"; was 32, body ~25 px)
+const CHAR_H = 41;
 const CHAR_S = CHAR_H / 56; // scale vs. the old 56px character, for arm/fist sizes
 const FOOT_SINK = 2; // pixels the feet sink into the ground so the player doesn't look like floating
 const PUNCH_TIME = 0.22; // seconds for one punch (out and back)

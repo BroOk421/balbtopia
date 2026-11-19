@@ -29,79 +29,15 @@ const HAIR_GROW = 1.15; // the five long / bang hairs drawn 15% bigger (owner: t
 const HAIR_GROW_Y = 80; // body px the bigger hairs grow from (about the eyes), so the bangs stay about where they were
 const HAIR_SPLIT = 108; // long hair: body px just below the neck; below it the hair is behind the body (drawWearStrip)
 const WEAR = [
-  // shirts
-  { id: 'tan_shirt', name: 'Tan Shirt', slot: 'shirt', col: '#d8b88a', desc: 'A plain tan shirt.' },
-  { id: 'tuxedo', name: 'Tuxedo', slot: 'shirt', col: '#1e1c24', pat: 'tux', rarity: 'Rare', desc: 'Very fancy. White shirt, black jacket.' },
-  { id: 'referee_shirt', name: 'Referee Shirt', slot: 'shirt', col: '#f4f4f4', pat: 'stripes', col2: '#1a1a20', desc: 'Black and white stripes.' },
-  { id: 'green_shirt', name: 'Green Shirt', slot: 'shirt', col: '#3f9a30', desc: 'A green shirt.' },
-  { id: 'green_blouse', name: 'Green Blouse', slot: 'shirt', col: '#8ad86a', desc: 'A light green blouse.' },
-  { id: 'red_coat', name: 'Red Coat', slot: 'shirt', col: '#b8261e', desc: 'A warm red coat.' },
-  { id: 'santa_vest', name: 'Santa Vest', slot: 'shirt', col: '#c8201a', pat: 'trim', col2: '#ffffff', desc: 'Red with fluffy white trim.' },
-  { id: 'plain_white_tee', name: 'Plain White Tee', slot: 'shirt', col: '#fafafa', desc: 'Simple and clean.' },
-  { id: 'tie_dyed_shirt', name: 'Tie Dyed Shirt', slot: 'shirt', pat: 'tiedye', col: '#ff6ab0', rarity: 'Uncommon', desc: 'Every colour, swirled.' },
-  { id: 'wedding_dress', name: 'Wedding Dress', slot: 'shirt', col: '#ffffff', pat: 'dress', rarity: 'Rare', desc: 'A long white dress (covers your pants too).' },
-  { id: 'checkered_pajamas', name: 'Checkered Pajamas', slot: 'shirt', col: '#5a8ad8', pat: 'pj', col2: '#e8f0ff', desc: 'Blue checks, top and bottom.' },
-  // pants
-  { id: 'cargo_shorts', name: 'Cargo Shorts', slot: 'pants', col: '#b8a070', desc: 'Khaki shorts with lots of pockets.' },
-  { id: 'santa_pants', name: 'Santa Pants', slot: 'pants', col: '#c62f2a', desc: 'Red pants for the holidays.' },
-  { id: 'black_pants', name: 'Black Pants', slot: 'pants', col: '#2a2830', desc: 'Smart black pants.' },
-  { id: 'green_skirt', name: 'Green Skirt', slot: 'pants', col: '#3f9a30', desc: 'A green skirt.' },
-  { id: 'jeans', name: 'Jeans', slot: 'pants', col: '#2a48a0', desc: 'Dark blue jeans.' },
-  { id: 'smarty_pants', name: 'Rainbow Pants', slot: 'pants', pat: 'rainbow', col: '#ff4a4a', rarity: 'Uncommon', desc: 'Rainbow stripes, for clever people.' },
-  { id: 'clown_pants', name: 'Clown Pants', slot: 'pants', col: '#ffd23f', pat: 'dots', col2: '#e8302a', desc: 'Yellow with big red dots.' },
-  { id: 'sexy_boxers', name: 'Heart Boxers', slot: 'pants', col: '#ff8ac0', pat: 'dots', col2: '#d01a3a', desc: 'Pink boxers with little hearts.' },
-  { id: 'purple_thong', name: 'Purple Thong', slot: 'pants', col: '#8a3fc9', desc: 'Bold. Very purple.' },
-  // the old default clothes, now from recipes
-  { id: 'blue_jeans', name: 'Blue Jeans', slot: 'pants', col: '#2f5aa8', desc: 'Classic blue jeans.' },
-  { id: 'white_sneakers', name: 'White Sneakers', slot: 'feet', col: '#ececf0', desc: 'Clean white sneakers.' },
-  // feet
-  { id: 'stinky_socks', name: 'Yellow Socks', slot: 'feet', col: '#c8c060', desc: 'Nobody wants to stand next to you.' },
-  { id: 'boots', name: 'Boots', slot: 'feet', col: '#4a2c18', desc: 'Sturdy brown boots.' },
-  { id: 'brown_shoes', name: 'Brown Shoes', slot: 'feet', col: '#8a5a32', desc: 'Plain brown shoes.' },
-  { id: 'patent_leather_shoes', name: 'Patent Leather Shoes', slot: 'feet', col: '#18161c', desc: 'Shiny black shoes.' },
-  // hair
-  { id: 'brown_hair', name: 'Brown Hair', slot: 'hair', col: '#8a5428', top: -30, iconImg: 'hair_brown_spike_icon', strip: { img: 'hair_brown_spike', frames: 1, ms: 1000, x: -2, y: -26, w: 115, h: 102, icon: [0, 0, 115, 102] }, desc: 'Brown hair brushed up into a tall quiff.' },
-  { id: 'blonde_bombshell', name: 'Long Blonde Hair', slot: 'hair', col: '#e8c47a', top: -27, iconImg: 'hair_blonde_band_icon', strip: { img: 'hair_blonde_band', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: -1, y: -9, w: 125, h: 180, icon: [0, 0, 125, 125] }, desc: 'Long blonde hair with a white headband.' },
-  { id: 'spikey_hair', name: 'Spikey Hair', slot: 'hair', col: '#3a3432', top: -30, iconImg: 'hair_messy_black_icon', strip: { img: 'hair_messy_black', frames: 1, ms: 1000, x: -11, y: -26, w: 135, h: 104, icon: [0, 0, 135, 104] }, desc: 'Messy, spiky black hair.' },
-  { id: 'messy_auburn_tresses', name: 'Messy Red Hair', slot: 'hair', col: '#8a2a22', top: -52, iconImg: 'hair_red_ponytail_icon', strip: { img: 'hair_red_ponytail', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: 0, y: -31, w: 120, h: 192, icon: [0, 0, 120, 120] }, desc: 'Long auburn hair in a high ponytail.' },
-  { id: 'grey_hair_bun', name: 'Grey Hair Bun', slot: 'hair', col: '#c8c4c0', top: -18, iconImg: 'hair_silver_icon', strip: { img: 'hair_silver', frames: 1, ms: 1000, x: -13, y: -14, w: 137, h: 93, icon: [0, 0, 137, 93] }, desc: 'Soft silver-grey hair swept to the side.' },
-  { id: 'hot_pink_highlights', name: 'Pink Streak Hair', slot: 'hair', col: '#f0a0b4', top: -54, iconImg: 'hair_pink_bun_icon', strip: { img: 'hair_pink_bun', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: 0, y: -36, w: 131, h: 193, icon: [0, 0, 131, 131] }, desc: 'Pink hair in a messy bun with loose strands.' },
-  { id: 'unicorn_hair', name: 'Pastel Hair', slot: 'hair', tint: ['#6a2a9a', '#ffb0f0'], rarity: 'Rare', desc: 'Magical pastel hair.' },
-  { id: 'purple_mohawk', name: 'Black Bob', slot: 'hair', col: '#2a2628', top: -22, iconImg: 'hair_black_bob_icon', strip: { img: 'hair_black_bob', frames: 1, ms: 1000, grow: HAIR_GROW, x: 4, y: -5, w: 119, h: 115, icon: [0, 0, 119, 115] }, desc: 'A short black bob with hair clips.' },
-  { id: 'pigtails', name: 'Black Top Bun', slot: 'hair', col: '#2a2628', top: -25, iconImg: 'hair_black_bun_icon', strip: { img: 'hair_black_bun', frames: 1, ms: 1000, x: -11, y: -21, w: 122, h: 120, icon: [0, 0, 122, 120] }, desc: 'Black hair tied up in a bun.' },
-  // the owner's animated golden hair (the idle row of his sprite sheet: 9 frames, glow and sparks included),
-  // cut out and fitted on our head: strip frames are w x h in body-sprite pixels, top left at (x, y) of the body
-  { id: 'super_saiyan_hair', name: 'Golden Spike Hair', slot: 'hair', rarity: 'Legendary', shop: true, top: -112,
-    strip: { img: 'hair_ssj', frames: 9, ms: 110, x: -90, y: -180, w: 300, h: 260, icon: [55, 45, 210, 190] },
-    desc: 'Blazing golden spiky hair with a flickering glow and rising sparks.' },
-  // hats
-  { id: 'top_hat', name: 'Top Hat', slot: 'hat', art: 'top_hat', rarity: 'Uncommon', desc: 'A tall black hat with a red band.' },
-  { id: 'santa_hat', name: 'Santa Hat', slot: 'hat', art: 'santa_hat', desc: 'Ho ho ho!' },
-  { id: 'ski_cap', name: 'Ski Cap', slot: 'hat', art: 'ski_cap', desc: 'A warm woolly cap with a pom-pom.' },
-  { id: 'rooster_hat', name: 'Rooster Hat', slot: 'hat', art: 'rooster_hat', desc: 'Cock-a-doodle-doo!' },
-  { id: 'baseball_cap', name: 'Baseball Cap', slot: 'hat', art: 'baseball_cap', desc: 'A red cap with a peak.' },
-  { id: 'old_timey_hat', name: 'Old-Timey Hat', slot: 'hat', art: 'old_timey_hat', desc: 'A round brown bowler hat.' },
-  { id: 'froghat', name: 'Frog Hat', slot: 'hat', art: 'froghat', desc: 'Ribbit.' },
-  { id: 'hot_head', name: 'Fire Head', slot: 'hat', art: 'hot_head', rarity: 'Rare', desc: 'Your head is on fire!' },
-  { id: 'gamblers_visor', name: "Green Visor", slot: 'hat', art: 'gamblers_visor', desc: 'A green see-through visor.' },
-  { id: 'tv_head', name: 'TV Head', slot: 'hat', art: 'tv_head', rarity: 'Rare', desc: 'Your head is a television.' },
-  { id: 'red_riding_hood', name: 'Red Riding Hood', slot: 'hat', art: 'red_riding_hood', desc: 'A red hood. Watch out for wolves.' },
-  { id: 'bridal_veil', name: 'Bridal Veil', slot: 'hat', art: 'bridal_veil', desc: 'A long white veil.' },
-  { id: 'halo', name: 'Halo', slot: 'hat', art: 'halo', rarity: 'Epic', shop: true, iconBox: [10, 50, 100, 70], desc: 'A glowing yellow halo that floats over your head.' },
+  // shirts, pants, feet: (owner, Nov 19 2026 build p) every one was deleted; new ones will be made. A shirt / pants /
+  // shoe goes here (or addWear) with `col` (+ `pat`, `col2`...): outfitBody paints it on the body.
+  // hair, hats: (owner, Nov 19 2026 build o) every hair, every code-drawn hat and the beards were deleted; new ones
+  // will be made. A hair / hat goes here (or addWear) with `strip` (a picture) or `art` (WEAR_ART).
   // face
-  { id: 'shades', name: 'Shades', slot: 'face', art: 'shades', desc: 'Cool black sunglasses.' },
-  { id: 'big_glasses', name: 'Big Glasses', slot: 'face', art: 'big_glasses', desc: 'Huge round glasses.' },
-  { id: 'gold_rimmed_glasses', name: 'Gold-Rimmed Glasses', slot: 'face', art: 'gold_rimmed_glasses', desc: 'Thin golden glasses.' },
-  { id: 'x_ray_specs', name: 'X-Ray Specs', slot: 'face', art: 'x_ray_specs', desc: 'Swirly glasses that see through things.' },
   { id: 'cyclopean_visor', name: 'Red Visor', slot: 'face', art: 'cyclopean_visor', rarity: 'Uncommon', desc: 'A red visor with a glowing slit. Your punches become a laser and reach one tile further.' },
-  { id: 'white_beard', name: 'White Beard', slot: 'stache', art: 'white_beard', desc: 'A big fluffy white beard.' },
-  { id: 'biker_stache', name: 'Long Mustache', slot: 'stache', art: 'biker_stache', desc: 'A long handlebar mustache.' },
-  { id: 'shallot_mustache', name: 'Curly Mustache', slot: 'stache', art: 'shallot_mustache', desc: 'A thin, curly mustache.' },
   // back
   { id: 'backpack', name: 'Backpack', slot: 'back', art: 'backpack', desc: 'A brown backpack.' },
   { id: 'jetpack', name: 'Jetpack', slot: 'back', art: 'jetpack', rarity: 'Rare', desc: 'Twin rockets. Flames come out when you jump.' },
-  // long hair (the back part is drawn behind the body)
-  { id: 'long_black_hair', name: 'Long Black Hair', slot: 'hair', col: '#2a2628', top: -16, iconImg: 'hair_long_black_icon', strip: { img: 'hair_long_black', frames: 1, ms: 1000, split: HAIR_SPLIT, grow: HAIR_GROW, x: -3, y: 0, w: 137, h: 183, icon: [0, 0, 137, 137] }, desc: 'Long wavy black hair.' },
   // from the Shop
   // pixel-art wings with their own flap frames (`flaps`: drawn as they are, never squeezed), flapping all the time
   // (owner, Oct 30 2026: same flap standing and jumping). Made by art-source/items/wings_px/ (cherub.py, bats.py, vampire2.py)
@@ -132,24 +68,12 @@ const WEAR = [
   { id: 'laser_eyes', name: 'Laser Eyes', slot: 'face', art: 'laser_eyes', rarity: 'Epic', desc: 'Glowing red eyes. Every punch fires a laser from your eyes, and you reach one tile further.' },
   // a blank face with two burning blue eyes (fire_eyes.js); `blank`: the normal brows, eyes and mouth are wiped
   // the fire eyes are only the eyes (face slot); the blank face is its own item in the hair slot (owner)
-  { id: 'red_fire_eyes', name: 'Red Fire Eyes', slot: 'face', art: 'red_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [26, 126, 88, 88], desc: 'Your eyes burn with red-hot fire, flames licking up over your head.' },
-  { id: 'blue_fire_eyes', name: 'Blue Fire Eyes', slot: 'face', art: 'blue_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [26, 126, 88, 88], desc: 'Your eyes burn with blue fire, flames licking up over your head.' },
+  { id: 'red_fire_eyes', name: 'Red Fire Eyes', slot: 'face', art: 'red_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [38, 142, 84, 84], desc: 'Your eyes burn with red-hot fire, flames licking up over your head.' },
+  { id: 'blue_fire_eyes', name: 'Blue Fire Eyes', slot: 'face', art: 'blue_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [38, 142, 84, 84], desc: 'Your eyes burn with blue fire, flames licking up over your head.' },
   // a baby-blue pacifier over the mouth (baby.js)
   { id: 'blue_pacifier', name: 'Blue Pacifier', slot: 'mouth', art: 'blue_pacifier', rarity: 'Uncommon', shop: true, iconBox: [60, 186, 32, 32], desc: 'A little teal-blue pacifier. Shh.' },
   // scarves round the neck (necklace slot; owner, Oct 31 2026): chunky pixel art in scarves.js, each its own style
-  { id: 'red_knit_scarf', name: 'Red Knit Scarf', slot: 'neck', art: 'red_knit_scarf', rarity: 'Common', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A cosy red knitted scarf with white stripes on the ends and a little gold star pin.' },
-  { id: 'blue_striped_scarf', name: 'Blue Striped Scarf', slot: 'neck', art: 'blue_striped_scarf', rarity: 'Common', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A long scarf with blue and white stripes, a fringe and a pearl pin.' },
-  { id: 'green_plaid_scarf', name: 'Plaid Scarf', slot: 'neck', art: 'green_plaid_scarf', rarity: 'Uncommon', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A warm green tartan scarf with red and yellow lines, held with a gold pin.' },
-  { id: 'snowflake_scarf', name: 'Snowflake Scarf', slot: 'neck', art: 'snowflake_scarf', rarity: 'Uncommon', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A navy winter scarf with little white snowflakes and a sapphire pin.' },
-  { id: 'pink_fluffy_scarf', name: 'Fluffy Pink Scarf', slot: 'neck', art: 'pink_fluffy_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A soft, fluffy pink scarf, like a feather boa, with a pearl pin.' },
-  { id: 'rainbow_scarf', name: 'Rainbow Scarf', slot: 'neck', art: 'rainbow_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 200, 92, 92], desc: 'Every colour of the rainbow, wrapped round your neck.' },
   { id: 'royal_silk_scarf', name: 'Royal Silk Scarf', slot: 'neck', art: 'royal_silk_scarf', rarity: 'Epic', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A shiny black silk scarf with gold edges and a ruby pin, tied in a neat knot.' },
-  { id: 'big_orange_scarf', name: 'Big Orange Scarf', slot: 'neck', art: 'big_orange_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 190, 96, 96], desc: 'A big, thick orange scarf pulled up over your mouth, with yellow ends flying behind you.' },
-  { id: 'big_black_scarf', name: 'Big Black Scarf', slot: 'neck', art: 'big_black_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 190, 96, 96], desc: 'A big, thick black scarf pulled up over your mouth, with a gold pin and gold fringe.' },
-  { id: 'big_striped_scarf', name: 'Big Striped Scarf', slot: 'neck', art: 'big_striped_scarf', rarity: 'Rare', shop: true, iconBox: [-4, 190, 96, 96], desc: 'A big scarf with red, white and black diagonal stripes, pulled up over your mouth.' },
-  { id: 'black_scarf', name: 'Black Scarf', slot: 'neck', art: 'black_scarf', rarity: 'Common', shop: true, iconBox: [-4, 200, 96, 96], desc: 'A black knitted scarf with an emerald pin and gold fringe. Goes with everything.' },
-  { id: 'candy_stripe_scarf', name: 'Candy Stripe Scarf', slot: 'neck', art: 'candy_stripe_scarf', rarity: 'Uncommon', shop: true, iconBox: [-4, 200, 96, 96], desc: 'A scarf with red and white diagonal stripes, like a candy cane.' },
-  { id: 'red_bandana', name: 'Red Bandana', slot: 'neck', art: 'red_bandana', rarity: 'Common', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A red bandana with white dots, tied round the neck like a cowboy.' },
   // capes (back slot; owner, Oct 31 2026): pixel art in capes.js; the Vampire Face (face slot) in vampire_face.js
   { id: 'hero_cape', name: 'Red Hero Cape', slot: 'back', cape: true, art: 'hero_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A bright red hero cape with a golden lining. It flies out behind you when you run or jump.' },
   { id: 'blue_hero_cape', name: 'Blue Hero Cape', slot: 'back', cape: true, art: 'blue_hero_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A blue hero cape with a silver lining and a silver clasp. It flies out behind you when you run or jump.' },
@@ -469,7 +393,9 @@ function standPaint(w, part, x, y, f, bands) {
 const OUTFIT = new Map();
 // the body image with these clothes on (cached per frame and outfit)
 // bands: the rows of the shirt, pants and shoes on this picture (the standing frames by default)
-const BODY_BANDS = { shirt: [98, 156], pants: [138, 202], feet: 178 };
+// (Nov 19 2026 build o, owner: "changing clothes only the top changed, white was left") the blocky body's white sando
+// goes down to row 176 (the navy shorts start at 178), so the shirt band ends at 177 (was 156, the old body's top)
+const BODY_BANDS = { shirt: [98, 177], pants: [138, 202], feet: 178 };
 // Default look (owner, Oct 26 2026): the standing frames (idle, walk, punch) ARE the owner's picture now: white
 // tank top, white briefs, bare legs, black flip-flops (art-source/character/base_cut.py). Pants and shoes are
 // painted on with the frame's mask (`bodyMask`: R legs + briefs, G feet), shirts on the white top as before.
@@ -676,158 +602,10 @@ function wingPair({ x, f }, col, sc, y, inset = 0, tilt = 0, shine = false) {
   }
 }
 const WEAR_ART = {
-  top_hat: ({ R, E }) => {
-    E(66, 10, 58, 9, K);
-    E(66, 9, 54, 6, '#2a2830');
-    R(34, -52, 64, 60, K);
-    R(38, -48, 56, 54, '#2a2830');
-    R(38, -6, 56, 9, '#c62f2a');
-    R(44, -44, 8, 36, '#4a4752');
-  },
-  santa_hat: ({ L, R, E }) => {
-    L([[18, 16], [114, 16], [104, -18], [70, -40], [126, -20], [132, -6], [70, -54], [30, -30]], K);
-    L([[24, 12], [108, 12], [98, -16], [70, -34], [120, -18], [70, -46], [34, -26]], '#d8241e');
-    R(14, 8, 104, 18, K);
-    R(16, 10, 100, 14, '#ffffff');
-    E(132, -10, 11, 11, K);
-    E(132, -10, 9, 9, '#ffffff');
-  },
-  ski_cap: ({ E, R }) => {
-    E(66, 20, 56, 46, K, Math.PI, Math.PI * 2);
-    E(66, 20, 52, 42, '#2f5fd0', Math.PI, Math.PI * 2);
-    R(10, 8, 112, 16, K);
-    R(12, 10, 108, 12, '#ffffff');
-    for (let i = 20; i < 112; i += 16) R(i, -14, 6, 20, '#6f95f0');
-    E(66, -26, 12, 12, K);
-    E(66, -26, 10, 10, '#ffffff');
-  },
-  rooster_hat: ({ E, L }) => {
-    E(66, 12, 56, 32, K, Math.PI, Math.PI * 2);
-    E(66, 12, 52, 28, '#f4f4f4', Math.PI, Math.PI * 2);
-    L([[40, -14], [48, -40], [58, -18], [66, -46], [76, -18], [86, -40], [92, -12]], '#d8241e');
-    L([[112, 4], [134, 10], [112, 16]], '#ffb020');
-    E(104, -2, 4, 4, K);
-  },
-  baseball_cap: ({ E, R }) => {
-    E(62, 14, 54, 34, K, Math.PI, Math.PI * 2);
-    E(62, 14, 50, 30, '#d8241e', Math.PI, Math.PI * 2);
-    R(70, 8, 64, 10, K);
-    R(72, 10, 60, 6, '#a8180e');
-    E(62, -14, 6, 4, '#ffffff');
-  },
-  old_timey_hat: ({ E, R }) => {
-    E(64, 12, 60, 8, K);
-    E(64, 11, 56, 5, '#6b4424');
-    E(64, 6, 40, 34, K, Math.PI, Math.PI * 2);
-    E(64, 6, 36, 30, '#8a5a32', Math.PI, Math.PI * 2);
-    R(28, -2, 72, 7, '#3a2414');
-  },
-  froghat: ({ E }) => {
-    E(66, 16, 56, 40, K, Math.PI, Math.PI * 2);
-    E(66, 16, 52, 36, '#4caf3a', Math.PI, Math.PI * 2);
-    for (const ex of [38, 94]) {
-      E(ex, -18, 15, 15, K);
-      E(ex, -18, 12, 12, '#4caf3a');
-      E(ex + 2, -18, 7, 7, '#ffffff');
-      E(ex + 4, -18, 4, 4, K);
-    }
-    E(66, 2, 30, 4, '#2a6e22');
-  },
-  hot_head: ({ L, f }) => {
-    L([[14, 30], [20, -10 - f * 6], [36, 6], [44, -40 + f * 8], [58, 0], [70, -50 - f * 6], [84, 2], [96, -36 + f * 6], [108, 8], [118, -14 - f * 4], [120, 30]], '#c2310b');
-    L([[24, 30], [32, 0], [44, 14], [56, -20 + f * 4], [68, 10], [80, -26 - f * 4], [92, 12], [108, -2], [112, 30]], '#ff8a1e');
-    L([[40, 30], [52, 8], [66, -2 - f * 4], [80, 10], [92, 30]], '#ffd23f');
-  },
-  gamblers_visor: ({ R, L }) => {
-    R(14, 26, 104, 12, 'rgba(18,12,12,.9)');
-    R(16, 28, 100, 8, '#2a8a3a');
-    L([[96, 26], [140, 34], [138, 42], [96, 38]], 'rgba(60,200,90,.6)');
-    L([[96, 26], [140, 34], [140, 36], [96, 28]], K);
-  },
-  tv_head: ({ R, E }) => {
-    R(8, -10, 116, 108, K);
-    R(12, -6, 108, 100, '#6a707e');
-    R(20, 4, 84, 72, K);
-    R(24, 8, 76, 64, '#2fb5c9');
-    R(36, 28, 10, 10, K);
-    R(76, 28, 10, 10, K);
-    R(40, 52, 44, 6, K);
-    R(108, 14, 8, 8, '#ffd23f');
-    R(108, 30, 8, 8, '#c62f2a');
-    R(30, -30, 4, 22, K);
-    R(92, -30, 4, 22, K);
-    E(32, -32, 5, 5, '#9aa0ad');
-    E(94, -32, 5, 5, '#9aa0ad');
-  },
-  red_riding_hood: ({ x, E }) => {
-    x.globalCompositeOperation = 'source-over';
-    E(64, 40, 66, 70, K, Math.PI * 0.95, Math.PI * 2.05);
-    E(64, 40, 62, 66, '#c62f2a', Math.PI * 0.95, Math.PI * 2.05);
-    E(64, 48, 52, 52, 'rgba(0,0,0,1)', Math.PI, Math.PI * 2);
-    x.globalCompositeOperation = 'destination-out';
-    E(70, 54, 48, 50, '#000', Math.PI * 1.02, Math.PI * 1.98);
-    x.globalCompositeOperation = 'source-over';
-  },
-  bridal_veil: ({ L, E }) => {
-    L([[16, 8], [110, 8], [96, -8], [30, -8]], 'rgba(255,255,255,.95)');
-    L([[14, 8], [-6, 150], [40, 150], [40, 12]], 'rgba(255,255,255,.55)');
-    E(64, -6, 10, 8, '#ffffff');
-  },
-  shades: ({ R }) => {
-    R(38, 54, 38, 26, K);
-    R(80, 54, 34, 26, K);
-    R(40, 56, 34, 22, '#2a2830');
-    R(82, 56, 30, 22, '#2a2830');
-    R(42, 58, 10, 4, '#6a707e');
-    R(84, 58, 10, 4, '#6a707e');
-    R(72, 58, 10, 5, K);
-  },
-  big_glasses: ({ E }) => {
-    for (const cx of [56, 98]) {
-      E(cx, 68, 24, 22, K);
-      E(cx, 68, 19, 17, 'rgba(200,230,255,.35)');
-    }
-    E(77, 64, 6, 3, K);
-  },
-  gold_rimmed_glasses: ({ x }) => {
-    x.strokeStyle = '#ffd23f';
-    x.lineWidth = 4;
-    x.strokeRect(40, 56, 32, 24);
-    x.strokeRect(82, 56, 30, 24);
-    x.beginPath();
-    x.moveTo(72, 62);
-    x.lineTo(82, 62);
-    x.stroke();
-  },
-  x_ray_specs: ({ E, x }) => {
-    for (const cx of [56, 97]) {
-      E(cx, 68, 20, 18, K);
-      E(cx, 68, 16, 14, '#ffffff');
-      x.strokeStyle = '#d8241e';
-      x.lineWidth = 3;
-      x.beginPath();
-      for (let a = 0; a < 12; a += 0.3) x.lineTo(cx + Math.cos(a) * a * 1.2, 68 + Math.sin(a) * a * 1.1);
-      x.stroke();
-    }
-  },
   cyclopean_visor: ({ R, f }) => {
     R(30, 56, 92, 26, K);
     R(34, 60, 84, 18, '#8a1010');
     R(36, 66, 80, 6, f ? '#ff4a2a' : '#ff8a5a');
-  },
-  white_beard: ({ E, L }) => {
-    L([[34, 84], [118, 84], [112, 124], [76, 150], [44, 128]], K);
-    L([[38, 86], [114, 86], [108, 122], [76, 146], [48, 126]], '#f4f4f4');
-    E(76, 92, 14, 5, '#d8d8e0');
-  },
-  biker_stache: ({ L }) => {
-    L([[58, 88], [96, 88], [100, 118], [92, 118], [90, 94], [64, 94], [62, 118], [54, 118]], K);
-    L([[60, 89], [94, 89], [96, 115], [93, 115], [91, 92], [63, 92], [61, 115], [57, 115]], '#5a3a20');
-  },
-  shallot_mustache: ({ S }) => {
-    S([[52, 88], [62, 92], [76, 88], [90, 92], [100, 88]], K, 5);
-    S([[52, 88], [48, 82]], K, 4);
-    S([[100, 88], [104, 82]], K, 4);
   },
   laser_eyes: ({ R }) => {
     R(58, 58, 14, 22, '#ff2a2a');
@@ -835,15 +613,6 @@ const WEAR_ART = {
     R(60, 60, 5, 6, '#ffd0c0');
     R(95, 60, 4, 6, '#ffd0c0');
   },
-  pigtails: ({ E }) => {
-    for (const cx of [4, 128]) {
-      E(cx, 70, 18, 26, K);
-      E(cx, 70, 15, 23, '#a8602a');
-      E(cx, 50, 7, 5, '#d8241e');
-    }
-  },
-  long_black: (h) => longHairFront(h, '#16141c', '#3a3448'),
-  long_black_back: (h) => longHairBack(h, '#0e0c12', '#2a2634'),
   angel_wings: (h) => wingPair(h, WING_WHITE, 0.88, 110),
   // tiny white wings at the shoulder blades
   tiny_angel_wings: (h) => wingPair(h, WING_WHITE, 0.4, 112, 10),
@@ -868,28 +637,9 @@ const WEAR_ART = {
     }
   },
 };
-// long hair: a cap with bangs over the head and locks down the sides, and a back part behind the body
-function longHairFront({ E, L, R }, col, hi) {
-  E(64, 16, 60, 48, K, Math.PI, Math.PI * 2);
-  E(64, 16, 56, 44, col, Math.PI, Math.PI * 2);
-  L([[10, 14], [120, 14], [118, 34], [104, 30], [96, 46], [86, 30], [74, 44], [62, 28], [48, 42], [36, 28], [22, 40], [12, 32]], K);
-  L([[13, 16], [117, 16], [115, 30], [104, 26], [96, 41], [86, 26], [74, 39], [62, 24], [48, 37], [36, 24], [22, 35], [15, 29]], col);
-  // side locks framing the face
-  R(4, 10, 24, 106, K);
-  R(7, 12, 18, 100, col);
-  R(108, 18, 14, 74, K);
-  R(110, 20, 10, 70, col);
-  // shine
-  L([[40, -18], [76, -24], [72, -18], [42, -12]], hi);
-}
-function longHairBack({ L }, col, hi) {
-  L([[4, -10], [70, -10], [60, 170], [-10, 160]], K);
-  L([[8, -6], [66, -6], [57, 164], [-6, 156]], col);
-  L([[18, 20], [26, 20], [16, 150], [8, 148]], hi);
-}
 const ARTS = {};
 // animated drawings: ms per frame (2 frames)
-const ANIM = { hot_head: 120, cyclopean_visor: 300 };
+const ANIM = { cyclopean_visor: 300 };
 // longer animations: id -> [ms per frame, frames] (fire_eyes.js)
 const ANIM_N = {};
 // an animated picture strip worn on the body (e.g. Golden Spike Hair); call inside the character transform

@@ -7,32 +7,9 @@
 // The punching arm (art64.js armPic) and the arm swinging a tool (wear.js armParts) get the sleeve too.
 //   sleeve: true (short sleeves: TEE_LEN px along the arm from the shoulders, teeReach)
 //   trim:   colour of the neckline and sleeve hems (ringer tee)       polo: collar flaps + 2 buttons (col2 / col3)
-const TEES = [
-  { id: 'white_tee', name: 'White Tee', col: '#f2f2f0', rarity: 'Common', desc: 'A plain white t-shirt with short sleeves.' },
-  // (owner, Nov 5 2026: "put a design on the front of the other t-shirts") `print` = a picture on the chest (teePrint)
-  { id: 'red_tee', name: 'Red Tee', col: '#d8302a', print: 'bolt', pcol: '#ffd23f', pcol2: '#b8860b', rarity: 'Common', desc: 'A red t-shirt with a yellow lightning bolt on the front.' },
-  { id: 'blue_tee', name: 'Blue Tee', col: '#2a5ad0', print: 'num7', pcol: '#ffffff', pcol2: '#16306e', rarity: 'Common', desc: 'A blue t-shirt with a big number 7 on the front.' },
-  { id: 'green_tee', name: 'Green Tee', col: '#2f9a4a', print: 'paw', pcol: '#f4f0dc', rarity: 'Common', desc: 'A green t-shirt with a paw print on the front.' },
-  { id: 'yellow_tee', name: 'Yellow Tee', col: '#ffc830', print: 'smile', pcol: '#ff8a1e', pcol2: '#3a2010', rarity: 'Common', desc: 'A sunny yellow t-shirt with a smiley face on the front.' },
-  { id: 'black_tee', name: 'Black Tee', col: '#2a2a32', print: 'moon', pcol: '#f4e6a8', rarity: 'Common', desc: 'A black t-shirt with a moon and stars on the front.' },
-  { id: 'striped_tee', name: 'Striped Tee', col: '#f4f6fa', col2: '#d8302a', pat: 'hstripe', rarity: 'Uncommon', desc: 'A white t-shirt with red stripes, sleeves too.' },
-  { id: 'ringer_tee', name: 'Ringer Tee', col: '#f4f2ea', trim: '#22336e', rarity: 'Uncommon', desc: 'A white t-shirt with a navy collar and navy sleeve ends.' },
-  { id: 'navy_polo', name: 'Navy Polo', col: '#22336e', col2: '#f4f6fa', col3: '#f4f6fa', polo: true, rarity: 'Uncommon', desc: 'A navy polo shirt with a white collar.' },
-  { id: 'pink_polo', name: 'Pink Polo', col: '#ff8ac0', col2: '#ffd0e4', col3: '#ffffff', polo: true, rarity: 'Uncommon', desc: 'A pink polo shirt with a light collar.' },
-  { id: 'green_polo', name: 'Green Polo', col: '#2a7a4a', col2: '#3e9a62', col3: '#f4f4ea', polo: true, rarity: 'Uncommon', desc: 'A green polo shirt.' },
-  { id: 'white_polo', name: 'White Polo', col: '#f4f4f2', col2: '#ffffff', col3: '#c8c8d0', polo: true, rarity: 'Uncommon', desc: 'A crisp white polo shirt.' },
-  // (owner: "make polo t-shirts too")
-  { id: 'red_polo', name: 'Red Polo', col: '#c8282a', col2: '#f4f0ea', col3: '#ffffff', polo: true, rarity: 'Uncommon', desc: 'A red polo shirt with a white collar.' },
-  { id: 'black_polo', name: 'Black Polo', col: '#26262e', col2: '#3a3a44', col3: '#ffc830', polo: true, rarity: 'Uncommon', desc: 'A black polo shirt with gold buttons.' },
-  { id: 'yellow_polo', name: 'Yellow Polo', col: '#ffc830', col2: '#fff4c8', col3: '#ffffff', polo: true, rarity: 'Uncommon', desc: 'A bright yellow polo shirt.' },
-  { id: 'striped_polo', name: 'Striped Polo', col: '#f4f6fa', col2: '#22336e', col3: '#22336e', pat: 'hstripe', polo: true, collar: '#22336e', rarity: 'Rare', desc: 'A white polo shirt with navy stripes and a navy collar.' },
-  { id: 'sky_polo', name: 'Sky Polo', col: '#7ac0f0', col2: '#ffffff', col3: '#ffffff', polo: true, print: 'pocket', pcol: '#5aa0d8', pcol2: '#ffffff', rarity: 'Uncommon', desc: 'A sky blue polo shirt with a little chest pocket.' },
-  { id: 'aloha_polo', name: 'Flower Polo', col: '#e8502a', col2: '#fff4c8', col3: '#ffd23f', pat: 'flower', polo: true, collar: '#fff4c8', rarity: 'Rare', desc: 'A bright orange polo shirt covered in flowers.' },
-  // (owner: "a Hawaiian polo, open, the sando showing down the middle") `open`: unbuttoned, the white sando (the body's
-  // own tank top) shows in a strip down the front, the collar lies open on either side
-  { id: 'hawaiian_polo', name: 'Hawaiian Polo', col: '#1f8fa8', col2: '#ff4a5a', col3: '#ffd23f', col4: '#2f9a4a', pat: 'hibiscus', polo: true, open: true, collar: '#1f8fa8', rarity: 'Epic', desc: 'An open blue Hawaiian shirt with red hibiscus flowers, worn over a white sando.' },
-  { id: 'hawaiian_polo_red', name: 'Red Hawaiian Polo', col: '#d8283a', col2: '#fff4f0', col3: '#ffd23f', col4: '#1f7a4a', pat: 'hibiscus', polo: true, open: true, collar: '#d8283a', rarity: 'Epic', desc: 'An open red Hawaiian shirt with white hibiscus flowers, worn over a white sando.' },
-];
+// (owner, Nov 19 2026 build p) every t-shirt and polo was deleted; the sleeve / collar / print painting stays for
+// new ones: { id, name, col, col2, col3, print, pcol, pcol2, pat, polo, collar, trim, rarity, desc }
+const TEES = [];
 const TEE_HEM = 3, // darker last px of the sleeve (counted along the arm)
   TEE_NECK = [8, 6]; // round neck: half width, depth (body px)
 for (const w of TEES) {
@@ -43,7 +20,7 @@ for (const w of TEES) {
 }
 // (owner: "do it on every t-shirt") the older t-shirts in the game get sleeves too (dresses, blouses, the jersey,
 // vests, coats and the picture shirts stay as they are)
-const TEE_OLD = ['plain_white_tee', 'tan_shirt', 'green_shirt', 'referee_shirt', 'tie_dyed_shirt', 'sailor_shirt', 'flower_shirt', 'camo_shirt', 'red_flannel', 'heart_tee', 'star_tee', 'sunset_tee'];
+const TEE_OLD = []; // (the older t-shirts were deleted, Nov 19 2026 build p)
 for (const id of TEE_OLD) if (WEAR_BY_ID[id]) WEAR_BY_ID[id].sleeve = true;
 SHOP.push(...TEES.map((w) => ({ id: w.id, gold: w.open ? 8000 : w.polo ? (w.pat ? 6000 : 5000) : w.pat || w.trim || w.print ? 4000 : 3000, cat: 'wear' })));
 

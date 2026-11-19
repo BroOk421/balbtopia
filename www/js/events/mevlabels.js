@@ -84,7 +84,6 @@ function mevLabelText(id) {
   else if (id === 'green_acid' || id === 'glowing_stone') t = n + '. Found by breaking Moon Rock on the Moons (3%).';
   else if (/_fossil$/.test(id)) t = n + '. Found by breaking asteroids on the Moons with the Laser Gun.';
   else if (/^moon_/.test(id)) t = n + '. Only found on the Moons.';
-  else if (id === 'space_suit' || id === 'space_helmet' || id === 'space_boots') t = 'Astronaut Set (Shop): Space Helmet, Space Suit, Space Boots and a Laser Gun.';
   else {
     const d = (it.desc || '').split('. ')[0];
     t = n + (d ? '. ' + d : '') + '.';

@@ -30,7 +30,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
 | `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
-| `wear/` | wear, clothes, tees, oldman (build n, after afro), floaties (build p, after oldman), capes, scarves, hairstyles, diaper, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
+| `wear/` | wear, clothes, tees, oldman (build n, after pirate; hair / beard gone in Nov 19 o), capes, scarves, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
 | `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides, megagun (build p, after asteroids.js) |
 | `render/` | render, shadow, portrait, remotefx |
 | `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks, achievements (Nov 13 2026, right before main.js) (chatbar.js removed Nov 10 2026) |
@@ -100,6 +100,9 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
 | `groundhold.js` | `shownGround()`: "on the ground" for drawing / sending stays true 150 ms after the last grounded step (not while rising), so asteroids / Arrow Gates don't flicker the jump / landing pose |
 | `reaperscythe.js` | Nocturn Scythe (id `reaper_scythe`; Shop TOOLS 100,000, Legendary, tracked): owner's animated GIF; handle + blade body frozen from frame 0, only the green flames animate (`art-source/items/reaper_scythe_build.py` -> `assets/items/reaper_scythe.png`, 10 frames of 288 px in scythes.js picture space); hooks `scythePic` / `scyFrame` / `scyDraw`; glow and rising flames; NO crescent slash: every swing shoots the Laser Gun's asteroid-breaking radiation (`drawRadiation`, squeezed across its line: width thins full -> nothing over `NOCT_BEAM.ms`); comes out of the blade's TIP (`NOCT_TIP`, tracked every frame through `drawBehind`'s transform -> `noctTips`; riding, the arm is drawn on the screen canvas, so the canvas point is kept), started in `startPunch` (you, held OR worn in the Hand slot) / `stepToolFx` (others' punches), drawn from `drawWater` over everything. Loaded right after scythes.js |
 | `scarfreaper.js` | Royal Silk Scarf: a green-flame reaper (owner's 4 frames, `assets/items/reaper_scarf.png`, cut by `art-source/items/reaper_cut.py`, then `reaper_freeze.py`: its scythe is frame 0's in every frame, or it looked like two scythes) FLIES with you like the flying dragon pets (trails behind at head height, leans, faces the way it flies); stays BEHIND you (`REAPER.back` 36, no idle passes: crossing over you looked like two reapers on dark worlds); fades in on wear, out on unwear (per player name). Drawn via `drawPetOf(...,'big')` (NOT in rides.js's own rider passes: `RIDE_PASS` / `c.rideBase`, or it showed twice), grows shadow.js `petBox`; Profile picture / Mannequin keep a still version in `drawBehind`. Loaded last before main.js |
+| `rodknife.js` | (items/, Nov 20 2026 u, owner's wear.zip) Held pictures `HELD` (his rod: Fishing / Golden / Noah's Rod recoloured, no outline; his knife) drawn in the blocky front hand where his file has them (top-left in sprite px from the front shoulder, his shoulder = (40, 20.5), mirrored), rods out of BLOCKY_TOOL_SKIP; icons = the picture laid diagonally (HDT_ART). New `knife` tool (Common weapon, Bolo + Iron Bars). Fishing: arm raised `ROD_HOLD` while the line is out, cast / reel swings (`rodSwingAngle`), the rod bends on a bite (`rodBend`), and the CATCH BAR (`fishing.mg`, `MG` speeds per fish size): walk keys move the green bar (no walking meanwhile), progress fills on the fish / drains off it; full = fish.js reel() catch, empty = got away. Loaded last before main.js |
+| `softstroke.js` | (render/, Nov 19 2026 l, owner; scythes build p) Blocks (and every scythe picture, build p: `ssScythe`, glow ring counted as outside, the Nocturn Scythe with a stricter black test so its dark teal handle stays) whose outline was BLACK: each stroke pixel (dark: lightness < `SOFTSTROKE.dark` 48, no channel over `max` 80, touching see-through or an open side, 2 px deep) takes the colour just inside the stroke times `SOFTSTROKE.mul` 0.72 (a bit darker). Wraps drawTileBlock (only KNOWN STILL pictures are swapped: loaded images, texCanvas / decoCanvas / darkTile / lockSprite / woodDoorSprite / grassTuft / groundPic / rockTile / pix64Canvas results; cached per picture), drawEdges (picture + edges made once per sides / colours, softened with only the air sides open), iconCanvas (block icons) and doorSprite (main door). Loaded LAST before main.js |
+| `backfit.js` | (wear/, Nov 19 2026 m, owner) Back items on the blocky body: wings and every other back item drawn `BACKFIT.drop` (41) frame px lower, from the old shoulders (row 104, capes.js CAPE_TOP) to the blocky ones (`BLOCKY.back[1]` 145); capes hang from row 145 and are squeezed up-down (`capeK`) so the hem still ends at the feet (row 213). Only for the back item while drawBehind draws (`BF_CHAR`). Outermost drawBehind / drawWearStrip / drawWearArt wrappers, loaded last before main.js |
 | `nostroke.js` | (render/, Nov 19 2026 h/i, owner) Outlines of hand tools: only COMMON ones have none, the Guitar a light one (`NOSTROKE_SOFT`), Uncommon and up keep theirs (pickaxes: none, wear.js): wraps toolSprite / scythePic / wearIcon (TOOLS ids) and copies each picture once without its outline (`noStroke`: dark pixels, lightness < `NOSTROKE_DARK` 72, touching see-through). Loaded LAST before main.js |
 | `prismtrail.js` | Phantom Ring (id `prism_ring`, ring slot, `trail` in wrist.js RINGS): wherever he goes (ground or air), every `PRISM.gap` 15 world px a copy of the CHARACTER WITH HIS AURA (stripped copy drawn a second time by `prismSnap`: no pet / flying dragon, ride, ring, neck scarf (Royal Silk Scarf's reaper), punch, name tag, drop shadow; box widened for the aura with `auraHalfW`; riding, at the ride's height `rideRiseOf` in rides.js and in the rider's pose: standing rides don't walk, on the carpet not even jumping) is LEFT on that spot and never moves; it lives `PRISM.life` 2 s, starts in his own colours, darkens towards `PRISM.tint` and fades. Max `PRISM.max` 7 (an 8th pushes out the oldest). Note: a copy frame draws the character twice (particles a drawCharacter wrapper spawns may double then). Loaded LAST before main.js (outermost drawCharacter wrapper) |
 | `wingsopen.js` | Demon / Dragon / Galaxy / Phoenix / Shadow Wings: folded (original) on the ground, SPREAD (owner's pictures, `wings_<name>_open.png`) the whole time in the air |
@@ -4561,3 +4564,108 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
       front arm so the barrel points at the spot (front angle = the spot's angle); gunNoteTip notes the muzzle so the
       water / laser starts there. The Mega Water Gun is held in one hand on the blocky body.
     - render.js: bsl.tool is set when bsl is made (both sleeve calls know the tool).
+  - Build '2026-11-19 l' (owner: "the blocks with a black stroke: use the 2nd colour before the stroke, a little
+    darker, black looks bad; the character the same size as a tile"):
+    - NEW `js/render/softstroke.js` (see the Files table): black block outlines become a slightly darker copy of the
+      colour right inside them, in the world, the place preview, bag / hotbar / shop icons and the main door. Blocks
+      with a coloured (not black) outline are unchanged. Tuning: `SOFTSTROKE` { dark, max, mul }.
+    - config.js `CHAR_H` 32 -> 41: the blocky body (rows 46-214 of the 118 x 215 frame) is now 32 px tall = one tile
+      (was ~25). Everything drawn with `sc = CHAR_H / FR.h` (hats, hair, sleeves, faces, Mannequin, Profile picture)
+      grows with it; blockybody.js `BLOCKY_TOOL_LEN` = 17 * CHAR_H / 32 so held tools keep their size on the body.
+      The hitbox (`P.w` 11, `P.h` 29) is unchanged, so 1-tile gaps still fit. Hats still sit a little above the head
+      (they were placed for the old head before this build too: not refitted yet).
+  - Build '2026-11-19 m' (owner: "the wings and capes lower, level with the character's shoulders"): NEW
+    `js/wear/backfit.js` (see the Files table). Every wing (strips, open wings in the air, golden / crystal wings) and
+    the back items move down 41 frame px; capes start at the shoulders and end at the feet. Hair, aura unchanged.
+  - Build '2026-11-19 n' (owner: "breaking: the hand goes round like swimming; swimming the other way, counter-
+    clockwise"): blockybody.js `blockySpin(c, u)` = the arm angle after u turns, always COUNTER-CLOCKWISE on the screen
+    (flipped with c.face, since the picture is mirrored facing left: facing right the hand goes down -> forward -> up
+    -> back). Swimming: both arms with it, half a turn apart (was forward in the character's own space, so clockwise
+    on the screen facing left). Breaking (c.punch, not placing, not guns): the FRONT arm (with the held tool) goes
+    once all the way round per punch (PUNCH_TIME), from hanging to hanging, so holding the button keeps it circling;
+    placing still points the arm at the block. Checked: hand path bottom -> right -> top -> left for both facings.
+- Build '2026-11-19 o' (owner: "changing clothes only the top changed, the white stayed: put it in the shirt colour;
+  swimming facing right should be clockwise; delete all the hairs, I'll make new ones; delete every code-drawn hat
+  too, and the beards and octopus beards"):
+  - wear.js `BODY_BANDS.shirt` [98, 156] -> [98, 177]: the blocky body's white sando reaches row 176 (the shorts start
+    at 178), so a shirt now covers all of it (standing, walking, jumping).
+  - blockybody.js `blockySpin` = 2 pi u in the character's own space again: facing RIGHT the arms go CLOCKWISE on
+    the screen, facing LEFT counter-clockwise (down -> back -> up over the head -> forward). Swimming and the
+    breaking swing both use it.
+  - DELETED (code, art, Shop rows, recipes, sets, server rows): every hair (the 32 WEAR hairs, Spiky Black Hair
+    `hair_spiky_black`, Red Hair `red_hair`), every code-drawn hat (Top Hat, Santa Hat, Ski Cap, Rooster Hat, Baseball
+    Cap, Old-Timey Hat, Frog Hat, Fire Head, Green Visor, TV Head, Red Riding Hood, Bridal Veil, Halo) and the
+    beards (White Beard, Pirate Beard, Silver Full Beard, Octopus Beard, Golden Octopus Beard). Kept: the picture
+    hats (Pirate Hat, Black Beanie, Leaf Headband, Space Helmet), the two mustaches (Long / Curly Mustache), Boss
+    Shades.
+    - Files removed: js/wear/hairstyles.js, js/wear/afro.js, js/art/wear_hats.js, js/art/wear_pixel_hats.js (and their
+      script tags); pictures assets/items/hair_*.png, oldman_hair / oldman_beard.png, assets/sea/kraken_beard.png,
+      pirate_beard.png (assets.js entries gone).
+    - Edited: wear.js (WEAR entries, WEAR_ART painters, long-hair helpers, ANIM hot_head), blocks.js (red_hair),
+      config.js (12 SPLICE lines, hair_spiky_black), farming.json (12 splices, 24 trees), shop.js, sets.js (sets keep
+      their other pieces), oldman.js (only Boss Shades left), pirate.js (only the hat), musicset.js / goldsea.js (no
+      octopus beards, not in FISH_DROPS), rvb.js (Ticket Master / Tatang wear none; not in the ticket exchange),
+      spwai.js (bots are bald), hatfit.js (HAT_NO_HAIR / HAT_ON_TAIL empty, the machinery stays for new hairs),
+      wear_face_back.js (white_beard), dyes.js (HS_RAMPS moved in from hairstyles.js; HAIR_STYLED empty, so no stove
+      hair recipes until new hairs exist; the dye items stay).
+    - schema.sql: their shop_prices rows, keep-list entries, spw_shop rows and item_info rows removed (RE-RUN it).
+    - Old saves: applyPlayer / cleanInv drop unknown items from bags and worn slots; Display Boxes, Mannequins,
+      floating drops and trees holding a deleted id show nothing (checked in headless Chromium, no errors).
+- Build '2026-11-19 p' (owner: "remove the clothes too; the scythes' stroke: the colour of the 2nd pixel, a little
+  darker"; answers: shirt / pants / shoes only; ALL of them, the Astronaut suit too; the scythes are NOT deleted, only
+  their stroke changes):
+  - DELETED every shirt, pants and shoe (100 items: wear.js, clothes.js and tees.js lists now empty, the painting
+    patterns stay for new clothes; photo_wear.js Skull Tee / Cat Ear Hoodie; autumn.js leaf shirt / shorts / boots (out
+    of the Autumn Chest); musicset.js Music Tee / Rocker Jeans / Rocker Sneakers / Holey Pants (out of fishing);
+    spacesuit.js Space Suit / Space Boots), the 13 outfit sets (sets.js OUTFIT_SETS empty, machinery kept) and the
+    files js/wear/floaties.js (swim rings), js/wear/diaper.js (render.js calls diaperFrame only if it exists),
+    js/wear/topless.js (Tribal Tattoo) with their pictures (floatie_*, diamond/golden_diaper_*, dmask_walk_*,
+    <skin>/diaper_walk_*, topless_tattoo, skull_tee, cat_ear_hoodie, space_suit_icon, space_boots_icon).
+  - Astronaut Set = Space Helmet + Laser Gun now; `astroFull` is always false (no space jump on the Moons any more:
+    normal gravity + one extra jump); the suit painting code is gone, the helmet code (face hidden, jump arms) stays.
+  - Music Set = Guitar + Piano, Drum Set, Boombox. Level rewards: level 50 (Cat Ear Hoodie) removed, client and
+    schema.sql claim_level_reward (70 / 80 / 90 / 100 left). Splash Wars: NPCs, AI bots and Tatang wear no clothes;
+    the ticket exchange lost the swim rings, Hawaiian polos, Cargo Shorts (schema.sql deletes those spw_shop rows).
+  - Recipes (7 in farming.json, 7 in SPLICE), shop.js rows, schema.sql shop_prices / keep list / item_info rows: gone.
+    RE-RUN schema.sql.
+  - softstroke.js: scythe strokes (see the Files table). Checked in headless Chromium: old saves with deleted clothes
+    load (bag and worn slots cleaned), Shop tabs, Starter Pack pool, Mannequins, walking / jumping: no errors.
+- Build '2026-11-19 q' (owner: "the scarves too, keep only the Royal Scarf; and remove the hats too"):
+  - DELETED every scarf but the Royal Silk Scarf (11 scarves + the Red Bandana: wear.js entries, scarves.js styles;
+    the scarf painter and the Royal Silk Scarf's reaper stay) and every hat that was left: Pirate Hat (js/wear/pirate.js
+    removed, out of FISH_DROPS), Black Beanie (photo_wear.js list empty), Leaf Headband (autumn.js, out of the Autumn
+    Chest), Space Helmet. Pictures gone: assets/sea/pirate_hat.png, assets/items/black_beanie.png,
+    assets/items/space_helmet.png, assets/autumn/headband_s.png. Shop rows, schema.sql rows gone (RE-RUN it).
+  - spacesuit.js is now only the Astronaut Set = the Laser Gun (Shop picture: the gun) and `astroFull` (false).
+    asteroids.js laserGrant does nothing now; the MOONEVENT Mannequins only wear the crystal wings; the Splash Wars
+    Ticket Master wears no scarf.
+  - Not refitted yet: the Royal Silk Scarf's wrap is still placed for the old body (it sits over the blocky mouth).
+- Build '2026-11-19 r' (owner, with a picture of the Golden Scythe in the hand: "the scythe a bit bigger in the hand so
+  it looks fierce, and a little longer, every scythe"): blockybody.js `BLOCKY_SCY` { big 1.3, long 1.15 }: a scythe
+  held by the blocky front sleeve is drawn 1.3x bigger round the hand and stretched 1.15x more along its (level)
+  handle, so handle and blade both reach further; the grip stays in the hand, and the Nocturn / Furious tips (beam)
+  follow since they are read from the transform. Icons and the scythe pictures themselves are unchanged.
+- Build '2026-11-19 s' (owner, with a picture of the fire eyes sitting above the eyes: "put the flame ones right on the
+  eyes; remove the glasses you made, and the mustaches"):
+  - fire_eyes.js: both fires use the near eye's shape in 3 px cells (`FE_CELL`, was 4), centred on each blocky eye
+    (`FE_EYES`: frame x 42-77 / 84-117, y 75-98), the round bottom on the eye's bottom row; icon crop [38, 142, 84, 84].
+  - DELETED the code-drawn glasses (Shades, Big Glasses, Gold-Rimmed Glasses, X-Ray Specs) and both mustaches (Long /
+    Curly Mustache): wear.js entries + painters, wear_face_back.js painters, the Ticket Master's shades, recipes (4
+    SPLICE lines, 4 farming.json splices that made or used them), schema.sql rows (RE-RUN it). Kept: Boss Shades (the
+    owner's picture), Red Visor and Laser Eyes (not glasses; the visor's reach and the Laser Eyes recipe stay).
+- Build '2026-11-19 t' (owner's screenshot: the big Golden Scythe cut off under the feet; "don't cut it, keep the
+  size"): shadow.js's off-screen character box (only SHADOW_BOX.b 10 px under the feet) now also holds a circle round
+  the shoulder of the held tool's reach (`shadowToolReach(c)` in blockybody.js: hand + tool picture size, scythes x
+  BLOCKY_SCY big x long, the Nocturn x REAPER_SCY_BIG), so the scythe shows whole while standing, walking and turning
+  round when breaking. Sizes unchanged.
+- Build '2026-11-20 u' (owner's wear.zip: rod.aseprite / knife: "add how he holds them; with the line in the water the
+  arm raised a little, slanted, so the rod is up; a bite bends the rod's tip; a pop-up bar with a fish in it and a
+  green bar you keep on the fish with left / right; the fish goes left and right at random; a progress bar for the
+  catch"; answers: the knife is a NEW item from a recipe; his rod replaces the normal rod, Golden / Noah's Rod the same
+  shape in their own style, no outline). NEW js/items/rodknife.js (see the Files table); pictures
+  assets/items/held_rod.png, held_rod_golden.png, held_rod_noah.png, held_knife.png (cut from his .aseprite layers by
+  art-source/items/held_cut.py <root>, his files in art-source/items/held/; stray rod pixels left of the blade removed), knife_icon.png (his knife.png).
+  farming.json / SPLICE: Knife = Bolo + Iron Bars, tree 360 s. schema.sql item_info: knife / knife_seed common (RE-RUN).
+  Fishing is otherwise as before (cast range, bait, 14-30 s wait, rewards); the old "click while it bites" is replaced
+  by the catch bar.
+

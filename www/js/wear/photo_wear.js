@@ -2,27 +2,13 @@
 // outfit_pieces_cut.py), laid over OUR character exactly the way his picture shows them worn
 // (outfit_pieces_worn.png, our body at 1:1). Nothing of the body is repainted: each piece is a picture drawn on top
 // of the body, moving with it like hair and hats (the walking bob `dy`), so arms, tools and swings stay as before.
-//  - Black Beanie (hat) and Cat Ear Hoodie (shirt slot; the hood, black bangs and the sleeveless hoodie are one piece)
-//    bring their own black hair, so a worn hairstyle is hidden under them (`hideHair`).
-//  - Skull Tee (shirt slot): the sleeveless white tee with a little skull.
+//  - (The Black Beanie was deleted with every hat, Nov 19 2026 build q.)
+//  - (The Skull Tee and the Cat Ear Hoodie were deleted with every shirt, Nov 19 2026 build p; the `over` shirt
+//    drawing below stays for new picture shirts.)
 // x, y, w, h: where the picture goes, in body-sprite px. Shop only through the SETS tab (sets.js), no seeds.
 // ===== picture clothes =====
-Object.assign(A, {
-  black_beanie: 'assets/items/black_beanie.png',
-  skull_tee: 'assets/items/skull_tee.png',
-  cat_ear_hoodie: 'assets/items/cat_ear_hoodie.png',
-});
-const PHOTO_WEAR = [
-  { id: 'black_beanie', name: 'Black Beanie', slot: 'hat', rarity: 'Rare', shop: true, hideHair: true,
-    strip: { img: 'black_beanie', frames: 1, ms: 1000, x: -8, y: -13, w: 130, h: 91, icon: [0, 0, 130, 91] },
-    desc: 'A slouchy black knit beanie with a little white patch, black hair peeking out.' },
-  { id: 'skull_tee', name: 'Skull Tee', slot: 'shirt', rarity: 'Rare', shop: true,
-    over: { img: 'skull_tee', frames: 1, ms: 1000, x: 29, y: 101, w: 58, h: 60, armsFront: true, icon: [0, 0, 58, 60] },
-    desc: 'A roomy white sleeveless tee with a tiny black skull.' },
-  { id: 'cat_ear_hoodie', name: 'Cat Ear Hoodie', slot: 'shirt', rarity: 'Epic', shop: true, hideHair: true, hood: true,
-    over: { img: 'cat_ear_hoodie', frames: 1, ms: 1000, x: -7, y: -23, w: 139, h: 192, split: 108, icon: [0, 0, 139, 192] },
-    desc: 'A soft grey sleeveless hoodie, hood up, with cat ears and black bangs.' },
-];
+// new picture clothes: put their pictures in A and their entries here ({ id, name, slot, strip | over, ... })
+const PHOTO_WEAR = [];
 for (const w of PHOTO_WEAR) {
   WEAR.push(w);
   WEAR_BY_ID[w.id] = w;

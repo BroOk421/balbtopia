@@ -1,17 +1,15 @@
 // What each bait brings up + the Golden Shrimp and its golden catches (owner, Nov 10 2026: "split what comes up from the
-// water between worm, snail and shrimp; add a Golden Shrimp, rare to get, that brings up golden things: a golden
-// octopus beard with a stroke whose colour fades out and in, and a shipwreck like that that glows, with glowing
-// circles rising, a stroke too, glowing").
+// water between worm, snail and shrimp; add a Golden Shrimp, rare to get, that brings up golden things: ... a
+// shipwreck that glows, with glowing circles rising, a stroke too, glowing"). (The Octopus Beard and the Golden
+// Octopus Beard were deleted with every beard, owner Nov 19 2026 build o.)
 // - FISH_DROPS: when the line brings up junk (not a fish), WHICH junk depends on the bait (weights):
-//     Worm    bottles, cans, Old Shoe, Holey Pants, Seaweed (rubbish near the shore)
+//     Worm    bottles, cans, Old Shoe, Seaweed (rubbish near the shore)
 //     Snail   Seaweed, Starfish, Orange / Pink Coral, a bottle or a shoe now and then
-//     Shrimp  Starfish, corals; rarely the Torn Ship Flag (~5%) and the Shipwreck (~3%); very rarely the Octopus Beard
-//     Golden Shrimp  the sea things, and the GOLDEN ones: Golden Shipwreck (~4%), Golden Octopus Beard (~1.6%)
+//     Shrimp  Starfish, corals; rarely the Torn Ship Flag (~5%) and the Shipwreck (~3%)
+//     Golden Shrimp  the sea things, and the GOLDEN one: Golden Shipwreck (~4%)
 //   Fish are unchanged (BAIT_INFO: a better bait = bigger fish).
 // - GOLDEN SHRIMP (bait, Epic): a shining gold shrimp. A full Bait Basket holds one GOLD_BAIT_CHANCE of the time
 //   (fishing.js baitIn: picked from the tile and the time, the same on every screen); the best bait for fish too.
-// - GOLDEN OCTOPUS BEARD (golden_kraken_beard, Mustache slot, Legendary): the Octopus Beard's frames turned to gold with a
-//   bright outline (stroke); its shine fades out and in (`goldPulse`) while its tentacles move.
 // - GOLDEN SHIPWRECK (block 478, walk-through, Legendary look): the Shipwreck in gold with an outline, a pulsing golden
 //   glow round it and little glowing circles rising off it. Drawn after all blocks like the Shipwreck (sea.js).
 // Loaded after sea.js and musicset.js.
@@ -20,10 +18,10 @@ const GOLD_BAIT = 'golden_shrimp',
   GOLD_BAIT_CHANCE = 0.05, // of the full Bait Baskets
   GOLD_SHIP_T = 478;
 const FISH_DROPS = {
-  worm: { empty_bottle: 6, empty_can: 3, old_shoe: 3, holey_pants: 2, seaweed: 3 },
+  worm: { empty_bottle: 6, empty_can: 3, old_shoe: 3, seaweed: 3 },
   snail: { seaweed: 3, starfish: 3, coral_orange: 2, coral_pink: 2, empty_bottle: 1, old_shoe: 1 },
-  shrimp: { starfish: 2, coral_teal: 2, coral_purple: 2, coral_orange: 1, coral_pink: 1, ship_flag: 0.5, shipwreck: 0.27, kraken_beard: 0.1 },
-  golden_shrimp: { starfish: 2, coral_teal: 2, coral_purple: 2, ship_flag: 1, shipwreck: 0.6, kraken_beard: 0.3, golden_shipwreck: 0.4, golden_kraken_beard: 0.15 },
+  shrimp: { starfish: 2, coral_teal: 2, coral_purple: 2, coral_orange: 1, coral_pink: 1, ship_flag: 0.5, shipwreck: 0.27 },
+  golden_shrimp: { starfish: 2, coral_teal: 2, coral_purple: 2, ship_flag: 1, shipwreck: 0.6, golden_shipwreck: 0.4 },
 };
 function fishDrop(bait) {
   const t = FISH_DROPS[bait] || FISH_DROPS.worm,
@@ -136,70 +134,6 @@ baitIn = ((prev) =>
     if (h % 1000 < GOLD_BAIT_CHANCE * 1000) return GOLD_BAIT;
     return ['worm', 'snail', 'shrimp'][((h2 ^ (h2 >>> 13)) >>> 0) % 3]; // (as before: only the three ordinary ones)
   })(baitIn);
-
-// ---------- the Golden Octopus Beard ----------
-const GOLD_KRAKEN_ID = 'golden_kraken_beard',
-  GOLD_KRAKEN_N = 12; // pictures in one loop: the tentacles move every 2, the shine fades in and out once (each is kept)
-addWear({ id: GOLD_KRAKEN_ID, name: 'Golden Octopus Beard', slot: 'stache', shop: true, art: GOLD_KRAKEN_ID, rarity: 'Legendary', desc: 'A golden octopus beard with a shining outline; its gold fades out and in. Only the Golden Shrimp can bring it up, and rarely.' });
-FISH_JUNK_NAMES[GOLD_KRAKEN_ID] = 'Golden Octopus Beard';
-FISH_JUNK_NAMES.kraken_beard = 'Octopus Beard';
-let goldKrakenStrip = null; // the 4 frames in gold, each (KRAKEN_FW + 4) x (KRAKEN_FH + 4)
-const goldKrakenFrames = () => {
-  if (goldKrakenStrip || !KRAKEN_IMG.complete || !KRAKEN_IMG.naturalWidth) return goldKrakenStrip;
-  goldKrakenStrip = [0, 1, 2, 3].map((k) => goldify(KRAKEN_IMG, k * KRAKEN_FW, 0, KRAKEN_FW, KRAKEN_FH, 2));
-  return goldKrakenStrip;
-};
-// frame f (0 .. GOLD_KRAKEN_N - 1): the tentacles move every 2 (KRAKEN_MS), the shine goes up and back down once
-ANIM_N[GOLD_KRAKEN_ID] = [KRAKEN_MS / 2, GOLD_KRAKEN_N];
-WEAR_ART[GOLD_KRAKEN_ID] = ({ x, f }) => {
-  const fr = goldKrakenFrames();
-  if (!fr) return;
-  f = f || 0;
-  const pic = fr[KRAKEN_SEQ[Math.floor(f / 2) % KRAKEN_SEQ.length]],
-    shine = 0.5 - 0.5 * Math.cos(((f % GOLD_KRAKEN_N) / GOLD_KRAKEN_N) * Math.PI * 2), // 0 .. 1 .. 0
-    k = KRAKEN_AT.w / KRAKEN_FW,
-    X = KRAKEN_AT.x - (KRAKEN_AX + 2) * k,
-    Y = KRAKEN_AT.y - (KRAKEN_AY + 2) * k,
-    w = pic.width * k,
-    h = pic.height * k;
-  x.imageSmoothingEnabled = true;
-  // a soft glow round it, stronger as it shines
-  x.save();
-  x.shadowColor = `rgba(255,220,90,${(0.35 + 0.5 * shine).toFixed(3)})`;
-  x.shadowBlur = 4 + 8 * shine;
-  x.globalAlpha = 0.72 + 0.28 * shine; // the gold fading out and in
-  x.drawImage(pic, X, Y, w, h);
-  x.restore();
-  // the bright shine on top, fading in and out
-  if (shine > 0.05) {
-    x.save();
-    x.globalAlpha = 0.45 * shine;
-    x.globalCompositeOperation = 'lighter';
-    x.drawImage(pic, X, Y, w, h);
-    x.restore();
-  }
-};
-KRAKEN_IMG.addEventListener('load', () => {
-  goldKrakenStrip = null;
-  for (const key in ARTS) if (key.startsWith(GOLD_KRAKEN_ID + ':')) delete ARTS[key];
-  if (typeof ICON !== 'undefined') delete ICON[GOLD_KRAKEN_ID];
-});
-Object.defineProperty(WEAR_ICON, GOLD_KRAKEN_ID, {
-  configurable: true,
-  get() {
-    const c = document.createElement('canvas');
-    c.width = c.height = 32;
-    const fr = goldKrakenFrames();
-    if (!fr) return c;
-    const x = c.getContext('2d'),
-      p = fr[0],
-      k = 31 / Math.max(p.width, p.height);
-    x.imageSmoothingEnabled = true;
-    x.drawImage(p, (32 - p.width * k) / 2, (32 - p.height * k) / 2, p.width * k, p.height * k);
-    Object.defineProperty(WEAR_ICON, GOLD_KRAKEN_ID, { value: c, configurable: true });
-    return c;
-  },
-});
 
 // ---------- the Golden Shipwreck ----------
 {

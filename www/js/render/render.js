@@ -567,8 +567,9 @@ function drawCharacter(c, ox, oy) {
   // ('land': the half-shut eyes of the blink frame, the body squashed by blockyjump.js)
   const bj = !punching && c._bj && typeof blockyImg === 'function' ? (c._bj === 'land' ? IMG['skin_' + c.skin + '_half'] : blockyImg(c.skin, 'blocky_jump_' + c._bj)) : null;
   const walking = c.walking && canWalk && !bj;
-  // walking in a Diamond / Golden Diaper: the owner's own walking frames (diaper.js)
-  const dw = walking && !punching ? diaperFrame(c, wf) : null;
+  // (the diapers and diaper.js were deleted with every pants, Nov 19 2026 build p; a file that brings walking frames
+  // of its own can define diaperFrame(c, wf) -> { im, key, dy } again)
+  const dw = walking && !punching && typeof diaperFrame === 'function' ? diaperFrame(c, wf) : null;
   const im = punching
       ? IMG['punch_' + c.skin]
       : dw

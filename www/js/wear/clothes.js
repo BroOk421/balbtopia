@@ -7,50 +7,9 @@
 //  feet:   `slip: { sole, strap }` = slippers (the flip-flops recoloured), `pat: 'sole'` = sneakers with a white sole
 // Loaded after vampire_face.js; prices in shop.js and schema.sql (shop_prices). Names / prices picked by Claude.
 // ===== clothes =====
-const CLOTHES = [
-  // shirts
-  { id: 'sailor_shirt', name: 'Sailor Shirt', slot: 'shirt', col: '#f4f6fa', col2: '#22336e', pat: 'hstripe', rarity: 'Uncommon', desc: 'A white shirt with navy sailor stripes.' },
-  { id: 'flower_shirt', name: 'Flower Shirt', slot: 'shirt', col: '#2fb0c8', col2: '#ff6a8a', col3: '#ffe066', pat: 'flower', rarity: 'Uncommon', desc: 'A bright beach shirt covered in pink and yellow flowers.' },
-  { id: 'camo_shirt', name: 'Camo Shirt', slot: 'shirt', col: '#6a7a42', col2: '#3e4a2a', col3: '#a8986a', pat: 'camo', rarity: 'Uncommon', desc: 'A green camouflage shirt.' },
-  { id: 'red_flannel', name: 'Red Flannel', slot: 'shirt', col: '#c8302a', col2: '#2a1414', pat: 'plaid', rarity: 'Uncommon', desc: 'A cosy red and black checked flannel.' },
-  { id: 'heart_tee', name: 'Heart Tee', slot: 'shirt', col: '#fafafa', col2: '#e8243a', pat: 'heart', rarity: 'Common', desc: 'A white tee with a big red heart.' },
-  { id: 'star_tee', name: 'Star Tee', slot: 'shirt', col: '#24242c', col2: '#ffc830', pat: 'star', rarity: 'Uncommon', desc: 'A black tee with a golden star.' },
-  { id: 'ball_jersey', name: 'Ball Jersey', slot: 'shirt', col: '#f4a020', col2: '#1a2a6a', pat: 'jersey', rarity: 'Uncommon', desc: 'An orange basketball jersey with navy sides.' },
-  { id: 'sunset_tee', name: 'Sunset Tee', slot: 'shirt', col: '#ffb040', col2: '#c83a8a', pat: 'grad', rarity: 'Rare', desc: 'A tee that fades from sunny orange to purple.' },
-  // shorts
-  { id: 'denim_shorts', name: 'Denim Shorts', slot: 'pants', col: '#3a6ac0', short: 178, rarity: 'Common', desc: 'Short blue denim shorts.' },
-  { id: 'black_shorts', name: 'Black Shorts', slot: 'pants', col: '#2a2a32', short: 178, rarity: 'Common', desc: 'Plain black shorts.' },
-  { id: 'track_shorts', name: 'Red Track Shorts', slot: 'pants', col: '#d02a2a', col2: '#ffffff', pat: 'side', short: 176, rarity: 'Uncommon', desc: 'Red running shorts with white side stripes.' },
-  { id: 'board_shorts', name: 'Flower Board Shorts', slot: 'pants', col: '#ff8a2a', col2: '#fff4c8', col3: '#2fb0c8', pat: 'flower', short: 180, rarity: 'Uncommon', desc: 'Orange beach shorts with flowers.' },
-  { id: 'camo_shorts', name: 'Camo Shorts', slot: 'pants', col: '#6a7a42', col2: '#3e4a2a', col3: '#a8986a', pat: 'camo', short: 180, rarity: 'Uncommon', desc: 'Green camouflage shorts.' },
-  // slippers
-  { id: 'blue_slippers', name: 'Blue Slippers', slot: 'feet', slip: { sole: '#2a6ae0', strap: '#f4f6fa' }, rarity: 'Common', desc: 'Blue slippers with white straps.' },
-  { id: 'pink_slippers', name: 'Pink Slippers', slot: 'feet', slip: { sole: '#ff8ac0', strap: '#ffffff' }, rarity: 'Common', desc: 'Pink slippers with white straps.' },
-  { id: 'green_slippers', name: 'Green Slippers', slot: 'feet', slip: { sole: '#2fa040', strap: '#ffd23f' }, rarity: 'Common', desc: 'Green slippers with yellow straps.' },
-  { id: 'gold_slippers', name: 'Gold Slippers', slot: 'feet', slip: { sole: '#ffc830', strap: '#fff4b0' }, rarity: 'Rare', desc: 'Shiny gold slippers.' },
-  // shoes
-  { id: 'red_sneakers', name: 'Red Sneakers', slot: 'feet', col: '#e0302a', col2: '#ffffff', pat: 'sole', rarity: 'Uncommon', desc: 'Red sneakers with white soles.' },
-  { id: 'black_sneakers', name: 'Black Sneakers', slot: 'feet', col: '#2a2a32', col2: '#f4f4f4', pat: 'sole', rarity: 'Uncommon', desc: 'Black sneakers with white soles.' },
-  { id: 'blue_sneakers', name: 'Blue Sneakers', slot: 'feet', col: '#2a6ae0', col2: '#ffffff', pat: 'sole', rarity: 'Uncommon', desc: 'Blue sneakers with white soles.' },
-  { id: 'gold_sneakers', name: 'Gold Sneakers', slot: 'feet', col: '#ffc830', col2: '#ffffff', pat: 'sole', rarity: 'Rare', desc: 'Golden sneakers with white soles.' },
-  // for girls (owner: "pati pang babae"): dresses (shirt slot, `dress: true` = it covers the legs too, down to its
-  // `short` row), a blouse and a bow top, skirts, flats and slippers
-  { id: 'pink_sundress', name: 'Pink Sundress', slot: 'shirt', dress: true, short: 182, col: '#ff9ac8', col2: '#ffffff', pat: 'dots', rarity: 'Uncommon', desc: 'A pink summer dress with white polka dots.' },
-  { id: 'flower_dress', name: 'Flower Dress', slot: 'shirt', dress: true, short: 184, col: '#fff0f4', col2: '#ff5a8a', col3: '#ffd23f', pat: 'flower', rarity: 'Uncommon', desc: 'A white dress covered in little pink flowers.' },
-  { id: 'red_party_dress', name: 'Red Party Dress', slot: 'shirt', dress: true, short: 178, col: '#d8203a', col2: '#ffd0d8', pat: 'glitter', rarity: 'Rare', desc: 'A sparkly red party dress.' },
-  { id: 'blue_polka_dress', name: 'Blue Polka Dress', slot: 'shirt', dress: true, short: 184, col: '#3a7ae0', col2: '#ffffff', pat: 'dots', rarity: 'Uncommon', desc: 'A blue dress with white polka dots.' },
-  { id: 'sailor_dress', name: 'Sailor Dress', slot: 'shirt', dress: true, short: 180, col: '#f4f6fa', col2: '#22336e', pat: 'hstripe', rarity: 'Uncommon', desc: 'A white and navy striped sailor dress.' },
-  { id: 'lavender_gown', name: 'Lavender Gown', slot: 'shirt', dress: true, col: '#e0ccff', col2: '#8a5ad0', pat: 'grad', rarity: 'Epic', desc: 'A long gown that fades from pale lavender to deep purple.' },
-  { id: 'ruffle_blouse', name: 'Ruffle Blouse', slot: 'shirt', col: '#fff4f8', col2: '#ffc0d8', pat: 'ruffle', rarity: 'Uncommon', desc: 'A soft white blouse with pink ruffles.' },
-  { id: 'bow_top', name: 'Bow Top', slot: 'shirt', col: '#ff8ac0', col2: '#c8205a', pat: 'bow', rarity: 'Uncommon', desc: 'A pink top with a big bow on the front.' },
-  { id: 'pink_skirt', name: 'Pink Pleated Skirt', slot: 'pants', skirt: true, short: 176, col: '#ff8ac0', pat: 'pleat', rarity: 'Common', desc: 'A short pink pleated skirt.' },
-  { id: 'plaid_skirt', name: 'Plaid Skirt', slot: 'pants', skirt: true, short: 176, col: '#2a3a8a', col2: '#c8302a', pat: 'plaid', rarity: 'Uncommon', desc: 'A navy and red plaid skirt.' },
-  { id: 'denim_skirt', name: 'Denim Skirt', slot: 'pants', skirt: true, short: 176, col: '#4a7ad0', pat: 'pleat', rarity: 'Common', desc: 'A short blue denim skirt.' },
-  { id: 'pink_flats', name: 'Pink Flats', slot: 'feet', col: '#ff9ac8', col2: '#c8406a', pat: 'sole', rarity: 'Common', desc: 'Pink ballet flats.' },
-  { id: 'red_flats', name: 'Red Flats', slot: 'feet', col: '#d8203a', col2: '#6a0a14', pat: 'sole', rarity: 'Common', desc: 'Shiny red flats.' },
-  { id: 'white_flats', name: 'White Flats', slot: 'feet', col: '#f4f4f8', col2: '#b8b8c8', pat: 'sole', rarity: 'Common', desc: 'Clean white flats.' },
-  { id: 'lilac_slippers', name: 'Lilac Slippers', slot: 'feet', slip: { sole: '#b890f0', strap: '#ffc0d8' }, rarity: 'Common', desc: 'Lilac slippers with pink straps.' },
-];
+// (owner, Nov 19 2026 build p) every shirt, pants and shoe was deleted; the patterns below stay for new clothes. New
+// clothes go in this list: { id, name, slot, col, col2, col3, pat, short, skirt, dress, slip, rarity, desc }.
+const CLOTHES = [];
 for (const w of CLOTHES) {
   w.shop = true;
   WEAR.push(w);

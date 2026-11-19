@@ -112,9 +112,6 @@
     "evil_bricks": {
       "growSeconds": 90
     },
-    "red_hair": {
-      "growSeconds": 90
-    },
     "aqua_block": {
       "growSeconds": 90
     },
@@ -424,118 +421,13 @@
     "boombox": {
       "growSeconds": 360
     },
-    "tan_shirt": {
-      "growSeconds": 240
-    },
-    "cargo_shorts": {
-      "growSeconds": 240
-    },
-    "stinky_socks": {
-      "growSeconds": 240
-    },
-    "shallot_mustache": {
-      "growSeconds": 240
-    },
-    "santa_pants": {
-      "growSeconds": 240
-    },
-    "black_pants": {
-      "growSeconds": 240
-    },
-    "boots": {
-      "growSeconds": 240
-    },
-    "hot_head": {
-      "growSeconds": 240
-    },
-    "tuxedo": {
-      "growSeconds": 240
-    },
-    "top_hat": {
-      "growSeconds": 240
-    },
-    "shades": {
-      "growSeconds": 240
-    },
-    "red_riding_hood": {
-      "growSeconds": 240
-    },
-    "santa_hat": {
-      "growSeconds": 240
-    },
-    "referee_shirt": {
-      "growSeconds": 240
-    },
-    "green_shirt": {
-      "growSeconds": 240
-    },
-    "green_blouse": {
-      "growSeconds": 240
-    },
-    "green_skirt": {
-      "growSeconds": 240
-    },
-    "red_coat": {
-      "growSeconds": 240
-    },
-    "biker_stache": {
-      "growSeconds": 240
-    },
-    "brown_hair": {
-      "growSeconds": 240
-    },
-    "brown_shoes": {
-      "growSeconds": 240
-    },
-    "pigtails": {
-      "growSeconds": 240
-    },
-    "x_ray_specs": {
-      "growSeconds": 240
-    },
-    "ski_cap": {
-      "growSeconds": 240
-    },
-    "patent_leather_shoes": {
-      "growSeconds": 240
-    },
     "flashlight": {
       "growSeconds": 300
     },
     "pencil": {
       "growSeconds": 300
     },
-    "blonde_bombshell": {
-      "growSeconds": 240
-    },
-    "rooster_hat": {
-      "growSeconds": 240
-    },
-    "gold_rimmed_glasses": {
-      "growSeconds": 240
-    },
-    "white_beard": {
-      "growSeconds": 240
-    },
-    "froghat": {
-      "growSeconds": 240
-    },
-    "jeans": {
-      "growSeconds": 240
-    },
-    "baseball_cap": {
-      "growSeconds": 240
-    },
-    "santa_vest": {
-      "growSeconds": 240
-    },
     "cyclopean_visor": {
-      "growSeconds": 240
-    },
-    "big_glasses": {
-      "growSeconds": 240
-    },
-    "messy_auburn_tresses": {
       "growSeconds": 240
     },
     "just_one_boxing_glove": {
@@ -544,68 +436,14 @@
     "backpack": {
       "growSeconds": 240
     },
-    "tv_head": {
-      "growSeconds": 240
-    },
-    "grey_hair_bun": {
-      "growSeconds": 240
-    },
-    "old_timey_hat": {
-      "growSeconds": 240
-    },
-    "hot_pink_highlights": {
-      "growSeconds": 240
-    },
-    "unicorn_hair": {
-      "growSeconds": 240
-    },
-    "purple_mohawk": {
-      "growSeconds": 240
-    },
-    "smarty_pants": {
-      "growSeconds": 240
-    },
-    "plain_white_tee": {
-      "growSeconds": 240
-    },
-    "clown_pants": {
-      "growSeconds": 240
-    },
-    "tie_dyed_shirt": {
-      "growSeconds": 240
-    },
-    "sexy_boxers": {
-      "growSeconds": 240
-    },
-    "wedding_dress": {
-      "growSeconds": 240
-    },
-    "spikey_hair": {
-      "growSeconds": 240
-    },
     "sword": {
       "growSeconds": 300
     },
     "jetpack": {
       "growSeconds": 240
     },
-    "checkered_pajamas": {
-      "growSeconds": 240
-    },
-    "bridal_veil": {
-      "growSeconds": 240
-    },
-    "purple_thong": {
-      "growSeconds": 240
-    },
     "pickaxe": {
       "growSeconds": 300
-    },
-    "gamblers_visor": {
-      "growSeconds": 240
-    },
-    "long_black_hair": {
-      "growSeconds": 240
     },
     "laser_eyes": {
       "growSeconds": 300
@@ -744,12 +582,6 @@
     },
     "question_door": {
       "growSeconds": 300
-    },
-    "blue_jeans": {
-      "growSeconds": 240
-    },
-    "white_sneakers": {
-      "growSeconds": 240
     },
     "crystal_block": {
       "growSeconds": 300
@@ -1656,6 +1488,9 @@
     },
     "factory_wall": {
       "growSeconds": 300
+    },
+    "knife": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -2831,87 +2666,6 @@
     },
     {
       "seeds": [
-        "grass",
-        "mushroom"
-      ],
-      "result": "shallot_mustache",
-      "source": "classic",
-      "note": "Curly Mustache = Grass + Mushroom"
-    },
-    {
-      "seeds": [
-        "grey_block",
-        "lava"
-      ],
-      "result": "santa_pants",
-      "source": "classic",
-      "note": "Santa Pants = Grey Block + Lava"
-    },
-    {
-      "seeds": [
-        "lava",
-        "red_block"
-      ],
-      "result": "hot_head",
-      "source": "classic",
-      "note": "Fire Head = Lava + Red Block"
-    },
-    {
-      "seeds": [
-        "black_block",
-        "mushroom"
-      ],
-      "result": "top_hat",
-      "source": "classic",
-      "note": "Top Hat = Black Block + Mushroom"
-    },
-    {
-      "seeds": [
-        "mushroom",
-        "red_block"
-      ],
-      "result": "red_riding_hood",
-      "source": "classic",
-      "note": "Red Riding Hood = Mushroom + Red Block"
-    },
-    {
-      "seeds": [
-        "white_block",
-        "red_bricks"
-      ],
-      "result": "santa_hat",
-      "source": "balbtopia",
-      "note": "Santa Hat = White Block + Red Bricks (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "brown_block",
-        "grass"
-      ],
-      "result": "biker_stache",
-      "source": "classic",
-      "note": "Long Mustache = Brown Block + Grass"
-    },
-    {
-      "seeds": [
-        "white_block",
-        "amber_glass"
-      ],
-      "result": "x_ray_specs",
-      "source": "balbtopia",
-      "note": "X-Ray Specs = White Block + Amber Glass (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "blue_block",
-        "mushroom"
-      ],
-      "result": "ski_cap",
-      "source": "classic",
-      "note": "Ski Cap = Blue Block + Mushroom"
-    },
-    {
-      "seeds": [
         "black_block",
         "yellow_block"
       ],
@@ -2927,51 +2681,6 @@
       "result": "pencil",
       "source": "classic",
       "note": "Pencil = Wood Block + Yellow Block"
-    },
-    {
-      "seeds": [
-        "white_block",
-        "yellow_block"
-      ],
-      "result": "rooster_hat",
-      "source": "classic",
-      "note": "Rooster Hat = White Block + Yellow Block"
-    },
-    {
-      "seeds": [
-        "yellow_block",
-        "wooden_window"
-      ],
-      "result": "gold_rimmed_glasses",
-      "source": "balbtopia",
-      "note": "Gold-Rimmed Glasses = Yellow Block + Wooden Window (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "bush",
-        "white_block"
-      ],
-      "result": "white_beard",
-      "source": "classic",
-      "note": "White Beard = Bush + White Block"
-    },
-    {
-      "seeds": [
-        "aqua_block",
-        "bush"
-      ],
-      "result": "froghat",
-      "source": "classic",
-      "note": "Frog Hat = Aqua Block + Bush"
-    },
-    {
-      "seeds": [
-        "lava",
-        "white_block"
-      ],
-      "result": "santa_vest",
-      "source": "classic",
-      "note": "Santa Vest = Lava + White Block"
     },
     {
       "seeds": [
@@ -3002,42 +2711,6 @@
     },
     {
       "seeds": [
-        "olde_timey_radio",
-        "wood_block"
-      ],
-      "result": "tv_head",
-      "source": "classic",
-      "note": "TV Head = Old Radio + Wood Block"
-    },
-    {
-      "seeds": [
-        "brown_block",
-        "olde_timey_radio"
-      ],
-      "result": "old_timey_hat",
-      "source": "classic",
-      "note": "Old-Timey Hat = Brown Block + Old Radio"
-    },
-    {
-      "seeds": [
-        "rainbow_block",
-        "white_wallpaper"
-      ],
-      "result": "smarty_pants",
-      "source": "classic",
-      "note": "Rainbow Pants = Rainbow Block + White Wallpaper"
-    },
-    {
-      "seeds": [
-        "rose",
-        "white_wallpaper"
-      ],
-      "result": "wedding_dress",
-      "source": "classic",
-      "note": "Wedding Dress = Rose + White Wallpaper"
-    },
-    {
-      "seeds": [
         "death_spikes",
         "rock_background"
       ],
@@ -3056,39 +2729,12 @@
     },
     {
       "seeds": [
-        "white_block",
-        "barn_door"
-      ],
-      "result": "bridal_veil",
-      "source": "balbtopia",
-      "note": "Bridal Veil = White Block + Barn Door (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "danger_sign",
-        "purple_block"
-      ],
-      "result": "purple_thong",
-      "source": "classic",
-      "note": "Purple Thong = Danger Sign + Purple Block"
-    },
-    {
-      "seeds": [
         "cave",
         "portcullis"
       ],
       "result": "pickaxe",
       "source": "classic",
       "note": "Pickaxe = Cave Background + Portcullis"
-    },
-    {
-      "seeds": [
-        "green_block",
-        "dark_green_block"
-      ],
-      "result": "gamblers_visor",
-      "source": "balbtopia",
-      "note": "Green Visor = Green Block + Dark Green Block (Balbtopia recipe)"
     },
     {
       "seeds": [
@@ -3845,24 +3491,6 @@
       "result": "question_door",
       "source": "balbtopia",
       "note": "Question Door = Door + Steel Block (Balbtopia recipe, owner Oct 25 2026)"
-    },
-    {
-      "seeds": [
-        "blue_block",
-        "wood_block"
-      ],
-      "result": "blue_jeans",
-      "source": "balbtopia",
-      "note": "Blue Jeans = Blue Block + Wood Block"
-    },
-    {
-      "seeds": [
-        "dirt",
-        "white_block"
-      ],
-      "result": "white_sneakers",
-      "source": "balbtopia",
-      "note": "White Sneakers = Dirt + White Block"
     },
     {
       "seeds": [
@@ -6779,6 +6407,15 @@
       "result": "octagon_wall_sign",
       "source": "balbtopia",
       "note": "Octagon Wall Sign = Pointy Sign + Blue Block (Balbtopia recipe, Nov 11 2026)"
+    },
+    {
+      "seeds": [
+        "bolo",
+        "iron_bars"
+      ],
+      "result": "knife",
+      "source": "balbtopia",
+      "note": "Knife = Bolo + Iron Bars (Balbtopia recipe, Nov 20 2026)"
     }
   ],
   "notInGameYet": [

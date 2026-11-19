@@ -1728,12 +1728,6 @@ const SPW_NPC = {
 function spwNpcLook() {
   const pick = (...ids) => ids.find(spwHas) || null;
   SPW_NPC.equipped = {
-    hat: pick('baseball_cap', 'ski_cap'),
-    face: pick('shades', 'big_glasses'),
-    shirt: pick('red_tee', 'red_flannel', 'red_polo'),
-    pants: pick('board_shorts', 'track_shorts', 'denim_shorts'),
-    feet: pick('blue_slippers', 'white_sneakers'),
-    neck: pick('blue_striped_scarf'),
   };
 }
 // drawn with the players (after the wrench badges, before them)
@@ -1927,18 +1921,11 @@ listWorlds = ((prev) =>
 //   clerk (block 462 like the Ticket Master; he wears the prizes). Players stand outside; nobody can stand in front of
 //   it. Click (or wrench) anything in the booth from up to SPW_BOOTH_NEAR tiles = the exchange (`openSpwShop`).
 // - Prices picked by the owner, except the Boss Shades (he named no price: 400 picked by Claude) and "the shorts":
-//   the Cargo Shorts (the Lolo set's, "tatang's shorts").
+//   the Cargo Shorts (the Lolo set's, "tatang's shorts"). (Nov 19 2026 build o: the hair and the beard were deleted
+//   with every hair and beard; build p: the swim rings, Hawaiian polos and Cargo Shorts with every shirt / pants /
+//   shoe. They are out of this list and of schema.sql spw_shop.)
 const SPW_SHOP_OFF = {
-  cow_swim_ring: 500,
-  duck_swim_ring: 500,
-  glow_cow_swim_ring: 2000,
-  glow_duck_swim_ring: 2000,
-  silver_wild_hair: 700,
-  silver_full_beard: 500,
   boss_shades: 400,
-  hawaiian_polo: 300,
-  hawaiian_polo_red: 300,
-  cargo_shorts: 200,
   pet_penguin: 1500, // (owner: "add a pet to the exchange too, the penguin, 1.5k")
   water_gun: 800, // (owner, build p: "and the water gun 800")
   mega_water_gun: 3000, // ("make a bigger water gun too, 3k, with a glow": megagun.js)
@@ -1993,17 +1980,12 @@ function spwBooth() {
   });
   fg[at(SPW_CLERK_AT[0], SPW_CLERK_AT[1])] = SPW_NPC_T;
 }
-// Tatang, the Exchange clerk: wears the prizes (the glowing duck ring, the old man's hair, beard and shades, a Hawaiian shirt)
+// Tatang, the Exchange clerk: wears the prizes (the Boss Shades; his ring, hair, beard and Hawaiian shirt were deleted)
 const SPW_CLERK = { ...SPW_NPC, id: 'npc_tatang', name: 'Tatang', skin: 'tan', hand: 'mega_water_gun', blink: 555, equipped: null }; // (id: his pet follows him, pets.js drawPetOf)
 function spwClerkLook() {
   const pick = (...ids) => ids.find(spwHas) || null;
   SPW_CLERK.equipped = {
-    hair: pick('silver_wild_hair'),
-    stache: pick('silver_full_beard'),
     face: pick('boss_shades'),
-    shirt: pick('hawaiian_polo'),
-    pants: pick('glow_duck_swim_ring', 'cargo_shorts'),
-    feet: pick('blue_slippers'),
     pet: typeof PET_BY_ID !== 'undefined' && PET_BY_ID.pet_penguin ? 'pet_penguin' : null, // (owner: "put the penguin on the exchanger")
   };
 }

@@ -138,7 +138,7 @@ function buildMoonEvent() {
     }
     put(MEV_HOLE, mf, 0); // the hole up from the cabin
     put(MEV_HOLE, F - 1, ITEMS.spring.block);
-    const suit = { hat: 'space_helmet', shirt: 'space_suit', feet: 'space_boots' },
+    const suit = {}, // (the Space Suit, Boots and Helmet were deleted, Nov 19 2026 builds p-q)
       wings = typeof CW_COLOURS !== 'undefined' ? [null, ...CW_COLOURS.map(cwId), ...CW_COLOURS.map(cwGlowId)] : [null];
     let n = 0;
     for (let x = mx0 + 2; x <= mx1 - 2 && n < wings.length; x += 2, n++) {

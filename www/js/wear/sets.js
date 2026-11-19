@@ -2,25 +2,12 @@
 // pieces in your bag (the set itself is never an item you hold). Every piece of these sets is no longer spliced:
 // their recipes were taken out of data/farming.json and the SPLICE list (config.js), and their seeds are retired
 // (old seeds and trees still grow). Server: shop_prices has a 'set_...' row per set (schema.sql, not tracked).
-// One hairstyle per set (no two sets share a hair).
+// (Nov 19 2026 build o, owner: every hair and code-drawn hat was deleted, so the sets have none now.)
 // ===== sets =====
 const SET_GOLD = 20000;
-const OUTFIT_SETS = [
-  { id: 'set_gentleman', name: 'Gentleman Set', skin: 'peach', eq: { hair: 'brown_hair', shirt: 'tuxedo', pants: 'black_pants', feet: 'patent_leather_shoes' } },
-  { id: 'set_sporty', name: 'Sporty Set', skin: 'honey', eq: { hair: 'red_hair', shirt: 'referee_shirt', pants: 'cargo_shorts', feet: 'stinky_socks' } },
-  { id: 'set_biker', name: 'Biker Set', skin: 'peach', eq: { hair: 'long_black_hair', face: 'shades', shirt: 'red_coat', pants: 'black_pants', feet: 'boots' } },
-  { id: 'set_lolo', name: 'Lolo Set', skin: 'porcelain', eq: { hair: 'grey_hair_bun', face: 'big_glasses', shirt: 'green_shirt', pants: 'cargo_shorts', feet: 'brown_shoes' } },
-  { id: 'set_chill_guy', name: 'Chill Guy Set', skin: 'brown', eq: { hair: 'spikey_hair', hat: 'baseball_cap', shirt: 'green_shirt', pants: 'jeans', feet: 'brown_shoes' } },
-  { id: 'set_sunshine', name: 'Sunshine Set', skin: 'tan', eq: { hair: 'blonde_bombshell', shirt: 'tie_dyed_shirt', pants: 'green_skirt', feet: 'brown_shoes' } },
-  { id: 'set_cozy_night', name: 'Cozy Night Set', skin: 'honey', eq: { hair: 'pigtails', shirt: 'checkered_pajamas', pants: 'sexy_boxers', feet: 'stinky_socks' } },
-  { id: 'set_autumn_red', name: 'Autumn Red Set', skin: 'porcelain', eq: { hair: 'messy_auburn_tresses', shirt: 'tan_shirt', pants: 'jeans', feet: 'boots' } },
-  { id: 'set_pastel_pop', name: 'Pastel Pop Set', skin: 'deep', eq: { hair: 'unicorn_hair', shirt: 'plain_white_tee', pants: 'clown_pants', feet: 'brown_shoes' } },
-  { id: 'set_lady_green', name: 'Lady Green Set', skin: 'porcelain', eq: { hair: 'purple_mohawk', shirt: 'green_blouse', pants: 'green_skirt', feet: 'patent_leather_shoes' } },
-  { id: 'set_pink_rock', name: 'Pink Rock Set', skin: 'porcelain', eq: { hair: 'hot_pink_highlights', face: 'shades', shirt: 'tie_dyed_shirt', pants: 'black_pants', feet: 'boots' } },
-  // the owner's own picture clothes (photo_wear.js): just the pieces, worn over our character (no pants / shoes)
-  { id: 'set_skull_beanie', name: 'Skull Beanie Set', skin: 'peach', eq: { hat: 'black_beanie', shirt: 'skull_tee' } },
-  { id: 'set_cat_hoodie', name: 'Cat Hoodie Set', skin: 'peach', eq: { shirt: 'cat_ear_hoodie' } },
-];
+// (owner, Nov 19 2026 build p) every shirt / pants / shoe was deleted, so the 13 outfit sets are gone too; the set
+// machinery stays (the Astronaut and Music sets use it, and new sets can go here)
+const OUTFIT_SETS = [];
 const SET_BY_ID = {};
 // (build y) `extra`: items a set also gives that aren't worn (the Astronaut Set's Laser Gun, asteroids.js)
 const setPieces = (id) => [...Object.values(SET_BY_ID[id].eq), ...(SET_BY_ID[id].extra || [])];

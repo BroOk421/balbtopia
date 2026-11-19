@@ -7,6 +7,7 @@
 // Each style colours a cell from (part, a, b): a = along the piece (column on the wrap, distance from the knot on a
 // tail), b = across it. Then each piece is lit on its top row and shaded on its bottom row, and an outline in the
 // style's dark colour goes round the outside.
+// (owner, Nov 19 2026 build q) every scarf but the Royal Silk Scarf was deleted; the scarf painter stays.
 // Loaded after baby.js; the WEAR entries are in wear.js, Shop prices in shop.js and schema.sql (shop_prices).
 // ===== scarves =====
 const SCARF_CELL = 3,
@@ -83,44 +84,6 @@ function scarfCells(kind, f, swim) {
 }
 // a colour for each cell: (part, a, b) -> '#rrggbb'
 const SCARF_STYLES = {
-  red_knit_scarf: {
-    ol: '#3a0810',
-    pin: 'star',
-    // ribbed knit (darker every other column), white stripes near the tails' ends
-    col: (p, a, b) => ((p === 'T' || p === 'U') && (a === 7 || a === 9) ? '#f4f0ea' : a % 2 ? '#c8222e' : '#e43a42'),
-  },
-  blue_striped_scarf: {
-    ol: '#0a1a40',
-    pin: 'pearl',
-    col: (p, a) => (p === 'F' ? '#f2f6ff' : Math.floor(a / 2) % 2 ? '#f2f6ff' : '#2a62d0'),
-  },
-  green_plaid_scarf: {
-    ol: '#0a2410',
-    pin: 'gold', // like a kilt pin
-    col: (p, a, b) => {
-      if (a % 5 === 2 || b === 1) return '#d8302a'; // red lines
-      if (a % 5 === 4 && b % 2 === 0) return '#ffd23f'; // a fine yellow line
-      return a % 5 === 0 ? '#1e6a2c' : '#2f9a40';
-    },
-  },
-  snowflake_scarf: {
-    ol: '#060c24',
-    pin: 'sapphire',
-    col: (p, a, b) => {
-      if (p === 'F') return '#f4f8ff';
-      return (a * 2 + b * 3) % 7 === 0 ? '#ffffff' : '#22357c';
-    },
-  },
-  pink_fluffy_scarf: {
-    ol: '#a02c64',
-    pin: 'pearl',
-    fluff: true, // a bumpy, soft edge
-    col: (p, a, b) => ((a * 3 + b * 5) % 7 === 0 ? '#ffe4f2' : (a + b) % 3 === 0 ? '#ff9ccc' : '#ffb8dc'),
-  },
-  rainbow_scarf: {
-    ol: '#24102a',
-    col: (p, a) => ['#ff4a4a', '#ff9a2a', '#ffe03a', '#4ad85a', '#3aa8ff', '#9a5aff'][Math.floor(a / 2) % 6],
-  },
   royal_silk_scarf: {
     ol: '#4a3004',
     pin: 'ruby',
@@ -128,42 +91,6 @@ const SCARF_STYLES = {
     col: (p, a, b) => ((a + b) % 6 === 0 ? '#34344a' : '#16161e'),
   },
   // BIG scarves (owner, Oct 31 2026; his reference picture): pulled up over the mouth, wide, three rolls
-  big_orange_scarf: {
-    kind: 'big',
-    ol: '#3a1404',
-    // an orange knit wrap with bright yellow tails flying behind
-    col: (p, a) => (p === 'T' || p === 'U' || p === 'F' ? (a % 2 ? '#f4b818' : '#ffd23f') : a % 2 ? '#e0701a' : '#f4892a'),
-  },
-  big_black_scarf: {
-    kind: 'big',
-    ol: '#000000',
-    pin: 'gold',
-    goldEnds: true,
-    col: (p, a) => (p === 'F' ? '#4a4a56' : a % 2 ? '#1a1a20' : '#28282f'),
-  },
-  big_striped_scarf: {
-    kind: 'big',
-    ol: '#24080c',
-    // broad diagonal stripes: red, white, black
-    col: (p, a, b) => ['#d8283a', '#f6f2ee', '#1e1e24'][Math.floor((a + b) / 2) % 3],
-  },
-  black_scarf: {
-    ol: '#000000',
-    pin: 'emerald',
-    goldEnds: true,
-    // plain black knit: ribs a shade lighter
-    col: (p, a) => (p === 'F' ? '#3a3a44' : a % 2 ? '#1a1a20' : '#26262e'),
-  },
-  candy_stripe_scarf: {
-    ol: '#3a0810',
-    // diagonal red and white stripes, like a candy cane
-    col: (p, a, b) => (Math.floor((a + b) / 2) % 2 ? '#f6f2ee' : '#e0303a'),
-  },
-  red_bandana: {
-    kind: 'bandana',
-    ol: '#3a0810',
-    col: (p, a, b) => ((a + b * 2) % 4 === 0 ? '#fff4ee' : '#d02a32'),
-  },
 };
 // Pins and gold (owner, Oct 31 2026: "lagyan mo ng design like mga gold or pin sa gitna"): a style's `pin` puts a
 // little brooch on the FRONT of the wrap (the face side of its middle), painted on the scarf's own cells (letters below,

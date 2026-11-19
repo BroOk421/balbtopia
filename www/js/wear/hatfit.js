@@ -9,10 +9,12 @@ const HAT_FIT_COLS = [28, 92], // body-picture columns looked at (the middle of 
   // (owner, Nov 9 2026) every hat sits like on the Pink Ombre Long Hair: never lifted more than its lift (24), so it
   // doesn't float on top of buns, spikes or tall hair
   HAT_FIT_MAX = 24,
-  HAT_NO_HAIR = new Set(['super_saiyan_hair']); // hairs that never show a hat (Golden Spike Hair: hat hidden even if worn)
+  // hairs that never show a hat (was the Golden Spike Hair; Nov 19 2026 build o: every hair was deleted, the owner
+  // makes new ones: put their ids in these two lists when they need it)
+  HAT_NO_HAIR = new Set();
 // hairs with a ponytail / bun ON TOP (owner, Nov 9 2026): with a hat on,
 // the ponytail hidden, the hat BIGGER and leaning with the curve of the head (`hairTip` gives the ponytail's side)
-const HAT_ON_TAIL = new Set(['hot_pink_highlights', 'messy_auburn_tresses', 'sunset_ponytail', 'mint_ponytail', 'cotton_candy_bun', 'galaxy_bun', 'gold_tip_top_bun', 'mint_top_bun']),
+const HAT_ON_TAIL = new Set(),
   HAT_TAIL_PIVOT = 22, // body px under the bald head's top: where a hat meets the head (it is turned round there)
   HAT_TAIL_CUT = 14, // the hair is cut off this many body px under its top (hidden under the hat's brim)
   HAT_TAIL_SHIFT = 20, // body px the hat moves towards the ponytail's side, per head-width it is off the middle

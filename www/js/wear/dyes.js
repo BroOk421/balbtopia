@@ -1,14 +1,31 @@
 // Hair dyes + the Stove (owner, Oct 31 2026): "drop a hair (a normal one) and a dye on the stove; when it is shut and
 // opened again, the hair in that colour / style comes out, like splicing seeds but with the stove".
-// - 12 dyes (`DYES`, one per colour ramp of hairstyles.js `HS_RAMPS`, + Rainbow). Each grows from a Balbtopia splice:
+// - 12 dyes (`DYES`, one per colour ramp of `HS_RAMPS` (below), + Rainbow). Each grows from a Balbtopia splice:
 //   Water Bucket + a coloured block (farming.json + the SPLICE fallback in config.js; keep them the same).
 // - Cooking: drop a plain hair (one of the 9 picture hairs a styled hair is made from) and the right dye on an OPEN
 //   Stove, punch it shut, punch it open: every hair + dye pair inside becomes that styled hair (`STOVE_RECIPES`, made
 //   from `HAIR_STYLED`: the base hair + the dye of its first colour, or Rainbow Dye for the rainbow style). Whoever
 //   opens it does the cooking: the ingredients are taken out of the drops (synced with take / drop events) and the
 //   new hair floats out of the stove (`spawnDrop`, owned by the opener). Anything that doesn't match stays inside.
-// Loaded after rides.js (needs hairstyles.js HAIR_STYLED / HS_RAMPS and blocks64c.js toggleStore / STORE_SHUT).
+// Loaded after rides.js (needs blocks64c.js toggleStore / STORE_SHUT).
 // ===== dyes =====
+// (owner, Nov 19 2026 build o) hairstyles.js and every hair were deleted: the dye colours live here now, and there
+// are no stove hair recipes until new hairs are made (HAIR_STYLED is empty; add [new id, name, from hair, style,
+// ramp] rows when the new hairs come, with their recoloured pictures)
+const HS_RAMPS = {
+  pink: ['#a0285a', '#ff6aa8', '#ffc8e0'],
+  blue: ['#1a3a9a', '#3a8aff', '#a8dcff'],
+  mint: ['#16705a', '#3ad8a8', '#c0ffe8'],
+  frost: ['#8890a8', '#d8e0f0', '#ffffff'],
+  gold: ['#9a6a08', '#ffc830', '#fff0a0'],
+  red: ['#7a0a14', '#e8243a', '#ff9a9a'],
+  lavender: ['#5a3a9a', '#a888e8', '#e8dcff'],
+  purple: ['#3a1068', '#8a3ad8', '#d8a8ff'],
+  silver: ['#5a5e6a', '#b8bcc8', '#f4f6fa'],
+  fire: ['#8a1a08', '#ff6a1a', '#ffe040'],
+  galaxy: ['#120c3a', '#3a2a9a', '#8a6aff'],
+};
+const HAIR_STYLED = [];
 const DYES = [
   // [colour key (HS_RAMPS, or 'rainbow'), name, the coloured block it is spliced from (with Water Bucket)]
   ['pink', 'Pink Dye', 'rose'],

@@ -20,16 +20,8 @@ const SPWAI_BLUE = ['Asul', 'Dagat', 'Ulap', 'Yelo', 'Langit', 'Banog', 'Tala', 
 let spwAiSeed = 12345;
 const spwAiRnd = () => (spwAiSeed = (spwAiSeed * 16807) % 2147483647) / 2147483647;
 function spwAiMakeBots() {
-  const has = (id) => !!WEAR_BY_ID[id],
-    pick = (a, k) => {
-      const l = a.filter(has);
-      return l.length ? l[k % l.length] : null;
-    };
-  const HAIRS = ['spikey_hair', 'brown_hair', 'purple_mohawk', 'long_black_hair', 'fire_quiff', 'blue_streak_spikes', 'mint_ponytail', 'red_streak_bob', 'blue_tip_bob', 'frosted_quiff', 'pigtails', 'galaxy_spikes'],
-    SHIRT = { r: ['red_tee', 'red_flannel', 'red_polo'], b: ['blue_tee', 'navy_polo', 'sky_polo'] },
-    PANTS = ['jeans', 'black_pants', 'cargo_shorts', 'denim_shorts', 'track_shorts', 'black_shorts', 'board_shorts'],
-    FEET = { r: ['red_sneakers', 'white_sneakers'], b: ['blue_sneakers', 'white_sneakers'] },
-    SK = ['tan', 'peach', 'honey', 'brown', 'porcelain', 'deep'];
+  // (Nov 19 2026 builds o-p: every hair, shirt, pants and shoe was deleted, so the bots wear the default look)
+  const SK = ['tan', 'peach', 'honey', 'brown', 'porcelain', 'deep'];
   const mk = (name, t, k) => ({
     id: 'spwai_' + name,
     name,
@@ -37,7 +29,7 @@ function spwAiMakeBots() {
     x: 0, y: 0, w: P.w, h: P.h, tx: 0, ty: 0, vx: 0, vy: 0,
     face: t === 'r' ? 1 : -1, walking: false, ground: true, walkPh: 0, punch: null, hurt: 0, blink: spwAiRnd() * 6000,
     skin: SK[k % SK.length], style: 'stride',
-    equipped: { hair: pick(HAIRS, k * 3 + (t === 'b' ? 5 : 0)), shirt: pick(SHIRT[t], k), pants: pick(PANTS, k + (t === 'b' ? 2 : 0)), feet: pick(FEET[t], k) },
+    equipped: {},
     hand: 'water_gun', flag: null, rest: null, typing: false, joke: false, dance: false, emo: null, seen: now,
     dead: null, spawnT: 0,
     ai: { wp: null, wpT: 0, think: 0, shootT: 0, jumpT: 0, aim: null, skill: 0.5 + spwAiRnd() * 0.35 },

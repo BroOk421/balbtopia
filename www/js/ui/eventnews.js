@@ -219,7 +219,7 @@ function mevPaper() {
     body:
       'The rockets are fueled and ready! For the next 24 hours you can fly to the Moons.\n\n' +
       'HOW: go to MOONEVENT (at the top of the world list), stand in the rocket and click it. One seat per player each event.\n\n' +
-      'ON THE MOON: low gravity and space jumps with the Astronaut Set. Break Moon Rock for crystals, and the floating asteroids with the Laser Gun for fossils.\n\n' +
+      'ON THE MOON: break Moon Rock for crystals, and the floating asteroids with the Laser Gun (Astronaut Set) for fossils.\n\n' +
       'It ends ' + evnWhen(i.end) + '. Missed it? The next one comes 3 days after it starts, always at 5 PM (Philippine time).',
     hasImg: true,
     mkImg: () => evnPic('mev', mevBanner, ['moon_galaxy', 'moon_saturn', 'moon_earth']),

@@ -479,14 +479,16 @@ setInterval(() => {
 if (typeof ASTRO_SET !== 'undefined') {
   ASTRO_SET.extra = [LASER_ID];
   ITEMS[ASTRO_SET.id].desc =
-    'You get: Space Helmet, Space Suit, Space Boots and a Laser Gun. They go in your bag. Wear the three pieces on the Moon for the low-gravity space jump; the Laser Gun is the only thing that breaks asteroids (one shot every 15 minutes).';
+    'You get: a Laser Gun. It goes in your bag. The Laser Gun is the only thing that breaks asteroids (one shot every 15 minutes).';
 }
 // players who bought the set before the gun existed: one Laser Gun, once (per player, on this device)
 const LASER_GRANT_KEY = 'balb_laser_grant:';
 function laserGrant() {
   if (typeof account === 'undefined' || !account || !inWorld || !playerName || hasLaser()) return;
   const eq = typeof equipped !== 'undefined' && equipped ? equipped : {};
-  const ownsSet = ['space_helmet', 'space_suit', 'space_boots'].some((p) => countItem(p) > 0 || Object.values(eq).includes(p));
+  // (Nov 19 2026 builds p-q: the set's suit, boots and helmet were deleted, so an old buyer can't be told apart any
+  // more; this grant does nothing now)
+  const ownsSet = false;
   if (!ownsSet) return;
   let done = null;
   try {

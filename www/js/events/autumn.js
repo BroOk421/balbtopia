@@ -6,7 +6,7 @@
 // The Autumn Chest is a block: place it and break it, and ONE random reward floats out (AUTUMN_LOOT, rarest first):
 // Autumn Wings, Fall Machine, Autumn Scythe, gold coins, Leaf Headband, Autumn Cape (its own Cape slot), Autumn Leaf
 // Shirt / Shorts, Autumn Boots, Autumn Leaf Block / Maple Plank Block (10 each), Autumn Leaf Wall background (10).
-// The headband, wings and cape are the owner's own pictures (his sheet, cut by art-source/autumn/autumn_cut.py).
+// The wings and cape (and the deleted headband) are the owner's own pictures (his sheet, cut by art-source/autumn/autumn_cut.py).
 // Blocks 395-398 and background 42 are permanent. Loaded after concert.js, before main.js.
 // ===== autumn =====
 const AUTUMN_FROM = Date.parse('2026-11-04T00:00:00+08:00'),
@@ -387,15 +387,8 @@ toolSparkles = ((prev) =>
     if (Math.random() < 0.5) autLeafFx(sx + ((x - sx) / d) * reach, sy + ((y - sy) / d) * reach, 1); // (half the hits, one leaf)
   })(toolSparkles);
 
-// ---------- leaf clothes: a shirt and shorts covered in autumn leaves (clothes.js patterns) ----------
-for (const w of [
-  { id: 'autumn_leaf_shirt', name: 'Autumn Leaf Shirt', slot: 'shirt', col: '#7a3414', pat: 'leafy', rarity: 'Rare', desc: 'A shirt made of red, orange and golden autumn leaves. From the Autumn Chest.' },
-  { id: 'autumn_leaf_shorts', name: 'Autumn Leaf Shorts', slot: 'pants', col: '#6a2c10', pat: 'leafy', short: 178, rarity: 'Rare', desc: 'Shorts made of autumn leaves. From the Autumn Chest.' },
-]) {
-  WEAR.push(w);
-  WEAR_BY_ID[w.id] = w;
-  ITEMS[w.id] = { name: w.name, kind: 'clothing', slot: w.slot, desc: w.desc + ' Wear it from your bag.', rarity: w.rarity };
-}
+// ---------- leaf clothes (the Autumn Leaf Shirt / Shorts and the Autumn Boots were deleted with every shirt / pants /
+// shoe, owner Nov 19 2026 build p; their patterns 'leafy' and `boot` stay for new clothes) ----------
 // two staggered layers of leaves (every 9 px), each leaf its own turn and colour, over a dark rust base
 paintPixel = ((prev) =>
   function (w, x, y, f) {
@@ -416,9 +409,6 @@ paintPixel = ((prev) =>
 // with a light top edge. Painted on the feet of every body picture like the sneakers (wear.js outfitMasked: `pat:
 // 'sole'` gives the sole rows `col2`), so they walk with the legs; `bootTop` (row 183) carries them up the shins (wear.js),
 // `boot` paints the cuff on their top rows ----------
-WEAR.push({ id: 'autumn_boots', name: 'Autumn Boots', slot: 'feet', col: '#6a3418', col2: '#f4ece0', pat: 'sole', boot: true, bootTop: 183, rarity: 'Rare', desc: 'Sturdy brown boots with cream soles and an orange cuff, like fallen leaves. From the Autumn Chest.' });
-WEAR_BY_ID.autumn_boots = WEAR[WEAR.length - 1];
-ITEMS.autumn_boots = { name: 'Autumn Boots', kind: 'clothing', slot: 'feet', desc: WEAR_BY_ID.autumn_boots.desc + ' Wear it from your bag.', rarity: 'Rare' };
 paintPixel = ((prev) =>
   function (w, x, y, f) {
     if (!w.boot) return prev(w, x, y, f);
@@ -431,14 +421,9 @@ paintPixel = ((prev) =>
 // ---------- the owner's autumn pieces (his sheet, Nov 4 2026: art-source/autumn/autumn_sheet.png, cut and scaled to
 // the character by art-source/autumn/autumn_cut.py into www/assets/autumn/*_s.png, 1 picture px = 1 body px; placed
 // like his mockup of the character wearing them) ----------
-A.autumn_headband = 'assets/autumn/headband_s.png';
 A.autumn_wings2 = 'assets/autumn/wings_s.png';
 A.autumn_cape = 'assets/autumn/cape_s.png';
-// the Leaf Headband (id leaf_crown kept): his branch of maple leaves, an arc over the top of the head, its leafy ends
-// hanging down beside the head. A hat strip, drawn in front of the head (wrapped drawWorn below)
-WEAR.push({ id: 'leaf_crown', name: 'Leaf Headband', slot: 'hat', rarity: 'Epic', strip: { img: 'autumn_headband', frames: 1, ms: 1000, x: -17, y: -10, w: 150, h: 55, icon: [0, 0, 150, 55] }, desc: 'A branch of red, orange and golden maple leaves worn round the head, little leaves hanging at its ends. From the Autumn Chest.' });
-WEAR_BY_ID.leaf_crown = WEAR[WEAR.length - 1];
-ITEMS.leaf_crown = { name: 'Leaf Headband', kind: 'clothing', slot: 'hat', desc: WEAR_BY_ID.leaf_crown.desc + ' Wear it from your bag.', rarity: 'Epic' };
+// (the Leaf Headband was deleted with every hat, owner Nov 19 2026 build q)
 
 // the Autumn Cape: its own CAPE slot (owner's mockup wears it WITH the wings, which use the back slot). His cape picture
 // is drawn whole BEHIND the body (over the wings), and its top (the leafy mantle and the fur collar, rows above
@@ -612,7 +597,6 @@ function autBehind(c, top, sc, dy, wings) {
 drawWorn = ((prev) =>
   function (c, top, sc, dy = 0) {
     const eq = c.equipped || {},
-      hat = eq.hat === 'leaf_crown' ? WEAR_BY_ID.leaf_crown : null,
       cape = WEAR_BY_ID[eq.cape];
     // the cape's mantle over the shoulders (under the hair / hat / face items drawn next)
     if (cape && cape.strip && !autSwim(c)) {
@@ -623,10 +607,7 @@ drawWorn = ((prev) =>
       drawWearStrip(cape, top, sc, dy);
       g.restore();
     }
-    if (!hat) return prev(c, top, sc, dy);
-    const r = prev({ ...c, equipped: { ...eq, hat: null } }, top, sc, dy);
-    drawWearStrip(hat, top, sc, dy);
-    return r;
+    return prev(c, top, sc, dy);
   })(drawWorn);
 
 // ---------- Autumn Wings: the owner's pair of maple-leaf wings on twigs (his sheet), behind the body like his mockup;
@@ -646,17 +627,13 @@ ITEMS.autumn_wings = { name: 'Autumn Wings', kind: 'clothing', slot: 'back', des
 // ---------- the Autumn Chest: one random prize per chest ----------
 // [prize, chance %, how many]; gold: [min, max] gold as coins. ONE prize per chest, for GMs too (owner: "one item only;
 // the rare ones hard to get, the common and uncommon ones the most often"). Rarest first: wings, then the weather
-// machine, the scythe, gold, the hat, the cape, the clothes, then the common blocks and wall.
+// machine, the scythe, gold, the cape, then the common blocks and wall (the clothes and the hat were deleted, Nov 19 2026).
 const AUTUMN_LOOT = [
   ['autumn_wings', 0.5, 1], // Legendary
   ['fall_weather_machine', 1, 1], // Legendary
   ['autumn_scythe', 2, 1], // Legendary
   ['gold', 3, [5000, 10000]],
-  ['leaf_crown', 4, 1], // Epic
   ['autumn_cape', 4.5, 1], // Epic
-  ['autumn_leaf_shirt', 6, 1], // Rare
-  ['autumn_leaf_shorts', 6, 1], // Rare
-  ['autumn_boots', 6, 1], // Rare
   ['autumn_leaf_block', 18, 10], // Uncommon
   ['maple_plank_block', 18, 10], // Uncommon
   ['autumn_leaf_wall', 31, 10], // Common

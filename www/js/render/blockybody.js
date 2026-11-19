@@ -41,8 +41,14 @@ angryFace = (skin) => blockyImg(skin, 'angry_face') || blockyImg('porcelain', 'a
 // canvas angles (inside the character's transform, facing right; + = clockwise on screen, - = the hand forward)
 // Build d (owner's video): punch = the front sleeve swings FORWARD (the short way) until it points at the block;
 // going up = both arms thrown forward (the far one straight out, the near one up towards the face); swimming =
-// both arms circle forward all the time, half a turn apart. Changes of pose ease in (`BLOCKY_ARM`, per player).
+// both arms circle all the time, half a turn apart (blockySpin: facing right clockwise, facing left counter-clockwise
+// on the screen; breaking turns the front arm once round per punch the same way). Changes of pose ease in (`BLOCKY_ARM`, per player).
 const BLOCKY_ARM = new Map();
+// the arm's angle after `u` turns (0..1 = one full circle) for swimming and breaking. Build o (owner): facing LEFT the
+// arms go round COUNTER-CLOCKWISE on the screen, facing RIGHT CLOCKWISE (build n had counter-clockwise both ways).
+// In the character's own space that is always the same way (the picture is mirrored facing left, g.scale(face, 1)):
+// the hand goes down -> back -> up over the head -> forward, like a front crawl / an overhead swing at the block.
+const blockySpin = (c, u) => 2 * Math.PI * u;
 function blockyTarget(c, s, top, sc, dy) {
   if (s.punching) {
     const pu = c.punch || c.place,
@@ -54,14 +60,18 @@ function blockyTarget(c, s, top, sc, dy) {
       dyf = s.oy + pu.y * Z - shY;
     // a gun: the arm turns so the level barrel points right at the spot (the arm hangs when it is level with it)
     if (blockyIsGun(s.tool)) return { back: 0, front: Math.max(-2.6, Math.min(1.2, Math.atan2(dyf, dxf))), direct: true };
-    // forward from hanging straight down to pointing at the block
+    // breaking (a punch, owner Nov 19 2026 build n: "turn the hand round like swimming"): the front arm goes once
+    // all the way round per punch, the same way as the swimming arms (blockySpin), starting and
+    // ending hanging down, so holding the button keeps it circling
+    if (c.punch) return { back: 0, front: blockySpin(c, c.punch.t / PUNCH_TIME), direct: true };
+    // placing: forward from hanging straight down to pointing at the block
     let turn = Math.PI / 2 - Math.atan2(dyf, dxf);
     turn = ((turn % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     return { back: 0, front: -turn * e, direct: true };
   }
   if (c._swim) {
-    const a = ((now % BLOCKY.swimMs) / BLOCKY.swimMs) * 2 * Math.PI;
-    return { back: -a, front: -a - Math.PI, direct: true };
+    const a = blockySpin(c, (now % BLOCKY.swimMs) / BLOCKY.swimMs);
+    return { back: a, front: a - Math.PI, direct: true };
   }
   // the Blue Umbrella open (in the air): the front hand straight up holding it, the other arm as in the jump
   if (blockyUmbOpen(s.tool)) return { back: s.bj === 'up' ? BLOCKY.jumpFar : 0, front: -Math.PI + 0.001 };
@@ -134,7 +144,21 @@ const BLOCKY_AXE_MAP = ['...a.......', '..ab.......', '.aac.......', '.ab.......
 // air in the front hand raised straight up (no extra arm any more).
 const BLOCKY_TOOL_SKIP = new Set(['heart_bow', 'fishing_rod', 'golden_rod', 'noah_rod', 'dragon_hand', 'just_one_boxing_glove', 'wrench']),
   BLOCKY_HAND = [0, 5.5], // the hand (where the pickaxe's handle sits) from the front shoulder, sprite px
-  BLOCKY_TOOL_LEN = 17; // world px a 32 px tool picture is drawn at (like drawArmWithTool)
+  BLOCKY_TOOL_LEN = (17 * CHAR_H) / 32; // world px a 32 px tool picture is drawn at (like drawArmWithTool; grows with the body)
+// scythes in the hand (build r, owner): this much bigger, and this much longer again along the handle
+const BLOCKY_SCY = { big: 1.3, long: 1.15 };
+// world px a held tool can reach from the shoulder, for shadow.js's box (build t: the big scythe was cut off): the hand
+// + the farthest corner of the tool picture from its grip, with the scythe's size-up; 0 for no blocky-held tool
+function shadowToolReach(c) {
+  const id = c && c.hand;
+  if (!id || !blockyOwnsTool(id)) return 0;
+  const hand = Math.hypot(BLOCKY_HAND[0], BLOCKY_HAND[1]) * BLOCKY.px * (CHAR_H / FR.h);
+  if (typeof isScythe === 'function' && isScythe(id)) {
+    const big = id === 'reaper_scythe' && typeof REAPER_SCY_BIG !== 'undefined' ? REAPER_SCY_BIG : 1;
+    return hand + SCY_SIZE * BLOCKY_SCY.big * BLOCKY_SCY.long * big + 4;
+  }
+  return hand + BLOCKY_TOOL_LEN * (blockyIsGun(id) ? 2 : 1.2) + 4;
+}
 const blockyIsPick = (id) => !!id && /pickaxe$/.test(id) && typeof TOOLS !== 'undefined' && !!TOOLS[id];
 const blockyOwnsTool = (id) => !!id && typeof TOOLS !== 'undefined' && !!TOOLS[id] && !BLOCKY_TOOL_SKIP.has(id);
 const blockyIsGun = (id) => typeof GUN_IDS !== 'undefined' && GUN_IDS.has(id);
@@ -150,6 +174,10 @@ function blockyTool(c, id, ang, top, sc, dy, s) {
   g.translate(BLOCKY_HAND[0] * p, BLOCKY_HAND[1] * p);
   g.imageSmoothingEnabled = false;
   if (typeof isScythe === 'function' && isScythe(id)) {
+    // (owner, Nov 19 2026 build r: "bigger in the hand so it looks fierce, and a bit longer, every scythe") drawn
+    // BLOCKY_SCY.big x bigger round the hand, and stretched BLOCKY_SCY.long x more along the handle (the handle is
+    // level here, along x), so handle and blade both reach further; the grip stays in the hand
+    g.scale(BLOCKY_SCY.big * BLOCKY_SCY.long, BLOCKY_SCY.big);
     scyDraw(id, (SCY_SIZE / (CHAR_H / FR.h) / SCY_N) * k, -SCY_HANDLE_ANG, 1, ang);
   } else if (typeof UMB_ID !== 'undefined' && id === UMB_ID) {
     // the Blue Umbrella (umbrella.js pictures): closed = its shaft level and forward like a handle; open (in the air)

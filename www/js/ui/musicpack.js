@@ -31,7 +31,7 @@ function musicChar(k, skin, emo, hand, face) {
       ground: true,
       walking: false,
       walkPh: 0,
-      equipped: { shirt: 'music_tee', pants: 'rocker_jeans', feet: 'rocker_sneakers' },
+      equipped: {}, // (the music clothes were deleted, Nov 19 2026 build p)
       hand: hand || 'fist',
       name: '',
       portrait: false,

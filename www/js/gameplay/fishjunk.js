@@ -22,10 +22,9 @@ for (const [id, w] of [
   ['old_shoe', 2],
   ['seaweed', 3],
   ['starfish', 2],
-  ['holey_pants', 1],
 ])
   for (let k = 0; k < w; k++) JUNK.push(id);
-const FISH_JUNK_NAMES = { old_shoe: 'Old Shoe', seaweed: 'Seaweed', starfish: 'Starfish', holey_pants: 'Holey Pants' };
+const FISH_JUNK_NAMES = { old_shoe: 'Old Shoe', seaweed: 'Seaweed', starfish: 'Starfish' };
 // "You fished up a ..." / "an ..."
 reel = ((prev) =>
   function () {
