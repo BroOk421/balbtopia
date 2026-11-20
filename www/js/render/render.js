@@ -333,6 +333,11 @@ function jokePaint(x, face, ink, mouth) {
 }
 const JOKES = {};
 function jokeFace(skin, kind) {
+  // (owner, Nov 20 2026) /troll: his troll face (expressions.zip, look_cut.py expr_troll.png)
+  if (kind === 'troll' && typeof blockyImg === 'function') {
+    const t = blockyImg(skin, 'expr_troll') || blockyImg('porcelain', 'expr_troll');
+    if (t) return t;
+  }
   const key = skin + ':' + kind;
   if (JOKES[key]) return JOKES[key];
   const art = IMG.face_joke;
@@ -467,7 +472,9 @@ function drawDead(c, ox, oy) {
       g.scale(1 + 0.05 * sag, 1 - 0.1 * sag);
       drawBehind(c, -H, sc, 0);
       g.drawImage(outfitBody(IMG['skin_' + c.skin + '_closed'], 'skin_' + c.skin + '_closed', c.equipped || {}), -W / 2, -H, W, H);
-      g.drawImage(weakFace(c.skin), -W / 2, -H, W, H);
+      // (owner, Nov 20 2026) his dead face (expressions.zip: X eyes, a frown), else the old weak face
+      const dfc = typeof blockyImg === 'function' ? blockyImg(c.skin, 'expr_dead') || blockyImg('porcelain', 'expr_dead') : null;
+      g.drawImage(dfc || weakFace(c.skin), -W / 2, -H, W, H);
       drawWorn(c, -H, sc);
       g.restore();
     });
@@ -616,12 +623,13 @@ function drawCharacter(c, ox, oy) {
   if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else if (c._swim && typeof swimFace === 'function' && swimFace(c.skin)) g.drawImage(swimFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // in water: only the face changes (owner, Nov 20 2026)
   else drawTalk(c, top, sc, dy, MOUTH_Y);
   if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, dy); // /love heart eyes, /omg, /sleep (emotes.js)
-  if (bsl) {
-    blockySleeves(c, 'front', top, sc, dy, bsl); // the front sleeve (and the back one too while it is raised)
-  }
   drawWorn(c, top, sc, dy);
+  // the front sleeve (and the back one too while it is raised) with the tool in its hand: after the worn things, so a
+  // weapon / tool raised over the head is in front of hats, hoods and hair (owner, Nov 20 2026: the Shadow Hood hid it)
+  if (bsl) blockySleeves(c, 'front', top, sc, dy, bsl);
   drawAuraFront(c, top, sc, dy); // the aura's lightning, in front of everything else on the body
   // the tool in the hand: the one you hold, or else the one in your Hand slot, so the pickaxe stays in
   // your hand while you hold a block, a seed or the wrench (only a swing draws it elsewhere)

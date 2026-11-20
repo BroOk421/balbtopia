@@ -212,7 +212,16 @@ function act() {
   if (useMannequin(x, y)) return;
   // (Vending Machine / Display Box / Suggestion Board / Mailbox / Piano: only the wrench opens them, owner Oct 25 2026)
   // an ATM Machine you stand in: today's coins (atm.js)
-  if (typeof useATM === 'function' && useATM(x, y)) return;
+  // (owner, Nov 20 2026: "a full ATM gives coins and does not break; it breaks only once it shows 'ATM'") after it
+  // paid out, the SAME press (held down, the punch repeating) does not punch it: only a new click breaks it
+  if (typeof atmHeld === 'function' && atmHeld(x, y)) return;
+  if (typeof useATM === 'function') {
+    const full = isATMT(fg[at(x, y)]) && atmReady(at(x, y));
+    if (useATM(x, y)) {
+      if (full && !atmReady(at(x, y))) atmHoldOn(at(x, y));
+      return;
+    }
+  }
   const held = ITEMS[hand];
   // fists (or anything that isn't placed) on another player: punch them
   if (hand === 'fist' || !held || held.kind === 'clothing' || held.kind === 'tool') {

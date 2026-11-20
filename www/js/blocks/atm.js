@@ -31,6 +31,14 @@ const ATM_LOOT = [
 // 2026: not down at the bottom, where the head of a player in the row below picked them up)
 const atmScatter = (tx, ty, n) => coinScatter(tx, ty, n);
 
+// (owner, Nov 20 2026) holding the punch on a full ATM: the first punch pays out, the punches that repeat while the
+// same press is held do nothing to it (they used to break it ~1.5 s later). A new press (pointerdown) breaks it as usual.
+let atmPress = 0,
+  atmHold = null; // { i: tile, press } of the last pay-out by your click
+cv.addEventListener('pointerdown', () => atmPress++, true);
+const atmHoldOn = (i) => (atmHold = { i, press: atmPress });
+const atmHeld = (x, y) => !!(atmHold && atmHold.i === at(x, y) && atmHold.press === atmPress && ptr.down && isATMT(fg[atmHold.i]));
+
 const ATM_WAIT = 24 * 3600e3;
 const atms = new Map(); // tile -> when it was placed / last paid out (ms since 1970)
 function setATMs(list) {

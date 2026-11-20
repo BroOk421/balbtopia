@@ -84,12 +84,7 @@ function scarfCells(kind, f, swim) {
 }
 // a colour for each cell: (part, a, b) -> '#rrggbb'
 const SCARF_STYLES = {
-  royal_silk_scarf: {
-    ol: '#4a3004',
-    pin: 'ruby',
-    gold: true, // gold edges on every piece
-    col: (p, a, b) => ((a + b) % 6 === 0 ? '#34344a' : '#16161e'),
-  },
+  // (Nov 20 2026: royal_silk_scarf is now the owner's pixel scarf, pixelwear.js; no painted scarf is left)
   // BIG scarves (owner, Oct 31 2026; his reference picture): pulled up over the mouth, wide, three rolls
 };
 // Pins and gold (owner, Oct 31 2026: "lagyan mo ng design like mga gold or pin sa gitna"): a style's `pin` puts a

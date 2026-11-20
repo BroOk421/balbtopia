@@ -201,7 +201,7 @@ const SHOP = [
   { id: 'faceless_head', gold: 20000, cat: 'wear' }, // price picked by Claude
   { id: 'blue_pacifier', gold: 5000, cat: 'wear' }, // price picked by Claude
   // scarves (scarves.js, Oct 31 2026; prices picked by Claude)
-  { id: 'royal_silk_scarf', gold: 15000, cat: 'wear' },
+  // (royal_silk_scarf: pixelwear.js, Nov 20 2026)
   // capes and the Vampire Face (capes.js, vampire_face.js; Oct 31 2026; prices picked by Claude)
   { id: 'hero_cape', gold: 15000, cat: 'wear' },
   { id: 'blue_hero_cape', gold: 15000, cat: 'wear' },

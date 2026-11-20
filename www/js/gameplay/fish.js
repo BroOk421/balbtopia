@@ -416,6 +416,15 @@ const FISH_RANGE = 3, // tiles from you (owner, Nov 3 2026: 3 tiles only)
   BACK_MS = 300,
   BITE_MS = 3200,
   CATCH_MS = 650;
+const BAIT_SIZE = 13; // world px: the bait hanging on the line's end (was the 7 px float)
+// where the snail / shrimp are tied (64 px picture px, from fishing.js paintSnail / paintShrimp): the middle of the
+// BODY, how thick it is there (th) and the direction ACROSS it (a, radians) the wraps of line go
+const BAIT_TIE = {
+  // the snail's soft foot, under the front of the shell
+  snail: { x: 24, y: 52, th: 10, a: Math.PI / 2 + 0.25 },
+  // the shrimp's middle segment, round its curl (across = from the curl's centre out)
+  shrimp: { x: 32 + Math.cos(1.1) * 16, y: 30 + Math.sin(1.1) * 16, th: 12, a: 1.1 },
+};
 const FLOAT_PIX = ['.KKKKK.', 'KRHRRRK', 'KRRRRRK', 'KKKKKKK', 'KWWWWWK', 'KWWWWSK', '.KKKKK.'],
   FLOAT_COL = { K: '#14101c', R: '#e8303e', H: '#ff8a90', W: '#ffffff', S: '#c4ccd8' };
 let fishing = null, // { st: 'out' | 'wait' | 'bite' | 'back' | 'catch', t0, x, y, water, rod, bait, at, f }
@@ -592,18 +601,62 @@ function drawFishing(ox, oy) {
     if (fb) drawFishAt(g, F.f.id, s, Math.floor(now / 90));
     else g.drawImage(caughtPic(F.f.id), -s / 2, -s / 2, s, s);
   } else {
-    // the float: a pixel-art ball, 7 x 7 pixels (owner, Nov 3 2026: pixelated, not a smooth circle)
-    const c = Math.max(1, Math.round(Z)),
-      fx = Math.round(bx - 3.5 * c),
-      fy = Math.round(by - 3.5 * c);
-    FLOAT_PIX.forEach((row, j) => {
-      for (let i = 0; i < 7; i++) {
-        const col = FLOAT_COL[row[i]];
-        if (!col) continue;
-        g.fillStyle = col;
-        g.fillRect(fx + i * c, fy + j * c, c, c);
+    // (owner, Nov 20 2026: "instead of the float, the shrimp / snail / worm tied at its middle") the bait you cast with
+    // hangs on the end of the line, the line tied round its middle; it sways a little (the worm wriggles)
+    const bait = typeof baitPic === 'function' && F.bait && BAIT_INFO[F.bait] ? F.bait : null;
+    if (bait) {
+      const pic = baitPic(bait, bait === 'worm' ? Math.floor(now / 160) % 4 : 0),
+        S = BAIT_SIZE * Z,
+        k = S / 64;
+      g.save();
+      g.translate(bx, by);
+      g.rotate(Math.sin(now / 380) * 0.12 + (F.st === 'bite' ? Math.sin(now / 40) * 0.25 : 0));
+      if (tip.x > F.x) g.scale(-1, 1); // its head away from you
+      g.imageSmoothingEnabled = true;
+      g.strokeStyle = 'rgba(236,240,248,.95)';
+      g.lineWidth = Math.max(1, Z * 0.45);
+      g.beginPath();
+      if (bait === 'worm') {
+        // the worm (owner: fine as it is): the picture's middle on the line's end, the line wound twice round it
+        g.drawImage(pic, -S / 2, -S / 2, S, S);
+        for (const dx of [-0.9, 0.9]) {
+          g.moveTo((dx - 0.6) * Z, -2.4 * Z);
+          g.lineTo((dx + 0.6) * Z, 2.4 * Z);
+        }
+      } else {
+        // (owner: "on the body itself, like the worm, the strokes accurate: tie the line there") the snail / shrimp:
+        // its tie spot (BAIT_TIE, picture px) on the line's end, two wraps of line across the body there, as long as the
+        // body is thick and square to it
+        const t = BAIT_TIE[bait],
+          ux = Math.cos(t.a),
+          uy = Math.sin(t.a), // along the wraps (across the body)
+          vx = -uy,
+          vy = ux, // along the body
+          h = (t.th / 2 + 1) * k;
+        g.drawImage(pic, -t.x * k, -t.y * k, S, S);
+        for (const o of [-1.6, 1.6]) {
+          const cx = (vx * o + ux * 0.15 * o) * k,
+            cy = (vy * o + uy * 0.15 * o) * k;
+          g.moveTo(cx - ux * h, cy - uy * h);
+          g.lineTo(cx + ux * h, cy + uy * h);
+        }
       }
-    });
+      g.stroke();
+      g.restore();
+    } else {
+      // the float: a pixel-art ball, 7 x 7 pixels (owner, Nov 3 2026: pixelated, not a smooth circle)
+      const c = Math.max(1, Math.round(Z)),
+        fx = Math.round(bx - 3.5 * c),
+        fy = Math.round(by - 3.5 * c);
+      FLOAT_PIX.forEach((row, j) => {
+        for (let i = 0; i < 7; i++) {
+          const col = FLOAT_COL[row[i]];
+          if (!col) continue;
+          g.fillStyle = col;
+          g.fillRect(fx + i * c, fy + j * c, c, c);
+        }
+      });
+    }
     if (F.st === 'wait' || F.st === 'bite') {
       // rings on the water
       const k = ((now - F.t0) / (F.st === 'bite' ? 350 : 1200)) % 1;

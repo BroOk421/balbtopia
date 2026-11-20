@@ -1485,6 +1485,13 @@ function rideLater(old) {
 }
 drawPunch = rideLater(drawPunch);
 drawLaser = rideLater(drawLaser);
+// (Nov 20 2026, owner: "on a ride the sleeve / hand holding the weapon must overlap the ride") the blocky body's FRONT
+// sleeve and the tool in its hand (blockybody.js) are noted in pass 2 like the old tool arm and drawn after it, whole,
+// over the ride; the back sleeve stays as it was
+blockySleeves = ((old, later) =>
+  function (c, which, ...r) {
+    return which === 'front' ? later(c, which, ...r) : old(c, which, ...r);
+  })(blockySleeves, rideLater(blockySleeves));
 const rideOldAuraFront = drawAuraFront;
 drawAuraFront = function (...a) {
   if (RIDE_PASS === 1) {

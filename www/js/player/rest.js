@@ -10,12 +10,83 @@ const BEDS = {
 };
 // bathtubs (bath.js): stand still in one and you get in, only your head over the water, eyes shut
 const BATHS = { bathtub: 1 };
+// lying in a bed: the blanket covers the body from this row of the frame down (the blocky chin, sprite row 23)
+const BLANKET_ROW = 140;
+// sleeping in a Bed / /sleep standing (owner, Nov 20 2026, his bedsleep.png: "like this"): his bed behind
+// (bed_back.png: pillow / headboard) and in front (bed_front.png: blanket and bed), the character's own head between
+// them where his picture has it (BED_HEAD_DX / DY sprite px from the standing head), cut off at his blanket row.
+// The frame stands with its feet on feetY. Returns the top of the bald head.
+const BED_HEAD_DX = 2, // sprite px (his picture faces left; mirrored in the game)
+  BED_HEAD_DY = -5,
+  BED_CUT_ROW = 4 + 18 * 6; // frame row: his blanket's top row (18)
+// the pictures per bed: the Bed = his picture, the Hospital Bed = it recoloured (look_cut.py)
+const BED_PICS = { bed: ['bed_back', 'bed_front'], hospital_bed: ['bed_back_hospital', 'bed_front_hospital'] };
+function bedSleep(c, cx, feetY, sc, id = 'bed') {
+  const [bk, fk] = BED_PICS[id] || BED_PICS.bed,
+    k = sc * Z,
+    top = feetY - FR.h * k,
+    back = IMG[bk],
+    front = IMG[fk],
+    im = IMG['skin_' + c.skin + '_closed'] || IMG['skin_' + c.skin + '_open'],
+    hx = -BED_HEAD_DX * 6 * k,
+    htop = top + BED_HEAD_DY * 6 * k * (1 - Math.sin(now / 650) * 0.01);
+  const px = cx - (FR.w / 2 + 40) * k,
+    W = (FR.w + 80) * k,
+    H = FR.h * k;
+  g.imageSmoothingEnabled = false;
+  if (back && back.width) g.drawImage(back, px, top, W, H);
+  g.save();
+  g.beginPath();
+  g.rect(cx - 200 * Z, top - 200 * Z, 400 * Z, 200 * Z + BED_CUT_ROW * k);
+  g.clip();
+  g.translate(Math.round(cx + hx), 0);
+  drawBehind(c, htop, sc, 0);
+  if (im) g.drawImage(outfitBody(im, 'skin_' + c.skin + '_closed', c.equipped || {}), (-FR.w * k) / 2, htop, FR.w * k, FR.h * k);
+  const sf = typeof blockyImg === 'function' ? blockyImg(c.skin, 'expr_sleep') || blockyImg('porcelain', 'expr_sleep') : null;
+  if (sf) g.drawImage(sf, (-FR.w * k) / 2, htop, FR.w * k, FR.h * k);
+  drawWorn(c, htop, sc, 0);
+  g.restore();
+  g.imageSmoothingEnabled = false;
+  if (front && front.width) g.drawImage(front, px, top, W, H);
+  return htop + 4 * 6 * k + 3 * 6 * k; // the bald head's top (sprite row 7, moved)
+}
+// in a bed / asleep standing (owner, Nov 20 2026: his picture; "the head a bit smaller, the blanket over the head too"):
+// the bed, then only the HEAD (cut off at the chin) BED_HEAD smaller, its chin BED_SINK under the blanket's top line,
+// then the bed's blanket (the bed picture from that line down) again OVER it. His sleep face; head things come along.
+const BED_HEAD = 0.8,
+  BED_SINK = 1.5; // world px (owner's picture: the mouth just over the blanket, the chin under it)
+function bedHead(c, body, cx, sc, k, bedId, bedX, bedY, blanketY) {
+  const chinY = blanketY + BED_SINK * Z,
+    top = chinY - BLANKET_ROW * k * (1 + Math.sin(now / 650) * 0.012),
+    bed = decoCanvas(bedId, 0);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(bed, bedX, bedY, TS * Z, TS * Z);
+  g.save();
+  g.beginPath();
+  g.rect(cx - 200 * Z, chinY - 200 * Z, 400 * Z, 200 * Z);
+  g.clip();
+  g.translate(Math.round(cx), chinY);
+  g.scale(BED_HEAD, BED_HEAD);
+  g.translate(0, -chinY);
+  drawBehind(c, top, sc, 0);
+  g.drawImage(body, (-FR.w * k) / 2, top, FR.w * k, FR.h * k);
+  const sf = typeof blockyImg === 'function' ? blockyImg(c.skin, 'expr_sleep') || blockyImg('porcelain', 'expr_sleep') : null;
+  if (sf) g.drawImage(sf, (-FR.w * k) / 2, top, FR.w * k, FR.h * k);
+  drawWorn(c, top, sc, 0);
+  g.restore();
+  // the blanket over the head's lower part: the bed picture from the blanket's line down
+  const sy = ((blanketY - bedY) / (TS * Z)) * bed.height;
+  g.imageSmoothingEnabled = false;
+  g.drawImage(bed, 0, sy, bed.width, bed.height - sy, bedX, blanketY, TS * Z, bedY + TS * Z - blanketY);
+  return chinY - (BLANKET_ROW - 4) * k * BED_HEAD; // the top of the (smaller) bald head
+}
 const REST_DELAY = 3; // seconds of standing still on the chair / bed before you sit or lie down (owner: was 5, too slow)
 // the sitting picture: 40 px of room on each side of our 118 px frame; the row it sits on; clothes rows on it
 const SIT_MOUTH_Y = 96; // the mouth line on the old sitting face (not used: the standing head is used now)
 // Sitting keeps the normal standing face (owner, Oct 22 2026): the sitting picture's head (rows above SIT_HEAD_CUT,
 // fitted onto the standing head) is replaced by the standing frame's head, with its blinking; so talking uses MOUTH_Y.
-const SIT_HEAD_CUT = 104;
+// Nov 20 2026: the owner's blocky sit_look (look_cut.py): the blocky head ends above sprite row 23 = frame row 142
+const SIT_HEAD_CUT = 142;
 const SIT_HEADS = {};
 function sitWithHead(skinName, fr) {
   const k = skinName + ':' + fr;
@@ -33,12 +104,18 @@ function sitWithHead(skinName, fr) {
   return (SIT_HEADS[k] = c);
 }
 const SIT_PAD = 40,
-  SIT_SEAT_ROW = 183,
-  SIT_BANDS = { shirt: [100, 139], pants: [140, 200], feet: 145, pose: 'sit' };
+  SIT_SEAT_ROW = 193, // sit_look.png: the bottom row of the brown shorts (thighs) rests on the seat
+  SIT_BANDS = { shirt: [142, 171], pants: [172, 197], feet: 196, pose: 'sit' };
 // the sitting picture in a skin tone: skin pixels scaled from the picture's (porcelain) skin to that tone
 const SITS = {};
 function sitBody(skinName) {
   if (SITS[skinName]) return SITS[skinName];
+  // the owner's blocky sitting look (Nov 20 2026), already in every skin tone (art-source/character/look_cut.py)
+  // (Nov 20 2026 later, owner: "sitting, the rod should still slant") without the front sleeve: drawResting draws that
+  // sleeve with blockybody.js, turned like when standing, holding the tool
+  const own = typeof blockyImg === 'function' ? blockyImg(skinName, 'sit_noarm') : null;
+  if (own) return (SITS[skinName] = own);
+  if (typeof blockyImg === 'function') return null; // still loading: nothing for a frame rather than the old picture
   const im = IMG.sit_body;
   if (!im || !im.width) return null;
   const c = document.createElement('canvas');
@@ -160,12 +237,12 @@ const sittingNow = () => !!(P.rest && P.rest.k === 'sit');
 // the sitting picture: screen left when facing right, mirrored when facing left), held like when standing (same
 // picture, size and turn, via drawArmWithTool, so scythes / bows / guns keep their own looks), drawn WHOLE in front of
 // the body and legs (owner: it may cover the feet). The hand is then drawn again over the handle so it holds it.
-const SIT_HAND = [80, 144], // sit.png px: where the hand grips (the bottom of the resting hand, like armParts' hand)
-  SIT_HAND_BOX = [55, 126, 102, 160]; // x0, y0, x1, y1 (sit.png px): where the hand / forearm is looked for
+const SIT_HAND = [102, 184], // sit_look.png px: where the hand grips (the bottom of the front sleeve's hand)
+  SIT_HAND_BOX = [87, 172, 123, 190]; // x0, y0, x1, y1 (sit_look.png px): where the hand is looked for
 let SIT_HAND_MASK = null; // sit.png pixel indices of the hand (skin + its outline)
 function sitHandMask() {
   if (SIT_HAND_MASK) return SIT_HAND_MASK;
-  const im = IMG.sit_body;
+  const im = typeof blockyImg === 'function' ? blockyImg('porcelain', 'sit_look') : IMG.sit_body;
   if (!im || !im.width) return null;
   try {
     const c = document.createElement('canvas');
@@ -266,7 +343,8 @@ function drawResting(c, ox, oy) {
     // hats fit; skin tone and clothes repainted like the standing body; bottom on the seat
     const angry = c.angry > 0,
       fr = angry ? 'open' : frameAt(now + (c.blink || 0)), // blinking like when standing (not while angry)
-      body = outfitBody(sitWithHead(c.skin, fr), 'sit_' + c.skin + '_' + fr, eq, SIT_BANDS),
+      sitPic = sitWithHead(c.skin, fr),
+      body = sitPic ? outfitBody(sitPic, 'sit_' + c.skin + '_' + fr, eq, SIT_BANDS) : null, // (null for a frame while it loads)
       seatY = tileY + SEATS[r.id] * 2 * Z,
       cx = tileX + (TS / 2) * Z,
       // no breathing bob while sitting (owner, Oct 24 2026: rounded to whole pixels it made the sitter shake)
@@ -278,7 +356,11 @@ function drawResting(c, ox, oy) {
     // (owner, Nov 1 2026) breaking with a weapon / tool while sitting swings THAT weapon like when standing (its own
     // swing, slash and effects, drawn after the body); the bare-fist punch is only for an empty hand
     const pc = Object.assign({}, c, { face }),
-      swinging = !!(heldTool(c.hand) && c.punch && c.hand !== 'wrench');
+      // the held / Hand-slot tool; one the blocky front sleeve holds is drawn with that sleeve (below), turned like
+      // when standing (the fishing rod slants up, punches swing it), not by the old sitting arm
+      held = heldTool(c.hand) && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null,
+      bOwn = !!(held && typeof blockyOwnsTool === 'function' && blockyOwnsTool(held)),
+      swinging = !!(heldTool(c.hand) && c.punch && c.hand !== 'wrench') && !bOwn;
     if ((c.punch || c.place) && !swinging) drawPunch(pc, Math.round(cx), top, sc, ox, oy);
     if (laserFace(eq) && c.punch) drawLaser(pc, Math.round(cx), top, sc, ox, oy);
     if (swinging) sitSwing = { pc, cx: Math.round(cx), top, sc };
@@ -292,48 +374,43 @@ function drawResting(c, ox, oy) {
     else if (angry) g.drawImage(angryFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
     else drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
     drawWorn(c, top, sc, 0);
+    // the front sleeve (not in sit_noarm.png) with what its hand holds: the same sleeve, shoulder and angles as
+    // standing; after the worn things, so a raised weapon is in front of a hood / hat / hair (like render.js)
+    if (typeof blockySleeves === 'function')
+      blockySleeves(pc, 'front', top, sc, 0, { wf: 0, walking: false, punching: !!(c.punch || c.place), bj: null, cx: Math.round(cx), ox, oy, tool: held });
     drawAuraFront(c, top, sc, 0);
-    if (!swinging) drawSitTool(c, body, 'sit_' + c.skin + '_' + fr + '|' + [eq.shirt, eq.pants, eq.feet].join('|'), top, k); // the held weapon / tool
+    if (!swinging && !bOwn) drawSitTool(c, body, 'sit_' + c.skin + '_' + fr + '|' + [eq.shirt, eq.pants, eq.feet].join('|'), top, k); // the held weapon / tool
     tagX = cx;
     tagY = top + NAME_TOP * sc * Z; // same height as standing, whatever is worn (render.js)
   } else {
-    // lying on the mattress: head on the pillow (left), feet to the right, face up, eyes shut
+    // (owner, Nov 20 2026, his picture of the old look: "use the bed like this", then "the head goes OVER the bed") in
+    // bed: the bed first, then only the HEAD over it (the body cut off at the chin, which is on the blanket's line
+    // `BEDS[id].top`), eyes shut (his sleep face), breathing
     const bd = BEDS[r.id],
       im = IMG['skin_' + c.skin + '_closed'] || IMG['skin_' + c.skin + '_open'],
       body = outfitBody(im, 'skin_' + c.skin + '_closed', eq),
-      matY = tileY + bd.top * 2 * Z,
-      lie = 0.74, // smaller, so it fits on the bed
-      thick = FR.w * k * lie,
       cx = tileX + (TS / 2) * Z,
-      cy = matY - thick / 2 + 1.5 * Z,
-      hx = cx - (FR.h / 2) * k * lie; // where the head is (left end)
-    g.save();
-    g.translate(Math.round(cx), Math.round(cy));
-    g.rotate(-Math.PI / 2);
-    g.scale(lie, lie * (1 + breathe * 0.012));
-    const top = (-FR.h * k) / 2;
-    drawBehind(c, top, sc, 0);
-    g.drawImage(body, (-FR.w * k) / 2, top, FR.w * k, FR.h * k);
-    drawWorn(c, top, sc, 0);
-    g.restore();
+      hx = cx;
+    // the Bed / Hospital Bed: his picture (bedSleep; recoloured for the Hospital Bed); any other bed: its tile picture
+    const matY =
+      BED_PICS[r.id] && IMG[BED_PICS[r.id][1]] && IMG[BED_PICS[r.id][1]].width
+        ? bedSleep(c, cx, tileY + (TS + (typeof FOOT_SINK !== 'undefined' ? FOOT_SINK : 0)) * Z, sc, r.id) - 4 * k
+        : bedHead(c, body, cx, sc, k, r.id, tileX, tileY, tileY + bd.top * 2 * Z) - 4 * k;
     // Zzz floating up from the head, each letter on its own beat
     g.font = `${4 * Z}px "Press Start 2P", monospace`;
     g.textAlign = 'center';
     for (let i = 0; i < 3; i++) {
       const u = (now / 1600 + i / 3) % 1,
         zx = hx + (6 + u * 7 + Math.sin(u * 6 + i) * 1.5) * Z,
-        zy = matY - thick - (2 + u * 12) * Z;
+        zy = matY + 8 * k - (2 + u * 12) * Z;
       g.globalAlpha = Math.sin(u * Math.PI) * 0.95;
       g.font = `${(3 + u * 2.5) * Z}px "Press Start 2P", monospace`;
-      g.lineWidth = Z;
-      g.strokeStyle = 'rgba(20,10,30,.8)';
-      g.strokeText('z', zx, zy);
-      g.fillStyle = '#ffffff';
+      g.fillStyle = '#ffffff'; // (owner, Nov 20 2026: no outline)
       g.fillText('z', zx, zy);
     }
     g.globalAlpha = 1;
     tagX = cx;
-    tagY = matY - thick - 16 * Z; // above the Zzz
+    tagY = matY - 12 * Z; // above the head and the Zzz
   }
   g.restore();
   // the weapon swing (sitting, set above): the arm turning round the shoulder with the weapon, in front of the body

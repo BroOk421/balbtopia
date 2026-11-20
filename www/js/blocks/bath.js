@@ -129,7 +129,8 @@ function drawBathBubble(p, ox, oy) {
 const BATH_KEEP = ['hair', 'hat', 'face', 'mask', 'mouth', 'stache', 'ear']; // worn things that show in the bath
 const BATH_MID_X = 13, // world px in the tile: the middle of the body
   BATH_TOP_Y = -6, // the top of the body picture (world px from the tile's top): the chin just over the water
-  BATH_CLIP_Y = 12; // nothing of the body below this row of the tile (inside the tub)
+  BATH_CLIP_Y = 12, // nothing of the body below this row of the tile (inside the tub)
+  BATH_CHIN_ROW = 140; // the blocky body's chin (frame row: sprite row 23)
 drawResting = ((prev) =>
   function (c, ox, oy) {
     const r = c.rest;
@@ -148,8 +149,10 @@ drawResting = ((prev) =>
       tileY = oy + r.ty * TS * Z,
       bob = Math.sin(now / 700) * 0.3,
       mx = Math.round(tileX + BATH_MID_X * Z),
-      top0 = Math.round(tileY + (BATH_TOP_Y + bob) * Z),
-      chinY = top0 + 101 * k,
+      // (owner, Nov 20 2026: "only the head shows in the bathtub"): the blocky body's chin (BATH_CHIN_ROW) goes where
+      // the old body's chin (row 101) was, just over the water, so the whole face shows
+      top0 = Math.round(tileY + (BATH_TOP_Y + bob) * Z - (BATH_CHIN_ROW - 101) * k),
+      chinY = top0 + BATH_CHIN_ROW * k,
       f = decoFrame('bathtub') % BATH_FRAMES;
     g.save();
     if (c.spawnT > 0) g.globalAlpha = 1 - c.spawnT / SPAWN_FADE;

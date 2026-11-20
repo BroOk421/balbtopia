@@ -32,10 +32,12 @@ function blockyImg(skin, name) {
   return im.complete && im.naturalWidth ? im : null;
 }
 // start loading every skin's pictures at once, so the first jump / punch already has them
-for (const s of typeof SKINS !== 'undefined' ? SKINS : ['porcelain']) for (const n of ['sleeve_back', 'sleeve_front', 'blocky_jump_up', 'blocky_jump_down', 'angry_face']) blockyImg(s, n);
+for (const s of typeof SKINS !== 'undefined' ? SKINS : ['porcelain']) for (const n of ['sleeve_back', 'sleeve_front', 'blocky_jump_up', 'blocky_jump_down', 'angry_face', 'swim_face', 'sit_look', 'sit_noarm', 'expr_dead', 'expr_nice', 'expr_sleep', 'expr_troll']) blockyImg(s, n);
 const BLOCKY_EMPTY = document.createElement('canvas');
 BLOCKY_EMPTY.width = FR.w;
 BLOCKY_EMPTY.height = FR.h;
+// in water (c._swim): the owner's swim face (puffed cheeks, holding his breath), only the face pixels (look_cut.py)
+const swimFace = (skin) => blockyImg(skin, 'swim_face') || blockyImg('porcelain', 'swim_face');
 angryFace = (skin) => blockyImg(skin, 'angry_face') || blockyImg('porcelain', 'angry_face') || BLOCKY_EMPTY;
 
 // canvas angles (inside the character's transform, facing right; + = clockwise on screen, - = the hand forward)
@@ -102,7 +104,7 @@ function blockyAngles(c, s, top, sc, dy) {
   if (BLOCKY_ARM.size > 200) BLOCKY_ARM.clear();
   return { back: st.back, front: st.front, backFront: false }; // swimming too: the far sleeve stays behind the chest
 }
-function blockySleeve(skin, name, sh, ang, top, sc, dy) {
+function blockySleeve(skin, name, sh, ang, top, sc, dy, c) {
   const im = blockyImg(skin, name) || blockyImg('porcelain', name);
   if (!im) return;
   const k = sc * Z,
@@ -112,6 +114,9 @@ function blockySleeve(skin, name, sh, ang, top, sc, dy) {
   g.rotate(ang);
   g.imageSmoothingEnabled = false;
   g.drawImage(im, (-im.width / 2) * p, -0.5 * p, im.width * p, im.height * p);
+  // a worn pixel shirt's sleeve on top (pixelwear.js; same crop as the bare sleeve)
+  const ov = c && typeof pxwSleeve === 'function' ? pxwSleeve(c, name) : null;
+  if (ov) g.drawImage(ov, (-ov.width / 2) * p, -0.5 * p, ov.width * p, ov.height * p);
   g.restore();
 }
 // which: 'back' (called before the body) or 'front' (after the body and face)
@@ -119,11 +124,11 @@ function blockySleeves(c, which, top, sc, dy, s) {
   const a = blockyAngles(c, s, top, sc, dy);
   const smooth = g.imageSmoothingEnabled;
   if (which === 'back') {
-    if (!a.backFront) blockySleeve(c.skin, 'sleeve_back', BLOCKY.back, a.back, top, sc, dy);
+    if (!a.backFront) blockySleeve(c.skin, 'sleeve_back', BLOCKY.back, a.back, top, sc, dy, c);
   } else {
-    if (a.backFront) blockySleeve(c.skin, 'sleeve_back', BLOCKY.back, a.back, top, sc, dy);
+    if (a.backFront) blockySleeve(c.skin, 'sleeve_back', BLOCKY.back, a.back, top, sc, dy, c);
     if (s.tool && blockyOwnsTool(s.tool)) blockyTool(c, s.tool, a.front, top, sc, dy, s);
-    blockySleeve(c.skin, 'sleeve_front', BLOCKY.front, a.front, top, sc, dy);
+    blockySleeve(c.skin, 'sleeve_front', BLOCKY.front, a.front, top, sc, dy, c);
   }
   g.imageSmoothingEnabled = smooth;
 }

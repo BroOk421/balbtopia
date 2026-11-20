@@ -4669,3 +4669,181 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   Fishing is otherwise as before (cast range, bait, 14-30 s wait, rewards); the old "click while it bites" is replaced
   by the catch bar.
 
+- Build '2026-11-20 v' (owner's appearance.zip: swim_look / sit_look .aseprite + a screenshot: "swimming: only the face
+  changes in water; sitting: looks like this; make the dirt block, the cave background and the lava simpler; the dirt
+  green on top, not snow"):
+  - NEW `art-source/character/look_cut.py <root>` (his files copied to art-source/character/swim_look.aseprite,
+    sit_look.aseprite; VISIBLE layers only, same fit / skin tones as blocky_cut.py) ->
+    `<skin>/swim_face.png` (only the face pixels that differ: puffed cheeks, held breath) and `<skin>/sit_look.png`
+    (198 x 215 = frame + SIT_PAD; the brown shorts keep their colour on every skin).
+  - render.js drawCharacter: while `c._swim` the swim face is drawn over the face (instead of the talking mouth;
+    angry / joke / blank faces still win); blinking stays. blockybody.js `swimFace(skin)`, preloads swim_face / sit_look.
+  - rest.js: `sitBody` = blockyImg(skin, 'sit_look') (the old sit.png + runtime recolour only without blockybody.js);
+    `SIT_HEAD_CUT` 142 (blocky head, still the standing head so it blinks), `SIT_SEAT_ROW` 193 (bottom of the shorts),
+    `SIT_BANDS` refitted, `SIT_HAND` [102, 184] / `SIT_HAND_BOX` [87, 172, 123, 190] (front sleeve's hand, mask read
+    from porcelain sit_look.png).
+  - NEW `art-source/tiles/simple_ground.py <www/assets/tiles>` rewrites dirt_0..2, cave.png, lava_0..3 (old ones in
+    art-source/tiles/before_nov20/): dirt = two browns in wavy bands (repeat every 32 px, seamless), a thin dark edge on
+    open sides, a GREEN grass cap with drips (`DRIP`, the same in every tile) on an open top, variants differ only by
+    two specks; Cave Background = flat dark brown + a lattice of round darker dots; lava = the same waves in orange
+    drifting 8 px per frame, a bright crust line on an open top. ground.js (rounded lava corners, underside crust) unchanged.
+- Build '2026-11-20 w' (owner's wearables.zip: 15 t-shirts / polos, 6 shorts, 8 shoes / flip-flops, 3 shades, each a
+  32 x 35 .aseprite on the blocky body with the piece on its own layer; "the t-shirt without the shorts, the shorts
+  without the t-shirt, in the bag and when worn"; names picked by Claude):
+  - His files: art-source/wear/pixel/<tshirt|pants|shoes|shades>/. NEW `art-source/wear/pixelwear_cut.py <root>` ->
+    `www/assets/wear/<id>/` idle / walk0 / walk1 / up / sit .png (198 x 215 = frame + 40 px each side), shirt
+    sleeve_back / sleeve_front (cut like the bare sleeves), icon.png (the piece alone, 1 px). A shirt replaces the
+    sando (an open polo shows skin), shorts replace the navy ones; skinned pieces (open polos, kung fu shirts) have
+    per-skin pictures `<pose>_<skin>.png`. Sitting: shirt above the belt + sleeves, the sitting shorts / shoes
+    recoloured from the piece's colours. Meta printed to art-source/wear/pixelwear_meta.json.
+  - NEW `js/wear/pixelwear.js` (after oldman.js): `PXW_LIST` (id, name, slot, rarity, gold, desc), addWear + SHOP
+    (WEAR tab) + WEAR_ICON getters; wraps `outfitBody` (pose from the frame key: walk_<skin>_<n> -> walk0 / walk1,
+    *_bjup -> up, a 198-wide frame -> sit, else idle; the old colour painting gets the clothes taken out of eq);
+    shades are WEAR_ART (Eyes slot). blockybody.js `blockySleeve(..., c)` draws `pxwSleeve(c, name)` over each sleeve.
+  - Items: Midnight / Brown / Gray / Green / Orange / Pink / Red Tee 800, Smiley Tee 2,000, Black / White Button Polo,
+    Charcoal / White / Red Open Shirt 2,500, Black / White Kung Fu Shirt 5,000 (Rare); Black / Blue / Lime / Orange /
+    Red / White Shorts 600; Black / Charcoal Sneakers 1,500, Retro Sneakers 3,500 (Rare), Black / Gray / Green /
+    Orange / Red Flip-Flops 400; Black / Green / Yellow Shades 2,500. schema.sql: shop_prices rows, keep list,
+    item_info rows (RE-RUN it).
+- Build '2026-11-20 x' (owner's burst-fade.aseprite, layer 'hair'): Burst Fade (`burst_fade`, Hair slot, Rare, Shop
+  5,000 gold) in pixelwear.js `PXW_LIST`, drawn as WEAR_ART like the shades (the head is in the same place in every
+  pose: standing, walking, jumping, sitting, swimming). His file: art-source/wear/pixel/hair/; pixelwear_cut.py
+  category 'hair'. schema.sql rows added (RE-RUN it).
+- Build '2026-11-20 y' (owner's screenshots: sitting on a couch the rod lay flat; on a ride the front sleeve / weapon
+  went behind the ride): "sitting, the rod should still slant; on a ride the sleeve / hand holding the weapon must
+  overlap the ride":
+  - look_cut.py also writes `<skin>/sit_noarm.png` (sit_look without the front sleeve); rest.js `sitBody` uses it and
+    drawResting draws the FRONT sleeve with blockybody.js `blockySleeves(pc, 'front', ...)` (same shoulder / angles
+    as standing: fishing ROD_HOLD slant, cast / reel swings, punch spin, held tools via blockyTool). Tools the blocky
+    sleeve holds skip the old sitting arm (`drawSitTool`, drawToolSwing); BLOCKY_TOOL_SKIP ones still use it.
+    pixelwear_cut.py: the sit pictures no longer bake the shirt's front sleeve (pxwSleeve draws it on the turned sleeve).
+  - rides.js: `blockySleeves(c, 'front', ...)` is wrapped with rideLater (noted in pass 2, drawn after, uncut, over
+    the ride), like drawArmWithTool / drawPunch: horse, car, truck, harvester, carpet, leaf, cloud.
+- Build '2026-11-20 z' (owner's hair.zip: 6 more hairs; burst-fade.aseprite in it is the same file as before):
+  Wild Fade (`wild_fade`, burst-fade-2) and Wild Side Part (`wild_side_part`, burst-fade-3) Rare 5,000; Red Wild Fade
+  (`red_wild_fade`, burst-fade-red-2) and Red Side Part (`red_side_part`, burst-fade-red: the one with the parting
+  line) Rare 6,000; Bob Cut (`bob_cut`, girl-hair) Uncommon 4,000; Good Boy Cut (`good_boy_cut`, goodboy-hair)
+  Uncommon 3,000. pixelwear_cut.py: a hair is the visible layer whose name starts with 'hair' (girl-hair uses
+  'hair2', goodboy-hair 'hair2 Copy'). schema.sql rows added (RE-RUN it).
+- Build '2026-11-20 z2' (owner's white-hair.aseprite, girl-hair-yellow.aseprite): Silver Wild Fade
+  (`silver_wild_fade`, Rare 6,000) and Golden Bob Cut (`golden_bob_cut`, Uncommon 4,500) in pixelwear.js / cut
+  script / schema.sql (RE-RUN it).
+- Build '2026-11-20 z3' (owner's set-1.aseprite, updated once, + assorted-shoes-2.aseprite; "from set-1 only the mask
+  and the t-shirt; with the mask on the hair is gone"):
+  - Shadow Hood (`shadow_hood`, Head slot, Epic 8,000, `hideHair: true` -> photo_wear.js hides the worn hair): the
+    'mask' layer above the shoulders (rows < 23), WEAR_ART like the hairs. Shadow Robe (`shadow_robe`, Shirt, Epic
+    8,000): 'costume' + the mask layer's red line below the head (rows >= 23) + the file's sleeves. The file's
+    shades layer is not used. Cloud Sole Sneakers (`cloud_sole_sneakers`, Rare 3,500): assorted-shoes-2 (gray soles).
+  - pixelwear_cut.py: ITEMS keys may be 'file#part' (set-1#hood / set-1#robe); icon of a shirt built from cels.
+    pixelwear.js: PXW_LIST rows take a 7th `extra` (addWear fields), `PXW_ART_SLOTS` face / hair / hat.
+    schema.sql rows added (RE-RUN it).
+- Build '2026-11-20 z4' (owner: "the weapon should overlap the mask; the ATM: when it shows $ a click gives coins and
+  doesn't break it, it breaks only when empty ('ATM' on the screen)"; set-1.aseprite updated 3 more times):
+  - render.js drawCharacter / rest.js drawResting: the blocky FRONT sleeve + held tool now come AFTER drawWorn, so a
+    raised weapon / the fishing rod is in front of hats, the Shadow Hood and hair.
+  - atm.js `atmPress` (pointerdown count, capture) / `atmHoldOn` / `atmHeld`: actions.js act() — after a full ATM paid
+    out to your click, the punches repeating while the SAME press is held do nothing to it (before: held down, it paid
+    and then broke ~1.5 s later). A new press on the empty ATM punches it as before (6 hits). Tested offline.
+  - set-1: the red line is now in the 'costume' layer, the mask layer is only the hood (rows 3-23, a collar row 23
+    and two pixels inside added). pixelwear_cut.py `HOOD_ROWS` 24 (mask rows below go to the robe, none now).
+  - Factory Cutter: tested offline, still cuts (dirt gone after 2 cuts); asked the owner what he meant.
+- Build '2026-11-20 z5' (owner: the Factory Cutter "should not break blocks any more"): machines.js cutterStrike no
+  longer punches blocks (the CUT_HITS hitBlockAt loop is gone): a cut only harvests a ripe tree or pays out a full ATM /
+  Bait Basket / Fuel Tank (cutterClick); an empty one is left alone. `cutterSide` prefers a tree, then a full ATM-like,
+  then empty air. Item desc updated. (cutterMayCut / CUT_HITS are unused now.) Blade still kills players. Tested
+  offline: dirt stays after 4 cuts; a full ATM pays 1 drop then is not hurt.
+- Build '2026-11-20 z6': owner's set-1.aseprite again (a hole in the hood filled); Shadow Hood pictures re-cut.
+- Build '2026-11-20 z7' (owner's hoodie.aseprite + hoodie-nohair.aseprite: "with a hair on, use the one with the
+  transparent part: the hair shows only there, the rest of the hair hidden; with no hair, the nohair one"; "the whole
+  t-shirt, the hood and the sleeves" = one item, in the shirt slot): Gray Hoodie (`gray_hoodie`, Shirt, Uncommon
+  4,000, hideHair). pixelwear_cut.py part '#hoodie': 'tshirt' + sleeves as a shirt, plus hood_idle.png (mask layer of
+  hoodie.aseprite), hood_nohair.png (mask of hoodie-nohair.aseprite), hood_hole.png (the face opening: inside the
+  ring, flood fill from the edge); icon includes the hood. pixelwear.js `PXW_HOOD`: a drawWorn wrapper put on at
+  DOMContentLoaded (outermost): face pieces, the hair alone on a canvas cut to hood_hole (destination-in), the hood,
+  a hat, then the eyes slot. schema.sql rows added (RE-RUN it). Tested: no hair / 5 hairs / sitting.
+- Build '2026-11-20 z8' (owner: "a line shows between the hair and the hoodie"): hood_hole.png now also covers the
+  hood's DARK inner outline pixels next to the opening (sum of rgb < 300), and pixelwear.js draws the hood FIRST and the
+  hair over it (cut to hood_hole): the hair runs straight into the gray; where there is no hair the outline stays.
+- Build '2026-11-20 z9' (owner updated hoodie.aseprite + hoodie-nohair.aseprite: gray outer outline, dark inner one):
+  re-cut. hood_hole is now found per row (between the hood's left and right side, minus the hood) instead of a flood
+  fill (which found no opening in the new hood: hair didn't show). Tested: no hair / 5 hairs / sitting.
+- Build '2026-11-20 z10': owner's final hoodie.aseprite + hoodie-nohair.aseprite (body: 'tshirt' rows 24-27 and both
+  sleeves' shoulders redrawn; the hood unchanged); Gray Hoodie re-cut, tested no hair / 5 hairs / sitting.
+- Build '2026-11-20 z11' (owner's scarf.zip + cap.aseprite; "the Royal Silk: remove the old one, make it the
+  green-black scarf with the royal effects, add a glow"; "the cap like the hoodie, but hair only below the cap"; the
+  file's hidden plain 'Cap' layer not used):
+  - Royal Silk Scarf (`royal_silk_scarf`, same id: owners keep it, scarfreaper.js's reaper stays) is now the owner's
+    green-black pixel scarf (pixelwear.js, Neck slot, Epic 15,000) + glow.png (green, blurred, pixelwear_cut.py) drawn
+    under it pulsing (`PXW_GLOW`, in the DOMContentLoaded drawWorn wrapper). Its old wear.js / shop.js entries and its
+    scarves.js painted style are gone (SCARF_STYLES is empty now).
+  - Black Silk Scarf / Crimson Silk Scarf (`black_silk_scarf` / `crimson_silk_scarf`, Uncommon 3,000) from
+    black-scarf / red-black-scarf. Trucker Cap (`trucker_cap`, Head, Uncommon 2,500, hideHair): layer 'Cap2';
+    `PXW_CAP_HAIR`: the hair is cut to hair_hole.png (under the cap's lowest pixel in each column) and the cap drawn
+    over it (no hatfit lift). pixelwear_cut.py categories 'scarf' (layer 'Scarf') and 'cap' (visible 'Cap*').
+  - schema.sql rows for the 3 new items (RE-RUN it).
+- Build '2026-11-20 z12' (owner: "it looked bad, what you did before was fine"): the Trucker Cap is back to a normal
+  hat on the hair (no hideHair; hatfit.js lifts it onto the hair like any hat). `PXW_CAP_HAIR` is empty and
+  pixelwear_cut.py `CAP_HAIR_HOLE` is empty (no hair_hole.png); the mechanism is kept for a later hat.
+- Build '2026-11-20 z13' (owner: the scarves sat too far forward; "I moved the character itself in those files, follow
+  the look in the zip"): in his scarf files the BODY is 4 px left of the default body. pixelwear_cut.py `align()`:
+  every file's layers are moved by the offset between its 'shape' layer and default_look's (best overlap, here +4, 0)
+  before cutting, so a piece sits on the game's character as in his file (prints the files it shifts). Re-cut.
+- Build '2026-11-20 z14' (owner: "change this on the rod: the shrimp, snail and worm tied at the middle", the red /
+  white float): fish.js drawFishing: while the line is out (cast / waiting / biting / coming back) the BAIT you cast
+  with (`fishing.bait`: fishing.js baitPic, the worm wriggling) hangs on the line's end instead of the float,
+  `BAIT_SIZE` 13 world px, centred on the line's end, swaying (jerking on a bite), head away from you, with the line
+  wound twice round its middle. No bait known = the old float. The rod's own hanging float (not cast) is unchanged.
+- Build '2026-11-20 z15' (owner: "the worm is fine, the snail and shrimp look off"): fish.js — the worm unchanged;
+  the snail / shrimp now HANG from the line by the top of their body's middle (`baitTie(id)`: the middle column of
+  the bait picture's pixels, the first row there with 4 solid pixels in a row, so feelers don't count), with a small
+  loop of line round that spot instead of the two strokes across.
+- Build '2026-11-20 z16' (owner: "on the body itself like the worm, the strokes accurate, tie the line there"): fish.js
+  snail / shrimp are tied like the worm, two wraps of line across the body, at fixed spots `BAIT_TIE` (64 px picture
+  px, from paintSnail / paintShrimp): snail's foot under the front of the shell (24, 52), shrimp's middle segment round
+  its curl, each with its thickness and the direction across the body. (baitTie / BAIT_TIES removed.)
+- Build '2026-11-20 z17' (owner's expressions.zip: dead / nice / sleep / troll; "the thumbsup becomes /nice"; "the
+  sleep Zzz without outline"; "only the head shows in the bed and the bathtub"; "/nice: the arm turns clockwise to
+  9 o'clock, then back counter-clockwise when done"):
+  - look_cut.py writes `<skin>/expr_<dead|nice|sleep|troll>.png` (face pixels that differ from the standing frame,
+    sprite rows 7-22, per skin tone; files in art-source/character/expressions/); blockybody.js preloads them.
+  - emotes.js: /thumbsup renamed /nice (EMO_MS / EMO_CODE / EMO_STILL; net code 1 kept); drawEmoFace: /nice = his
+    nice face, /sleep = his sleep face (no painted snore mouth); the old cut-off raised arm (emoArmPose) is /omg only
+    now; a blockyTarget wrapper turns the blocky FRONT sleeve to -PI/2 (level across the chest, 9 o'clock on his
+    left-facing sprite) in NICE_UP_MS 320, holds, and back down in the last 320 ms. emoZzz: no outline. social.js help.
+  - render.js: /troll = his troll face (jokeFace 'troll' -> expr_troll; /facejoke unchanged); drawDead uses his dead
+    face (X eyes) instead of weakFace.
+  - rest.js beds: his sleep face on the lying body, Zzz without outline, and the bed's blanket (`BEDS[id].blanket`
+    colours) drawn over the body from `BLANKET_ROW` 140 (the blocky chin) down: only the head shows.
+  - bath.js: `BATH_CHIN_ROW` 140: the blocky chin goes where the old chin (row 101) was, just over the water: the
+    whole face shows (it was under the water up to the hair).
+- Build '2026-11-20 z18' (owner: "/sleep standing should also show only the head"): emotes.js sleep sway wrapper draws
+  a blanket (`SLEEP_BLANKET`, the Bed's colours, folded top edge) over the body from rest.js `BLANKET_ROW` 140 down
+  (frame top from drawCharacter's `bald`), inside the sway; the hand tool is hidden while sleeping (a copy of c with
+  hand / Hand slot null).
+- Build '2026-11-20 z19' (owner's picture of the old in-bed look: "use the bed like this"): rest.js beds no longer lay
+  the body down: upright like the bathtub, the sleep face on, the BED'S OWN PICTURE (decoCanvas(id)) drawn over the
+  body, the chin at `bedChinY(id)` (the bed picture's highest pixel + BED_TUCK 1.5 world px): the whole face shows over
+  it. The z18 blanket rectangle is gone. emotes.js /sleep standing: a Bed picture over the body the same way, the
+  sleeper lifted so the bed stands on the ground (no tool in the hand).
+- Build '2026-11-20 z20' (owner: "wrong, the character's head goes OVER the bed, like my picture"): rest.js beds draw
+  the BED first, then `bedHead()`: only the head over it (the body picture cut off at the chin, chin on the blanket
+  line `BEDS[id].top` * 2 world px), sleep face, worn head things. bedChinY / BED_TUCK removed. emotes.js /sleep
+  standing: the Bed on his spot, then bedHead (drawCharacter isn't called: it draws his name tag itself; no tool).
+- Build '2026-11-20 z21' (owner: "the head a bit smaller, and the blanket over the head too"): rest.js `bedHead(c, body,
+  cx, sc, k, bedId, bedX, bedY, blanketY)` draws the bed, the head `BED_HEAD` 0.8 the size (scaled round the chin),
+  chin `BED_SINK` 3 world px under the blanket line, then the bed picture again from the blanket line down OVER the
+  head; returns the bald top (Zzz / name tag). Used by beds and /sleep standing (emotes.js).
+- Build '2026-11-20 z22' (owner: "raise the head a little, up to the neck"): rest.js `BED_SINK` 0 (was 3): the
+  blanket line is right at the chin, the whole face shows over it.
+- Build '2026-11-20 z23' (owner's picture "like this"): rest.js `BED_SINK` 1.5 world px: the mouth just over the
+  blanket, the chin under it.
+- Build '2026-11-20 z24' (owner's bedsleep.png, 32 x 35: "like this", the head over his own red bed): look_cut.py cuts
+  it (art-source/character/bed/bedsleep.png) into www/assets/character/bed_back.png (pillow / headboard, right of the
+  face, above his blanket row 18) and bed_front.png (blanket + bed: every non-skin pixel from row 18 down), fitted
+  like the body (198 x 215, IMG.bed_back / bed_front). rest.js `bedSleep(c, cx, feetY, sc)`: back, then the
+  character's own head (closed frame, sleep face, hair / hat) moved BED_HEAD_DX 2 / DY -5 sprite px (where his
+  picture has it), cut at his blanket row, then front. Used for the Bed (feet on the tile's bottom + FOOT_SINK) and
+  /sleep standing (emotes.js; name tag 12 px over it). The Hospital Bed still uses bedHead (its own tile picture).
+- Build '2026-11-20 z25' (owner: "the other bed the same as the red one"): the Hospital Bed uses his bed picture too,
+  recoloured by look_cut.py `HOSP` (red blanket -> light blue, wood -> light gray metal) into bed_back_hospital.png /
+  bed_front_hospital.png (IMG keys). rest.js `BED_PICS` (bed / hospital_bed -> back, front), `bedSleep(..., id)`.

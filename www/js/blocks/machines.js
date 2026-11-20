@@ -79,7 +79,7 @@ const MACHINES = [
   { t: SPIN_T, id: 'spin_trigger', name: 'Spin Trigger', solid: false, rec: ['electric_fan', 'steel_beam'], rarity: 'Rare', desc: 'A steel turnstile wheel. Walk through it and it spins and sends a signal DOWN into the Steam Pipe or machine right under it (only the bottom joins). Ready again 2 seconds after each pass.' },
   { t: BUTTON_T, id: 'factory_button', name: 'Factory Button', solid: false, rec: ['pressure_plate', 'steel_block'], rarity: 'Uncommon', desc: 'A big red floor button. Step on it and it sends a signal DOWN into the Steam Pipe or machine right under it (only the bottom joins). Ready again 2 seconds after each press.' },
   { t: PIPE_T, id: 'steam_pipe', name: 'Steam Pipe', rec: ['air_duct', 'steel_beam'], rarity: 'Uncommon', desc: 'A teal steel block with a big steam hose protected inside it. The hose joins the pipes and machines next to it (bends round corners, a cross where four meet) and carries signals along, tile by tile, puffing steam.' },
-  { t: CUTTER_T, id: 'factory_cutter', name: 'Factory Cutter', rec: ['saw_blade', 'steel_block'], rarity: 'Epic', desc: 'On a signal its saw blade shoots out above or below it and cuts what is there: a ripe tree is harvested, a block is broken.' },
+  { t: CUTTER_T, id: 'factory_cutter', name: 'Factory Cutter', rec: ['saw_blade', 'steel_block'], rarity: 'Epic', desc: 'On a signal its saw blade shoots out above or below it: a ripe tree is harvested and a full ATM pays out. It does not break blocks.' },
   { t: GEN_T, id: 'generator', name: 'Generator', rec: ['air_duct', 'steel_block'], rarity: 'Epic', desc: 'Put it right next to a Factory Core: while the Core has fuel (3 minutes a Fuel Can), the Generator sends a signal every 3 seconds into the Steam Pipes and machines next to it. Wrench it to see the fuel left.' },
   { t: BOOST_T, id: 'pressure_booster', name: 'Pressure Booster', rec: ['electric_fan', 'steam_pipe'], rarity: 'Rare', desc: 'A signal only runs through ' + PIPE_RANGE + ' Steam Pipes in a row. Put a Pressure Booster in the line and the signal gets its full pressure back: its rotor turns once the way the signal goes and its red light flashes.' },
   { t: FUEL_T, id: 'fuel_can', name: 'Fuel Can', solid: false, rec: ['barrel', 'lava'], rarity: 'Uncommon', desc: 'A red can of fuel for a Factory Core: put it in the Core\'s fuel slot (wrench the Core), or click the Core or a Generator next to it while holding it. One can = 3 minutes of power (the most a Core holds), then refill it.' },
@@ -906,7 +906,9 @@ function cutterMayCut(j) {
 function cutterSide(x, y) {
   const sides = [-1, 1].filter((s) => inW(x, y + s) && !MACH_NET.has(fg[at(x, y + s)]));
   if (!sides.length) return 0;
-  for (const ok of [(j) => trees.has(j), (j) => cutterMayCut(j), (j) => !fg[j]]) for (const s of sides) if (ok(at(x, y + s))) return s;
+  // (Nov 20 2026: it no longer breaks blocks) a tree first, then a full ATM / Bait Basket / Fuel Tank, then empty air
+  const full = (j) => typeof atmReady === 'function' && atmReady(j) && ((typeof isATMT === 'function' && isATMT(fg[j])) || (typeof isBaitBoxT === 'function' && isBaitBoxT(fg[j])) || (typeof isFuelTankT === 'function' && isFuelTankT(fg[j])));
+  for (const ok of [(j) => trees.has(j), full, (j) => !fg[j]]) for (const s of sides) if (ok(at(x, y + s))) return s;
   return sides[0];
 }
 // a cut as one CLICK on tile (x, y): useATM and its wrappers (ATM, Bait Basket, Fuel Tank); true = it paid out.
@@ -941,13 +943,9 @@ function cutterStrike(i, actor) {
     } else if (cutterClick(tx, ty)) {
       // (owner, Nov 16 2026: "like the scythe's hopping laser, a cut counts as one click") a full ATM / Bait Basket /
       // Fuel Tank pays out, the same as clicking it (autumnbeam.js autumnClick); an empty one is cut like any block
-    } else if (cutterMayCut(j)) {
-      // (owner, Nov 11 2026: "not 1 hit, too OP: it depends on the block, only +1 on a normal punch") each cut is
-      // CUT_HITS punches (a normal punch + 1); a hard block takes a few signals (its damage stays while they come:
-      // render.js healMs, up to 5 s, and a Generator fires every 3 s)
-      const t0 = fg[j];
-      for (let k = 0; k < CUT_HITS && fg[j] === t0; k++) hitBlockAt(tx, ty, j);
     }
+    // (owner, Nov 20 2026: "it should not break blocks any more") the blade no longer punches blocks: only ripe trees
+    // and a full ATM / Bait Basket / Fuel Tank (above). (It was CUT_HITS punches per cut, cutterMayCut.)
     shake = keepShake;
   }, CUT_OUT_MS);
 }

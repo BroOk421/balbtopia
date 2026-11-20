@@ -73,7 +73,7 @@ const WEAR = [
   // a baby-blue pacifier over the mouth (baby.js)
   { id: 'blue_pacifier', name: 'Blue Pacifier', slot: 'mouth', art: 'blue_pacifier', rarity: 'Uncommon', shop: true, iconBox: [60, 186, 32, 32], desc: 'A little teal-blue pacifier. Shh.' },
   // scarves round the neck (necklace slot; owner, Oct 31 2026): chunky pixel art in scarves.js, each its own style
-  { id: 'royal_silk_scarf', name: 'Royal Silk Scarf', slot: 'neck', art: 'royal_silk_scarf', rarity: 'Epic', shop: true, iconBox: [-4, 200, 92, 92], desc: 'A shiny black silk scarf with gold edges and a ruby pin, tied in a neat knot.' },
+  // (Nov 20 2026: the Royal Silk Scarf is now the owner's pixel green-black scarf: pixelwear.js)
   // capes (back slot; owner, Oct 31 2026): pixel art in capes.js; the Vampire Face (face slot) in vampire_face.js
   { id: 'hero_cape', name: 'Red Hero Cape', slot: 'back', cape: true, art: 'hero_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A bright red hero cape with a golden lining. It flies out behind you when you run or jump.' },
   { id: 'blue_hero_cape', name: 'Blue Hero Cape', slot: 'back', cape: true, art: 'blue_hero_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A blue hero cape with a silver lining and a silver clasp. It flies out behind you when you run or jump.' },

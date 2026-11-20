@@ -1,6 +1,6 @@
 // Emotes (owner, Nov 9 2026). Typed in the chat like /dance (social.js chatCommand), never shown as chat; other
 // players see them (`em` in the position message, net.js: 1 thumbsup, 2 love, 3 omg, 4 sleep).
-// - /thumbsup: the arm that holds the weapon / tool (the back arm, wear.js armParts) goes up with the weapon in its
+// - /nice (was /thumbsup; Nov 20 2026: the owner's nice face, the front arm up to 9 o'clock and back). Old note: the arm that holds the weapon / tool (the back arm, wear.js armParts) goes up with the weapon in its
 //   hand, pumps twice and comes down. Bare-handed, the fist shows a thumb sticking up.
 // - /love: both eyes turn into hearts that beat (a double pulse like a heartbeat), and little hearts float up from
 //   the head, spinning as they rise.
@@ -9,14 +9,16 @@
 //   go up beside the head and shake.
 // - /sleep: eyes shut, a snore now and then (the chat mouths), the body sways a little, Zzz float up. Lasts until you
 //   move (type /sleep again to wake up).
-// /thumbsup, /omg and /sleep stop when you walk, jump, punch or place; /love keeps going while you walk.
+// /nice, /omg and /sleep stop when you walk, jump, punch or place; /love keeps going while you walk.
 // Hooks in render.js drawCharacter: `emoArmPose` (the body with the raised arms cut off + drawing them raised) and
 // `drawEmoFace` (over the face). The arms are cut by their shape on the porcelain idle frame (same shape on every
 // skin), from the DRESSED picture, so sleeves / suits come along.
 // ===== emotes =====
-const EMO_MS = { thumbsup: 2600, love: 4200, omg: 3000, sleep: Infinity },
-  EMO_CODE = { thumbsup: 1, love: 2, omg: 3, sleep: 4 },
-  EMO_STILL = { thumbsup: 1, omg: 1, sleep: 1 }, // these stop when you move
+// (owner, Nov 20 2026) /thumbsup is now /nice: the owner's nice face (expressions.zip) and the front arm turning up
+// to 9 o'clock and back (blockyTarget wrapper at the end); same net code 1
+const EMO_MS = { nice: 2600, love: 4200, omg: 3000, sleep: Infinity },
+  EMO_CODE = { nice: 1, love: 2, omg: 3, sleep: 4 },
+  EMO_STILL = { nice: 1, omg: 1, sleep: 1 }, // these stop when you move
   EMO_UP_MS = 260; // arms going up / coming down
 // the emote you are doing now (or null)
 const emoOn = () => (P.emo && now - P.emo.t < EMO_MS[P.emo.k] ? P.emo : null);
@@ -273,7 +275,7 @@ function emoArmPose(c, dressed) {
   const k = c.emo;
   // (owner, Nov 9 2026: "/omg on a ride doesn't work") rides too: the seated rides cut the rider only below the seat,
   // so the raised arms show; a held weapon goes through drawArmWithTool, which rides.js draws over the ride
-  if ((k !== 'thumbsup' && k !== 'omg') || c.portrait || c.ground === false) return null;
+  if (k !== 'omg' || c.portrait || c.ground === false) return null; // (/nice: the blocky front sleeve, at the end)
   const el = emoElapsed(c);
   if (el < 0) return null;
   const ms = emoMasks(),
@@ -296,7 +298,7 @@ function emoArmPose(c, dressed) {
         tf = EMO_OMG_TURN[1] * lift + Math.sin(now / 23 + 1.7) * 0.07 * sh;
       } else {
         // two little pumps while it is up
-        const pump = el > EMO_UP_MS && el < EMO_MS.thumbsup - EMO_UP_MS ? Math.max(0, Math.sin(((el - EMO_UP_MS) / 420) * Math.PI * 2)) * 0.12 * (el < EMO_UP_MS + 840 ? 1 : 0) : 0;
+        const pump = el > EMO_UP_MS && el < EMO_MS.nice - EMO_UP_MS ? Math.max(0, Math.sin(((el - EMO_UP_MS) / 420) * Math.PI * 2)) * 0.12 * (el < EMO_UP_MS + 840 ? 1 : 0) : 0;
         tb = ((shown ? EMO_WEAPON_TURN : EMO_THUMB_TURN) + pump) * lift;
       }
       const B = ms.back;
@@ -381,7 +383,14 @@ const EMO_EYES = [
 function drawEmoFace(c, top, sc, dy) {
   const k = c.emo,
     el = emoElapsed(c);
-  if (el < 0 || (k !== 'love' && k !== 'omg' && k !== 'sleep')) return;
+  if (el < 0) return;
+  // /nice (owner, Nov 20 2026): his grinning face
+  if (k === 'nice') {
+    const im = typeof blockyImg === 'function' ? blockyImg(c.skin, 'expr_nice') || blockyImg('porcelain', 'expr_nice') : null;
+    if (im) g.drawImage(im, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+    return;
+  }
+  if (k !== 'love' && k !== 'omg' && k !== 'sleep') return;
   const [face, ink, mouth] = FACE_COLOR[c.skin] || FACE_COLOR.tan,
     x = g;
   x.save();
@@ -505,9 +514,9 @@ function drawEmoFace(c, top, sc, dy) {
     x.stroke();
   } else if (k === 'sleep') {
     x.restore();
-    // eyes shut (render.js uses the closed frame); a snore every 2.6 s (the chat mouth shapes)
-    const s = el % 2600;
-    if (s < 700) drawTalk({ skin: c.skin, say: { text: 'zz', T: 3, t: 3 - s / 1000 } }, top, sc, dy, MOUTH_Y);
+    // (owner, Nov 20 2026) his sleeping face (expressions.zip: eyes shut, a little round mouth)
+    const im = typeof blockyImg === 'function' ? blockyImg(c.skin, 'expr_sleep') || blockyImg('porcelain', 'expr_sleep') : null;
+    if (im) g.drawImage(im, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
     return;
   }
   x.restore();
@@ -529,15 +538,25 @@ drawCharacter = ((prev) =>
       // dozing: a slow lean forward and back, round the feet
       const fx = Math.round(ox + (c.x + c.w / 2) * Z),
         fy = oy + (c.y + c.h) * Z;
-      g.save();
-      g.translate(fx, fy);
-      g.rotate(Math.sin(now / 900) * 0.035 * c.face);
-      g.translate(-fx, -fy);
-      try {
-        res = prev(c, ox, oy);
-      } finally {
-        g.restore();
-      }
+      // (owner, Nov 20 2026: "/sleep standing: only the head shows", "use the bed", "the head OVER the bed") a Bed
+      // on his tile, then only his head over it (rest.js bedHead), the chin on the blanket's line; no tool in the hand
+      const tile = Math.floor((c.x + c.w / 2) / TS),
+        tileX = ox + tile * TS * Z,
+        tileY = oy + (c.y + c.h) * Z - TS * Z,
+        k = (CHAR_H / FR.h) * Z,
+        im = IMG['skin_' + c.skin + '_closed'] || IMG['skin_' + c.skin + '_open'],
+        c2 = Object.create(c);
+      c2.hand = null;
+      c2.equipped = { ...(c.equipped || {}), hand: null };
+      const bedX = Math.round(fx - (TS / 2) * Z),
+        top =
+          IMG.bed_front && IMG.bed_front.width
+            ? bedSleep(c2, fx, fy + (typeof FOOT_SINK !== 'undefined' ? FOOT_SINK : 0) * Z, CHAR_H / FR.h) - 4 * k // his bed picture (rest.js)
+            : im
+              ? bedHead(c2, outfitBody(im, 'skin_' + c.skin + '_closed', c2.equipped), fx, CHAR_H / FR.h, k, 'bed', bedX, Math.round(tileY), Math.round(tileY) + BEDS.bed.top * 2 * Z) - 4 * k
+              : tileY;
+      const tagW = c.name ? drawNameTag(c.name, fx, top - 12 * Z, c.flag) : 0; // (drawCharacter isn't called: its tag here)
+      res = { cx: fx, headTop: top, tagW, bald: top + 4 * k };
       if (res) emoZzz(res.cx + c.face * 8 * Z, res.bald !== undefined ? res.bald : res.headTop + 6 * Z, c.face);
       return res;
     }
@@ -570,10 +589,7 @@ function emoZzz(hx, headTop, face) {
       zy = headTop - (u * 12) * Z;
     g.globalAlpha = Math.sin(u * Math.PI) * 0.95;
     g.font = `${(3 + u * 2.5) * Z}px "Press Start 2P", monospace`;
-    g.lineWidth = Z;
-    g.strokeStyle = 'rgba(20,10,30,.8)';
-    g.strokeText('z', zx, zy);
-    g.fillStyle = '#ffffff';
+    g.fillStyle = '#ffffff'; // (owner, Nov 20 2026: no outline)
     g.fillText('z', zx, zy);
   }
   g.restore();
@@ -614,3 +630,21 @@ drawLiveFx = ((prev) =>
     }
     return prev();
   })(drawLiveFx);
+
+// /nice (owner, Nov 20 2026): "the arm turns clockwise to 9 o'clock, then back counter-clockwise when it ends": the
+// blocky FRONT sleeve swings forward up to level (9 o'clock on his left-facing sprite), stays, and goes back down
+const NICE_UP_MS = 320,
+  NICE_ANG = -Math.PI / 2; // level, across the chest towards the face (9 o'clock on his left-facing sprite)
+blockyTarget = ((prev) =>
+  function (c, s, top, sc, dy) {
+    if (c && c.emo === 'nice' && !c.punch && !c.place) {
+      const el = emoElapsed(c);
+      if (el >= 0) {
+        const T = EMO_MS.nice,
+          u = Math.max(0, Math.min(1, el < NICE_UP_MS ? el / NICE_UP_MS : el > T - NICE_UP_MS ? (T - el) / NICE_UP_MS : 1)),
+          e = u * u * (3 - 2 * u);
+        return { back: 0, front: NICE_ANG * e, direct: true };
+      }
+    }
+    return prev(c, s, top, sc, dy);
+  })(blockyTarget);

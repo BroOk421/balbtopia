@@ -1,0 +1,404 @@
+{
+ "midnight_tee": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "brown_tee": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "gray_tee": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "green_tee": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "orange_tee": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "pink_tee": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "red_tee": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "smiley_tee": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "black_button_polo": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "white_button_polo": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "charcoal_open_shirt": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "white_open_shirt": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "red_open_shirt": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "black_kung_fu_shirt": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "white_kung_fu_shirt": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "black_shorts": {
+  "cat": "pants",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "blue_shorts": {
+  "cat": "pants",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "lime_shorts": {
+  "cat": "pants",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "orange_shorts": {
+  "cat": "pants",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "red_shorts": {
+  "cat": "pants",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "white_shorts": {
+  "cat": "pants",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "retro_sneakers": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "black_sneakers": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "charcoal_sneakers": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "cloud_sole_sneakers": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "black_flip_flops": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "gray_flip_flops": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "green_flip_flops": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "orange_flip_flops": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "red_flip_flops": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "black_shades": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "green_shades": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "yellow_shades": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "burst_fade": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "wild_fade": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "wild_side_part": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "red_side_part": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "red_wild_fade": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "bob_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "good_boy_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "silver_wild_fade": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "golden_bob_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "shadow_hood": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "shadow_robe": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "gray_hoodie": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "royal_silk_scarf": {
+  "cat": "scarf",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "black_silk_scarf": {
+  "cat": "scarf",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "crimson_silk_scarf": {
+  "cat": "scarf",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "trucker_cap": {
+  "cat": "cap",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ }
+}
