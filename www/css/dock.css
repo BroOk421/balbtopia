@@ -1,0 +1,236 @@
+/* The dock (owner, Nov 21 2026): handle + 4-slot hotbar + the inventory drawer under it (ui/dock.js) */
+.dock {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 20;
+  max-width: calc(100vw - 16px);
+}
+.touch .dock {
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+}
+.dock.open {
+  width: min(94vw, 560px);
+}
+/* the handle: a pill with three dots, lying down */
+.dockhandle {
+  width: 64px;
+  height: 18px;
+  border-radius: 9px;
+  border: 2px solid var(--line);
+  background: rgba(44, 24, 80, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+.dockhandle i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.9;
+}
+.dock .hotbar {
+  position: static !important;
+  transform: none !important;
+  left: auto !important;
+  bottom: auto !important;
+}
+/* the old bag button: the handle replaces it */
+.dock .bag,
+#bag {
+  display: none !important;
+}
+/* the drawer */
+.dock #inv.drawer {
+  position: static !important;
+  transform: none !important;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  height: 0;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.dock #inv.drawer[hidden] {
+  display: none !important;
+}
+.dock #inv.drawer > header {
+  display: none !important;
+}
+.dock .dbody {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.dock .dmain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.dock .dmain .grid {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;
+  overflow-y: auto !important;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)) !important;
+  -webkit-overflow-scrolling: touch;
+}
+/* worn items, GM tabs: rows inside the drawer (they floated outside the old bag) */
+.dock .dmain .wearing {
+  position: static !important;
+  transform: none !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  width: auto !important;
+  max-height: none !important;
+  margin: 0 !important;
+  flex: none;
+}
+.dock .dmain .wearing .eslots,
+.dock .dmain .wearing .ecol {
+  flex-direction: row !important;
+  flex-wrap: wrap;
+}
+.dock .dmain .wearing > span {
+  display: none;
+}
+/* the categories: a column on the left (GM bag), like the buttons on the right */
+.dock .dleft {
+  flex: none;
+  width: 92px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+.dock .dleft:not(:has(.gmtabs:not([hidden]))) {
+  display: none;
+}
+.dock .dleft .gmtabs {
+  position: static !important;
+  transform: none !important;
+  left: auto !important;
+  top: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: none !important;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dock .dleft .gmtabs[hidden] {
+  display: none !important;
+}
+.dock .dleft .gmtabs button {
+  flex: none;
+  width: 100%;
+  font-size: 9px !important;
+  padding: 8px 4px !important;
+}
+/* the search box on top (it is always there in the drawer) */
+.dock .dmain #bagQ {
+  display: block !important;
+  flex: none;
+  order: -1;
+  margin: 0 !important;
+}
+/* only the slots scroll: the GM bag's fixed grid height is not used in the drawer */
+.dock #inv .dmain .grid {
+  height: auto !important;
+}
+/* open: flush with the bottom of the screen, not a floating window */
+.dock.open,
+.touch .dock.open {
+  bottom: 0 !important;
+}
+.dock.open #inv.drawer {
+  border-bottom: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow: 0 0 0 2px var(--glow) !important;
+  clip-path: inset(-4px -4px 0 -4px);
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+/* the buttons on the right, inside the drawer */
+.dock .dside {
+  flex: none;
+  width: 92px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+.dock .dcount {
+  font-family: var(--pixel);
+  font-size: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+.dock .dbtn {
+  font-family: var(--pixel);
+  font-size: 9px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  border: 2px solid #1b3c7a;
+  background: linear-gradient(#5aa8ff, #2f74e6);
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.dock .dbtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.dock .dbtn.on {
+  background: linear-gradient(#ffcf5a, #e69a2f);
+  border-color: #7a4a1b;
+}
+.dock #pop {
+  display: none !important;
+}
+/* phone held sideways: low between the on-screen pads, like the old hotbar */
+@media (orientation: landscape) and (max-height: 520px) {
+  .touch .dock {
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+}
+/* the categories look like the buttons on the right (owner, Nov 21 2026): blue, the open one gold */
+.dock .dleft .gmtabs button {
+  font-family: var(--pixel);
+  border-radius: 6px !important;
+  border: 2px solid #1b3c7a !important;
+  background: linear-gradient(#5aa8ff, #2f74e6) !important;
+  color: #fff !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25) !important;
+}
+.dock .dleft .gmtabs button[aria-selected='true'] {
+  background: linear-gradient(#ffcf5a, #e69a2f) !important;
+  border-color: #7a4a1b !important;
+}

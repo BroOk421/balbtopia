@@ -4847,3 +4847,29 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 - Build '2026-11-20 z25' (owner: "the other bed the same as the red one"): the Hospital Bed uses his bed picture too,
   recoloured by look_cut.py `HOSP` (red blanket -> light blue, wood -> light gray metal) into bed_back_hospital.png /
   bed_front_hospital.png (IMG keys). rest.js `BED_PICS` (bed / hospital_bed -> back, front), `bedSleep(..., id)`.
+- Build '2026-11-20 z26' (owner, Nov 21: "/sleep: he just sleeps standing; that bed look is for staying on the Bed
+  block"): emotes.js /sleep standing is back to the plain doze (sway round the feet, his sleep face, Zzz without
+  outline, tool kept); no bed / blanket. The Bed / Hospital Bed blocks keep bedSleep.
+- Build '2026-11-20 z27' (owner's screenshots: sleeping on the Bed block still showed the old blanket dome): the real
+  sleep in a bed (`P.rest.k === 'sleep'`) is drawn by blocks/beds.js's drawResting wrapper (rest.js's own lying branch
+  is only reached by other kinds; my tests had used k 'lie' and missed it). beds.js now calls rest.js `bedSleep(c2,
+  tile middle, tile bottom + FOOT_SINK, sc, r.id)` (his bed picture; hospital recoloured) instead of its dome +
+  BED_FRONT, Zzz without outline; still no aura / wings / tool while asleep. Tested by standing still on the bed.
+- Nov 21 2026 (owner, with pictures): GAME_BUILD '2026-11-21 a'.
+  Catch bar (items/rodknife.js): the fish never stops, it swims on to new targets with a wiggle (`MG.wig`).
+  Hotbar (ui/ui.js): 4 slots, HOTBAR_SIZE 5 / HB_FIRST 2; slot 1 (index 0) = punch <-> wrench toggle (`hbToggle`),
+  keys 1-4; index 1 is never drawn. A new picked-up stack goes on the first free slot 2-4 (addItem wrap in ui/dock.js).
+  Dock (ui/dock.js + css/dock.css): #dock = handle (3 dots, lying) + #hotbar + #inv as a drawer under it. Drag the
+  handle up to open (snaps), tap it to open/close; old #bag button and the bag header hidden. Right column inside the
+  drawer: Info / Use / Drop / Trash / Shop / Search (they call aInfo / aUse / aDrop, askTrash, shopBtn, bagSearchBtn).
+  Tapping a bag slot = openPop replaced: selects it (highlight), no pop-up, puts a placeable item in your hand.
+- Nov 21 2026 build b (owner): drawer = categories in a column on the LEFT (blue like the right buttons, open one gold),
+  search box on top, only the slots scroll, open drawer flush with the screen bottom (dock.css / dock.js `.dleft`).
+  In the air (jump, fall, vines, stairs) the feet go up and down like walking: render.js draws the walk frame
+  (time-based `wf`) with only the jump face pixels over it (blockybody.js `blockyAirFace`); the arms keep the jump pose.
+- Nov 21 2026 build e (owner): /dance = the /nice smile (render.js, c._dance set by jump.js), the arms circle like
+  swimming but the other way, half a turn apart (blockybody.js BLOCKY.danceMs), the body bobs up/down and steps
+  left/right (jump.js danceShift, DANCE_SWAY / DANCE_BOB; was a tilt). Going up in a jump: both sleeves at jumpNear
+  (same as the weapon sleeve, ~1 o'clock). The air face is the jump picture's whole head (rows < BLOCKY_NECK_ROW 142).
+  worlds.js visibilitychange: `typeof account` guard (auth.js loads later).
+  Build f: /dance no longer steps sideways: it stays in place and turns (faces left, then right) while bobbing.

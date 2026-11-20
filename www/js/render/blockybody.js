@@ -19,6 +19,10 @@ const BLOCKY = {
   jumpFar: -1.6, // going up: the far arm (screen right when facing right) straight out forward
   jumpNear: -2.4, // going up: the near arm up forward, the hand by the face
   swimMs: 700, // swimming: one full circle of the arms
+<<<<<<< HEAD
+=======
+  danceMs: 1100, // /dance: one full circle of the arms (= one step left and right, jump.js DANCE_MS)
+>>>>>>> d69768b (update new character)
   ease: 18, // how fast the arms ease into a new pose (per second)
 };
 const BLOCKY_IMG = {};
@@ -33,6 +37,25 @@ function blockyImg(skin, name) {
 }
 // start loading every skin's pictures at once, so the first jump / punch already has them
 for (const s of typeof SKINS !== 'undefined' ? SKINS : ['porcelain']) for (const n of ['sleeve_back', 'sleeve_front', 'blocky_jump_up', 'blocky_jump_down', 'angry_face', 'swim_face', 'sit_look', 'sit_noarm', 'expr_dead', 'expr_nice', 'expr_sleep', 'expr_troll']) blockyImg(s, n);
+<<<<<<< HEAD
+=======
+// in the air (owner, Nov 21 2026: the feet go up and down like walking): render.js draws the walking frame and puts
+// the jump picture's whole HEAD over it (blocky_jump_up / _down rows above the neck), so the jump face stays whole
+// (only the changed pixels broke the eyes: owner, same day)
+const BLOCKY_AIR_FACE = {},
+  BLOCKY_NECK_ROW = 142; // first row of the neck in the 118 x 215 frame
+function blockyAirFace(skin, bj) {
+  const k = skin + '/' + bj;
+  if (BLOCKY_AIR_FACE[k]) return BLOCKY_AIR_FACE[k];
+  const ju = blockyImg(skin, 'blocky_jump_' + bj);
+  if (!ju) return null;
+  const c = document.createElement('canvas');
+  c.width = FR.w;
+  c.height = FR.h;
+  c.getContext('2d').drawImage(ju, 0, 0, FR.w, BLOCKY_NECK_ROW, 0, 0, FR.w, BLOCKY_NECK_ROW);
+  return (BLOCKY_AIR_FACE[k] = c);
+}
+>>>>>>> d69768b (update new character)
 const BLOCKY_EMPTY = document.createElement('canvas');
 BLOCKY_EMPTY.width = FR.w;
 BLOCKY_EMPTY.height = FR.h;
@@ -71,13 +94,30 @@ function blockyTarget(c, s, top, sc, dy) {
     turn = ((turn % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     return { back: 0, front: -turn * e, direct: true };
   }
+<<<<<<< HEAD
+=======
+  // /dance (owner, Nov 21 2026): the arms go round like swimming, the other way (counter), half a turn apart
+  if (c._dance && !c._swim) {
+    // (owner) the spin changes way each time he turns: facing right one way, facing left the other (jump.js
+    // turns him on a whole circle, so the arms are at the same place when it changes)
+    const d = typeof c._dance === 'object' ? c._dance : { u: (now % BLOCKY.danceMs) / BLOCKY.danceMs, dir: 1 },
+      a = -d.dir * blockySpin(c, d.u);
+    return { back: a, front: a - Math.PI, direct: true };
+  }
+>>>>>>> d69768b (update new character)
   if (c._swim) {
     const a = blockySpin(c, (now % BLOCKY.swimMs) / BLOCKY.swimMs);
     return { back: a, front: a - Math.PI, direct: true };
   }
   // the Blue Umbrella open (in the air): the front hand straight up holding it, the other arm as in the jump
   if (blockyUmbOpen(s.tool)) return { back: s.bj === 'up' ? BLOCKY.jumpFar : 0, front: -Math.PI + 0.001 };
+<<<<<<< HEAD
   if (s.bj === 'up') return { back: BLOCKY.jumpFar, front: BLOCKY.jumpNear };
+=======
+  // (owner, Nov 21 2026) going up: BOTH sleeves at the same place, up forward (about 1 o'clock facing right), like the
+  // sleeve that holds the weapon (was: the far one straight out, jumpFar)
+  if (s.bj === 'up') return { back: BLOCKY.jumpNear, front: BLOCKY.jumpNear };
+>>>>>>> d69768b (update new character)
   if (s.walking) {
     const a = BLOCKY.swing * Math.sin((2 * Math.PI * (c.walkPh || s.wf) * BLOCKY.swingSpeed) / 12);
     return { back: -a, front: a, direct: true };

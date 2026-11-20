@@ -565,15 +565,31 @@ function drawCharacter(c, ox, oy) {
   const angry = c.angry > 0;
   // no blinking while angry: the eyes stay open under the angry lids
   // /sleep (emotes.js): the eyes stay shut
+<<<<<<< HEAD
   const fr = c.emo === 'sleep' ? 'closed' : c.ground && !c.walking && !angry ? frameAt(now + (c.blink || 0)) : 'open';
   const wkey = style === 'step' ? 'walkstep_' : 'walk_';
   const canWalk = !!IMG[wkey + c.skin + '_0'],
     wf = Math.floor(c.walkPh) % 12;
+=======
+  const fr = c.emo === 'sleep' ? 'closed' : c.ground && !c.walking && !angry && !c._dance ? frameAt(now + (c.blink || 0)) : 'open';
+  const wkey = style === 'step' ? 'walkstep_' : 'walk_';
+  const canWalk = !!IMG[wkey + c.skin + '_0'],
+    wfWalk = Math.floor(c.walkPh) % 12;
+  let wf = wfWalk;
+>>>>>>> d69768b (update new character)
   const punching = !!(c.punch || c.place);
   // blocky body (blockybody.js): in the air the jump face picture (c._bj 'up' / 'down', set by blockyjump.js)
   // ('land': the half-shut eyes of the blink frame, the body squashed by blockyjump.js)
   const bj = !punching && c._bj && typeof blockyImg === 'function' ? (c._bj === 'land' ? IMG['skin_' + c.skin + '_half'] : blockyImg(c.skin, 'blocky_jump_' + c._bj)) : null;
+<<<<<<< HEAD
   const walking = c.walking && canWalk && !bj;
+=======
+  // (owner, Nov 21 2026) in the air (jumping, falling, climbing vines / going up stairs) the feet go up and down like
+  // walking: the walking frame (its feet) with the jump face on top (blockyAirFace); the arms keep the jump pose
+  const air = !!(bj && c._bj !== 'land' && canWalk && !punching && !c._swim && typeof blockyAirFace === 'function');
+  if (air) wf = Math.floor((now * WALK_FPS) / 1000) % 12;
+  const walking = (c.walking && canWalk && !bj) || air;
+>>>>>>> d69768b (update new character)
   // (the diapers and diaper.js were deleted with every pants, Nov 19 2026 build p; a file that brings walking frames
   // of its own can define diaperFrame(c, wf) -> { im, key, dy } again)
   const dw = walking && !punching && typeof diaperFrame === 'function' ? diaperFrame(c, wf) : null;
@@ -607,12 +623,20 @@ function drawCharacter(c, ox, oy) {
   // back items and the back of long hair sit behind the body
   drawBehind(c, top, sc, dy);
   // the blocky body's sleeves (blockybody.js): the back one behind the body
+<<<<<<< HEAD
   const bsl = typeof blockySleeves === 'function' ? { wf, walking, punching, bj: bj ? c._bj : null, cx, ox, oy, tool: tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null } : null;
+=======
+  const bsl = typeof blockySleeves === 'function' ? { wf, walking: walking && !air, punching, bj: bj ? c._bj : null, cx, ox, oy, tool: tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null } : null;
+>>>>>>> d69768b (update new character)
   const bOwn = !!(bsl && bsl.tool && blockyOwnsTool(bsl.tool)); // held by the blocky front sleeve: no old arm poses
   if (bsl) blockySleeves(c, 'back', top, sc, dy, bsl);
   // swinging a tool: the body without its back arm (that arm swings); else the normal frame
   const body = swinging ? noBackArm(c.skin) : im,
+<<<<<<< HEAD
     frameKey = swinging ? 'noarm_' + c.skin : bj ? 'skin_' + c.skin + '_bj' + c._bj : punching ? 'punch_' + c.skin : dw ? dw.key : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
+=======
+    frameKey = swinging ? 'noarm_' + c.skin : bj && !air ? 'skin_' + c.skin + '_bj' + c._bj : punching ? 'punch_' + c.skin : dw ? dw.key : walking ? wkey + c.skin + '_' + wf : 'skin_' + c.skin + '_' + fr;
+>>>>>>> d69768b (update new character)
   // /thumbsup and /omg (emotes.js): the dressed body with the raised arm(s) cut off; they are drawn raised further down
   const emoArms = !punching && !walking && !dw && !bOwn && typeof emoArmPose === 'function' ? emoArmPose(c, outfitBody(body, frameKey, eq)) : null;
   // both hands on it (megagun.js twoHandArm): shooting a gun / holding the Guitar, the front arm is cut off too; it is
@@ -624,8 +648,19 @@ function drawCharacter(c, ox, oy) {
   else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (c._swim && typeof swimFace === 'function' && swimFace(c.skin)) g.drawImage(swimFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // in water: only the face changes (owner, Nov 20 2026)
+<<<<<<< HEAD
   else drawTalk(c, top, sc, dy, MOUTH_Y);
   if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, dy); // /love heart eyes, /omg, /sleep (emotes.js)
+=======
+  else if (air && blockyAirFace(c.skin, c._bj)) g.drawImage(blockyAirFace(c.skin, c._bj), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else drawTalk(c, top, sc, dy, MOUTH_Y);
+  if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, dy); // /love heart eyes, /omg, /sleep (emotes.js)
+  // /dance (owner, Nov 21 2026): the /nice smile (set by jump.js: c._dance)
+  else if (c._dance && typeof blockyImg === 'function') {
+    const nf = blockyImg(c.skin, 'expr_nice') || blockyImg('porcelain', 'expr_nice');
+    if (nf) g.drawImage(nf, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  }
+>>>>>>> d69768b (update new character)
   drawWorn(c, top, sc, dy);
   // the front sleeve (and the back one too while it is raised) with the tool in its hand: after the worn things, so a
   // weapon / tool raised over the head is in front of hats, hoods and hair (owner, Nov 20 2026: the Shadow Hood hid it)

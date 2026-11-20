@@ -538,6 +538,7 @@ drawCharacter = ((prev) =>
       // dozing: a slow lean forward and back, round the feet
       const fx = Math.round(ox + (c.x + c.w / 2) * Z),
         fy = oy + (c.y + c.h) * Z;
+<<<<<<< HEAD
       // (owner, Nov 20 2026: "/sleep standing: only the head shows", "use the bed", "the head OVER the bed") a Bed
       // on his tile, then only his head over it (rest.js bedHead), the chin on the blanket's line; no tool in the hand
       const tile = Math.floor((c.x + c.w / 2) / TS),
@@ -557,6 +558,19 @@ drawCharacter = ((prev) =>
               : tileY;
       const tagW = c.name ? drawNameTag(c.name, fx, top - 12 * Z, c.flag) : 0; // (drawCharacter isn't called: its tag here)
       res = { cx: fx, headTop: top, tagW, bald: top + 4 * k };
+=======
+      // (owner, Nov 21 2026: "/sleep: he just sleeps standing; the bed is for the Bed block") standing, dozing: a slow
+      // lean forward and back round the feet, his sleep face (drawEmoFace), Zzz
+      g.save();
+      g.translate(fx, fy);
+      g.rotate(Math.sin(now / 900) * 0.035 * c.face);
+      g.translate(-fx, -fy);
+      try {
+        res = prev(c, ox, oy);
+      } finally {
+        g.restore();
+      }
+>>>>>>> d69768b (update new character)
       if (res) emoZzz(res.cx + c.face * 8 * Z, res.bald !== undefined ? res.bald : res.headTop + 6 * Z, c.face);
       return res;
     }

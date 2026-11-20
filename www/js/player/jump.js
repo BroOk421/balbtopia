@@ -217,6 +217,7 @@ function drawJumpTool(c, f) {
   g.restore();
 }
 let jumpTop = 0;
+<<<<<<< HEAD
 // /dance (owner, Oct 27 2026): the body leans left, holds, leans right, holds (a step with a little delay), till
 // you move, jump, punch or place. With the Guitar (leaf_blower) in hand there is no lean: you stand and play it
 // (handfx.js) (owner, Nov 1 2026).
@@ -229,6 +230,27 @@ function danceTilt(st) {
     side = t < half ? -1 : 1,
     e = Math.min(1, u / 0.28); // lean over in the first part of each half, then hold
   return side * DANCE_TILT * (e * e * (3 - 2 * e)) * 2 - side * DANCE_TILT;
+=======
+// /dance (owner, Oct 27 2026; Nov 21 2026 new dance): the body bobs up and down and steps left and right, the arms go
+// round like swimming the other way (blockybody.js, c._dance), the /nice smile (render.js), till you move, jump, punch
+// or place. With the Guitar (leaf_blower) in hand you stand and play it instead (handfx.js) (owner, Nov 1 2026).
+// (owner, same day: "don't jump left and right": he stays in place and TURNS, facing left then facing right)
+// (owner: "not so fast, with timing") he faces each way for DANCE_BEATS bounces, turning as he lands
+const DANCE_MS = 1100, // two bounces
+  DANCE_BEATS = 4, // bounces facing one way before turning (DANCE_MS / 2 each)
+  DANCE_BREATH = 0.05, // (owner: "it looks dead, make him breathe while dancing") how much taller he gets each breath
+  DANCE_BOB = 0; // how high each bounce (tiles); 0 = no bounce (owner: "remove the jumping")
+function danceShift(st) {
+  const t = now - (st.danceT || 0),
+    beat = DANCE_MS / 2,
+    u = (t % DANCE_MS) / DANCE_MS;
+  // (owner, same day: no more bouncing: DANCE_BOB 0)
+  // dir: the arms' spin changes way every circle, whichever way he faces (owner: the right arm goes round
+  // counter-clockwise, then clockwise, then counter-clockwise...)
+  // breath: in and out twice a circle (with the beat), 0..1
+  const br = 0.5 - 0.5 * Math.cos((t / beat) * 2 * Math.PI);
+  return { br, u, dir: Math.floor(t / DANCE_MS) % 2 ? 1 : -1, face: Math.floor(t / (beat * DANCE_BEATS)) % 2 ? 1 : -1, y: -Math.abs(Math.sin(u * 2 * Math.PI * 2)) * DANCE_BOB * TS };
+>>>>>>> d69768b (update new character)
 }
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
@@ -248,14 +270,22 @@ drawCharacter = ((prev) =>
     if (f < 0 && st.dance && !c.portrait && !guitar && !c.rideBase && !c.rest) {
       const fx = Math.round(ox + (c.x + c.w / 2) * Z),
         fy = oy + (c.y + c.h) * Z;
+      const d = danceShift(st);
+      const face0 = c.face;
+      // the arms change their spin each time he turns (owner): blockybody.js reads { u, dir }
+      c._dance = { u: d.u, dir: d.dir };
+      c.face = d.face;
+      // breathing: a little taller and thinner, then back, standing on his feet
       g.save();
       g.translate(fx, fy);
-      g.rotate(danceTilt(st));
+      g.scale(1 - DANCE_BREATH * 0.5 * d.br, 1 + DANCE_BREATH * d.br);
       g.translate(-fx, -fy);
       try {
-        res = prev(c, ox, oy);
+        res = prev(c, ox, oy + d.y * Z);
       } finally {
         g.restore();
+        c._dance = false;
+        c.face = face0;
       }
     } else res = f >= 0 ? drawJumping(c, ox, oy, f) : prev(c, ox, oy);
     if (me && res && P.jet !== undefined && P.jet < JET_FUEL && (equipped.back === 'jetpack')) drawJetBar(res);

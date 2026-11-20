@@ -131,32 +131,17 @@ drawResting = ((prev) =>
       eq0 = c.equipped || {},
       bw = WEAR_BY_ID[eq0.back] || {},
       c2 = Object.assign(Object.create(c), { equipped: { ...eq0, aura: null, hand: null, back: bw.wings ? null : eq0.back }, hand: null }),
-      im = IMG['skin_' + c.skin + '_closed'] || IMG['skin_' + c.skin + '_open'],
-      body = outfitBody(im, 'skin_' + c.skin + '_closed', eq),
-      mx = Math.round(tileX + BED_MID_X * Z),
-      top0 = Math.round(tileY + (BED_TOP_Y + breathe * 0.25) * Z);
+      mx = Math.round(tileX + (TS / 2) * Z);
     g.save();
     if (c.spawnT > 0) g.globalAlpha = 1 - c.spawnT / SPAWN_FADE;
-    g.save();
-    g.beginPath();
-    g.rect(tileX - TS * Z, tileY - TS * Z, TS * Z * 3, (TS + BED_RAIL_ROW) * Z); // nothing below the mattress' edge
-    g.clip();
-    g.translate(mx, top0);
-    g.scale(BED_SIZE, BED_SIZE); // always facing right, whichever way you faced (owner)
-    g.imageSmoothingEnabled = true;
-    drawBehind(c2, 0, sc, 0);
-    if (body) g.drawImage(body, (-FR.w / 2) * k, 0, FR.w * k, FR.h * k);
-    // snoring: the mouth opens for a moment every BED_SNORE_MS (the chat mouth shapes)
-    const el = (now + (c.blink || 0) * 1000) % BED_SNORE_MS;
-    if (el < 700 && typeof drawTalk === 'function') drawTalk({ skin: c.skin, say: { text: 'zz', T: 3, t: 3 - el / 1000 } }, 0, sc, 0, MOUTH_Y);
-    drawWorn(c2, 0, sc, 0);
-    g.restore();
-    // the blanket's dome and the bed's front over the body: only the head shows
-    g.imageSmoothingEnabled = false;
-    g.drawImage(BED_FRONT[r.id], tileX, tileY, TS * Z, TS * Z);
-    // Zzz floating up from the head, each letter on its own beat
-    const headTop = top0,
+    // (owner, Nov 20-21 2026, his bedsleep.png) his bed behind and in front, only the head between (rest.js bedSleep;
+    // the Hospital Bed his picture recoloured); feet on the tile's bottom
+    const headTop =
+        typeof bedSleep === 'function' && BED_PICS[r.id] && IMG[BED_PICS[r.id][1]] && IMG[BED_PICS[r.id][1]].width
+          ? bedSleep(c2, mx, tileY + (TS + FOOT_SINK) * Z, sc, r.id) - 4 * k
+          : tileY,
       hx = mx + 2 * Z;
+    // Zzz floating up from the head, each letter on its own beat (no outline: owner, Nov 20 2026)
     for (let i = 0; i < 3; i++) {
       const u = (now / 1600 + i / 3) % 1,
         zx = hx + (6 + u * 7 + Math.sin(u * 6 + i) * 1.5) * Z,
@@ -164,9 +149,6 @@ drawResting = ((prev) =>
       g.globalAlpha = Math.sin(u * Math.PI) * 0.95;
       g.font = `${(3 + u * 2.5) * Z}px "Press Start 2P", monospace`;
       g.textAlign = 'center';
-      g.lineWidth = Z;
-      g.strokeStyle = 'rgba(20,10,30,.8)';
-      g.strokeText('z', zx, zy);
       g.fillStyle = '#ffffff';
       g.fillText('z', zx, zy);
     }

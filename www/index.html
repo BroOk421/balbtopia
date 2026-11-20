@@ -25,6 +25,7 @@
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rubik:wght@400;500;800&display=swap"
     />
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/dock.css" />
   </head>
   <body class="booting">
     <!-- Loading screen (owner, Nov 9 2026: "while loading only the loading, then the log in pop-up"): shown from the
@@ -144,7 +145,7 @@
           <p class="werr" id="werr" role="alert"></p>
         </form>
         <ul class="wlist" id="wlist"></ul>
-        <button class="wstay" id="wstay">Stay in this world</button>
+        <button class="wstay" id="wstay" hidden style="display: none">Stay in this world</button>
       </section>
 
       <section class="win pmenu" id="pmenu" hidden role="dialog" aria-label="Player menu">
@@ -391,6 +392,7 @@
     <script src="js/world/ground.js"></script>
     <script src="js/online/subscriber.js"></script>
     <script src="js/ui/hotbar.js"></script>
+    <script src="js/ui/dock.js"></script>
     <script src="js/blocks/bounce.js"></script>
     <script src="js/blocks/elevator.js"></script>
     <script src="js/gameplay/fishing.js"></script>

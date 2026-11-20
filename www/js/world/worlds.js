@@ -513,7 +513,7 @@ addEventListener('pagehide', () => {
   }
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && account) {
+  if (document.hidden && typeof account !== 'undefined' && account) { // (auth.js loads later: switching tabs while the page loads)
     if (inWorld) saveWorld();
     savePlayer();
   }
