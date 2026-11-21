@@ -63,16 +63,11 @@ function toast(msg) {
 // saved with the bag). Nothing is put there by itself. With the bag open and nothing picked, clicking a filled
 // slot 3-0 puts it back in the bag.
 let bagPick = null; // picking an item from the bag: { note, ok(id), bad(id), cb(id) } (pickFromBag below)
-<<<<<<< HEAD
-const HOTBAR_SIZE = 10,
-  HB_FIRST = 2; // first free slot (index; key "3"): 1 = punch, 2 = wrench
-=======
 // (owner, Nov 21 2026) 4 slots on screen: the PUNCH / WRENCH slot (index 0 and 1 shown as ONE button that swaps
 // between them when tapped) and 3 free slots (index 2-4, keys 2-4). Stacks of older saves on slots 5-9 go back into
 // the bag (cleanInv).
 const HOTBAR_SIZE = 5,
   HB_FIRST = 2; // first free slot (index; key "2" on screen): 0 = punch, 1 = wrench
->>>>>>> d69768b (update new character)
 const hbStack = (k) => inv.find((s) => s.hb === k);
 // stacks shown in the bag grid (not on the hotbar, and not the wrench, which is always hotbar slot 2)
 const inBag = (s) => !s.hb && s.id !== 'wrench';
@@ -162,14 +157,11 @@ function selectHand(id, k) {
   renderBars();
   savePlayer(); // what you hold is kept too
 }
-<<<<<<< HEAD
-=======
 // the punch / wrench slot (owner, Nov 21 2026: "tap the punch, it becomes the wrench; tap the wrench, the punch")
 function hbToggle() {
   if (hand === 'wrench' || !inv.some((s) => s.id === 'wrench')) selectHand('fist');
   else selectHand('wrench', 1);
 }
->>>>>>> d69768b (update new character)
 // an empty hotbar slot: selected, bare fist
 function selectEmpty(k) {
   hand = bareHand();
@@ -179,13 +171,10 @@ function selectEmpty(k) {
 }
 // a slot from the number keys (input.js)
 function selectSlot(k) {
-<<<<<<< HEAD
-=======
   // keys 1-4 = the 4 slots on screen: 1 = punch / wrench (swaps), 2-4 = the free slots (index 2-4)
   if (k === 0) return hbToggle();
   if (k >= 1 && k <= 3) k += 1;
   else return;
->>>>>>> d69768b (update new character)
   const id = hotbarList()[k];
   if (id) selectHand(id, k);
   else if (k >= HB_FIRST) selectEmpty(k);
@@ -311,17 +300,12 @@ function renderBars() {
     holds = (k) => (list[k] && list[k] !== 'fist' ? list[k] === hand : hand === bareHand()),
     selOk = hbSel >= 0 && hbSel < list.length && holds(hbSel);
   list.forEach((id, k) => {
-<<<<<<< HEAD
-    const b = document.createElement('button');
-    b.className = 'hb' + ((selOk ? k === hbSel : id === 'fist' ? holds(0) : id && hand === id) ? ' on' : '') + (id ? '' : ' empty');
-=======
     if (k === 1) return; // the wrench shares the punch's slot (below)
     // slot 1 on screen: the punch, or the wrench while it is on (tap swaps)
     const wOn = k === 0 && hand === 'wrench';
     if (wOn) id = 'wrench';
     const b = document.createElement('button');
     b.className = 'hb' + ((k === 0 ? wOn || holds(0) : selOk ? k === hbSel : id && hand === id) ? ' on' : '') + (id ? '' : ' empty');
->>>>>>> d69768b (update new character)
     if (!id) {
       b.setAttribute('aria-label', 'Empty slot ' + k);
       b.tabIndex = -1;

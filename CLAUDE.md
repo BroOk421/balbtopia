@@ -25,7 +25,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 |---|---|
 | `core/` | errors, assets, config, native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), main |
 | `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, bag (build m, loaded before main.js), gmwatch, subscriber, rename, social, globalchat, keys |
-| `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, signs |
+| `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, daynight (right after weather), signs |
 | `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb, spwai (TEMP test, build p) |
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
@@ -4873,3 +4873,102 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   (same as the weapon sleeve, ~1 o'clock). The air face is the jump picture's whole head (rows < BLOCKY_NECK_ROW 142).
   worlds.js visibilitychange: `typeof account` guard (auth.js loads later).
   Build f: /dance no longer steps sideways: it stays in place and turns (faces left, then right) while bobbing.
+
+- Nov 21 2026 (builds k-o, owner):
+  - The "fix merge conflicts" commit had left `<<<<<<<` markers in 7 files (render, ui, blockybody, jump, emotes,
+    rodknife, errors): resolved to the Nov 21 side (d69768b). Check with the node --check line above before committing.
+  - Dock (ui/dock.js, css/dock.css): hidden on the landing page (`body.landing #dock`); stuck to the bottom edge like
+    the chat tab (no bottom border / corners); z-index 2, UNDER every pop-up and window (was 20: it covered Unequip).
+    Closing slides down the same way it opens, reversed (`DOCK_MS` 220, `.open` kept till the end; the bag is shut at
+    once and only stays drawn while sliding: `#inv.closing`); dragged to the bottom it shuts by itself.
+  - Autumn Cape deleted (autumn.js: item, Cape slot, chest prize; purged from drops / Display Boxes / Mannequins /
+    Vending on world load; bags clean themselves via cleanInv). schema.sql rarity row removed: RE-RUN schema.sql.
+  - default_look.aseprite: owner's new one (a shading pixel on each hand); re-cut with blocky_cut.py (only the
+    sleeve_back / sleeve_front pictures changed).
+  - MANNEQUIN = owner's gray dummy (`art-source/character/mannequin.aseprite`, the player's exact shape with a face and
+    both hands), cut by `mannequin_cut.py <root>` into `assets/character/mannequin/` (idle_open = body without sleeves,
+    sleeve_back / sleeve_front, idle_full for the icon). display.js `mannBody`: clothes are put on the porcelain body as
+    before, every other pixel becomes the dummy's; `mannSleeve` draws both sleeves hanging (pixel-shirt sleeves over
+    them), a blocky-held tool goes in the front hand (`blockyTool`). A pixel outfit still loading is no longer cached.
+  - Build p: DAY AND NIGHT = the default weather (`world/daynight.js`, right after weather.js; no Weather Machine on,
+    in a world). One cycle `DN_CYCLE_MS` 24 min on Date.now (everyone sees the same time): 0 sunrise (sun at the right,
+    behind the mountains), 0.08 full day, 0.46 sunset, 0.54 sun down behind the mountains at the left, 0.60 full night,
+    0.97 dawn. Sun = drawn disc + glow on an arc right -> left, orange -> white-yellow -> orange-red. Backdrop: the
+    sunset range / clouds (`mountLay(null)`) with the blue day ones (`mountLay('sunny')`) faded over them (`DN_DAY`),
+    darkened at night on a screen canvas (`DN_NIGHT`); stars (concert.js NIGHT_STARS) and the owner's moon (nightImg)
+    from the top right to the left. World: render.js calls `drawDayNightLight` after drawWater: a warm tint at sunrise /
+    sunset (`DN_WARM`), at night darkness `DN_DARK` 0.66 with a soft fading light (`DN_LIGHT_R` 4.6 tiles) cut round
+    every character (you and the other players). Test: `DN_TEST_T = 0..1` in the console (null = the clock).
+  - Build q (owner): day/night mountains BIGGER (`DN_MOUNT_W` 1.8 screens per picture, about 3-4 mountains showing),
+    each picture's foot (`DN_MOUNT_FOOT`: the row where it turns into one flat colour) on the ground line (or the
+    bottom of the screen), so the flat colour and the doubled seam don't show; the highest peak (`DN_MOUNT_PEAK`) stays
+    on the screen. Blue mountains WITHOUT strokes: `art-source/background/mountains_nostroke.py` (reads the original
+    `mountains_stroked.png`; also used by the Sun / Snow Machines). The SUN is now the Sun Machine's own sun cut from
+    sun.webp (`dnSunPic`, round its disc at `DN_SUN_AT`, `DN_SUN_SIZE` 0.6): the sunset's orange one low, the Sun
+    Machine's yellow one higher up. The moon is the Night Machine's (nightImg 'moon'). LIGHT BLOCKS at night: `DN_LIGHTS`
+    (torch, lanterns, lamps, fireplace, campfire, lava, magma, neon_*, glowing_* crystals, glow block, firefly jar,
+    christmas lights, spotlights, disco, holograms, laser gates: [colour, radius in tiles]) cut the same soft light out
+    of the darkness as a character, plus a soft glow in their colour ('lighter'); one cached sprite per colour
+    (`dnSprite`), only tiles on the screen, at most `DN_MAX_LIGHTS` 160.
+  - Build r (owner: "the moon like the Night Machine's lighting"): the day/night moon is the Night Machine's size
+    (0.3 of the backdrop height) and glow, drawn IN FRONT of the clouds and behind the mountains, never cut off at the
+    top; the world's night darkness leaves it bright (`DN_MOON_HOLE`: its soft bright spot minus the mountains in front,
+    cut out of the darkness like a light).
+  - Build s (owner: "it grows when jumping; a fixed size, bigger, lower"): the mountains' size no longer depends on the
+    camera (it was capped by where the ground was on the screen): `min(DN_MOUNT_W 2 screens wide, DN_MOUNT_MAXH 1.75
+    screen heights)`; their foot sinks `DN_MOUNT_SINK` 0.12 of the picture's height under the ground line.
+  - Build t (owner: "lights must not add up, only combine; many lights = the brightness and colour of one"): night
+    lights are drawn as OPAQUE pictures with 'lighten' (each pixel keeps the brightest light, never the sum):
+    grey canvas = how much light (`dnGrey` by strength, + the moon's spot), then the darkness canvas = the night colour
+    (`DN_NIGHT_MUL`) screened with it, put on the world with 'multiply'; colour canvas = the strongest light colour per
+    pixel (`dnTint`), put on with 'screen'. Measured: 6 torches together = exactly the light of 1 under them.
+  - Build u (owner: "the dirt looked see-through, the mountain showed in it; other blocks too"): the moon's bright spot
+    lit every block in front of the moon (only the mountains were cut out of it). Now every tile with a block or a
+    background wall (`fg[i] || bg[i]`) is cut out of `DN_MOON_HOLE` too, so only the open sky round the moon stays bright.
+  - Build v (owner: "the mountain changes as if swapped; use ONE mountain so the colour change looks good"): day/night
+    now uses ONE picture each for the mountains (bg_mountains, no strokes) and clouds (bg_clouds_plain); the sunset look
+    is the same picture recoloured by brightness (`dnRecolored`, ramps in `DN_RECOLOR`: the owner's sunset range colours
+    / peach clouds), so day <-> sunset only changes colour, never shape. (The Sun / Snow / Fall machines are unchanged.)
+  - Build w (owner: "the line where two lights meet shows; just combine, same colour, a bit lighter"): the 'lighten'
+    (per-pixel max) of build t left a crease where two lights met. Now each light is a soft see-through picture laid
+    normally (grey canvas: white over black = 1 - (1-a)(1-b); colour canvas: the colour over nothing), so they blend
+    smoothly, never past white, and same-colour lights stay that colour. Lights a bit brighter (strength 0.97 blocks /
+    0.92 characters, fuller middle, colour up to `DN_TINT_MAX` 0.45). A character in a light is lit and tinted by it.
+  - Build x (owner: "the blocks have a square shadow; only their picture, not the empty part"): blocks in front of the
+    moon are cut out of `DN_MOON_HOLE` by their own pixels (render.js's `blockLayers().cv` of this frame), not by whole
+    tile squares; background walls still cut their tile. Vines / signs / platforms leave no dark square on the moon.
+  - Build y (owner): day/night MOUNTAINS = his Alpine panorama (`art-source/background/alpine_source.png`, cut by
+    `alpine_cut.py` into `assets/background/alpine_mountains.png`, 2119 x 651, clean straight sides for the mirrored
+    repeat; `A.bg_alpine`). Fixed size (`DN_MOUNT_W` 1.7 screens wide, at most `DN_MOUNT_MAXH` 0.8 screens tall), the
+    hills' foot `DN_MOUNT_SINK` under the ground line (or the screen bottom), and under it the picture's bottom colour
+    (`dnBottom`) down to the BEDROCK, so caves never show empty sky. Sunset = the same picture recoloured
+    (`DN_RECOLOR.bg_alpine`). The sun's low point is behind these mountains, its high point at least 16% down the screen.
+    Lights: a switched-off block (`vari & ANIM_OFF`, canStopAnim: a clicked-off torch, campfire, floor lamp...) gives no
+    light; no more flame flicker; softer (`DN_BLOCK_LIGHT` 0.78, `DN_CHAR_LIGHT` 0.8, `DN_TINT_MAX` 0.32).
+  - Build z (owner: "the bedrock is where the mountain's bottom starts, even if dirt hides it; bigger, so from up top some
+    still shows"): the Alpine mountains are a FIXED size in world tiles (`DN_MOUNT_TILES` 14, so they scale only with
+    the zoom). Camera at the ground: the foot just under the ground line (`DN_MOUNT_SINK`); as the camera goes down the
+    picture slides down with it, and at the deepest camera its foot is on the top of the bedrock row (in between its
+    lower part is behind the dirt). The big peak (`DN_MOUNT_MID` 0.53 of its width) is in the middle of the screen at the
+    main door. (Tried: bottom fixed on the bedrock at all times; the picture had to be ~57 tiles tall and each screen
+    showed only a thin slice of it, no mountain above the ground near spawn.)
+  - Build z2 (owner: "the bedrock is the world's bottom: fix the picture's bottom there, no white when jumping, trees at
+    its bottom showing; zoom it out a bit, it's pixelated"): `DN_MOUNT_TILES` 13 (about the picture's own 651 px at the
+    normal zoom: not pixelated). The foot slides from just under the ground line (camera at the ground) to EXACTLY the
+    bedrock floor's top (`FLOOR_ROW`) with you standing on the bedrock (`deepest` = the camera's middle there; the camera
+    stops at the world's bottom, so min(FLOOR_ROW-2 tiles, WH*TS - half a screen)). Under the foot its own bottom green
+    (`dnBottom`) down to the bedrock, so no empty colour shows in between. (Tried: the bottom fixed on the bedrock at all
+    times = a 60-tile picture, too zoomed in / pixelated.)
+  - Build z3 (owner: "no green under it; its bottom FIXED on the bedrock, also when jumping; smaller when zoomed out;
+    it needn't follow when the character goes up"): the Alpine picture is tied to the world: its bottom row always on
+    the bedrock floor's top (FLOOR_ROW), its top `DN_MOUNT_ABOVE` 10 tiles above the ground line (40 tiles tall), sized
+    in world tiles (zooms with the world); no slide, no green fill. The big peak still centred at the main door.
+  - Build z4 (owner: "put this mountain in the other weathers: night, rainy, sunny, sunset, autumn"): daynight.js
+    `drawAlpine(ctx, look)` (same place as day/night: `dnMountGeo`, bottom fixed on the bedrock) with looks
+    `DN_ALPINE_LOOK` (sunset / rain / fall / night ramps; 'sunny' = as it is). render.js drawBg: `alpineLook(wx)` =
+    sunny (Sun Machine), rain (Rain Machine), fall (Fall Machine), sunset (no weather outside a world: the landing page)
+    -> the Alpine mountains replace bg_far + the hills (bg_big / mid / front). concert.js drawNightBg: the Alpine
+    mountains in the night look replace the two ridges, the tree row and the dark ground (the old ones still draw
+    until the picture has loaded). Snow, Desert, Halloween, Blackout, Disco, Moon keep their own backdrops.
+  - Build z5 (owner: "the snow too"): the Snow Machine uses the Alpine mountains as well (`alpineLook('snow')`,
+    `DN_ALPINE_LOOK.snow`: snowy whites and blues).

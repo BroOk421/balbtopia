@@ -3405,7 +3405,6 @@ insert into public.item_info (item, cls) values
   ('art_wall', 'rare'),
   ('art_wall_seed', 'rare'),
   ('atm_machine', 'epic'),
-  ('autumn_cape', 'epic'),
   ('autumn_chest', 'epic'),
   ('autumn_leaf_block', 'uncommon'),
   ('autumn_leaf_wall', 'common'),

@@ -4,9 +4,9 @@
 // (schema.sql shop_buy). What players already have stays theirs, and a chest bought during the event can still be
 // opened later.
 // The Autumn Chest is a block: place it and break it, and ONE random reward floats out (AUTUMN_LOOT, rarest first):
-// Autumn Wings, Fall Machine, Autumn Scythe, gold coins, Leaf Headband, Autumn Cape (its own Cape slot), Autumn Leaf
+// Autumn Wings, Fall Machine, Autumn Scythe, gold coins, Leaf Headband, Autumn Leaf
 // Shirt / Shorts, Autumn Boots, Autumn Leaf Block / Maple Plank Block (10 each), Autumn Leaf Wall background (10).
-// The wings and cape (and the deleted headband) are the owner's own pictures (his sheet, cut by art-source/autumn/autumn_cut.py).
+// The wings (and the deleted headband and cape) are the owner's own pictures (his sheet, cut by art-source/autumn/autumn_cut.py).
 // Blocks 395-398 and background 42 are permanent. Loaded after concert.js, before main.js.
 // ===== autumn =====
 const AUTUMN_FROM = Date.parse('2026-11-04T00:00:00+08:00'),
@@ -72,7 +72,7 @@ ITEMS.autumn_chest = {
   kind: 'block',
   block: AUTUMN_CHEST_T,
   rarity: 'Epic',
-  desc: 'An autumn event chest. Place it and break it: ONE random autumn prize floats out (Autumn Wings, Fall Machine, Autumn Scythe, gold, Leaf Headband, Autumn Cape, leaf clothes, Autumn Boots, autumn blocks or walls; the rare ones are hard to get). Sold only during the Autumn event (until Dec 4).',
+  desc: 'An autumn event chest. Place it and break it: ONE random autumn prize floats out (Autumn Wings, Fall Machine, Autumn Scythe, gold, Leaf Headband, leaf clothes, Autumn Boots, autumn blocks or walls; the rare ones are hard to get). Sold only during the Autumn event (until Dec 4).',
 };
 // Autumn Leaf Block: leaves heaped on leaves, a few maple leaves on top
 function paintAutumnLeaves(a) {
@@ -422,19 +422,8 @@ paintPixel = ((prev) =>
 // the character by art-source/autumn/autumn_cut.py into www/assets/autumn/*_s.png, 1 picture px = 1 body px; placed
 // like his mockup of the character wearing them) ----------
 A.autumn_wings2 = 'assets/autumn/wings_s.png';
-A.autumn_cape = 'assets/autumn/cape_s.png';
 // (the Leaf Headband was deleted with every hat, owner Nov 19 2026 build q)
-
-// the Autumn Cape: its own CAPE slot (owner's mockup wears it WITH the wings, which use the back slot). His cape picture
-// is drawn whole BEHIND the body (over the wings), and its top (the leafy mantle and the fur collar, rows above
-// `split`) again IN FRONT, over the shoulders
-WEAR_SLOTS.push('cape');
-EQ_SLOTS.splice(EQ_SLOTS.indexOf('hand'), 0, 'cape');
-SLOT_NAME.cape = 'Cape';
-if (!('cape' in equipped)) equipped.cape = null;
-WEAR.push({ id: 'autumn_cape', name: 'Autumn Cape', slot: 'cape', rarity: 'Epic', strip: { img: 'autumn_cape', frames: 1, ms: 1000, x: -9, y: 95, w: 136, h: 122, split: 121, icon: [0, 0, 136, 122] }, desc: 'A warm red-brown cloak with a white fur trim and maple leaves on the shoulders. It goes in its own Cape slot, so you can wear it with wings. From the Autumn Chest.' });
-WEAR_BY_ID.autumn_cape = WEAR[WEAR.length - 1];
-ITEMS.autumn_cape = { name: 'Autumn Cape', kind: 'clothing', slot: 'cape', desc: WEAR_BY_ID.autumn_cape.desc + ' Wear it from your bag.', rarity: 'Epic' };
+// (the Autumn Cape and its Cape slot were deleted, owner Nov 21 2026: out of the game, the chest and every bag)
 const autSwim = (c) => typeof swimPose === 'function' && !c.portrait && swimPose(c);
 // (owner: "animate the wings, up and down; flying, they open") the Autumn Wings are drawn here, each wing turned round
 // its shoulder (its inner top corner): standing, they rise and sink slowly; in the air they beat, opening wide (tips up
@@ -562,11 +551,9 @@ drawBehind = ((prev) =>
     const eq = c.equipped || {},
       wings = eq.back === 'autumn_wings' && !autSwim(c),
       pass = typeof RIDE_PASS !== 'undefined' ? RIDE_PASS : 0;
-    const cw = WEAR_BY_ID[eq.cape],
-      cape = !!(cw && cw.strip && !autSwim(c));
-    if (!wings && !cape) return prev(c, top, sc, dy);
-    // (owner, Nov 8 2026: long hair was cut off by the Autumn Wings / Cape) back to front: the aura, the back item
-    // (other wings), the Autumn Wings, the Autumn Cape, THEN the back of long hair, so the hair is never covered
+    if (!wings) return prev(c, top, sc, dy);
+    // (owner, Nov 8 2026: long hair was cut off by the Autumn Wings) back to front: the aura, the back item
+    // (other wings), the Autumn Wings, THEN the back of long hair, so the hair is never covered
     const only = (e) => {
       const c2 = Object.create(c);
       c2.equipped = e;
@@ -580,35 +567,8 @@ drawBehind = ((prev) =>
     prev(only({ ...eq, aura: null, back: null }), top, sc, dy);
   })(drawBehind);
 function autBehind(c, top, sc, dy, wings) {
-  {
-    if (wings) drawAutumnWings(c, top, sc, dy);
-    const w = c.equipped && WEAR_BY_ID[c.equipped.cape];
-    if (w && w.strip && !autSwim(c)) {
-      g.save();
-      const s = w.strip;
-      g.beginPath(); // the part under the mantle, behind the body
-      g.rect(-1e5, top + (s.split + dy) * sc * Z, 2e5, 1e5);
-      g.clip();
-      drawWearStrip(w, top, sc, dy);
-      g.restore();
-    }
-  }
+  if (wings) drawAutumnWings(c, top, sc, dy);
 }
-drawWorn = ((prev) =>
-  function (c, top, sc, dy = 0) {
-    const eq = c.equipped || {},
-      cape = WEAR_BY_ID[eq.cape];
-    // the cape's mantle over the shoulders (under the hair / hat / face items drawn next)
-    if (cape && cape.strip && !autSwim(c)) {
-      g.save();
-      g.beginPath();
-      g.rect(-1e5, -1e5, 2e5, top + (cape.strip.split + dy) * sc * Z + 1e5);
-      g.clip();
-      drawWearStrip(cape, top, sc, dy);
-      g.restore();
-    }
-    return prev(c, top, sc, dy);
-  })(drawWorn);
 
 // ---------- Autumn Wings: the owner's pair of maple-leaf wings on twigs (his sheet), behind the body like his mockup;
 // in the air they flap by squeezing sideways like the other picture wings ----------
@@ -627,13 +587,12 @@ ITEMS.autumn_wings = { name: 'Autumn Wings', kind: 'clothing', slot: 'back', des
 // ---------- the Autumn Chest: one random prize per chest ----------
 // [prize, chance %, how many]; gold: [min, max] gold as coins. ONE prize per chest, for GMs too (owner: "one item only;
 // the rare ones hard to get, the common and uncommon ones the most often"). Rarest first: wings, then the weather
-// machine, the scythe, gold, the cape, then the common blocks and wall (the clothes and the hat were deleted, Nov 19 2026).
+// machine, the scythe, gold, then the common blocks and wall (the clothes and the hat were deleted, Nov 19 2026).
 const AUTUMN_LOOT = [
   ['autumn_wings', 0.5, 1], // Legendary
   ['fall_weather_machine', 1, 1], // Legendary
   ['autumn_scythe', 2, 1], // Legendary
   ['gold', 3, [5000, 10000]],
-  ['autumn_cape', 4.5, 1], // Epic
   ['autumn_leaf_block', 18, 10], // Uncommon
   ['maple_plank_block', 18, 10], // Uncommon
   ['autumn_leaf_wall', 31, 10], // Common
@@ -680,3 +639,18 @@ buy = ((prev) =>
     if (s && s.event && !autumnOn() && !isGM()) return toast('The Autumn event is over');
     return prev(s);
   })(buy);
+
+// ---------- (owner, Nov 21 2026) the Autumn Cape is deleted: out of every world (drops, Display Boxes, Mannequins,
+// Vending Machines); bags and what you wear lose it by themselves (cleanInv: no ITEMS entry) ----------
+const AUT_GONE = 'autumn_cape';
+applyWorld = ((prev) =>
+  function (...a) {
+    const r = prev(...a);
+    try {
+      if (Array.isArray(drops)) for (let k = drops.length - 1; k >= 0; k--) if (drops[k] && drops[k].id === AUT_GONE) drops.splice(k, 1);
+      if (typeof displays !== 'undefined') for (const [i, id] of [...displays]) if (id === AUT_GONE) displays.delete(i);
+      if (typeof vends !== 'undefined') for (const [i, v] of [...vends]) if (v && v.id === AUT_GONE) vends.delete(i);
+      if (typeof manns !== 'undefined') for (const m of manns.values()) if (m) for (const sl in m) if (m[sl] === AUT_GONE) delete m[sl];
+    } catch (e) {}
+    return r;
+  })(applyWorld);

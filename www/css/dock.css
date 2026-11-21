@@ -234,3 +234,51 @@
   background: linear-gradient(#ffcf5a, #e69a2f) !important;
   border-color: #7a4a1b !important;
 }
+/* (owner, Nov 21 2026) not on the landing page: the dock (handle + hotbar) only shows in the game */
+body.landing #dock {
+  display: none !important;
+}
+/* (owner, Nov 21 2026) closed too: stuck to the bottom edge of the screen, like the chat tab on the side edge
+   (hudcard.js #chatBtn): no border and no round corners on the edge side, the handle a tab joined to the hotbar */
+.dock,
+.touch .dock {
+  bottom: 0 !important;
+  gap: 0;
+}
+.dock .hotbar {
+  border-bottom: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-top-left-radius: 10px !important;
+  border-top-right-radius: 10px !important;
+  padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px)) !important;
+}
+.dock.open .hotbar {
+  padding-bottom: 5px !important;
+}
+.dockhandle {
+  height: 20px;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+  background: rgba(28, 16, 51, 0.9);
+  margin-bottom: 2px; /* sits on the hotbar's outer line (its box-shadow ring) */
+  box-shadow: none;
+}
+.dock.open .dockhandle {
+  background: rgba(58, 33, 102, 0.97);
+  border-color: var(--glow, #ffd23f);
+}
+.dock.open .dockhandle i {
+  background: #ffd23f;
+}
+/* (owner, Nov 21 2026: "every pop-up must be OVER the inventory") the dock sits under every pop-up and window
+   (.pop z 3, .win z 4-8, chat 60, toast 101); it was z 20, so the Unequip / Cancel buttons were hidden under it */
+.dock {
+  z-index: 2 !important;
+}
+/* (owner, Nov 21 2026) closing slides down like opening, in reverse: the bag is already shut (hidden) but stays drawn,
+   without clicks, while its height goes to 0 (ui/dock.js slideShut) */
+.dock #inv.drawer[hidden].closing {
+  display: flex !important;
+  pointer-events: none;
+}

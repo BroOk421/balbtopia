@@ -307,12 +307,12 @@ function hdDispArt() {
 NEWART.disp = hdDispArt();
 SHOP_ICON.display_box = () => hdDispArt();
 
-// ---------- Mannequin icon: the dummy body (unchanged) on a round wooden stand ----------
+// ---------- Mannequin icon: the gray dummy with both hands (display.js mannIconBody) on a round wooden stand ----------
 SHOP_ICON.mannequin = () => {
   const c = document.createElement('canvas');
   c.width = c.height = 32;
   const x = c.getContext('2d'),
-    body = mannBody({});
+    body = typeof mannIconBody === 'function' ? mannIconBody() : null;
   if (body) {
     x.imageSmoothingEnabled = true;
     const h = 28,

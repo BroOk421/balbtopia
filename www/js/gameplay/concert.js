@@ -669,6 +669,12 @@ function drawNightBg() {
     g.closePath();
     g.fill();
   };
+  // (owner, Nov 21 2026) the Alpine mountains in the Night Machine's blues (daynight.js drawAlpine, bottom fixed on the
+  // bedrock) in place of the two ridges, the tree row and the dark ground; the old ones until its picture is loaded
+  if (typeof drawAlpine === 'function' && drawAlpine(g, 'night')) {
+    g.imageSmoothingEnabled = true;
+    return;
+  }
   ridge(NIGHT_FAR, 0.04, 0.05, 0.2, '#1a438c');
   ridge(NIGHT_NEAR, 0.09, 0.015, 0.13, '#0e2756');
   // the row of silhouettes: coconut trees and grass (the grass first gets its glow, smooth); two passes, so the

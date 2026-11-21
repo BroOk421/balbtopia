@@ -70,23 +70,42 @@ const DOCK_MAX_H = () => Math.round(Math.min(window.innerHeight * 0.52, 300)); /
     side.appendChild(b);
   }
   // ---- opening / closing: the drawer's height ----
-  let h = 0;
+  // (owner, Nov 21 2026: "closing must be smooth too, the same as opening but in reverse") opening eases OUT, closing
+  // eases IN along the mirrored curve in the same time, and the dock keeps its open width (`.open`) until the drawer
+  // is all the way down (it used to drop `.open` at the start, so the drawer went narrow at once while closing)
+  const DOCK_MS = 220,
+    EASE_OPEN = 'cubic-bezier(.2,.8,.3,1)',
+    EASE_CLOSE = 'cubic-bezier(.7,0,.8,.2)';
+  let h = 0,
+    shutT = 0;
   const setH = (v, anim) => {
+    const from = h;
     h = Math.max(0, Math.min(DOCK_MAX_H(), v));
-    invW.style.transition = anim ? 'height .18s ease-out' : 'none';
+    invW.style.transition = anim ? 'height ' + DOCK_MS + 'ms ' + (h < from ? EASE_CLOSE : EASE_OPEN) : 'none';
     invW.style.height = h + 'px';
     invW.scrollTop = 0; // (focusing a slot while it grew scrolled the drawer itself)
-    dock.classList.toggle('open', h > 0);
+    clearTimeout(shutT);
+    if (h > 0) dock.classList.add('open');
+    else if (anim) shutT = setTimeout(() => h === 0 && dock.classList.remove('open'), DOCK_MS);
+    else dock.classList.remove('open');
   };
   const open = () => {
     if (invW.hidden) toggleInv();
     setH(DOCK_MAX_H(), true);
   };
+  // closing: the bag is shut at once (invW.hidden, so every check of it sees it shut), but it stays drawn
+  // (`.closing`, no clicks) while it slides down, then goes
   const close = () => {
+    if (!invW.hidden) toggleInv();
+    else setH(0, true);
+  };
+  const slideShut = () => {
+    if (h <= 0) return setH(0, false);
+    invW.classList.add('closing');
     setH(0, true);
     setTimeout(() => {
-      if (h === 0 && !invW.hidden) toggleInv();
-    }, 190);
+      if (invW.hidden && h === 0) invW.classList.remove('closing');
+    }, DOCK_MS);
   };
   window.dockOpen = open;
   window.dockClose = close;
@@ -104,6 +123,13 @@ const DOCK_MAX_H = () => Math.round(Math.min(window.innerHeight * 0.52, 300)); /
     if (!drag.moved) return;
     if (invW.hidden && dy > 0) toggleInv();
     if (!invW.hidden) setH(drag.h0 + dy, false);
+    // (owner, Nov 21 2026: "dragged all the way down, something is left; it must go by itself at the bottom") at the
+    // bottom the bag shuts right away (no thin drawer left under the hotbar); dragging up again from here reopens it
+    if (!invW.hidden && h <= 0) {
+      toggleInv();
+      drag.y = e.clientY;
+      drag.h0 = 0;
+    }
   });
   const up = () => {
     if (!drag) return;
@@ -121,7 +147,8 @@ const DOCK_MAX_H = () => Math.round(Math.min(window.innerHeight * 0.52, 300)); /
       prev();
       if (wasHidden && !invW.hidden && !drag) setH(DOCK_MAX_H(), true);
       if (wasHidden && !invW.hidden) $('grid').scrollTop = 0; // (focusing the first item scrolled the grid)
-      if (invW.hidden) setH(0, false);
+      if (!invW.hidden) invW.classList.remove('closing');
+      else slideShut(); // (from anywhere: the handle, the bag key, Esc, a tap on the world...)
       dockSide();
     })(toggleInv);
   window.addEventListener('resize', () => {

@@ -267,12 +267,26 @@ function drawDisplayBox(x, y, px, py, T) {
     s = (T * 26) / 32;
   drawFitted(px + a, py + a, s, id);
 }
-// the Mannequin's body: the player's body (so clothes fit the same way) turned into a smooth, faceless dummy
+// the Mannequin's body (owner, Nov 21 2026: "the same as the character, with hands, only gray"): his gray dummy
+// (art-source/character/mannequin.aseprite, cut by mannequin_cut.py into assets/character/mannequin/: the player's
+// exact shape, with a face, and its own two sleeves). Clothes are still put on the porcelain player body (so they fit
+// the same way), then every pixel that is NOT a worn piece becomes the gray dummy's pixel.
 const MANN_BODY = new Map();
 const MANN_SKIN = 'porcelain';
+const MANN_IMG = {};
+for (const n of ['idle_open', 'idle_full', 'sleeve_back', 'sleeve_front']) {
+  const im = (MANN_IMG[n] = new Image());
+  im.onload = () => {
+    MANN_BODY.clear();
+    if (typeof ICON !== 'undefined') delete ICON.mannequin; // the Shop / bag icon is made again with the picture
+  };
+  im.src = 'assets/character/mannequin/' + n + '.png';
+}
+const mannPic = (n) => (MANN_IMG[n] && MANN_IMG[n].complete && MANN_IMG[n].naturalWidth ? MANN_IMG[n] : null);
 function mannBody(eq) {
-  const base = IMG['skin_' + MANN_SKIN + '_open'];
-  if (!base) return null;
+  const base = IMG['skin_' + MANN_SKIN + '_open'],
+    gray = mannPic('idle_open');
+  if (!base || !gray) return null;
   const k = ['shirt', 'pants', 'feet'].map((s) => eq[s] || '').join('|');
   if (MANN_BODY.has(k)) return MANN_BODY.get(k);
   const dressed = outfitBody(base, 'mann_' + MANN_SKIN, eq);
@@ -282,52 +296,58 @@ function mannBody(eq) {
   const x = c.getContext('2d');
   x.drawImage(dressed, 0, 0);
   try {
-    const o = document.createElement('canvas');
-    o.width = c.width;
-    o.height = c.height;
-    const ox = o.getContext('2d');
-    ox.drawImage(base, 0, 0);
-    const src = ox.getImageData(0, 0, c.width, c.height).data,
-      d = x.getImageData(0, 0, c.width, c.height),
-      p = d.data,
-      W = c.width,
-      H = c.height;
-    const clear = (px, py) => px < 0 || py < 0 || px >= W || py >= H || src[(py * W + px) * 4 + 3] < 60;
-    // near the outside edge: within 2 pixels of a see-through pixel
-    const edge = (px, py) => {
-      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (clear(px + dx, py + dy)) return true;
-      return false;
-    };
-    const NECK = 100; // above this is the head: no eyes, brows or mouth
+    const W = c.width,
+      H = c.height,
+      read = (im) => {
+        const o = document.createElement('canvas');
+        o.width = W;
+        o.height = H;
+        const ox = o.getContext('2d');
+        ox.drawImage(im, 0, 0, W, H);
+        return ox.getImageData(0, 0, W, H).data;
+      };
+    const src = read(base),
+      gp = read(gray),
+      d = x.getImageData(0, 0, W, H),
+      p = d.data;
     for (let i = 0; i < p.length; i += 4) {
-      if (p[i + 3] < 60) continue;
-      // a worn piece of clothing (recoloured by outfitBody) stays as it is
-      if (p[i] !== src[i] || p[i + 1] !== src[i + 1] || p[i + 2] !== src[i + 2]) continue;
-      const px = (i / 4) % W,
-        py = (i / 4 / W) | 0,
-        L = (src[i] + src[i + 1] + src[i + 2]) / 3;
-      let t;
-      if (L < 70) {
-        if (py < NECK && !edge(px, py)) t = 0.82; // eyes and mouth: painted over
-        else {
-          // the outline: dark brown
-          p[i] = 74;
-          p[i + 1] = 50;
-          p[i + 2] = 34;
-          continue;
-        }
-      } else if (py < NECK && !edge(px, py)) t = Math.max(0.74, Math.min(0.9, L / 255)); // a smooth head
-      else t = Math.max(0.45, Math.min(1, L / 255));
-      // light, slightly warm plastic
-      p[i] = Math.round(120 + 128 * t);
-      p[i + 1] = Math.round(92 + 128 * t);
-      p[i + 2] = Math.round(62 + 120 * t);
+      // a worn piece of clothing (outfitBody changed the pixel) stays as it is
+      if (p[i + 3] >= 60 && (p[i] !== src[i] || p[i + 1] !== src[i + 1] || p[i + 2] !== src[i + 2] || p[i + 3] !== src[i + 3])) continue;
+      p[i] = gp[i];
+      p[i + 1] = gp[i + 1];
+      p[i + 2] = gp[i + 2];
+      p[i + 3] = gp[i + 3];
     }
     x.putImageData(d, 0, 0);
-  } catch (e) {}
+  } catch (e) {
+    x.clearRect(0, 0, c.width, c.height);
+    x.drawImage(gray, 0, 0);
+  }
+  // a pixel shirt / shorts / shoes picture still loading (pixelwear.js gave the bare body): not kept, made again next
+  // frame (it was kept for good, so a dressed Mannequin could stay bare)
+  const loading = typeof PXW !== 'undefined' && typeof pxwImg === 'function' && ['shirt', 'pants', 'feet'].some((s) => PXW[eq[s]] && !pxwImg(eq[s], 'idle', MANN_SKIN));
+  if (loading) return c;
   if (MANN_BODY.size > 200) MANN_BODY.clear();
   MANN_BODY.set(k, c);
   return c;
+}
+// the icon (Shop, bag): the gray dummy with both hands, nothing on
+const mannIconBody = () => mannPic('idle_full');
+// one of its sleeves, hanging straight down from the player's shoulder (blockybody.js BLOCKY), a worn pixel shirt's
+// sleeve over it (pxwSleeve, like on a player)
+function mannSleeve(c, name, top, sc) {
+  const im = mannPic(name);
+  if (!im || typeof BLOCKY === 'undefined') return;
+  const sh = name === 'sleeve_back' ? BLOCKY.back : BLOCKY.front,
+    k = sc * Z,
+    p = BLOCKY.px * k;
+  g.save();
+  g.translate((sh[0] - FR.w / 2) * k, top + sh[1] * k);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(im, (-im.width / 2) * p, -0.5 * p, im.width * p, im.height * p);
+  const ov = typeof pxwSleeve === 'function' ? pxwSleeve(c, name) : null;
+  if (ov) g.drawImage(ov, (-ov.width / 2) * p, -0.5 * p, ov.width * p, ov.height * p);
+  g.restore();
 }
 // a wooden stand under the feet (drawn in the tile) ...
 function drawMannStand(x, y, px, py, T) {
@@ -358,11 +378,16 @@ function drawMannequinAt(cx, top, eq, tx = 0, ty = 0) {
   g.translate(Math.round(cx), 0);
   g.imageSmoothingEnabled = true;
   drawBehind(c, top, sc, 0);
+  mannSleeve(c, 'sleeve_back', top, sc); // (owner, Nov 21 2026: with hands, like the character)
   g.drawImage(body, (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
   drawWorn(c, top, sc, 0);
   drawAuraFront(c, top, sc, 0);
-  // a tool in its hand, held like a player holds one (the arm is cut out of the Mannequin's own body)
-  if (eq.hand && heldTool(eq.hand))
+  // a tool in its hand: held in the front hand like a player holds one (blockybody.js), under the front sleeve; the
+  // tools a player doesn't hold that way keep the old held-tool drawing
+  const own = eq.hand && heldTool(eq.hand) && typeof blockyOwnsTool === 'function' && blockyOwnsTool(eq.hand);
+  if (own) blockyTool(c, eq.hand, 0, top, sc, 0, { tool: eq.hand });
+  mannSleeve(c, 'sleeve_front', top, sc);
+  if (eq.hand && heldTool(eq.hand) && !own)
     drawHeldTool(eq.hand, top, sc, 0, MANN_SKIN, body, 'mannarm_' + ['shirt', 'pants', 'feet'].map((s) => eq[s] || '').join('|'));
   g.restore();
   g.imageSmoothingEnabled = false;
@@ -424,7 +449,7 @@ SHOP_ICON.mannequin = () => {
   const c = document.createElement('canvas');
   c.width = c.height = 32;
   const x = c.getContext('2d'),
-    body = mannBody({});
+    body = mannIconBody();
   if (body) {
     x.imageSmoothingEnabled = true;
     const h = 29,

@@ -136,10 +136,7 @@ const MG = {
   speed: [0.35, 0.5, 0.7, 0.95],
   turn: [[1.2, 2.2], [0.9, 1.8], [0.6, 1.4], [0.4, 1.0]],
   green: [0.3, 0.26, 0.22, 0.18],
-<<<<<<< HEAD
-=======
   wig: [0.015, 0.02, 0.026, 0.032], // the fish's wiggle (track), on top of its swimming
->>>>>>> d69768b (update new character)
   barSpeed: 0.9, // the green bar, track / s while a walk key is held
   fill: 0.3, // progress / s while the fish is in the green
   drain: 0.22, // progress / s while it isn't
@@ -148,28 +145,13 @@ const MG = {
 const mgSize = (F) => (F.f && FISH_BY[F.f.id] ? FISH_BY[F.f.id].size : 0);
 function mgStart(F) {
   const z = mgSize(F);
-<<<<<<< HEAD
-  F.mg = { fish: 0.5, to: 0.5, next: now, bar: 0.5, vb: 0, prog: MG.start, last: now, on: false, z, w: MG.green[z] };
-=======
   F.mg = { fish: 0.5, base: 0.5, vf: 0, to: 0.5, next: now, bar: 0.5, vb: 0, prog: MG.start, last: now, on: false, z, w: MG.green[z] };
->>>>>>> d69768b (update new character)
 }
 const mgDir = () => (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
 function mgStep(F) {
   const m = F.mg,
     dt = Math.min(0.1, Math.max(0, (now - m.last) / 1000));
   m.last = now;
-<<<<<<< HEAD
-  // the fish: off to a new spot now and then, moving there at its speed
-  if (now >= m.next) {
-    const [a, b] = MG.turn[m.z];
-    m.to = 0.06 + Math.random() * 0.88;
-    m.next = now + (a + Math.random() * (b - a)) * 1000;
-  }
-  const d = m.to - m.fish,
-    step = MG.speed[m.z] * dt;
-  m.fish += Math.abs(d) <= step ? d : Math.sign(d) * step;
-=======
   // (owner, Nov 21 2026: "the fish in the bar should keep moving, weaving about, so it's a bit hard") the fish never
   // stops: as soon as it nears its spot (or its time is up) it heads for a new one; it speeds up / slows down and turns
   // smoothly (vf), and wiggles on top of that (MG.wig, bigger fish more)
@@ -185,7 +167,6 @@ function mgStep(F) {
   m.vf += (want - m.vf) * Math.min(1, dt * 4);
   m.base = Math.max(0.04, Math.min(0.96, m.base + m.vf * dt));
   m.fish = Math.max(0.03, Math.min(0.97, m.base + Math.sin(now / 120) * MG.wig[m.z] + Math.sin(now / 47) * MG.wig[m.z] * 0.35));
->>>>>>> d69768b (update new character)
   // the green bar: the walk keys, a little ease
   m.vb += (mgDir() * MG.barSpeed - m.vb) * Math.min(1, dt * 12);
   m.bar = Math.max(m.w / 2, Math.min(1 - m.w / 2, m.bar + m.vb * dt));

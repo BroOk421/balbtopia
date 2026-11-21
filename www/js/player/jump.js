@@ -217,20 +217,6 @@ function drawJumpTool(c, f) {
   g.restore();
 }
 let jumpTop = 0;
-<<<<<<< HEAD
-// /dance (owner, Oct 27 2026): the body leans left, holds, leans right, holds (a step with a little delay), till
-// you move, jump, punch or place. With the Guitar (leaf_blower) in hand there is no lean: you stand and play it
-// (handfx.js) (owner, Nov 1 2026).
-const DANCE_MS = 1100,
-  DANCE_TILT = 0.13;
-function danceTilt(st) {
-  const t = (now - (st.danceT || 0)) % DANCE_MS,
-    half = DANCE_MS / 2,
-    u = (t % half) / half,
-    side = t < half ? -1 : 1,
-    e = Math.min(1, u / 0.28); // lean over in the first part of each half, then hold
-  return side * DANCE_TILT * (e * e * (3 - 2 * e)) * 2 - side * DANCE_TILT;
-=======
 // /dance (owner, Oct 27 2026; Nov 21 2026 new dance): the body bobs up and down and steps left and right, the arms go
 // round like swimming the other way (blockybody.js, c._dance), the /nice smile (render.js), till you move, jump, punch
 // or place. With the Guitar (leaf_blower) in hand you stand and play it instead (handfx.js) (owner, Nov 1 2026).
@@ -250,7 +236,6 @@ function danceShift(st) {
   // breath: in and out twice a circle (with the beat), 0..1
   const br = 0.5 - 0.5 * Math.cos((t / beat) * 2 * Math.PI);
   return { br, u, dir: Math.floor(t / DANCE_MS) % 2 ? 1 : -1, face: Math.floor(t / (beat * DANCE_BEATS)) % 2 ? 1 : -1, y: -Math.abs(Math.sin(u * 2 * Math.PI * 2)) * DANCE_BOB * TS };
->>>>>>> d69768b (update new character)
 }
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
