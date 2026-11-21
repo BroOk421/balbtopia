@@ -58,10 +58,26 @@ function dnSunPic(sunny) {
   return (DN_SUN_PIC[k] = c);
 }
 const DN_DARK = 0.66, // the world's darkness at full night (0..1)
-  DN_LIGHT_R = 4.6; // the light round a character, in tiles (it fades out to its edge)
+  DN_LIGHT_R = 4.6, // the light round a character, in tiles (it fades out to its edge)
+  // (owner, Nov 21 2026: "the lights as bright as the character's, one colour, the same as the character's, the others'
+  // light circle small") every light block: the character's light (same strength, no colour), only a smaller circle
+  DN_BLOCK_R = 2.2, // a light block's circle, in tiles
+  DN_BLOCK_R_SMALL = 1.4; // lava / magma (a lava lake stays a soft glow, not one big bright patch)
 function dnTime() {
   if (DN_TEST_T !== null) return ((DN_TEST_T % 1) + 1) % 1;
   return (Date.now() % DN_CYCLE_MS) / DN_CYCLE_MS;
+}
+// (owner, Nov 21 2026: "the day and the time on the profile card, 24 hours, following the night and the morning") the
+// game clock: the cycle's start (t 0, sunrise) is 06:00, so the sun is fully up about 08:00, goes down about 19:00 and
+// it is full night about 20:30, dawn about 05:15. One game day = one cycle (DN_CYCLE_MS: 24 real minutes, one game
+// minute a real second); a new day starts at 00:00, and the day's name goes round the week (DN_DAYS)
+const DN_CLOCK_START = 6, // the hour at t = 0
+  DN_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function dnClock() {
+  const t = dnTime(),
+    mins = Math.floor(((DN_CLOCK_START / 24 + t) % 1) * 1440),
+    cyc = Math.floor(Date.now() / DN_CYCLE_MS) + (t + DN_CLOCK_START / 24 >= 1 ? 1 : 0); // past midnight: the next day
+  return { day: DN_DAYS[((cyc % 7) + 7) % 7], h: Math.floor(mins / 60), m: mins % 60, night: dnKey(DN_NIGHT, t) > 0.5 };
 }
 // keyframes [[t, v], ...] from 0 to 1: the value at t, straight lines between
 function dnKey(keys, t) {
@@ -100,21 +116,31 @@ function dnLayerCanvas() {
 function dnTile(x, key, f, top, w, h, alpha, phase = 0) {
   const im = typeof key === 'string' ? IMG[key] : key;
   if (!im || !im.width || alpha <= 0) return;
-  const fl = typeof key === 'string' ? flipped(key) : dnFlip(im);
   x.globalAlpha = alpha;
   const off = -cam.x * Z * f + phase,
     start = Math.floor(-off / w) - 1;
   for (let i = start; i < start + Math.ceil(cv.width / w) + 2; i++) {
     const px = off + i * w;
     if (px > cv.width || px + w < 0) continue;
-    x.drawImage(((i % 2) + 2) % 2 ? fl : im, Math.floor(px), top, Math.ceil(w) + 1, h);
+    const X = Math.floor(px),
+      Wd = Math.ceil(w) + 1;
+    if (((i % 2) + 2) % 2) {
+      // every other repeat mirrored, drawn through a flip (no flipped copy of the big HD picture in memory)
+      x.save();
+      x.translate(X + Wd, 0);
+      x.scale(-1, 1);
+      x.drawImage(im, 0, top, Wd, h);
+      x.restore();
+    } else x.drawImage(im, X, top, Wd, h);
   }
   x.globalAlpha = 1;
 }
 // (owner, Nov 21 2026: "the mountain changes, as if it is swapped; use ONE mountain so the colour change looks good")
 // ONE picture each for the mountains and the clouds (the blue day ones); the sunset look is the SAME picture recoloured
 // by brightness (dark -> light ramp), so going day <-> sunset only the colour changes, never the shape
-A.bg_alpine = 'assets/background/alpine_mountains.png'; // (art-source/background/alpine_cut.py)
+// (owner, Nov 21 2026: "the background high resolution even at that size") alpine_mountains_hd.webp: the same picture
+// upscaled 3x (6357 x 1953; art-source/background/alpine_hd.py, Real-ESRGAN), so it stays sharp drawn this big
+A.bg_alpine = 'assets/background/alpine_mountains_hd.webp'; // (art-source/background/alpine_cut.py -> alpine_hd.py)
 // (owner, Nov 21 2026: "put this mountain in the other weathers too") the Alpine panorama's colours per look; 'sunny' is
 // the picture as it is
 const DN_ALPINE_LOOK = {
@@ -288,9 +314,9 @@ function drawDayNightBg() {
   };
   const cloudK = blue.bg_clouds || 'bg_clouds',
     cloudSet = dnRecolored(cloudK) || cloudK;
-  if (day < 1) dnTile(x, cloudSet, 0.05, top, w, h, 1);
-  if (day > 0) dnTile(x, cloudK, 0.05, top, w, h, day);
-  dim();
+  // (owner, Nov 21 2026) the desert's clouds, fixed in the world and drifting slowly left (clouds.js): drawn in
+  // front of the mountains (further down)
+  const cloudPic = (k) => (typeof k === 'string' ? IMG[k] : k);
   // the moon (the Night Machine's: same size and glow, in front of the clouds, behind the mountains): shows at the
   // top right, goes left (fading in and out)
   const mt = t < DN_MOON[0] && t + 1 <= DN_MOON[1] ? t + 1 : t;
@@ -320,6 +346,9 @@ function drawDayNightBg() {
     if (day < 1) drawAlpine(x, 'sunset', 1);
     if (day > 0) drawAlpine(x, 'sunny', day);
   }
+  // the clouds in front of the mountains (darkened with them at night)
+  if (day < 1) drawCloudField(x, cloudPic(cloudSet), 1);
+  if (day > 0) drawCloudField(x, cloudPic(cloudK), day);
   // the moon's bright spot for the night's darkness, minus the mountains in front of it
   if (DN_MOON_AT) {
     if (!DN_MOON_HOLE) DN_MOON_HOLE = document.createElement('canvas');
@@ -420,7 +449,7 @@ const DN_MAX_LIGHTS = 160; // at most this many block lights on the screen (a bi
 // the lights' colour; lights are laid over each other normally, so they blend smoothly and never go past white
 const DN_NIGHT_MUL = [92, 100, 128];
 const DN_TINT_MAX = 0.32, // how strong the lights' colour gets at full night
-  DN_BLOCK_LIGHT = 0.78, // how strongly a light block / a character lifts the darkness in its middle (1 = all of it)
+  DN_BLOCK_LIGHT = 0.78, // (no longer used: light blocks now take DN_CHAR_LIGHT, the character's strength)
   DN_CHAR_LIGHT = 0.8; // at full night the world is multiplied by this colour (darker, a little blue)
 const DN_CV = {};
 function dnCanvas(k) {
@@ -472,7 +501,8 @@ function drawDayNightLight(ox, oy) {
       // (owner: "a torch clicked off, its fire gone: no light either") a switched-off block (ANIM_OFF) gives none
       if (typeof ANIM_OFF !== 'undefined' && vari[ty * WW + tx] & ANIM_OFF && typeof canStopAnim === 'function' && canStopAnim(tt)) continue;
       // (owner: "the lights a bit more see-through; don't animate the torch's light") steady, softer
-      lights.push([ox + (tx + 0.5) * T, oy + (ty + 0.5) * T, l[1] * T, l[0], DN_BLOCK_LIGHT]);
+      // (owner: "as bright as the character's, the same colour") the character's strength, no tint, a small circle
+      lights.push([ox + (tx + 0.5) * T, oy + (ty + 0.5) * T, (l[1] < 2 ? DN_BLOCK_R_SMALL : DN_BLOCK_R) * T, null, DN_CHAR_LIGHT]);
       if (++n >= DN_MAX_LIGHTS) break;
     }
   const W = cv.width,
@@ -511,7 +541,9 @@ function drawDayNightLight(ox, oy) {
       }
     // (owner: "the blocks had a square shadow; only their picture, not the empty part") blocks: cut by their own
     // pixels (render.js drew this frame's blocks on blockLayers().cv), so vines, signs, platforms leave no square
-    const BLc = typeof blockLayers === 'function' ? blockLayers().cv : null;
+    // (owner, Nov 21 2026: "the fish tank overlapped the character") NOT blockLayers(): fish.js draws the Fish Tanks
+    // from it, so calling it here (after the characters) drew the tanks again over everyone
+    const BLc = typeof BLOCK_LAYERS !== 'undefined' ? BLOCK_LAYERS.cv : null;
     if (BLc && BLc.width === DN_MOON_HOLE.width && BLc.height === DN_MOON_HOLE.height) hx.drawImage(BLc, 0, 0);
     hx.globalCompositeOperation = 'source-over';
     Lx.drawImage(DN_MOON_HOLE, 0, 0);

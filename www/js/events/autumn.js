@@ -216,7 +216,7 @@ const FALL_LAY = { bg_clouds: 'fall_clouds', bg_far: 'fall_mountains', bg_big: n
 //   assets/background/mountains.png, clouds_plain.png)
 // - Desert: its own hills (DESERT_LAY), the Fall clouds (it keeps the sunset's sky)
 A.bg_mountains = 'assets/background/mountains.png';
-A.bg_clouds_plain = 'assets/background/clouds_plain.png';
+A.bg_clouds_plain = 'assets/autumn/fall_clouds.png'; // (owner, Nov 21 2026: the desert's clouds everywhere; was clouds_plain.png)
 const HILLS_OFF = { bg_big: null, bg_mid: null, bg_front: null };
 const MOUNT_LAY = {
   sunset: Object.assign({ bg_clouds: 'fall_clouds', bg_far: 'fall_mountains' }, HILLS_OFF),

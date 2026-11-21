@@ -40,6 +40,10 @@ PCARD.innerHTML = '<div class="pchead"><canvas id="pcHead" width="64" height="64
     '.pcard .gold{background:none;padding:0;gap:4px;font-size:10px;line-height:1;height:auto;border:0}' +
     '.pcard .gold canvas{width:13px;height:13px}' +
     '.pcard .gold.bcbox{font-size:9px;gap:3px}.pcard .gold.bcbox canvas{width:11px;height:11px}' +
+    // the game clock (owner, Nov 21 2026): the day and the 24 h time, right of the level / gold, after a thin line
+    '.pcard .pctime{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:3px;padding-left:8px;margin-left:1px;border-left:1px solid rgba(138,106,216,.55)}' +
+    '.pcard .pctime b{font:9px/1 var(--pixel,monospace);font-weight:normal;white-space:nowrap}' +
+    '.pcard .pctime #pcDay{color:#d8ccff}.pcard .pctime #pcClock{font-size:10px;color:#ffe08a}.pcard .pctime.night #pcClock{color:#9ec4ff}' +
     '@media (orientation: landscape) and (max-height: 520px){.pcard{height:36px;padding:2px 8px 2px 2px}.pcard .pchead,.pcard .pchead canvas{width:28px;height:28px}}' +
     '';
   document.head.appendChild(st);
@@ -169,3 +173,26 @@ gShow = ((prev) =>
     CHAT_BTN.classList.toggle('on', !!open);
     return prev(open);
   })(gShow);
+
+// ---- the game clock (owner, Nov 21 2026: "the day and the time at the top left in the profile, 24 hours, going with
+// the night and the morning"): daynight.js dnClock (06:00 at sunrise, about 19:00 at sunset, the week's day names);
+// the time is yellow in the day, light blue at night. Written only when it changes (a game minute = a real second)
+{
+  const tm = document.createElement('div');
+  tm.className = 'pctime';
+  tm.innerHTML = '<b id="pcDay">Mon</b><b id="pcClock">06:00</b>';
+  PCARD.appendChild(tm);
+  let last = '';
+  const tick = () => {
+    if (typeof dnClock !== 'function') return;
+    const c = dnClock(),
+      txt = c.day + ' ' + String(c.h).padStart(2, '0') + ':' + String(c.m).padStart(2, '0') + (c.night ? 'n' : '');
+    if (txt === last) return;
+    last = txt;
+    $('pcDay').textContent = c.day;
+    $('pcClock').textContent = String(c.h).padStart(2, '0') + ':' + String(c.m).padStart(2, '0');
+    tm.classList.toggle('night', c.night);
+  };
+  tick();
+  setInterval(tick, 500);
+}

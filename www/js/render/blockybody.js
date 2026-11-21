@@ -8,8 +8,8 @@
 //   punching - the front sleeve (screen left when facing right) swings forward round its shoulder until it points
 //              at the block, then back; nothing is cut out of the body (cutting it left bits behind)
 //   swimming - upright, both arms circling forward half a turn apart (c._swim, blockyjump.js)
-// The angry face while punching is <skin>/angry_face.png (only the pixels that change). The talking mouth is off for
-// now (it was drawn where the old mouth was). Loaded right after render.js.
+// The angry face while punching is <skin>/angry_face.png (only the pixels that change). Talking: the jump face's O
+// mouth (drawTalk, near the end). Loaded right after render.js.
 const BLOCKY = {
   px: 6, // frame pixels per sprite pixel
   back: [95, 145], // shoulder of the back sleeve in the 118 x 215 frame (facing right): printed by blocky_cut.py
@@ -33,7 +33,7 @@ function blockyImg(skin, name) {
   return im.complete && im.naturalWidth ? im : null;
 }
 // start loading every skin's pictures at once, so the first jump / punch already has them
-for (const s of typeof SKINS !== 'undefined' ? SKINS : ['porcelain']) for (const n of ['sleeve_back', 'sleeve_front', 'blocky_jump_up', 'blocky_jump_down', 'angry_face', 'swim_face', 'sit_look', 'sit_noarm', 'expr_dead', 'expr_nice', 'expr_sleep', 'expr_troll']) blockyImg(s, n);
+for (const s of typeof SKINS !== 'undefined' ? SKINS : ['porcelain']) for (const n of ['sleeve_back', 'sleeve_front', 'blocky_jump_up', 'blocky_jump_down', 'angry_face', 'swim_face', 'sit_look', 'sit_noarm', 'expr_dead', 'expr_nice', 'expr_sleep', 'expr_troll', 'expr_omg', 'talk_o', ...Array.from({ length: 11 }, (_, i) => 'expr_cry_' + String(i).padStart(2, '0'))]) blockyImg(s, n);
 // in the air (owner, Nov 21 2026: the feet go up and down like walking): render.js draws the walking frame and puts
 // the jump picture's whole HEAD over it (blocky_jump_up / _down rows above the neck), so the jump face stays whole
 // (only the changed pixels broke the eyes: owner, same day)
@@ -279,5 +279,24 @@ function blockyAxe(id, ang, top, sc, dy) {
 }
 // the punching arm is the front sleeve, drawn in drawCharacter: no separate arm any more
 drawPunch = function () {};
-// talking mouth: off on the blocky face for now
-drawTalk = function () {};
+// talking mouth (owner, Nov 21 2026: "when chatting, the mouth like the jump's 'O'; as long as the chat is, that long
+// the mouth goes, like talking"): the jump face's O mouth (<skin>/talk_o.png, expr_cry_omg_cut.py) shows and hides
+// letter by letter through the message, TALK_LETTER s a letter: open on vowels (and now and then on other letters),
+// shut on spaces and punctuation; so a long chat talks long, a short one just a moment (never past the bubble)
+const TALK_LETTER = 0.075,
+  TALK_VOWEL = /[aeiouyAEIOUY0-9]/,
+  TALK_LETTERS = /[a-zA-Z\u00C0-\u024F]/;
+drawTalk = function (c, top, sc, dy) {
+  const say = c.say;
+  if (!say || !say.text || c.emo) return;
+  if (say.T === undefined) say.T = say.t; // when it started (say.t counts down)
+  const text = String(say.text),
+    el = say.T - say.t,
+    i = Math.floor(el / TALK_LETTER);
+  if (el < 0 || i >= text.length || el > say.T - 0.25) return;
+  const ch = text[i],
+    open = TALK_VOWEL.test(ch) || (TALK_LETTERS.test(ch) && i % 3 === 0 && !TALK_VOWEL.test(text[i - 1] || ''));
+  if (!open) return;
+  const im = blockyImg(c.skin, 'talk_o') || blockyImg('porcelain', 'talk_o');
+  if (im) g.drawImage(im, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+};

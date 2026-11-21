@@ -58,6 +58,9 @@ function resize() {
   g.imageSmoothingEnabled = false;
 }
 addEventListener('resize', resize);
+const SLEEP_HEAD_DROP = 7, // /sleep: how far the head sinks (body px, 6 = one sprite pixel)
+  SLEEP_NOD = 1.5; // and the slow nod on top of it
+const emoElapsedSafe = (c) => typeof emoElapsed === 'function' && emoElapsed(c) >= 0;
 function frameAt(ms) {
   let m = ms % TLT;
   for (const f of TL) {
@@ -91,7 +94,12 @@ function drawBg() {
   // (owner, Nov 21 2026) the Sun / Rain / Fall Machines and the landing page's sunset use the Alpine mountains
   // (daynight.js drawAlpine, its bottom fixed on the bedrock) in place of the far mountains and the hills
   const alp = typeof alpineLook === 'function' ? alpineLook(wx) : null;
+  let cloudPic = null; // the clouds, drawn in front of the far mountains (clouds.js)
   for (const [k, f] of LAY) {
+    if (cloudPic && k === 'bg_big') {
+      drawCloudField(g, cloudPic);
+      cloudPic = null;
+    }
     if (alp && (k === 'bg_far' || k === 'bg_big' || k === 'bg_mid' || k === 'bg_front')) {
       if (k === 'bg_far' && drawAlpine(g, alp)) continue;
       if (IMG.bg_alpine && IMG.bg_alpine.width) continue;
@@ -105,6 +113,12 @@ function drawBg() {
     if (!key) continue;
     const im = own ? IMG[key] : snow ? weatherLayer(wx, k) : key === 'bg_sun' ? softEdges(IMG[key]) : IMG[key];
     if (!im || !im.width) continue;
+    // (owner, Nov 21 2026) the clouds: a field of separate clouds fixed in the world, drifting slowly left (clouds.js)
+    // (drawn after the far mountains: kept here until the next layer, bg_big)
+    if (k === 'bg_clouds' && typeof drawCloudField === 'function') {
+      cloudPic = im;
+      continue;
+    }
     if (f === 0) {
       g.drawImage(im, 0, top, cv.width, h);
       continue;
@@ -121,6 +135,7 @@ function drawBg() {
       g.drawImage(((i % 2) + 2) % 2 ? (snow && !own ? weatherFlipped(wx, k) : flipped(key)) : im, Math.floor(x), top, Math.ceil(w) + 1, h);
     }
   }
+  if (cloudPic) drawCloudField(g, cloudPic);
   g.imageSmoothingEnabled = false;
 }
 // out fast, short hold, back a little slower
@@ -572,7 +587,8 @@ function drawCharacter(c, ox, oy) {
   const angry = c.angry > 0;
   // no blinking while angry: the eyes stay open under the angry lids
   // /sleep (emotes.js): the eyes stay shut
-  const fr = c.emo === 'sleep' ? 'closed' : c.ground && !c.walking && !angry && !c._dance ? frameAt(now + (c.blink || 0)) : 'open';
+  // /omg and /cry (owner's faces): the eyes stay open under them (no blink showing through)
+  const fr = c.emo === 'sleep' ? 'closed' : (c.emo === 'omg' || c.emo === 'cry') && emoElapsedSafe(c) ? 'open' : c.ground && !c.walking && !angry && !c._dance ? frameAt(now + (c.blink || 0)) : 'open';
   const wkey = style === 'step' ? 'walkstep_' : 'walk_';
   const canWalk = !!IMG[wkey + c.skin + '_0'],
     wfWalk = Math.floor(c.walkPh) % 12;
@@ -631,20 +647,32 @@ function drawCharacter(c, ox, oy) {
   // drawn holding the tool further down (behind it)
   const shown0 = tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null,
     gunArm = !emoArms && !bOwn && shown0 && typeof twoHandArm === 'function' ? twoHandArm(c, outfitBody(body, frameKey, eq), shown0, swinging, !punching && !walking && !dw && !c.walking) : null;
-  g.drawImage(gunArm ? gunArm.body : emoArms ? emoArms.body : outfitBody(body, frameKey, eq), (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
-  if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
-  else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
-  else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
-  else if (c._swim && typeof swimFace === 'function' && swimFace(c.skin)) g.drawImage(swimFace(c.skin), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // in water: only the face changes (owner, Nov 20 2026)
-  else if (air && blockyAirFace(c.skin, c._bj)) g.drawImage(blockyAirFace(c.skin, c._bj), (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
-  else drawTalk(c, top, sc, dy, MOUTH_Y);
-  if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, dy); // /love heart eyes, /omg, /sleep (emotes.js)
+  // /sleep (owner, Nov 21 2026: "standing, only the head goes down a little and the eyes close, the face like in the
+  // bed"): the body stays put, only the head (the rows above the neck) sinks SLEEP_HEAD_DROP body px, nodding slowly;
+  // the face, hair and hats go down with it (hdy)
+  const sleepDrop = c.emo === 'sleep' && emoElapsedSafe(c) && !walking && !punching && !bj && !c.rest && !c._swim && !c.rideBase ? SLEEP_HEAD_DROP + Math.sin(now / 900) * SLEEP_NOD : 0,
+    hdy = dy + sleepDrop,
+    bodyPic = gunArm ? gunArm.body : emoArms ? emoArms.body : outfitBody(body, frameKey, eq);
+  if (sleepDrop) {
+    const nk = typeof BLOCKY_NECK_ROW !== 'undefined' ? BLOCKY_NECK_ROW : 142,
+      k = sc * Z;
+    g.drawImage(bodyPic, 0, nk, FR.w, FR.h - nk, (-FR.w * k) / 2, top + nk * k, FR.w * k, (FR.h - nk) * k);
+    g.drawImage(bodyPic, 0, 0, FR.w, nk, (-FR.w * k) / 2, top + sleepDrop * k, FR.w * k, nk * k);
+  } else g.drawImage(bodyPic, (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
+  if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else if (c._swim && typeof swimFace === 'function' && swimFace(c.skin)) g.drawImage(swimFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // in water: only the face changes (owner, Nov 20 2026)
+  // (an emote face shows in the air too: the walking frame's own face under it, not the jump face; owner Nov 21 2026)
+  else if (air && !(c.emo && emoElapsedSafe(c) && c.emo !== 'love') && blockyAirFace(c.skin, c._bj)) g.drawImage(blockyAirFace(c.skin, c._bj), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  else drawTalk(c, top, sc, hdy, MOUTH_Y);
+  if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, hdy); // /love heart eyes, /omg, /sleep (emotes.js)
   // /dance (owner, Nov 21 2026): the /nice smile (set by jump.js: c._dance)
   else if (c._dance && typeof blockyImg === 'function') {
     const nf = blockyImg(c.skin, 'expr_nice') || blockyImg('porcelain', 'expr_nice');
-    if (nf) g.drawImage(nf, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+    if (nf) g.drawImage(nf, (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   }
-  drawWorn(c, top, sc, dy);
+  drawWorn(c, top, sc, hdy);
   // the front sleeve (and the back one too while it is raised) with the tool in its hand: after the worn things, so a
   // weapon / tool raised over the head is in front of hats, hoods and hair (owner, Nov 20 2026: the Shadow Hood hid it)
   if (bsl) blockySleeves(c, 'front', top, sc, dy, bsl);

@@ -1,24 +1,31 @@
 // Emotes (owner, Nov 9 2026). Typed in the chat like /dance (social.js chatCommand), never shown as chat; other
-// players see them (`em` in the position message, net.js: 1 thumbsup, 2 love, 3 omg, 4 sleep).
+// players see them (`em` in the position message, net.js: 1 thumbsup, 2 love, 3 omg, 4 sleep, 5 cry).
 // - /nice (was /thumbsup; Nov 20 2026: the owner's nice face, the front arm up to 9 o'clock and back). Old note: the arm that holds the weapon / tool (the back arm, wear.js armParts) goes up with the weapon in its
 //   hand, pumps twice and comes down. Bare-handed, the fist shows a thumb sticking up.
 // - /love: both eyes turn into hearts that beat (a double pulse like a heartbeat), and little hearts float up from
 //   the head, spinning as they rise.
-// - /omg: a "wow" face: the mouth a round O, the brows up, the character's own normal eyes (owner, Nov 13 2026; they
-//   were wide with tiny shaking pupils); both hands
-//   go up beside the head and shake.
+// - /omg (owner, Nov 21 2026): his omg face picture (expr_omg.png: big round eyes, an "o" mouth); both blocky sleeves
+//   go up beside the head and tremble (blockyTarget at the end). The old drawn face and cut-off arms are gone.
+// - /cry (owner, Nov 21 2026): his crying face, 11 frames (expr_cry_00..10.png): sad eyes, tears rolling down.
 // - /sleep: eyes shut, a snore now and then (the chat mouths), the body sways a little, Zzz float up. Lasts until you
 //   move (type /sleep again to wake up).
-// /nice, /omg and /sleep stop when you walk, jump, punch or place; /love keeps going while you walk.
+// Only /sleep stops when you walk, jump, punch or place; /nice, /love, /omg and /cry keep going (owner, Nov 21 2026).
 // Hooks in render.js drawCharacter: `emoArmPose` (the body with the raised arms cut off + drawing them raised) and
 // `drawEmoFace` (over the face). The arms are cut by their shape on the porcelain idle frame (same shape on every
 // skin), from the DRESSED picture, so sleeves / suits come along.
 // ===== emotes =====
 // (owner, Nov 20 2026) /thumbsup is now /nice: the owner's nice face (expressions.zip) and the front arm turning up
 // to 9 o'clock and back (blockyTarget wrapper at the end); same net code 1
-const EMO_MS = { nice: 2600, love: 4200, omg: 3000, sleep: Infinity },
-  EMO_CODE = { nice: 1, love: 2, omg: 3, sleep: 4 },
-  EMO_STILL = { nice: 1, omg: 1, sleep: 1 }, // these stop when you move
+// (owner, Nov 21 2026) /cry: his crying face (expressions/cry.aseprite, 11 frames of 100 ms: the eyes go sad, tears
+// roll down), played once and then the tears again (frames CRY_LOOP..) until it ends; net code 5
+const EMO_MS = { nice: 2600, love: 4200, omg: 3000, sleep: Infinity, cry: 4000 },
+  EMO_CODE = { nice: 1, love: 2, omg: 3, sleep: 4, cry: 5 },
+  // (owner, Nov 21 2026: "even while walking, /cry or any command, like /troll, the face and the hands keep going")
+  // only /sleep stops when you move (it lasts until you wake up); the others go on while you walk, jump, punch
+  EMO_STILL = { sleep: 1 }, // these stop when you move
+  CRY_FRAMES = 11,
+  CRY_MS = 100,
+  CRY_LOOP = 3; // after the first time through, the tears (frames 3..10) go round again
   EMO_UP_MS = 260; // arms going up / coming down
 // the emote you are doing now (or null)
 const emoOn = () => (P.emo && now - P.emo.t < EMO_MS[P.emo.k] ? P.emo : null);
@@ -275,6 +282,9 @@ function emoArmPose(c, dressed) {
   const k = c.emo;
   // (owner, Nov 9 2026: "/omg on a ride doesn't work") rides too: the seated rides cut the rider only below the seat,
   // so the raised arms show; a held weapon goes through drawArmWithTool, which rides.js draws over the ride
+  // (owner, Nov 21 2026: "remove the old one") /omg raises the blocky sleeves now (blockyTarget at the end); the old
+  // cut-off arms are only for a body without the blocky sleeves
+  if (typeof blockySleeves === 'function') return null;
   if (k !== 'omg' || c.portrait || c.ground === false) return null; // (/nice: the blocky front sleeve, at the end)
   const el = emoElapsed(c);
   if (el < 0) return null;
@@ -390,7 +400,15 @@ function drawEmoFace(c, top, sc, dy) {
     if (im) g.drawImage(im, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
     return;
   }
-  if (k !== 'love' && k !== 'omg' && k !== 'sleep') return;
+  // /omg (owner, Nov 21 2026): his omg face (expressions/omg.png: big round eyes, an "o" mouth), the old drawn one gone
+  // /cry (owner, Nov 21 2026): his crying face, frame by frame
+  if (k === 'omg' || k === 'cry') {
+    const n = k === 'omg' ? 'expr_omg' : 'expr_cry_' + String(cryFrame(el)).padStart(2, '0'),
+      im = typeof blockyImg === 'function' ? blockyImg(c.skin, n) || blockyImg('porcelain', n) : null;
+    if (im) g.drawImage(im, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+    return;
+  }
+  if (k !== 'love' && k !== 'sleep') return;
   const [face, ink, mouth] = FACE_COLOR[c.skin] || FACE_COLOR.tan,
     x = g;
   x.save();
@@ -478,40 +496,6 @@ function drawEmoFace(c, top, sc, dy) {
     x.ellipse(46, 86, 7, 3.5, 0, 0, Math.PI * 2);
     x.ellipse(99, 86, 4.5, 3.2, 0, 0, Math.PI * 2);
     x.fill();
-  } else if (k === 'omg') {
-    const pop = Math.min(1, el / 160);
-    // wipe the calm brows and mouth (owner, Nov 13 2026: the character's own normal eyes stay, no wide eyes)
-    x.fillStyle = face;
-    x.fillRect(50, 43, 22, 10);
-    x.fillRect(86, 43, 20, 10);
-    x.fillRect(66, 89, 20, 10);
-    // brows shot up, arched
-    x.strokeStyle = ink;
-    x.lineWidth = 4.2;
-    x.beginPath();
-    x.moveTo(43, 47 - 2 * pop);
-    x.quadraticCurveTo(56, 34 - 3 * pop, 69, 42 - 2 * pop);
-    x.moveTo(84, 42 - 2 * pop);
-    x.quadraticCurveTo(95, 33 - 3 * pop, 104, 45 - 2 * pop);
-    x.stroke();
-    // the mouth: a round "O", opening wide at the start
-    const open = emoBack(Math.min(1, el / 220));
-    x.fillStyle = '#3a1410';
-    x.beginPath();
-    x.ellipse(76, 93, 6 * open, 7.5 * open, 0, 0, Math.PI * 2);
-    x.fill();
-    x.save();
-    x.clip();
-    x.fillStyle = '#e8546a';
-    x.beginPath();
-    x.ellipse(76, 99, 5, 3.5, 0, 0, Math.PI * 2);
-    x.fill();
-    x.restore();
-    x.lineWidth = 2.6;
-    x.strokeStyle = mouth;
-    x.beginPath();
-    x.ellipse(76, 93, 6 * open, 7.5 * open, 0, 0, Math.PI * 2);
-    x.stroke();
   } else if (k === 'sleep') {
     x.restore();
     // (owner, Nov 20 2026) his sleeping face (expressions.zip: eyes shut, a little round mouth)
@@ -540,15 +524,9 @@ drawCharacter = ((prev) =>
         fy = oy + (c.y + c.h) * Z;
       // (owner, Nov 21 2026: "/sleep: he just sleeps standing; the bed is for the Bed block") standing, dozing: a slow
       // lean forward and back round the feet, his sleep face (drawEmoFace), Zzz
-      g.save();
-      g.translate(fx, fy);
-      g.rotate(Math.sin(now / 900) * 0.035 * c.face);
-      g.translate(-fx, -fy);
-      try {
-        res = prev(c, ox, oy);
-      } finally {
-        g.restore();
-      }
+      // (owner, Nov 21 2026: "standing, only the head goes down a little") no more swaying of the whole body: render.js
+      // lowers only the head (SLEEP_HEAD_DROP)
+      res = prev(c, ox, oy);
       if (res) emoZzz(res.cx + c.face * 8 * Z, res.bald !== undefined ? res.bald : res.headTop + 6 * Z, c.face);
       return res;
     }
@@ -636,6 +614,28 @@ blockyTarget = ((prev) =>
           u = Math.max(0, Math.min(1, el < NICE_UP_MS ? el / NICE_UP_MS : el > T - NICE_UP_MS ? (T - el) / NICE_UP_MS : 1)),
           e = u * u * (3 - 2 * u);
         return { back: 0, front: NICE_ANG * e, direct: true };
+      }
+    }
+    return prev(c, s, top, sc, dy);
+  })(blockyTarget);
+
+// /cry: which of the 11 frames at `el` ms (once through, then the tears frames again)
+function cryFrame(el) {
+  const f = Math.floor(el / CRY_MS);
+  return f < CRY_FRAMES ? f : CRY_LOOP + ((f - CRY_FRAMES) % (CRY_FRAMES - CRY_LOOP));
+}
+// /omg (owner, Nov 21 2026: "the hands raised, shaking, trembling"): both blocky sleeves go up beside the head (out to
+// the sides) and tremble fast, each on its own beat, then come back down at the end
+const OMG_UP = 2.2; // radians from hanging down: out and up to the side (hands by the cheeks, beside the head, not over the face)
+blockyTarget = ((prev) =>
+  function (c, s, top, sc, dy) {
+    if (c && c.emo === 'omg' && !c.punch && !c.place && !c._swim) {
+      const el = emoElapsed(c);
+      if (el >= 0) {
+        const lift = emoLift(el, EMO_MS.omg),
+          sh = lift > 0.9 ? 1 : 0,
+          shake = (ph, sp) => (Math.sin(now / sp + ph) * 0.09 + Math.sin(now / (sp * 0.47) + ph * 2) * 0.04) * sh;
+        return { back: -OMG_UP * lift + shake(0, 24), front: OMG_UP * lift + shake(1.7, 21), direct: true };
       }
     }
     return prev(c, s, top, sc, dy);

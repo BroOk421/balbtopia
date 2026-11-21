@@ -278,6 +278,8 @@ function touchCheckpoint() {
   P.cpT = now; // the tower's lamp blinks 3 times from now
   // (owner, Oct 31 2026: no more smoke / little squares flying out; the checkpoint just lights up)
   toast('Checkpoint!');
+  // (owner, Nov 21 2026: "a sound effect when the character passes the checkpoint") only for a NEW checkpoint
+  if (typeof Sfx !== 'undefined') Sfx.play('checkpoint');
   Native.haptic('light');
 }
 // an item just flew into the BAG button: the button gives a little bounce

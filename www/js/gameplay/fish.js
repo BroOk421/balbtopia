@@ -1193,7 +1193,12 @@ function drawAquariums(ox, oy, T) {
 // there), so blocks placed over a Fish Tank stand in front of its fish
 blockLayers = ((prev) =>
   function () {
-    if (typeof inWorld === 'undefined' || inWorld) drawAquariums(Math.round(-cam.x * Z), Math.round(-cam.y * Z), TS * Z);
+    // (owner, Nov 21 2026: "the fish tank overlapped the character, make it like a background") only ONCE a frame, at
+    // the render's own call before the blocks: a later call (after the characters) must never draw the tanks again
+    if ((typeof inWorld === 'undefined' || inWorld) && drawAquariums.frame !== now) {
+      drawAquariums.frame = now;
+      drawAquariums(Math.round(-cam.x * Z), Math.round(-cam.y * Z), TS * Z);
+    }
     return prev();
   })(blockLayers);
 // (owner, Nov 3 2026) a broken Fish Tank Lid always floats out as itself, like the ATM (never a seed, coins or nothing)

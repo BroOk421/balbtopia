@@ -134,7 +134,7 @@ const A = {
   fist_deep: 'assets/character/deep/fist.png',
   bg_sky: 'assets/background/sky.webp',
   bg_sun: 'assets/background/sun.webp',
-  bg_clouds: 'assets/background/clouds.webp',
+  bg_clouds: 'assets/autumn/fall_clouds.png', // (owner, Nov 21 2026) the desert's clouds everywhere (world/clouds.js)
   bg_far: 'assets/background/far.webp',
   bg_big: 'assets/background/big.webp',
   bg_mid: 'assets/background/mid.webp',

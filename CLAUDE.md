@@ -25,7 +25,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 |---|---|
 | `core/` | errors, assets, config, native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), main |
 | `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, bag (build m, loaded before main.js), gmwatch, subscriber, rename, social, globalchat, keys |
-| `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, daynight (right after weather), signs |
+| `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, daynight (right after weather), clouds (right after daynight: the desert clouds, fixed in the world, drifting left), signs |
 | `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb, spwai (TEMP test, build p) |
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
