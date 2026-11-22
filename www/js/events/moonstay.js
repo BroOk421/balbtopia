@@ -20,7 +20,9 @@ buildMoon = ((prev) =>
       hash = (i) => (Math.imul(i ^ seed, 2654435761) ^ (i >>> 3)) >>> 0,
       rocks = [];
     for (let i = 0; i < fg.length; i++) if (fg[i] === MOON_ROCK_T) rocks.push(i);
-    const keep = Math.max(0, MOON_ROCK_MAX - roids.length);
+    // (build zh) the floating ones' share is kept free (ROID_MAX 10), so the ground keeps 40 of the 50 and the floating
+    // ones are fewer (was MOON_ROCK_MAX - roids.length, and roids is still empty here: 50 in the ground + up to 22 flying)
+    const keep = Math.max(0, MOON_ROCK_MAX - (typeof ROID_MAX !== 'undefined' ? ROID_MAX : roids.length));
     if (rocks.length > keep) {
       rocks.sort((a, b) => hash(a) - hash(b) || a - b);
       for (const i of rocks.slice(keep)) {

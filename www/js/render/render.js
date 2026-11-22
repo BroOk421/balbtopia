@@ -1774,8 +1774,11 @@ function bubbleLines(text, maxW) {
 // navy edge, a darker band along the bottom, a thin light line along the top, white text with a dark shadow; it still
 // fits the text. u = the edge's thickness in screen px. (Used by drawBubble and signs.js drawSignBubble.)
 // (owner, Nov 22 2026 build k: "the chat: just make the background see-through") the chat bubble's inside
-const CHAT_BG_ALPHA = 0.6;
-const BAG_BOX = { top: '#4a8fe8', bot: '#2559c2', edge: '#10285c', text: '#ffffff', shadow: 'rgba(8,24,70,.8)' };
+const CHAT_BG_ALPHA = 0.88; // (build zh: white now, a little see-through)
+// (owner, Nov 23 2026 build zh: "the chat over the head and the signs: white, a brown border, black letters, thin, not
+// bold") a white box with a brown edge, black text in a thin font (BUBBLE_FONT); no shine / shade bands any more
+const BAG_BOX = { top: '#ffffff', bot: '#f3efe8', edge: '#7a4a24', text: '#141414', shadow: null, bands: false };
+const BUBBLE_FONT = (px) => `400 ${px}px Rubik, system-ui, -apple-system, 'Segoe UI', sans-serif`;
 // bg: the opacity of the inside only (the edge and the text stay solid); the chat bubble uses CHAT_BG_ALPHA
 function bagBox(x, y, w, h, r, u, bg = 1) {
   const gr = g.createLinearGradient(0, y, 0, y + h),
@@ -1788,6 +1791,7 @@ function bagBox(x, y, w, h, r, u, bg = 1) {
   g.roundRect(x, y, w, h, r);
   g.fill();
   // the darker band along the bottom and the light line along the top, inside the edge
+  if (BAG_BOX.bands !== false) {
   g.save();
   g.beginPath();
   g.roundRect(x + u, y + u, w - 2 * u, h - 2 * u, Math.max(0, r - u));
@@ -1797,6 +1801,7 @@ function bagBox(x, y, w, h, r, u, bg = 1) {
   g.fillStyle = 'rgba(255,255,255,0.18)';
   g.fillRect(x, y + u, w, Math.max(1, u));
   g.restore();
+  }
   g.globalAlpha = a0;
   g.lineWidth = u;
   g.strokeStyle = BAG_BOX.edge;
@@ -1806,14 +1811,16 @@ function bagBox(x, y, w, h, r, u, bg = 1) {
 }
 // white text with the ALL button's dark shadow under it (one screen px per world px down)
 function bagBoxText(t, x, y, k = Z) {
-  g.fillStyle = BAG_BOX.shadow;
-  g.fillText(t, x, y + Math.max(1, 0.45 * k));
+  if (BAG_BOX.shadow) {
+    g.fillStyle = BAG_BOX.shadow;
+    g.fillText(t, x, y + Math.max(1, 0.45 * k));
+  }
   g.fillStyle = BAG_BOX.text;
   g.fillText(t, x, y);
 }
 function drawBubble(text, x, y, a) {
   // (Nov 13 2026: 4 world px letters; Nov 22 2026: 3.4, less padding, the bag-slot look, still no arrow)
-  g.font = `${3.4 * Z}px "Press Start 2P", monospace`;
+  g.font = BUBBLE_FONT(4.4 * Z); // (build zh: thin, was the 3.4 pixel font)
   const lines = bubbleLines(text, CHAT_BUBBLE_W * Z),
     lh = 5 * Z,
     w = Math.max(...lines.map((l) => g.measureText(l).width)) + 6 * Z, // (build j: a little more room at the sides for the edge)

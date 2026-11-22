@@ -1159,7 +1159,7 @@ function crystalTile(id) {
   cr.width = cr.height = 64;
   const q = cr.getContext('2d');
   q.imageSmoothingEnabled = false;
-  if (pic) q.drawImage(pic, -2, 4, 68, 68); // (build zi: bigger and pushed down; its flat bottom is the tile's bottom)
+  if (pic) q.drawImage(pic, -2, 4, 68, 68); // (build zh: bigger and pushed down; its flat bottom is the tile's bottom)
   const im = q.getImageData(0, 0, 64, 64),
     d = im.data,
     hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -1182,7 +1182,7 @@ function crystalTile(id) {
   c.width = c.height = 64;
   const x = c.getContext('2d');
   x.imageSmoothingEnabled = false;
-  // (build zi, owner: "no background, just the crystal") only the crystal, no rock behind it, no shadow
+  // (build zh, owner: "no background, just the crystal") only the crystal, no rock behind it, no shadow
   x.drawImage(cr, 0, 0);
   return (CRY_TILE_PICS[id] = c);
 }

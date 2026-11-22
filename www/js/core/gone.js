@@ -15,8 +15,8 @@
 const GONE_ITEMS = new Set([
   // wear: face / mouth / mask
   'cyclopean_visor', 'laser_eyes', 'red_fire_eyes', 'blue_fire_eyes', 'boss_shades', 'vampire_eyes', 'blue_pacifier', 'vampire_face', 'faceless_head',
-  // wear: back (wings, capes, packs)
-  'backpack', 'jetpack', 'angel_wings', 'golden_wings', 'tiny_angel_wings', 'tiny_devil_wings', 'vampire_wings', 'tiny_vampire_wings', 'seraph_wings', 'demon_wings', 'phoenix_wings', 'crystal_wings', 'fairy_wings', 'shadow_wings', 'celestial_wings', 'dragon_wings', 'leaf_wings', 'galaxy_wings', 'autumn_wings', 'red_crystal_wings', 'green_crystal_wings', 'white_crystal_wings', 'black_crystal_wings', 'glowing_crystal_wings', 'glowing_red_crystal_wings', 'glowing_green_crystal_wings', 'glowing_white_crystal_wings', 'glowing_black_crystal_wings', 'autumn_cape', // (Autumn Cape: Nov 21 2026)
+  // wear: back (packs; the wings came back Nov 23 2026 build zh, the capes in build l)
+  'backpack', 'jetpack', 'autumn_cape', // (Autumn Cape: Nov 21 2026)
   // wear: auras
   'dark_diamond_aura', 'diamond_aura', 'white_aura', 'red_aura', 'golden_aura',
   // wear: watches / wristbands / bracelet (the rings stay)

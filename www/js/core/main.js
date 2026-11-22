@@ -46,9 +46,13 @@ function loop(ts) {
   if (inLobby()) lobbyCam(); // your LOBBY: the camera stays on the room (lobby.js)
   shake = Math.max(0, shake - dt * 20);
   Net.tick(dt);
-  const dz = doorZoomBegin(); // walking through a door: the camera zooms into it (signs.js)
-  render();
-  doorZoomEnd(dz);
+  // (Nov 22 2026 build zh: the full-screen Guide covers the world, so it isn't drawn while it is open: smooth scrolling
+  // in the Guide on phones; the game itself keeps running)
+  if (typeof guideEl === 'undefined' || guideEl.hidden) {
+    const dz = doorZoomBegin(); // walking through a door: the camera zooms into it (signs.js)
+    render();
+    doorZoomEnd(dz);
+  }
   $('coords').textContent = `X ${Math.floor((P.x + P.w / 2) / TS)}  Y ${Math.floor((P.y + P.h - 1) / TS)}`;
   requestAnimationFrame(loop);
 }

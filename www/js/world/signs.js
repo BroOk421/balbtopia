@@ -312,7 +312,7 @@ function drawSignBubble(ox, oy) {
     U = Math.max(Z, 2.4 * Math.min(2, devicePixelRatio || 1)); // never smaller than readable, even zoomed out
   // (owner, Nov 22 2026) like the chat bubble (render.js bagBox: build j, the blue ALL button's look), white text, a bit smaller letters
   // (3.4, was 4), less padding, NO arrow under it
-  g.font = `${3.4 * U}px "Press Start 2P", monospace`;
+  g.font = BUBBLE_FONT(4.4 * U); // (build zh: thin, black on white, render.js BAG_BOX)
   const lines = wrapText(text, 120 * U),
     lh = 5.6 * U,
     w = Math.max(...lines.map((l) => g.measureText(l).width)) + 6 * U,

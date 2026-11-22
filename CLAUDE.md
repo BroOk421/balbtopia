@@ -5312,3 +5312,22 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   side flips it in again (animation restarted with a reflow, staggered). The ones on screen when the list is drawn
   still just show the first time. Tested: scrolled down = top cells hidden; back to the top = 110 flip again.
   GAME_BUILD '2026-11-22 zg'.
+- Nov 23 2026 build zh (owner: "the guide lags on mobile when it animates"; "the asteroids: more on the ground than
+  flying; the wings went too, bring them back"; "the chat over the head and the signs: white, brown border, black
+  letters, thin, not bold"):
+  - Guide speed: guide.js icons drawn lazily (`data-lazy`, gLazyIcon when a cell comes into view, the rest in idle time,
+    12 a batch: gIconsInIdle), the flip on `contain: layout paint` cells (at most GFLIP_MAX 18 at once, 24 ms apart;
+    phones/touch a cheaper scaleX flip `gFlipM` .26 s); main.js skips the world render and doorZoom while the guide is
+    open. Opening 7.5 s -> about 1 s (4x CPU throttle), first scroll 179 -> 121 ms a frame.
+  - Asteroids: moonroids.js ROID_MAX 22 -> 10 flying; moonstay.js keeps MOON_ROCK_MAX - ROID_MAX = 40 on the ground
+    (50 in all, astLeft counts both). moonevent.js tag MOONEV5 so the Moons rebuild once.
+  - Wings back (from the GitHub copy): wear.js WEAR entries (the 6 pixel flap wings, the 10 sheet wings) + WING_WHITE /
+    WING_GOLD; core/assets.js the wings_* pictures; index.html loads art/wear_face_back.js (wingPair), goldwings.js,
+    wingsopen.js, crystalwings.js again (old order); autumn.js the Autumn Wings section and its chest prize (0.5 %);
+    mevlabels.js the Crystal Wings STOVE labels; shop.js the 16 shop rows (old prices); gone.js no wings; schema.sql
+    shop_prices rows + keep list, item_info classes back from 'none', out of the delete block; the admin delete file
+    too. 26 wings in all (with the coloured / glowing Crystal Wings). The owner must re-run schema.sql.
+  - Bubbles: render.js BAG_BOX white (#ffffff -> #f3efe8) with a brown edge #7a4a24, black text #141414, no shadow /
+    bands (`bands: false`), BUBBLE_FONT = Rubik 400 (thin, not the pixel font), 4.4 px a zoom; CHAT_BG_ALPHA 0.88.
+    The sign bubble (signs.js) uses the same.
+  GAME_BUILD '2026-11-22 zh'.

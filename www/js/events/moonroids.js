@@ -83,7 +83,8 @@ applyWorld = ((prev) =>
   })(applyWorld);
 // (owner, Nov 6 2026, build f: "not too many asteroids, the ground already has a lot") a Moon built before that with
 // more than ROID_MAX keeps an even spread of them (the same ones on every screen: by id)
-const ROID_MAX = 22;
+// (owner, Nov 23 2026 build zh: "more asteroids under the ground than flying") 10 floating at most (was 22)
+const ROID_MAX = 10;
 function roidThin() {
   if (roids.length <= ROID_MAX) return;
   const keep = new Set(),

@@ -69,8 +69,14 @@ function mevLabelText(id) {
     c = mevCol(id),
     C = c && mevCap(c);
   let t;
-  // (the Crystal Wings and their STOVE recipes were deleted Nov 22 2026)
-  if (/^glowing_(green|red|blue|white|black)_crystal$/.test(id)) t = n + '. STOVE: 1 ' + C + ' Crystal + 5 Glowing Stones.';
+  // (the Crystal Wings: deleted Nov 22 2026, back in build zh, Nov 23)
+  if (id === 'crystal_wings' || /^(red|green|white|black)_crystal_wings$/.test(id)) {
+    const col = id === 'crystal_wings' ? 'Blue' : C;
+    t = col === 'White' ? n + '. STOVE: 25 White Crystals + 10 Green Acid.' : n + '. STOVE: 20 ' + col + ' Crystals + 10 Green Acid + 5 White Crystals.';
+  } else if (/^glowing_.*crystal_wings$/.test(id)) {
+    const base = ITEMS[id.replace(/^glowing_/, '')];
+    t = n + '. STOVE: 1 pair of ' + (base ? base.name : 'Crystal Wings') + ' + 20 Glowing Stones + 1 Legendary Stone.';
+  } else if (/^glowing_(green|red|blue|white|black)_crystal$/.test(id)) t = n + '. STOVE: 1 ' + C + ' Crystal + 5 Glowing Stones.';
   else if (/^(green|red|blue|white|black)_crystal$/.test(id)) t = n + '. From Moon Rock and asteroids on the Moons.';
   else if (/_crystal_block$/.test(id)) t = n + '. STOVE: 2 ' + C + ' Crystals + 5 Moon Rock = 5.';
   else if (/_crystal_wall$/.test(id)) t = n + ' (background). STOVE: 1 ' + C + ' Crystal + 5 Moon Rock Wall = 5.';
@@ -169,7 +175,7 @@ function mevGroupOf(id) {
 // an order inside a group: by kind of thing, then by colour
 function mevSortKey(id) {
   const c = MEV_COLS.indexOf(mevCol(id));
-  const kind = /_crystal_block$/.test(id) ? 0 : /_crystal_wall$/.test(id) ? 1 : /_crystal$/.test(id) ? 2 : 4;
+  const kind = /_crystal_block$/.test(id) ? 0 : /_crystal_wall$/.test(id) ? 1 : /_crystal$/.test(id) ? 2 : /wings$/.test(id) ? 3 : 4;
   return kind * 100 + (c < 0 ? 50 : c * 10) + (id.length % 10) * 0.01;
 }
 // put things into one kind of slots: the glowing ones in the slots nearest the museum's middle (xc), then of what is

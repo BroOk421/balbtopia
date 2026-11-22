@@ -1186,6 +1186,23 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('set_astronaut', 1, 20000, false, 0), -- spacesuit.js: Astronaut Set (helmet, suit, boots; + Laser Gun since build y, asteroids.js)
   ('starter_pack', 1, 2000, false, 0), -- starterpack.js (Nov 10 2026): 5 random recipe wearables / weapons, picked in the game
   ('set_music', 1, 20000, false, 0), -- musicset.js: Music Set (Piano, Drum Set, Boombox)
+  -- wings: deleted Nov 22 2026 b, back in build zh (Nov 23); the old prices
+  ('angel_wings', 1, 0, true, 30),
+  ('tiny_angel_wings', 1, 0, true, 16),
+  ('tiny_devil_wings', 1, 10000, true, 0),
+  ('vampire_wings', 1, 20000, true, 0),
+  ('tiny_vampire_wings', 1, 10000, true, 0),
+  ('golden_wings', 1, 0, true, 120),
+  ('seraph_wings', 1, 20000, true, 0),
+  ('demon_wings', 1, 20000, true, 0),
+  ('phoenix_wings', 1, 20000, true, 0),
+  ('crystal_wings', 1, 20000, true, 0),
+  ('fairy_wings', 1, 20000, true, 0),
+  ('shadow_wings', 1, 20000, true, 0),
+  ('celestial_wings', 1, 20000, true, 0),
+  ('dragon_wings', 1, 20000, true, 0),
+  ('leaf_wings', 1, 20000, true, 0),
+  ('galaxy_wings', 1, 20000, true, 0),
   -- capes (wear.js / capes.js): deleted Nov 22 2026 b, back in build l; tracked like before
   ('hero_cape', 1, 15000, true, 0),
   ('blue_hero_cape', 1, 15000, true, 0),
@@ -1238,7 +1255,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_jade_dragon', 1, 100000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('royal_silk_scarf', 1), ('cloud_ring', 1), ('prism_ring', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('midnight_tee', 1), ('brown_tee', 1), ('gray_tee', 1), ('green_tee', 1), ('orange_tee', 1), ('pink_tee', 1), ('red_tee', 1), ('smiley_tee', 1), ('black_button_polo', 1), ('white_button_polo', 1), ('charcoal_open_shirt', 1), ('white_open_shirt', 1), ('red_open_shirt', 1), ('black_kung_fu_shirt', 1), ('white_kung_fu_shirt', 1), ('black_shorts', 1), ('blue_shorts', 1), ('lime_shorts', 1), ('orange_shorts', 1), ('red_shorts', 1), ('white_shorts', 1), ('black_sneakers', 1), ('charcoal_sneakers', 1), ('retro_sneakers', 1), ('black_flip_flops', 1), ('gray_flip_flops', 1), ('green_flip_flops', 1), ('orange_flip_flops', 1), ('red_flip_flops', 1), ('black_shades', 1), ('green_shades', 1), ('yellow_shades', 1), ('burst_fade', 1), ('wild_fade', 1), ('wild_side_part', 1), ('red_wild_fade', 1), ('red_side_part', 1), ('bob_cut', 1), ('good_boy_cut', 1), ('silver_wild_fade', 1), ('golden_bob_cut', 1), ('cloud_sole_sneakers', 1), ('shadow_hood', 1), ('shadow_robe', 1), ('gray_hoodie', 1), ('black_silk_scarf', 1), ('crimson_silk_scarf', 1), ('trucker_cap', 1), ('black_beanie', 1), ('frog_hood', 1), ('six_pack_abs', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_astronaut', 1), ('starter_pack', 1), ('set_music', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('royal_silk_scarf', 1), ('cloud_ring', 1), ('prism_ring', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('midnight_tee', 1), ('brown_tee', 1), ('gray_tee', 1), ('green_tee', 1), ('orange_tee', 1), ('pink_tee', 1), ('red_tee', 1), ('smiley_tee', 1), ('black_button_polo', 1), ('white_button_polo', 1), ('charcoal_open_shirt', 1), ('white_open_shirt', 1), ('red_open_shirt', 1), ('black_kung_fu_shirt', 1), ('white_kung_fu_shirt', 1), ('black_shorts', 1), ('blue_shorts', 1), ('lime_shorts', 1), ('orange_shorts', 1), ('red_shorts', 1), ('white_shorts', 1), ('black_sneakers', 1), ('charcoal_sneakers', 1), ('retro_sneakers', 1), ('black_flip_flops', 1), ('gray_flip_flops', 1), ('green_flip_flops', 1), ('orange_flip_flops', 1), ('red_flip_flops', 1), ('black_shades', 1), ('green_shades', 1), ('yellow_shades', 1), ('burst_fade', 1), ('wild_fade', 1), ('wild_side_part', 1), ('red_wild_fade', 1), ('red_side_part', 1), ('bob_cut', 1), ('good_boy_cut', 1), ('silver_wild_fade', 1), ('golden_bob_cut', 1), ('cloud_sole_sneakers', 1), ('shadow_hood', 1), ('shadow_robe', 1), ('gray_hoodie', 1), ('black_silk_scarf', 1), ('crimson_silk_scarf', 1), ('trucker_cap', 1), ('black_beanie', 1), ('frog_hood', 1), ('six_pack_abs', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_astronaut', 1), ('starter_pack', 1), ('set_music', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('golden_wings', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
@@ -3360,7 +3377,7 @@ insert into public.item_info (item, cls) values
   ('ammonite_fossil', 'uncommon'),
   ('angel_statue', 'epic'),
   ('angel_statue_seed', 'epic'),
-  ('angel_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('angel_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('anglerfish', 'rare'),
   ('anglerfish_l', 'legendary'),
   ('anglerfish_m', 'rare'),
@@ -3409,7 +3426,7 @@ insert into public.item_info (item, cls) values
   ('autumn_leaves', 'uncommon'),
   ('autumn_leaves_seed', 'uncommon'),
   ('autumn_scythe', 'legendary'),
-  ('autumn_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('autumn_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('baby_bath', 'uncommon'),
   ('baby_bath_seed', 'uncommon'),
   ('baby_bottle', 'uncommon'),
@@ -3474,7 +3491,7 @@ insert into public.item_info (item, cls) values
   ('black_crystal', 'legendary'),
   ('black_crystal_block', 'epic'),
   ('black_crystal_wall', 'rare'),
-  ('black_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('black_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('black_diamond_lock', 'lock3'),
   ('black_diamond_pickaxe', 'legendary'),
   ('black_wallpaper', 'common'),
@@ -3560,7 +3577,7 @@ insert into public.item_info (item, cls) values
   ('carpet_block_seed', 'uncommon'),
   ('cave', 'common'),
   ('cave_seed', 'common'),
-  ('celestial_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('celestial_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('ceramic_tile', 'common'),
   ('ceramic_tile_seed', 'common'),
   ('chainsaw', 'none'), -- (Nov 22 2026: deleted)
@@ -3634,7 +3651,7 @@ insert into public.item_info (item, cls) values
   ('crystal_platform', 'rare'),
   ('crystal_platform_seed', 'rare'),
   ('crystal_shard_gate', 'epic'),
-  ('crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('cupcake', 'common'),
   ('cupcake_seed', 'common'),
   ('cyclopean_visor', 'none'), -- (Nov 22 2026: deleted)
@@ -3688,7 +3705,7 @@ insert into public.item_info (item, cls) values
   ('death_scythe_seed', 'legendary'),
   ('death_spikes', 'uncommon'),
   ('death_spikes_seed', 'uncommon'),
-  ('demon_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('demon_wings', 'epic'), -- (deleted Nov 22 2026, back in build zh)
   ('desert_weather_machine', 'epic'),
   ('desk_lamp', 'uncommon'),
   ('desk_lamp_seed', 'uncommon'),
@@ -3726,7 +3743,7 @@ insert into public.item_info (item, cls) values
   ('door_seed', 'common'),
   ('dragon_hand', 'none'), -- (Nov 22 2026: deleted)
   ('dragon_hand_seed', 'none'), -- (Nov 22 2026: deleted)
-  ('dragon_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('dragon_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('dreamstone_block', 'uncommon'),
   ('dreamstone_block_seed', 'uncommon'),
   ('dresser', 'common'),
@@ -3791,7 +3808,7 @@ insert into public.item_info (item, cls) values
   ('factory_plate_seed', 'uncommon'),
   ('factory_wall', 'uncommon'),
   ('factory_wall_seed', 'uncommon'),
-  ('fairy_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('fairy_wings', 'epic'), -- (deleted Nov 22 2026, back in build zh)
   ('fall_weather_machine', 'legendary'),
   ('fire_hydrant', 'uncommon'),
   ('fire_hydrant_seed', 'uncommon'),
@@ -3846,7 +3863,7 @@ insert into public.item_info (item, cls) values
   ('galaxy_block', 'epic'),
   ('galaxy_block_seed', 'epic'),
   ('galaxy_cape', 'legendary'),
-  ('galaxy_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('galaxy_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('gaming_pc', 'rare'),
   ('gaming_pc_seed', 'rare'),
   ('garden_scythe', 'rare'),
@@ -3869,16 +3886,16 @@ insert into public.item_info (item, cls) values
   ('glow_block', 'rare'),
   ('glow_block_seed', 'rare'),
   ('glowing_black_crystal', 'legendary'),
-  ('glowing_black_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('glowing_black_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('glowing_blue_crystal', 'legendary'),
-  ('glowing_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('glowing_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('glowing_green_crystal', 'epic'),
-  ('glowing_green_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('glowing_green_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('glowing_red_crystal', 'epic'),
-  ('glowing_red_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('glowing_red_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('glowing_stone', 'rare'),
   ('glowing_white_crystal', 'legendary'),
-  ('glowing_white_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('glowing_white_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('gold_bracelet', 'none'), -- (Nov 22 2026: deleted)
   ('gold_bricks', 'rare'),
   ('gold_bricks_seed', 'rare'),
@@ -3904,7 +3921,7 @@ insert into public.item_info (item, cls) values
   ('golden_sword_seed', 'none'), -- (Nov 22 2026: deleted)
   ('golden_trophy', 'rare'),
   ('golden_trophy_seed', 'rare'),
-  ('golden_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('golden_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('grandfather_clock', 'rare'),
   ('grandfather_clock_seed', 'rare'),
   ('granite_block', 'uncommon'),
@@ -3917,7 +3934,7 @@ insert into public.item_info (item, cls) values
   ('green_crystal', 'rare'),
   ('green_crystal_block', 'epic'),
   ('green_crystal_wall', 'rare'),
-  ('green_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('green_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('green_laser_gate', 'rare'),
   ('green_laser_gate_seed', 'rare'),
   ('green_wallpaper', 'common'),
@@ -4027,7 +4044,7 @@ insert into public.item_info (item, cls) values
   ('leaf_blower_seed', 'none'), -- (Nov 22 2026: deleted)
   ('leaf_platform', 'uncommon'),
   ('leaf_platform_seed', 'uncommon'),
-  ('leaf_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('leaf_wings', 'epic'), -- (deleted Nov 22 2026, back in build zh)
   ('legendary_stone', 'legendary'),
   ('letter_a', 'basic'),
   ('letter_a_seed', 'basic'),
@@ -4270,7 +4287,7 @@ insert into public.item_info (item, cls) values
   ('pet_trex', 'legendary'),
   ('pet_turtle', 'common'),
   ('pet_unicorn', 'legendary'),
-  ('phoenix_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('phoenix_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('piano', 'uncommon'),
   ('piano_note', 'common'),
   ('piano_note_seed', 'common'),
@@ -4435,7 +4452,7 @@ insert into public.item_info (item, cls) values
   ('red_crystal_block', 'epic'),
   ('red_crystal_gate', 'epic'),
   ('red_crystal_wall', 'rare'),
-  ('red_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('red_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('red_curtain', 'basic'),
   ('red_fire_eyes', 'none'), -- (Nov 22 2026: deleted)
   ('red_glass_block', 'uncommon'),
@@ -4526,14 +4543,14 @@ insert into public.item_info (item, cls) values
   ('seaweed_seed', 'common'),
   ('secret_passage', 'rare'),
   ('secret_passage_seed', 'rare'),
-  ('seraph_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('seraph_wings', 'epic'), -- (deleted Nov 22 2026, back in build zh)
   ('set_astronaut', 'none'),
   ('set_factory', 'none'),
   ('set_fishing', 'none'),
   ('set_music', 'none'),
   ('set_rvb', 'none'),
   ('set_stage', 'none'),
-  ('shadow_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('shadow_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('shark', 'rare'),
   ('shark_l', 'legendary'),
   ('shark_m', 'rare'),
@@ -4668,9 +4685,9 @@ insert into public.item_info (item, cls) values
   ('ticket_master', 'none'),
   ('tiger_block', 'uncommon'),
   ('tiger_block_seed', 'uncommon'),
-  ('tiny_angel_wings', 'none'), -- (Nov 22 2026: deleted)
-  ('tiny_devil_wings', 'none'), -- (Nov 22 2026: deleted)
-  ('tiny_vampire_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('tiny_angel_wings', 'epic'), -- (deleted Nov 22 2026, back in build zh)
+  ('tiny_devil_wings', 'epic'), -- (deleted Nov 22 2026, back in build zh)
+  ('tiny_vampire_wings', 'epic'), -- (deleted Nov 22 2026, back in build zh)
   ('tire_stack', 'rare'),
   ('tire_stack_seed', 'rare'),
   ('toilet', 'uncommon'),
@@ -4702,7 +4719,7 @@ insert into public.item_info (item, cls) values
   ('vampire_cape', 'epic'),
   ('vampire_eyes', 'none'), -- (Nov 22 2026: deleted)
   ('vampire_face', 'none'), -- (Nov 22 2026: deleted)
-  ('vampire_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('vampire_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('vending_machine', 'rare'),
   ('venus_guytrap', 'uncommon'),
   ('venus_guytrap_seed', 'uncommon'),
@@ -4736,7 +4753,7 @@ insert into public.item_info (item, cls) values
   ('white_crystal', 'epic'),
   ('white_crystal_block', 'epic'),
   ('white_crystal_wall', 'rare'),
-  ('white_crystal_wings', 'none'), -- (Nov 22 2026: deleted)
+  ('white_crystal_wings', 'legendary'), -- (deleted Nov 22 2026, back in build zh)
   ('white_wallpaper', 'common'),
   ('white_wallpaper_seed', 'common'),
   ('white_wristband', 'none'), -- (Nov 22 2026: deleted)
@@ -5362,32 +5379,23 @@ on conflict (item) do update set cls = excluded.cls;
 -- tracked count, gift waiting to be taken and Vending Machine count, and can't be got any more (class 'none'). The
 -- one-off clean-up of player saves, worlds and trades is supabase/admin/2026-11-22_delete_items.sql.
 -- (Nov 22 2026 build l: the 7 capes came back too: out of this list.)
+-- (Nov 23 2026 build zh: every wing came back too: out of this list.)
 -- (Nov 22 2026 build j: the scythes, Iron / Golden / Flame / Garden / Dark / Furious / Autumn, came back: out of this list.)
 do $$
 declare gone text[] := array[
-  'cyclopean_visor', 'backpack', 'jetpack', 'angel_wings', 'golden_wings',
-    'tiny_angel_wings', 'tiny_devil_wings', 'vampire_wings', 'tiny_vampire_wings', 'dark_diamond_aura',
-    'diamond_aura', 'white_aura', 'red_aura', 'golden_aura', 'seraph_wings',
-    'demon_wings', 'phoenix_wings', 'crystal_wings', 'fairy_wings', 'shadow_wings',
-    'celestial_wings', 'dragon_wings', 'leaf_wings', 'galaxy_wings', 'laser_eyes',
-    'red_fire_eyes', 'blue_fire_eyes', 'blue_pacifier', 'vampire_face', 'vampire_eyes', 'faceless_head', 'autumn_wings', 'red_crystal_wings',
-    'green_crystal_wings', 'white_crystal_wings', 'black_crystal_wings', 'glowing_crystal_wings', 'glowing_red_crystal_wings',
-    'glowing_green_crystal_wings', 'glowing_white_crystal_wings', 'glowing_black_crystal_wings', 'boss_shades', 'gold_watch',
+  'cyclopean_visor', 'backpack', 'jetpack', 'dark_diamond_aura',
+    'diamond_aura', 'white_aura', 'red_aura', 'golden_aura', 'laser_eyes',
+    'red_fire_eyes', 'blue_fire_eyes', 'blue_pacifier', 'vampire_face', 'vampire_eyes', 'faceless_head', 'boss_shades', 'gold_watch',
     'silver_watch', 'diamond_watch', 'black_watch', 'red_wristband', 'blue_wristband',
     'black_wristband', 'white_wristband', 'rainbow_wristband', 'gold_bracelet', 'diamond_diaper',
     'golden_diaper', 'pet_raptor', 'katana', 'fire_sword', 'ice_sword',
     'golden_sword', 'plasma_sword', 'battle_axe', 'war_hammer', 'spear',
     'bolo', 'arnis_stick', 'leaf_blower', 'smores_staff', 'heart_bow', 'fire_wand', 'ice_wand', 'chainsaw', 'dragon_hand',
     'thunder_hammer', 'paper_umbrella', 'autumn_cape', 'cyclopean_visor_seed',
-    'backpack_seed', 'jetpack_seed', 'angel_wings_seed', 'golden_wings_seed', 'tiny_angel_wings_seed',
-    'tiny_devil_wings_seed', 'vampire_wings_seed', 'tiny_vampire_wings_seed', 'dark_diamond_aura_seed', 'diamond_aura_seed',
-    'white_aura_seed', 'red_aura_seed', 'golden_aura_seed', 'seraph_wings_seed', 'demon_wings_seed',
-    'phoenix_wings_seed', 'crystal_wings_seed', 'fairy_wings_seed', 'shadow_wings_seed', 'celestial_wings_seed',
-    'dragon_wings_seed', 'leaf_wings_seed', 'galaxy_wings_seed', 'laser_eyes_seed', 'red_fire_eyes_seed',
+    'backpack_seed', 'jetpack_seed', 'dark_diamond_aura_seed', 'diamond_aura_seed',
+    'white_aura_seed', 'red_aura_seed', 'golden_aura_seed', 'laser_eyes_seed', 'red_fire_eyes_seed',
     'blue_fire_eyes_seed', 'blue_pacifier_seed', 'vampire_face_seed',
-    'vampire_eyes_seed', 'faceless_head_seed', 'autumn_wings_seed', 'red_crystal_wings_seed', 'green_crystal_wings_seed',
-    'white_crystal_wings_seed', 'black_crystal_wings_seed', 'glowing_crystal_wings_seed', 'glowing_red_crystal_wings_seed', 'glowing_green_crystal_wings_seed',
-    'glowing_white_crystal_wings_seed', 'glowing_black_crystal_wings_seed', 'boss_shades_seed', 'gold_watch_seed', 'silver_watch_seed',
+    'vampire_eyes_seed', 'faceless_head_seed', 'boss_shades_seed', 'gold_watch_seed', 'silver_watch_seed',
     'diamond_watch_seed', 'black_watch_seed', 'red_wristband_seed', 'blue_wristband_seed', 'black_wristband_seed',
     'white_wristband_seed', 'rainbow_wristband_seed', 'gold_bracelet_seed', 'diamond_diaper_seed', 'golden_diaper_seed',
     'pet_raptor_seed', 'katana_seed', 'fire_sword_seed', 'ice_sword_seed', 'golden_sword_seed',

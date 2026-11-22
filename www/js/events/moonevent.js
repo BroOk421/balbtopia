@@ -17,7 +17,7 @@
 //   MOON8 / MOON9 at the top. Every rocket's bubble says its Moon and seat. Main door bottom right. Desert backdrop.
 //   Listed in the world list (under LOBBY / RECIPES) and open ONLY while the event is on (build f); nobody but the GM
 //   changes anything there.
-// - The MOONS (moon.js buildMoon) are built again when an event starts (`moonWorldsFix`: rv 'MOONEV4:<ev>').
+// - The MOONS (moon.js buildMoon) are built again when an event starts (`moonWorldsFix`: rv 'MOONEV5:<ev>').
 // - When the event closes, players still on a Moon or in MOONEVENT are sent to their LOBBY (build f; was MOONEVENT).
 // ===== moonevent =====
 // (owner, Nov 6 2026, build f: "back to every 3 days, 24 hours before it ends", as in build b; builds d-e had every
@@ -227,7 +227,7 @@ function moonWorldsFix(name) {
     // random places, for the next event") the Moon is built again when an event starts AND once it is over (':c'), each
     // time with its own seed, so what players broke is back and the asteroids are somewhere else
     const info = mevNowInfo(),
-      v = 'MOONEV4:' + info.ev + (info.open ? '' : ':c'); // (2: build k, the pad's shelves at the side; 3: build l, at most 200 asteroids; 4: Nov 22 2026 build n, at most 50: moonstay.js)
+      v = 'MOONEV5:' + info.ev + (info.open ? '' : ':c'); // (2: build k, the pad's shelves at the side; 3: build l, at most 200 asteroids; 4: Nov 22 2026 build n, at most 50: moonstay.js)
     if (worldRV !== v) {
       trees.clear();
       signs.clear();

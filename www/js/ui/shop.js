@@ -155,6 +155,23 @@ const SHOP_TABS = [
 let shopTab = 'locks';
 const SHOP = [
   { id: 'world_lock', gold: 2000, cat: 'locks' },
+  // wings (deleted Nov 22 2026, back in build zh, Nov 23; the old prices)
+  { id: 'angel_wings', bc: 30, cat: 'wear' },
+  { id: 'tiny_angel_wings', bc: 16, cat: 'wear' },
+  { id: 'tiny_devil_wings', gold: 10000, cat: 'wear' },
+  { id: 'vampire_wings', gold: 20000, cat: 'wear' },
+  { id: 'tiny_vampire_wings', gold: 10000, cat: 'wear' },
+  { id: 'golden_wings', bc: 120, cat: 'wear' },
+  { id: 'seraph_wings', gold: 20000, cat: 'wear' },
+  { id: 'demon_wings', gold: 20000, cat: 'wear' },
+  { id: 'phoenix_wings', gold: 20000, cat: 'wear' },
+  { id: 'crystal_wings', gold: 20000, cat: 'wear' },
+  { id: 'fairy_wings', gold: 20000, cat: 'wear' },
+  { id: 'shadow_wings', gold: 20000, cat: 'wear' },
+  { id: 'celestial_wings', gold: 20000, cat: 'wear' },
+  { id: 'dragon_wings', gold: 20000, cat: 'wear' },
+  { id: 'leaf_wings', gold: 20000, cat: 'wear' },
+  { id: 'galaxy_wings', gold: 20000, cat: 'wear' },
   // capes (wear.js / capes.js; back in build l, Nov 22 2026)
   { id: 'hero_cape', gold: 15000, cat: 'wear' },
   { id: 'blue_hero_cape', gold: 15000, cat: 'wear' },

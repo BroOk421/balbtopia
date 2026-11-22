@@ -67,9 +67,16 @@ document.body.appendChild(guideEl);
 #guide .gempty{color:var(--muted);font-size:13px;padding:10px}
 .r-Common{color:#c8d6ea}
 /* (build zc) cells / rows that were not on screen when the list appeared flip in when scrolled to */
-#guide .gwait{opacity:0;transform:perspective(320px) rotateY(90deg)}
-#guide .gflip{animation:gFlip .42s cubic-bezier(.2,.8,.3,1.2) both}
-@keyframes gFlip{0%{opacity:0;transform:perspective(320px) rotateY(90deg)}60%{opacity:1}100%{opacity:1;transform:perspective(320px) rotateY(0)}}
+/* (build zh: smoother on phones) the grid gives the 3D view once (no perspective() on every cell); cells are contained
+   so a flip only repaints itself; on touch screens a lighter flat flip (scaleX) */
+#guide .ggrid,#guide .glist{perspective:700px}
+#guide .gcell,#guide .grow{contain:layout paint}
+#guide .gwait{opacity:0;transform:rotateY(90deg)}
+#guide .gflip{animation:gFlip .38s cubic-bezier(.2,.8,.3,1.15) both;will-change:transform,opacity}
+@keyframes gFlip{0%{opacity:0;transform:rotateY(90deg)}60%{opacity:1}100%{opacity:1;transform:rotateY(0)}}
+.touch #guide .gwait{transform:scaleX(0)}
+.touch #guide .gflip{animation:gFlipM .26s ease-out both}
+@keyframes gFlipM{0%{opacity:0;transform:scaleX(0)}100%{opacity:1;transform:scaleX(1)}}
 @media (prefers-reduced-motion: reduce){#guide .gwait{opacity:1;transform:none}#guide .gflip{animation:none}}.r-Uncommon{color:#7ee08a}.r-Rare{color:#6ab4ff}.r-Epic{color:#c48cff}.r-Legendary{color:#ffc84a}
 @media (max-width:640px){#guide .gbody{flex-direction:column}#guide .gcard{width:auto;max-height:46%}}
 `;
@@ -158,17 +165,23 @@ function gStove() {
 // hidden and flip in (rotateY 90deg -> 0, a little overshoot) as they scroll into view, a few at a time staggered;
 // (build zg) every time they come back into view, up or down.
 let gObs = null;
+const GFLIP_MAX = 18; // at most this many flip at once (a fast scroll just shows the rest)
 function gFlipIn(box, sel) {
   if (gObs) gObs.disconnect();
   const items = [...box.querySelectorAll(sel)];
-  if (!items.length || typeof IntersectionObserver === 'undefined') return;
+  if (!items.length || typeof IntersectionObserver === 'undefined') {
+    for (const el of items) gLazyIcon(el);
+    return;
+  }
   for (const el of items) el.classList.add('gwait');
   let first = true;
   // (owner, build zg: "the ones above that were passed: scrolling back up they must flip in again") items are watched
-  // all the time: leaving the view hides them again (.gwait), coming back in (either way) flips them in again
+  // all the time: leaving the view hides them again (.gwait), coming back in (either way) flips them in again.
+  // (build zh: smoother) class changes are batched and the flips started together in the next frame (no reflow per
+  // item), only GFLIP_MAX animate at once, and an item's icon is only drawn the first time it comes into view.
   gObs = new IntersectionObserver(
     (ents) => {
-      let k = 0;
+      const show = [];
       for (const e of ents) {
         const el = e.target;
         if (!e.isIntersecting) {
@@ -178,18 +191,52 @@ function gFlipIn(box, sel) {
           }
           continue;
         }
-        el.classList.remove('gwait');
-        if (first) continue; // (on screen from the start: no animation)
-        el.classList.remove('gflip');
-        void el.offsetWidth; // (restart the animation)
-        el.style.animationDelay = Math.min(k++, 12) * 28 + 'ms';
-        el.classList.add('gflip');
+        gLazyIcon(el);
+        if (first) {
+          el.classList.remove('gwait'); // (on screen from the start: no animation)
+          continue;
+        }
+        show.push(el);
       }
       first = false;
+      if (!show.length) return;
+      for (const el of show) el.classList.remove('gflip');
+      requestAnimationFrame(() =>
+        show.forEach((el, k) => {
+          el.classList.remove('gwait');
+          if (k >= GFLIP_MAX) return; // (too many at once: just shown)
+          el.style.animationDelay = Math.min(k, 10) * 24 + 'ms';
+          el.classList.add('gflip');
+        }),
+      );
     },
     { root: box, rootMargin: '0px 0px -8px 0px' },
   );
   for (const el of items) gObs.observe(el);
+}
+// (build zh) the icons not drawn yet are made a few at a time while the phone is idle, so scrolling meets them ready
+let gIdleJob = 0;
+function gIconsInIdle(box) {
+  const job = ++gIdleJob,
+    idle = window.requestIdleCallback || ((f) => setTimeout(() => f({ timeRemaining: () => 8 }), 40));
+  const run = (dl) => {
+    if (job !== gIdleJob || guideEl.hidden) return;
+    const left = box.querySelectorAll('[data-lazy]');
+    let k = 0;
+    for (const el of left) {
+      if (dl.timeRemaining() < 2 && k > 0) break;
+      gLazyIcon(el);
+      if (++k >= 12) break;
+    }
+    if (left.length > k) idle(run);
+  };
+  idle(run);
+}
+// a grid cell's icon, drawn the first time it is needed (the rows already have theirs)
+function gLazyIcon(el) {
+  if (!el.dataset.lazy) return;
+  el.appendChild(gIcon(el.dataset.lazy));
+  delete el.dataset.lazy;
 }
 // ---------- the card ----------
 function gCard(id) {
@@ -242,11 +289,12 @@ function gRender() {
           c.className = 'gcell' + (GUIDE.sel === id ? ' on' : '');
           c.dataset.id = id;
           c.title = gName(id);
-          c.appendChild(gIcon(id));
+          c.dataset.lazy = id; // (build zh: its icon is drawn when it first comes into view, gLazyIcon)
           frag.appendChild(c);
         }
         grid.appendChild(frag);
         gFlipIn(grid, '.gcell');
+        gIconsInIdle(grid);
       };
     draw();
     gShowCard(card, GUIDE.sel);

@@ -1,5 +1,21 @@
 // Image files and character data. Paths are relative to index.html.
 const A = {
+  // wings cut from the owner's sheets (art-source/items/wings_cut.py; back Nov 23 2026 build zh)
+  wings_seraph: 'assets/items/wings_seraph.png',
+  wings_demon: 'assets/items/wings_demon.png',
+  wings_phoenix: 'assets/items/wings_phoenix.png',
+  wings_crystal: 'assets/items/wings_crystal.png',
+  wings_fairy: 'assets/items/wings_fairy.png',
+  wings_shadow: 'assets/items/wings_shadow.png',
+  wings_celestial: 'assets/items/wings_celestial.png',
+  wings_dragon: 'assets/items/wings_dragon.png',
+  wings_leaf: 'assets/items/wings_leaf.png',
+  wings_galaxy: 'assets/items/wings_galaxy.png',
+  wings_angel: 'assets/items/wings_angel.png',
+  wings_tiny_angel: 'assets/items/wings_tiny_angel.png',
+  wings_tiny_devil: 'assets/items/wings_tiny_devil.png',
+  wings_vampire: 'assets/items/wings_vampire.png',
+  wings_tiny_vampire: 'assets/items/wings_tiny_vampire.png',
   walk_peach_0: 'assets/character/peach/walk_stride_00.png',
   walkstep_peach_0: 'assets/character/peach/walk_step_00.png',
   walk_peach_1: 'assets/character/peach/walk_stride_01.png',
