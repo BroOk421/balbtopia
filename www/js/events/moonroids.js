@@ -259,7 +259,7 @@ function breakRoid(o, mine) {
   roids.splice(n, 1);
   smoke(o.x / TS - 0.5, o.y / TS - 0.5, 12, 1.5);
   if (!mine) return;
-  Sfx.play('break');
+  Sfx.play(SFX_BREAK);
   Net.online && Net.sendRoid && Net.sendRoid({ rv: worldRV, b: o.id });
   // the Moon Rock loot roll (moon.js): most are empty
   let u = Math.random();

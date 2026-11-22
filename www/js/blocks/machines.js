@@ -942,7 +942,7 @@ function cutterStrike(i, actor) {
       if (treeProgress(trees.get(j)) >= 1) punchTree(tx, ty); // ripe: harvested (unripe trees are left alone)
     } else if (cutterClick(tx, ty)) {
       // (owner, Nov 16 2026: "like the scythe's hopping laser, a cut counts as one click") a full ATM / Bait Basket /
-      // Fuel Tank pays out, the same as clicking it (autumnbeam.js autumnClick); an empty one is cut like any block
+      // Fuel Tank pays out, the same as clicking it; an empty one is cut like any block
     }
     // (owner, Nov 20 2026: "it should not break blocks any more") the blade no longer punches blocks: only ripe trees
     // and a full ATM / Bait Basket / Fuel Tank (above). (It was CUT_HITS punches per cut, cutterMayCut.)

@@ -60,7 +60,7 @@
       '@media (orientation: landscape) and (max-height: 520px){.gchat.gbar{width:calc(min(260px,38vw) + 18px)}.gchat.gbar .gslot,.gchat .gtick,.gchat .gslot input{height:34px}}',
       '.gchat .gslot{flex:1;min-width:0;height:38px;display:flex}',
       '.gchat .gtick,.gchat .gslot input{flex:1;min-width:0;height:38px;box-sizing:border-box;border-radius:6px;border:2px solid var(--line);' +
-        'background:rgba(28,16,51,.82);color:var(--ink);font:12px var(--body);padding:0 9px;text-align:left}',
+        'background:rgba(10,21,48,.82);color:var(--ink);font:12px var(--body);padding:0 9px;text-align:left}',
       '.gchat .gtick{cursor:pointer;overflow:hidden}',
       '.gchat .gtick-t{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '.gchat .gtick-t b{color:var(--glow);font-weight:600}',

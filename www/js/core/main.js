@@ -20,6 +20,7 @@ function loop(ts) {
         dragPlace(actTile, t);
         actT = 0.24;
       } else if (actT <= 0) {
+        if (punchHand()) lastHitT = now; // (input.js: clicks can't punch sooner than this)
         act();
         actTile = t;
         actT = (heldTool(hand) && heldTool(hand).rate) || 0.24; // fancy pickaxes swing faster

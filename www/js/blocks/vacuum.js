@@ -242,7 +242,7 @@ function vacPick(i) {
       const v = vacuums.get(i) || {};
       setVac(i, { id, n: 0, off: v.off });
       vacPulse.set(i, now);
-      Sfx.play('break');
+      Sfx.play(SFX_BREAK);
       vacChanged(i);
       toast('The Item Warp Pod collects ' + ITEMS[id].name + ' now');
       vacWin(i);

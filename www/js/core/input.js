@@ -3,7 +3,14 @@
 const keys = {};
 let ptr = { x: 0, y: 0, down: false, inside: false },
   actT = 0,
-  actTile = null; // the tile the last click / repeat acted on (main.js: dragging to place)
+  actTile = null, // the tile the last click / repeat acted on (main.js: dragging to place)
+  // (owner, Nov 22 2026 build p: "clicking fast spams the breaking: prevent it") when the last punch was (game ms):
+  // a click never punches sooner than `hitGap()` after it (the same as holding the button), so tapping fast breaks no
+  // faster than holding; a too-early click becomes the next punch when the gap is over, if the button is still down.
+  // Placing blocks / seeds and the wrench are not held back.
+  lastHitT = -1e9;
+const hitGap = () => (typeof heldTool === 'function' && heldTool(hand) && heldTool(hand).rate) || 0.24;
+const punchHand = () => !placingHand() && hand !== 'wrench';
 // holding something that is placed (block, background, seed)
 function placingHand() {
   const it = ITEMS[hand];
@@ -99,9 +106,15 @@ cv.addEventListener('pointerdown', (e) => {
   const w = toWorld(e);
   ptr = { ...w, down: true, inside: true };
   if ($('start').hidden) {
-    act();
+    const punch = punchHand(),
+      wait = punch ? hitGap() - (now - lastHitT) / 1000 : 0;
     actTile = tileUnder();
-    actT = 0.26;
+    if (wait > 0) actT = wait; // too soon after the last punch (main.js punches when it is over, if still held)
+    else {
+      act();
+      actT = 0.26;
+      if (punch) lastHitT = now;
+    }
   }
   cv.setPointerCapture(e.pointerId);
 });

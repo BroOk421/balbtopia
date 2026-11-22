@@ -507,6 +507,16 @@ Net.onSong = (p) => {
 
 // ---------- a Piano in the world plays its song ----------
 let worldPlay = { i: -1, col: -1 };
+// (owner, Nov 22 2026 build z: "the world's default music only plays when there is no piano; once a piano plays, the
+// default goes; only when it's off does it come back") is a Piano song playing here: a song you started (PLAY), or
+// a Piano in this world that is on (switched on, with a song). titlescreen.js tmusSchedule keeps the default quiet then.
+function pianoMusicOn() {
+  if (typeof inWorld === 'undefined' || !inWorld) return false;
+  if (preview) return true;
+  if (songWin) return false; // (the world's Pianos are quiet while the song maker is open)
+  for (const [i, s] of pianoSongs) if (isPianoT(fg[i]) && !s.off && s.g && s.g.length) return true;
+  return false;
+}
 function stepMusic() {
   // the owner of a locked world keeps its song list up to date (once per change, also after coming back)
   if (inWorld && worldOwner && isOwner() && sharedAt !== worldName + ':' + mySongsV) shareMySongs();

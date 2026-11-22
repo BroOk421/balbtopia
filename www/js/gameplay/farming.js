@@ -168,28 +168,25 @@ function punchTree(x, y) {
     const h = treeHits.get(i);
     const n = h && now / 1000 - h.t < TREE_HIT_FORGET ? h.n + 1 : 1;
     shake = 1.5;
-    burst(x, y, SEED_COLOR[t.seed], 3);
-    smoke(x, y, 3, 0.7);
     // a Frost / Flame Dragon pet takes one hit off (pets.js)
     if (n < Math.max(1, TREE_HITS - (typeof petHitBonus === 'function' ? petHitBonus() : 0))) {
+      breakPuffs(x, y);
       treeHits.set(i, { n, t: now / 1000 });
       return;
     }
     treeHits.delete(i);
     trees.delete(i);
-    Sfx.play('break');
-    burst(x, y, SEED_COLOR[t.seed], 10);
-    smoke(x, y, 8, 1.2);
+    Sfx.play(SFX_BREAK); // (build zf: the old break sound)
+    breakPuffs(x, y);
     treeSeeds(t).forEach((s, k, all) =>
       spawnDrop(s, x * TS + 16 + (all.length > 1 ? (k ? 7 : -7) : 0), y * TS + 18),
     );
     return;
   }
   trees.delete(i);
-  Sfx.play('break');
-  smoke(x, y, 8, 1.2);
+  Sfx.play(SFX_BREAK); // (build zf)
+  breakPuffs(x, y);
   questTick('harvest', t.seed); // daily quest (quests.js)
-  burst(x, y, -2, 10);
   for (let k = 0; k < t.fruit; k++)
     spawnDrop(t.seed, x * TS + 8 + Math.random() * 16, y * TS + 10 + Math.random() * 10);
   // no seed from a ripe tree (owner, Oct 28 2026): seeds only come from breaking the blocks it gave

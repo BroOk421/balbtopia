@@ -140,7 +140,7 @@ function vendOwner(i, held) {
     setVend(i, nv);
     if (vendNews(o, vends.get(i))) {
       vendFlash.set(i, now);
-      Sfx.play('break'); // (owner: the break sound)
+      Sfx.play(SFX_BREAK); // (owner: the break sound)
     }
     vendChanged(i);
     vendOwner(i, held && countItem(held) > 0 ? held : null);

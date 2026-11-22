@@ -1,3 +1,5 @@
+// (owner, Nov 22 2026 build j: "bring the scythes' looks back") restored from the GitHub copy of build 2026-11-21 z5,
+// after they were deleted in build b: Iron / Golden / Flame / Garden / Dark / Furious (and the Autumn Scythe's look in autumn.js).
 // Scythes (owner, Oct 29 2026): the old Hand Scythe / Death Scythe art is gone. Six scythes with a long WOODEN
 // handle like the owner's reference (dark wood, darker wraps, a red cloth grip and a knob at the bottom) and a big,
 // FAT curved blade (as thick as in his picture: widest near the handle, tapering to the tip): Iron, Golden, Dark,
@@ -887,7 +889,7 @@ drawCharacter = ((prev) =>
 // (owner, Nov 2 2026) EVERY hand tool / weapon swings in this V (arm and weapon at an angle, like the scythe), the
 // Guitar too (held by the neck, its body out at the end), instead of straight along the arm. Not: the Water Gun and
 // the Dragon Hand (they don't swing), the Feather Bow (aims), the scythes (their own swing above).
-const NO_V_SWING = new Set(['water_gun', 'mega_water_gun', 'dragon_hand', 'heart_bow']);
+const NO_V_SWING = new Set(['water_gun', 'mega_water_gun']);
 const vSwing = (id) => !!TOOLS[id] && !isScythe(id) && !NO_V_SWING.has(id);
 const PICK_SWING_TURN = SCY_HANDLE_ANG + SCY_SWING_TURN + Math.PI / 4 + 0.4; // +0.4: a bit more forward, so its short head stays off the face
 drawArmWithTool = ((prev) =>

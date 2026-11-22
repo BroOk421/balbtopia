@@ -310,27 +310,19 @@ function drawSignBubble(ox, oy) {
     cx = ox + (x * TS + TS / 2) * Z,
     tipY = oy + (y * TS - 2) * Z,
     U = Math.max(Z, 2.4 * Math.min(2, devicePixelRatio || 1)); // never smaller than readable, even zoomed out
-  g.font = `${4 * U}px "Press Start 2P", monospace`;
+  // (owner, Nov 22 2026) like the chat bubble (render.js bagBox: build j, the blue ALL button's look), white text, a bit smaller letters
+  // (3.4, was 4), less padding, NO arrow under it
+  g.font = `${3.4 * U}px "Press Start 2P", monospace`;
   const lines = wrapText(text, 120 * U),
-    lh = 7 * U,
-    w = Math.max(...lines.map((l) => g.measureText(l).width)) + 10 * U,
-    h = lines.length * lh + 8 * U,
+    lh = 5.6 * U,
+    w = Math.max(...lines.map((l) => g.measureText(l).width)) + 6 * U,
+    h = lines.length * lh + 4.6 * U,
     bx = Math.max(4, Math.min(cv.width - w - 4, cx - w / 2)),
-    by = tipY - h - 4 * U;
-  g.fillStyle = '#fffaf0';
-  g.strokeStyle = '#1c1033';
-  g.lineWidth = Math.max(1, U / 2);
-  g.beginPath();
-  g.roundRect(bx, by, w, h, 3 * U);
-  g.moveTo(cx - 3 * U, by + h);
-  g.lineTo(cx, by + h + 4 * U);
-  g.lineTo(cx + 3 * U, by + h);
-  g.fill();
-  g.stroke();
-  g.fillStyle = '#1c1033';
+    by = tipY - h - 2 * U;
+  bagBox(bx, by, w, h, 1.6 * U, Math.max(1, 0.6 * U));
   g.textAlign = 'left';
   g.textBaseline = 'top';
-  lines.forEach((l, k) => g.fillText(l, bx + 5 * U, by + 4 * U + k * lh + U * 0.5));
+  lines.forEach((l, k) => bagBoxText(l, bx + 3 * U, by + 2.3 * U + k * lh + U * 0.4, U));
   g.textBaseline = 'alphabetic';
 }
 

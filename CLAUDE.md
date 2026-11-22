@@ -23,17 +23,17 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 
 | Folder | Files |
 |---|---|
-| `core/` | errors, assets, config, native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), main |
+| `core/` | errors, assets, config, ambient (Nov 22 2026 y: birds / wind, right after ui/landinglinks.js), native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), gone (Nov 22 2026: deleted items, right before main.js), main |
 | `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, bag (build m, loaded before main.js), gmwatch, subscriber, rename, social, globalchat, keys |
 | `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, daynight (right after weather), clouds (right after daynight: the desert clouds, fixed in the world, drifting left), signs |
 | `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb, spwai (TEMP test, build p) |
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
-| `blocks/` | blocks, blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
-| `wear/` | wear, clothes, tees, oldman (build n, after pirate; hair / beard gone in Nov 19 o), capes, scarves, baby, photo_wear, dyes, sets, spacesuit, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, wrist, prismtrail, scarfreaper, hatfit |
-| `items/` | reaperscythe, scythes, weapons, weapons2, handfx, pets, pets_art, rides, megagun (build p, after asteroids.js) |
-| `render/` | render, shadow, portrait, remotefx |
-| `ui/` | ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks, achievements (Nov 13 2026, right before main.js) (chatbar.js removed Nov 10 2026) |
+| `blocks/` | blocks, treetrunk (Nov 22 2026 s, right after cyberblocks), blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
+| `wear/` | wear, clothes, tees, scarves, capes (back in Nov 22 2026 l, right after scarves), photo_wear, dyes, sets, spacesuit, wrist (rings only), prismtrail, scarfreaper, hatfit, musicset, pixelwear (Nov 22 2026: oldman, capes, baby, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, backfit deleted; afro, diaper, floaties, hairstyles, pirate, topless were unloaded leftovers, deleted) |
+| `items/` | reaperscythe, scythes (all scythes again since Nov 22 2026 j), weapons2 (Water Gun + the 6 scythes), autumnbeam (Autumn Scythe laser, loaded again in j), handfx (water shots), pets, pets_art, rides, megagun (build p, after asteroids.js), umbrella, glovepunch, harvfuel, rodknife (Nov 22 2026: weapons.js, autumnbeam.js deleted) |
+| `render/` | render, shadow, portrait, remotefx (+ wear/backfit.js loaded again right after softstroke.js since Nov 22 2026 l) |
+| `ui/` | guide (Nov 22 2026 za, right before core/gone.js), ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks, achievements (Nov 13 2026, right before main.js) (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
 | `vendor/` | supabase.js |
 
@@ -102,11 +102,11 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
 | `scarfreaper.js` | Royal Silk Scarf: a green-flame reaper (owner's 4 frames, `assets/items/reaper_scarf.png`, cut by `art-source/items/reaper_cut.py`, then `reaper_freeze.py`: its scythe is frame 0's in every frame, or it looked like two scythes) FLIES with you like the flying dragon pets (trails behind at head height, leans, faces the way it flies); stays BEHIND you (`REAPER.back` 36, no idle passes: crossing over you looked like two reapers on dark worlds); fades in on wear, out on unwear (per player name). Drawn via `drawPetOf(...,'big')` (NOT in rides.js's own rider passes: `RIDE_PASS` / `c.rideBase`, or it showed twice), grows shadow.js `petBox`; Profile picture / Mannequin keep a still version in `drawBehind`. Loaded last before main.js |
 | `rodknife.js` | (items/, Nov 20 2026 u, owner's wear.zip) Held pictures `HELD` (his rod: Fishing / Golden / Noah's Rod recoloured, no outline; his knife) drawn in the blocky front hand where his file has them (top-left in sprite px from the front shoulder, his shoulder = (40, 20.5), mirrored), rods out of BLOCKY_TOOL_SKIP; icons = the picture laid diagonally (HDT_ART). New `knife` tool (Common weapon, Bolo + Iron Bars). Fishing: arm raised `ROD_HOLD` while the line is out, cast / reel swings (`rodSwingAngle`), the rod bends on a bite (`rodBend`), and the CATCH BAR (`fishing.mg`, `MG` speeds per fish size): walk keys move the green bar (no walking meanwhile), progress fills on the fish / drains off it; full = fish.js reel() catch, empty = got away. Loaded last before main.js |
 | `softstroke.js` | (render/, Nov 19 2026 l, owner; scythes build p) Blocks (and every scythe picture, build p: `ssScythe`, glow ring counted as outside, the Nocturn Scythe with a stricter black test so its dark teal handle stays) whose outline was BLACK: each stroke pixel (dark: lightness < `SOFTSTROKE.dark` 48, no channel over `max` 80, touching see-through or an open side, 2 px deep) takes the colour just inside the stroke times `SOFTSTROKE.mul` 0.72 (a bit darker). Wraps drawTileBlock (only KNOWN STILL pictures are swapped: loaded images, texCanvas / decoCanvas / darkTile / lockSprite / woodDoorSprite / grassTuft / groundPic / rockTile / pix64Canvas results; cached per picture), drawEdges (picture + edges made once per sides / colours, softened with only the air sides open), iconCanvas (block icons) and doorSprite (main door). Loaded LAST before main.js |
-| `backfit.js` | (wear/, Nov 19 2026 m, owner) Back items on the blocky body: wings and every other back item drawn `BACKFIT.drop` (41) frame px lower, from the old shoulders (row 104, capes.js CAPE_TOP) to the blocky ones (`BLOCKY.back[1]` 145); capes hang from row 145 and are squeezed up-down (`capeK`) so the hem still ends at the feet (row 213). Only for the back item while drawBehind draws (`BF_CHAR`). Outermost drawBehind / drawWearStrip / drawWearArt wrappers, loaded last before main.js |
+| `backfit.js` | DELETED Nov 22 2026 (every wing / cape / back item was deleted). |
 | `nostroke.js` | (render/, Nov 19 2026 h/i, owner) Outlines of hand tools: only COMMON ones have none, the Guitar a light one (`NOSTROKE_SOFT`), Uncommon and up keep theirs (pickaxes: none, wear.js): wraps toolSprite / scythePic / wearIcon (TOOLS ids) and copies each picture once without its outline (`noStroke`: dark pixels, lightness < `NOSTROKE_DARK` 72, touching see-through). Loaded LAST before main.js |
 | `prismtrail.js` | Phantom Ring (id `prism_ring`, ring slot, `trail` in wrist.js RINGS): wherever he goes (ground or air), every `PRISM.gap` 15 world px a copy of the CHARACTER WITH HIS AURA (stripped copy drawn a second time by `prismSnap`: no pet / flying dragon, ride, ring, neck scarf (Royal Silk Scarf's reaper), punch, name tag, drop shadow; box widened for the aura with `auraHalfW`; riding, at the ride's height `rideRiseOf` in rides.js and in the rider's pose: standing rides don't walk, on the carpet not even jumping) is LEFT on that spot and never moves; it lives `PRISM.life` 2 s, starts in his own colours, darkens towards `PRISM.tint` and fades. Max `PRISM.max` 7 (an 8th pushes out the oldest). Note: a copy frame draws the character twice (particles a drawCharacter wrapper spawns may double then). Loaded LAST before main.js (outermost drawCharacter wrapper) |
-| `wingsopen.js` | Demon / Dragon / Galaxy / Phoenix / Shadow Wings: folded (original) on the ground, SPREAD (owner's pictures, `wings_<name>_open.png`) the whole time in the air |
-| `crystalwings.js` | Crystal Wings in 5 colours (Blue = the old `crystal_wings`; red / green / white / black new, recoloured), spread in the air; made in a Stove: 20 crystals of the colour + 10 Green Acid + 5 White Crystals |
+| `wingsopen.js` | DELETED Nov 22 2026 (every wing / cape / back item was deleted). |
+| `crystalwings.js` | DELETED Nov 22 2026 (every wing / cape / back item was deleted). |
 | `letters.js` | A-Z, 0-9 and arrow blocks (168-207): `GLYPH_BLOCKS` (id, name, recipe seeds), `FONT57`, `glyphPic` |
 | `ui.js`, `menu.js` | Hotbar, bag (50 slots), item info, gold counter; menu tabs, XP and levels |
 
@@ -4972,3 +4972,343 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
     until the picture has loaded). Snow, Desert, Halloween, Blackout, Disco, Moon keep their own backdrops.
   - Build z5 (owner: "the snow too"): the Snow Machine uses the Alpine mountains as well (`alpineLook('snow')`,
     `DN_ALPINE_LOOK.snow`: snowy whites and blues).
+- Nov 22 2026 build a (owner's bonnet / frog / topless .aseprite: "add these wearables to the character"):
+  Black Beanie (`black_beanie`, Hat, Uncommon 2,000; layer 'Bonnet', a normal hat: hatfit.js lifts it onto hair; the
+  file's hidden frog 'Mask' not used), Frog Hood (`frog_hood`, Hat, Rare 5,000, hideHair; frog.aseprite 'Mask'),
+  Six-Pack Abs (`six_pack_abs`, Shirt, Rare 5,000, skinned: topless.aseprite has no sando, its 'shape' layer has the
+  abs; part '#topless' = the file's body where the sando was). Files in art-source/wear/pixel/hat/ and tshirt/.
+  pixelwear_cut.py: category 'hat' = the top visible non-body layer; SKINS skips the 'mannequin' folder.
+  NOTE: re-running pixelwear_cut.py now changes ~227 OLD pictures (the Nov 21 default_look hand pixels make some tees
+  "skinned", e.g. brown_tee idle.png -> idle_<skin>.png, which PXW_SKINNED doesn't know). Only the 3 new folders were
+  kept; the old ones restored. schema.sql rows added (RE-RUN it).
+- Nov 22 2026 build b (owner: "remove the wearables made in code, keep only the ring; the raptor too; the code-made
+  weapon tools; delete them in the whole database; the old character too; the pacifier, the diapers, the Faceless
+  Head"; asked: "everything but the pixel clothes and the rings, PNG wings / auras too"; Water Gun + Laser Gun KEPT
+  (Splash Wars / asteroids need them); watches / wristbands deleted; rides KEPT; "old character" = unused old body
+  frames). GAME_BUILD '2026-11-22 b'.
+  - `core/gone.js` (right before main.js): GONE_ITEMS = every deleted id (+ its seed). Takes any leftover ITEMS / TOOLS /
+    WEAR / SHOP / SPLICE entry out; applyWorld wrapper takes them out of drops, Display Boxes, Mannequins, trees, and
+    empties a Vending Machine's stock (its earned locks stay). Bags / worn: cleanInv (no ITEMS entry). It replaced
+    autumn.js's AUT_GONE (the Autumn Cape is in the list).
+  - Deleted: every WEAR entry of wear.js (visor, packs, all wings, auras, Laser Eyes, Fire Eyes, pacifier, capes,
+    Vampire Fangs / Eyes, Faceless Head) with WEAR_ART painters, wingPair, AURAS, jetpack flame; `auraHalfW` (0),
+    `drawAuraFront`, `drawLaser` (empty) and `laserFace` (false) stay as hooks for their callers; the aura / bracelet
+    slots stay (empty). Boss Shades (oldman.js), Autumn Wings + Autumn Scythe (autumn.js; chest loot now: Fall Machine,
+    gold, blocks), watches / wristbands / Gold Bracelet (wrist.js: rings only now, no band painting), the Raptor (pets.js),
+    the Jetpack's flying (jump.js). Weapons: weapons.js (swords, axe, war hammer, spear, bolo, arnis stick) and every
+    weapons2.js one but the Water Gun (scythes, Guitar, Oil-paper Umbrella, S'mores staff, Feather Bow, wands,
+    Chainsaw, Dragon Hand, Hammer); handfx.js lost the Chainsaw, Bow, Spear and Guitar code; scythes.js lost every
+    painter (SCY_LOOK starts empty; reaperscythe.js adds the Nocturn, its Furious Scythe beam is gone); the Music Set
+    is Piano + Drum Set + Boombox. Recipes out of farming.json + SPLICE. New recipes for kept items whose seeds were
+    deleted: Knife = Sword + Iron Bars, Blue Umbrella = Beach Umbrella + Blue Block. Moon museum: one bare Mannequin.
+  - Pictures deleted: assets/items aura_* / wings_* / diaper / floatie / hair_* / oldman_* / space_* / tex_* / skull /
+    cat hood / topless tattoo / old black_beanie, assets/autumn wings / cape / headband, assets/pets/raptor.png; old body
+    frames: <skin>/fist, arm_front, dance_*, diaper_walk_*, dmask_walk_*, wrist_jump / wrist_swim; art-source/character
+    old_frames/, the old walk sheets, base_cut / diaper / wrist scripts (old_frames_base_owner/ STAYS: the cut scripts
+    read the skin tones from it).
+  - Database: schema.sql (shop_prices rows + keep list, spw_shop Boss Shades, item_info rows -> 'none', and a block at
+    the end that empties every bag table / tracked count / gift / vending count of them; RE-RUN schema.sql) and the
+    one-off supabase/admin/2026-11-22_delete_items.sql (STEP 1 counts, STEP 2 also cleans every player save: bag list,
+    worn, hand; every world: drops, Display Boxes, Mannequins, trees, Vending stock; trades). Tested on a scratch
+    Postgres 16 with sample rows (and run twice).
+
+- Nov 22 2026 build c (owner: "the torch makes a sound when you come near, gone when you walk away; the bonfire like the
+  boombox"; his breakeffect.png: "use this for the break smoke, 3 only, a small one and ones this size, with the smoke's
+  effects; on a break remove the little squares in the block's colour, on every block"). GAME_BUILD '2026-11-22 c'.
+  - render.js `fireplaceVol` / `FIRE_SOUNDS`: the fire loop (sound.js 'fireplace', the owner's bonfire) now also plays
+    near a LIT Torch (vol 0.55, gone by 4 tiles) and a LIT Campfire (heard to 12 tiles like the Boombox, BOOM_HEAR, same
+    smooth fade); switched off (ANIM_OFF) = silent; the loudest fire counts. Fireplace unchanged (5 tiles).
+  - actions.js `breakPuffs(x, y, power, hit)`: his puff (art-source/fx/breakeffect.png, cropped to
+    www/assets/fx/break_puff.png, IMG.break_puff) drawn at his scale (his 32 x 35 canvas = the character's: CHAR_H / 35
+    world px a pixel). A break = 3 puffs (`BREAK_PUFF_SIZES` 0.6, 1, 1); a punch that doesn't break yet = 1 small puff
+    (`HIT_PUFF_SIZES`), the breaking punch only the 3. They move like the old smoke (render.js drawSmoke, `p.img`: swirl
+    out, rise, grow 15%, fade). Used for blocks, backgrounds and trees (yours: actions.js / farming.js; others':
+    remotefx.js hits, net.js tile breaks) and a broken asteroid. The `burst` squares are gone from all of those
+    (burst stays for placing chips and the Stove's "made it" sparkles). Tested: dirt broken = 3 puffs, 0 squares.
+- Nov 22 2026 build d (owner, his bag screenshot + the sign bubble: "the chat head and the signs in the inventory's
+  style: gold border, that violet background, white text, less padding, a bit smaller font, no arrow like the chat"):
+  render.js `bagBox(x, y, w, h, r, u)` / `BAG_BOX` = a bag slot's look (fill #251443 = css --slot, gold #ffd23f border,
+  the slot's thin darker gold ring #9d7c41 inside it). `drawBubble` (chat over the head): bagBox, white text, font
+  3.4 world px (was 4), padding 5 / 3.4 (was 7 / 4.5). signs.js `drawSignBubble` (signs and door labels): bagBox,
+  white text, font 3.4 U (was 4), padding 6 / 4.6 U (was 10 / 8), and the arrow under it is gone. GAME_BUILD '2026-11-22 d'.
+- Nov 22 2026 build e (owner: "the smoke must spin; 3 come out on every hit, the break the same; from the centre
+  outwards, not too far, then fade"): actions.js `breakPuffs(x, y, power = 1)`: EVERY punch on a block / background /
+  tree gives the 3 puffs (0.6, 1, 1 of his size; the breaking punch only its 3, not 3 + 3; HIT_PUFF_SIZES gone), all
+  the same (no bigger break). Each puff starts at the tile's centre and goes straight out `dir` / `out` 7-11 world px
+  (ease-out, the three spread round), spinning round its own middle (`rot0`, `rot` 3-5.5 rad/s), growing 20%, fading
+  (render.js drawSmoke `p.img`; the old orbit / rise is not used for them). GAME_BUILD '2026-11-22 e'.
+- Nov 22 2026 build f (owner: "do the Cloud Ring with this smoke too: they appear and fade at the feet, about 4, each in
+  a different spot, at the feet only"): rides.js `cloudPuffs` now returns `CLOUD_SMOKE.n` 5 puffs of his break smoke
+  (IMG.break_puff at actions.js BREAK_PUFF_PX x 0.7-1.1) over the rider's soles: each lives 0.9-1.4 s (fade in 25%,
+  stay, fade out the last 35%), turns slowly (0.8-2 rad/s), then comes back at a new random spot (x +-10, y -3..2 world
+  px from the soles); out of step, so about 4 show. drawCloudPuffs draws `p.img` puffs (turned, mirrored). The old
+  turning white clouds, the trail and the idle pop-ups are no longer drawn (their code in CLOUDR / cloudTurned stays for
+  the hover height and the icon). Cloud Ride desc updated. GAME_BUILD '2026-11-22 f'.
+- Nov 22 2026 build g (owner: "Cloud Ring is ok, but the puffs must be LEFT BEHIND when he moves, like the Phantom
+  Ring but further apart; the bonnet: only the hair at the bottom, under the curve; remove the bits at the sides").
+  GAME_BUILD '2026-11-22 g'.
+  - rides.js `cloudPuffs`: the 5 feet puffs stay; moving (ground or air), every `CLOUD_SMOKE.gap` 26 world px (Phantom
+    Ring: 15) one break-smoke puff is left on that spot at the feet (`S.trail`, max `trailMax` 8, size `trailSize`
+    0.6-0.95, +-`trailX` 4 px): it never moves, keeps turning, fades out over `trailLife` 1-1.4 s, drawn behind the
+    rider. A jump of > 200 px (door / respawn) restarts it. Tested walking: 5 puffs left in a row.
+  - pixelwear.js `PXW_FRINGE` (black_beanie: 12): the Black Beanie is still lifted onto the hair (hatfit.js
+    `hairLift`, drawn by the pixelwear drawWorn wrapper, translate -lift), but the worn hair is cut to a strip right
+    under the lifted beanie's bottom edge, down to 12 body px under where its bottom is on the bald head, and only in
+    the columns where the beanie's bottom is within `PXW_FRINGE_FRONT` 14 px of its highest bottom row (the fold over
+    the forehead): no spikes beside it, no side locks / back hair under the part that curves down at the back. Mask
+    made at runtime from the beanie's idle.png (`pxwFringeHole`, cached per lift); no new picture. Tested with Silver
+    Wild Fade, Burst Fade, Bob Cut, Good Boy Cut, Red Side Part.
+- Nov 22 2026 build h (owner, his green / violet head crops + the skin swatches: "the ear the same colour as the mouth,
+  on the other colours too"; then: "on the rides (cars, trucks, the leaf) the hands move, they shouldn't").
+  GAME_BUILD '2026-11-22 h'.
+  - The ear in default_look's 'shape' layer is (187,112,117), the eyebrows' colour, which fails the cut scripts' skin
+    test (g < b), so it stayed pink on every skin. NEW `art-source/character/ear_fix.py <www/assets/character/>`:
+    on every skin but porcelain, in every picture, the 8-connected blobs of that exact colour about as tall as wide
+    (the ear; the brows are flat bars) take that skin's mouth colour (sampled from its idle_open where porcelain's
+    mouth is). 21 pictures a skin (idle / half / closed, punch, walk_stride, jump up / down, sit_look / sit_noarm).
+    Eyebrows unchanged. RE-RUN ear_fix.py after blocky_cut.py / look_cut.py (they bring the pink ear back).
+    Sitting Subscriber skins get the standing head (sitWithHead), so the fixed ear shows there too.
+  - blockybody.js `blockyTarget`: riding (`c.rideBase`, set by every ride while it draws the rider) the arms stay
+    down: no walk swing, no jump arms. Punching / placing / a gun / the open Blue Umbrella still move them (checked
+    before). Tested car, truck, horse, leaf, carpet, cloud: walking and jumping, both arms 0.
+- Nov 22 2026 build i (owner, a crop of the Frog Hood's front edge: "looks like there's a cut"; then "the flying rides
+  a bit higher"). GAME_BUILD '2026-11-22 i'.
+  - The cut: a 1 px see-through column at frame x 158 (body x 118, just past the 118 px frame) between the face and
+    the hood's front strip; the 120 px sprite lost its outline column there when it was put in the 118 frame, and
+    the pixel-wear pictures (cut against the 120 px sprite) leave that column empty. NEW
+    `art-source/wear/pixelwear_gapfix.py <www/assets/>` (add `fix` to write): in every assets/wear/*/idle*.png /
+    hood*.png, a see-through pixel at x 158 (or 39 on the back side) with the body opaque beside it and the picture
+    opaque on the other side takes that picture neighbour's colour. Fixed: frog_hood 72 px, gray_hoodie hood_nohair 78 /
+    hood_idle 36, the hairs (bob_cut, golden_bob_cut, burst_fade, wild_fade, wild_side_part, red_wild_fade,
+    red_side_part, silver_wild_fade), black_beanie, trucker_cap. RE-RUN it after pixelwear_cut.py.
+  - rides.js: Leaf Glider `LEAFR.hover` 3 -> 7 (the Cloud Ride's height follows it), Flying Carpet `CARPET.hover`
+    4 -> 8 world px.
+- Nov 22 2026 build j (owner: "can you bring back the scythes' looks?" + his GitHub repo with the old code; "the name is
+  too far from the character, bring it down"; "the chat, the signs too, like this [the blue ALL button], a border round
+  it, still shrunk to the chat"; "change the UI colour, instead of gold and violet make it like that, the buttons a bit
+  darker, the Shop too, everything"). GAME_BUILD '2026-11-22 j'.
+  - SCYTHES BACK from github.com/BroOk421/balbtopia HEAD (build 2026-11-21 z5, the last copy before build b):
+    scythes.js = that file (painters for Iron / Golden / Flame / Garden / Dark / Furious; NO_V_SWING kept as today),
+    weapons2.js gets the 6 WEAPONS2 entries back, reaperscythe.js = that file (the Furious Scythe's dark red beam
+    `RAD_DARKRED`, `FUR_TIP`, its flames), autumn.js gets the Autumn Scythe back (look, item, rising leaves) and its
+    chest row (`AUTUMN_LOOT` 2 %), index.html loads autumnbeam.js again (after spikeflip.js, as before). Shop
+    (asteroids.js SCYTHE_SHOP): Garden 15,000, Golden / Flame 30,000, Dark 60,000, Furious 80,000. The Bolo is gone,
+    so the Iron Scythe = KNIFE + GRASS (config.js SPLICE "grass+knife", farming.json splice + the 6 trees). Out of
+    gone.js, schema.sql (shop_prices rows + keep list, item_info rarities back, out of the delete block at the end) and
+    supabase/admin/2026-11-22_delete_items.sql (running it again keeps them). RE-RUN schema.sql. Players whose
+    scythes were already deleted on the server don't get them back by this. Tested: all 8 scythes held, items / tools
+    / Shop / recipe there.
+  - Name tag: render.js `NAME_TOP` -26 -> 4 (body px from the body picture's top, plus 4 world px): just over the
+    tallest worn thing (spiky hairs row 4, a hat lifted onto them about -14). jump.js / rest.js / gates.js use it too;
+    the chat bubble moves down with it.
+  - Chat bubble + sign bubble: render.js `bagBox` is now the blue ALL button (gradient `BAG_BOX.top` #4a8fe8 ->
+    `bot` #2559c2, navy edge #10285c, darker bottom band, light top line) and `bagBoxText` (white with a dark shadow);
+    still sized to the text, a bit more room at the sides. signs.js drawSignBubble uses both.
+  - BLUE UI: style.css / dock.css :root = dark navy (--night #0a1530, --plum #102347, --panel #16305f, --slot #0d1c3c,
+    --ink #eaf3ff, --muted #a3bde2), --glow #3f8ae6 (was peach), --sun #8fd0ff (was gold), --line blue; every violet /
+    gold / peach colour written out in the CSS and in the UI chrome scripts (hudcard, titlescreen, landing, chatbar,
+    landinglinks, news) swapped by `art-source/blue_map.py <files>` (its HEX / RGB tables). NEW `css/blue.css`
+    (loaded last): every button (.btn, Shop button, tabs, menu / shop tabs, player-menu buttons, dock buttons, chat
+    tabs...) = the ALL button a little darker (`--b-top` #4a8fe8 -> `--b-bot` #2559c2, edge `--b-edge` #10285c, inset
+    bottom shade, light top line, white text); ghost buttons / tabs not chosen deeper blue (`--b-dim-*`); the chosen
+    tab / switched-on button light blue (`--b-on-*`, light edge); danger / SPAWN / Ban red in the same shape; X and the
+    burger small dark blue squares. Pixel art (item icons, flags, the Shop cards' painted backgrounds, achievements,
+    news / event art) is unchanged. Checked: title, login, HUD, bag, Shop, Profile, Worlds, Settings, chat.
+- Nov 22 2026 build k (owner: "the chat: just make the background see-through"): render.js `bagBox(..., bg)` takes the
+  inside's opacity (the edge and the text stay solid); drawBubble (the chat over the head) passes `CHAT_BG_ALPHA` 0.6.
+  Sign bubbles stay solid. GAME_BUILD '2026-11-22 k'.
+- Nov 22 2026 build l (owner: "the capes went too"): the 7 capes are BACK from the GitHub copy of build 2026-11-21 z5:
+  Red Hero / Blue Hero / Forest Cape (Rare, 15,000), Vampire Cape (Epic, 25,000), Royal Cape (Epic, 30,000), Galaxy
+  Cape (Legendary, 35,000), Golden Cape (Legendary, 40,000). Their WEAR entries are back in wear.js (`cape: true`,
+  `art`, `iconBox`), the Shop rows in shop.js (cat wear), and index.html loads wear/capes.js (after scarves.js: art,
+  swaying standing, flying out moving) and wear/backfit.js (after softstroke.js: moves the cape to the blocky body's
+  shoulders and squeezes it to end at the feet); both files had stayed in the folder unchanged. Out of gone.js,
+  schema.sql (shop_prices rows tracked + keep list, item_info rarities, out of the delete block) and the admin delete
+  SQL. RE-RUN schema.sql. The Autumn Cape (deleted Nov 21, before build b) is NOT back. Tested: all 7 worn, standing
+  and walking. GAME_BUILD '2026-11-22 l'.
+- Nov 22 2026 build m (owner: "the pickaxes: make breaking normal, they break too fast"): wear.js TOOLS pickaxe /
+  golden_pickaxe / diamond_pickaxe / black_diamond_pickaxe: `bonus` 0 (was 1 / 2 / 2 / 2 punches off every block) and
+  no `rate` (was 0.2 / 0.18 / 0.16 s between held punches; main.js default 0.24): they break exactly like the bare
+  hand (also on the moon's asteroids: moonroids.js reads the same bonus). Looks, sparkles and the swing unchanged;
+  descriptions no longer promise faster breaking. The Shovel keeps its dirt bonus (2). Dragon pets still take one hit
+  off (pets.js petHitBonus). Tested: fist and every pickaxe = dirt 3, rock 6 punches, 0.24 s. GAME_BUILD '2026-11-22 m'.
+- Nov 22 2026 build n (owner: "Splash Wars: a list of how many kills each one has; when the AI die they must go back to
+  their spawn at the base; their water gun's range the same as the character's"; "the asteroids: instead of 200 make
+  it 50, and the Laser Gun unlimited for the asteroids"). GAME_BUILD '2026-11-22 n'.
+  - KILL LIST (rvb.js, end: `RVB_KILLS`, `rvbKill(by, victim)`, `#rvbKills`): while a match is in PLAY and on its END,
+    a list at the left under the player card: RED then BLUE, each player with his kills (players of the other team he
+    splashed), most first, the team's total in its header, you outlined. Cleared when a match goes to READY / WAIT.
+    Real matches: the splashed player's game, after it accepted the hit (netRvb 'out' -> die), adds the kill and sends
+    a new rvb message `{ t: 'ko', g, by }`; every other game adds it on 'ko' (old builds don't send it: their deaths
+    aren't counted). PLAY WITH AI: spwai.js spwAiOut calls rvbKill (bots and you).
+  - spwai.js: a dead bot comes back after RVB_RESPAWN at ITS OWN place in its team's base (`spwAiBaseSpot`: the
+    RVB_SPOTS.base slot it starts the match on) instead of the Checkpoint (RVB_CP) at the base's door.
+  - spwai.js: the bots' Water Gun range = yours (handfx.js clampAim): they only aim at enemies inside the square of
+    `spwAiReach()` = max(5, REACH) tiles round their tile (was 8.5 tiles round), and the aim point is clamped to that
+    square (`spwAiClamp`). Tested: longest bot jet 5.8 tiles from the hand (the edge of the square).
+  - moonstay.js `MOON_ROCK_MAX` 200 -> 50 (the HUD's "Asteroid: left / total" counts the Moon Rock tiles: 50; the
+    floating ones, ~20, come on top as before). moonevent.js tag 'MOONEV4:' (was 3), so every Moon is BUILT AGAIN the
+    first time someone enters it with this build (what was broken this event comes back, with 50 asteroids).
+  - asteroids.js `LASER_CD` 15 min -> 0: the Laser Gun never needs charging (HUD / item info always READY, FIRING
+    while a shot runs); its texts say unlimited.
+- Nov 22 2026 build o (owner: "in Splash Wars, whoever is the leader / first gets more tickets: 10"): the TOP SPLASHER
+  of a match (most kills; ties: all of them; at least 1 kill) gets `SPW_MVP_TIX` 10 Splash Tickets instead of 5, on
+  EITHER team (Claude's call: a top splasher on the losing team gets 10 too; winners still get 5 each).
+  - The game sends its kill list with its report: spw_report(p_match, p_red, p_blue, p_kills jsonb) (p_kills =
+    RVB_KILLS, { lower-case name: kills }).
+  - SERVER (schema.sql, RE-RUN it): spw_reports.kills (jsonb, only the match's names, whole numbers 0-500),
+    spw_matches.mvp (text[]); the old 3-argument spw_report is DROPPED and the 4-argument one made (grants updated).
+    spw_settle: each player's kills = percentile_disc(0.5) of what the reports say (missing = 0), so one player can't
+    give himself kills; the best (> 0) = mvp; spw_prizes: 10 for an mvp (winning or losing team), 5 for the other
+    winners. spw_status's match has `mvp`. Tested on a scratch Postgres 16: red wins, Alpha 3 kills -> Alpha 10, Bravo
+    5; a blue player with the most kills while red wins -> him 10, the red players 5; a liar's own 50 kills, a
+    stranger's name and a 2.7 are ignored / floored. The offline stand-in (spwLocal) does the same (tested).
+  - Result pop-up: "TOP SPLASHER: name (kills): 10 tickets" for everyone; the top splasher himself "TOP SPLASHER! You
+    won 10 Splash Tickets!" and is sent to SPLASHPRIZE like the winners (also from a losing team). Desk, ticket and
+    Ticket Exchange texts mention the 10. Old builds' reports have no kill list (they count as 0 for everyone).
+- Nov 22 2026 build p (owner: "breaking can be spammed by clicking fast: prevent it"): every click punched at once
+  (input.js pointerdown -> act()), so tapping broke much faster than holding (one punch per 0.24 s). Now input.js
+  keeps `lastHitT` (game ms of the last punch; main.js's held repeat sets it too) and a click with a punching hand
+  (`punchHand()`: not placing a block / background / seed, not the wrench) that comes sooner than `hitGap()` (the held
+  tool's `rate`, else 0.24 s) after it does NOT punch: actT is set to the time left, so if the button is still down the
+  punch comes then. Placing and the wrench are not held back. Tested: 50 clicks in ~2 s = 11 punches, holding 2 s = 9
+  (was one punch per click). GAME_BUILD '2026-11-22 p'.
+- Nov 22 2026 build q (owner: "the worlds: instead of only dirt, stone and lava, add empty dirt below, water, wood,
+  hedges like trees, vines and flowers and grass"; "roses too"): world.js `natureWorld(name)` (+ `natureOk`), called by
+  worlds.js enterWorldNow right after genWorld for a world nobody has saved yet (not LOBBY, RECIPES, MOONEVENT,
+  SPLASHWARS, SPLASHPRIZE, START, SPW* / SPLASHAI* match worlds, Moons). Its own random numbers from the name
+  (`hashName(name + ':nature')`), so genWorld's dirt / rock / lava are unchanged. `NATURE` = { caves 9 winding tunnels,
+  pockets 7 round caves (60% with water in their lower half), ponds 3 (3-6 wide, 1-2 deep, in the surface), trees 4-7
+  (Wood Block trunk 2-4 tall, a round crown of Hedge = bush_block, Hanging Vines under its edge, at least 7 apart),
+  grass 45% / flower 12% (Daisy, Rose x2, Sunflower) / bush 4% on the grass line, door 3 (nothing within 3 tiles of
+  the main door) }. Caves = blocks taken out with the dirt background (bg 1) left, never in the 2 rows under the surface
+  or below WH - 10 (lava band / bedrock). Water = the WATER bit in vari (gates.js), only where it rests (a water tile with
+  air under it loses its water). Worlds already saved are untouched. Tested: GREENVALE / TESTWORLD7 maps, a tree and a
+  pond in the game. GAME_BUILD '2026-11-22 q'.
+- Nov 22 2026 build r (owner: "no water after all, it's a bit hard; add more dirt like mountains"): world.js
+  natureWorld: NO water any more (the pockets are dry, no ponds; the WATER bit is never set). HILLS: `NATURE.hills`
+  2-4 mounds (`hillW` 9-20 wide, `hillH` 3-7 high, rounded tops: h x (1 - u^2)^0.8, a little jitter; overlapping ones
+  take the higher) of dirt over the surface (5% rock inside, dirt background behind), never over the main door's
+  columns (it stays on the flat ground). Trees, grass, flowers and bushes now go on each column's own top (`top(x)`:
+  the hills too); a tree only where the columns beside it are as high. Tested: GREENVALE / TESTWORLD7 / HILLTOP maps
+  (0 water tiles), a hill with a tree, grass, a rose and a bush in the game. GAME_BUILD '2026-11-22 r'.
+- Nov 22 2026 build s (owner: "inside the caves too: grass or roses; don't use the Wood Block, make a trunk"; then
+  with two screenshots: "the stone shows the weather behind it: with a background there the background must show, with
+  none the weather"). GAME_BUILD '2026-11-22 s'.
+  - NEW `blocks/treetrunk.js` (after cyberblocks.js): block 514 `tree_trunk` (Tree Trunk, Common, 3 hits,
+    WALK-THROUGH, permanent; NEXT FREE BLOCK 515, 468-470 still free). Picture made in code (`trunkPic(roots, cut)`,
+    32 x 32, 14 px wide bark lit from the left, grooves, a knot): roots when what is under it is something other than
+    a trunk; a cut top with rings when nothing (no trunk, no Hedge / Rose Hedge / Leaf Block / Foliage / Autumn Leaf
+    Block / Leafy Branch) is on it. Drawn through drawNewBlock; NEWART / SHOP_ICON for icons. Recipe Tree Trunk = Wood
+    Block + Hedge (SPLICE + farming.json; tree 120 s). schema.sql item_info 'common' (+ seed): RE-RUN schema.sql.
+  - world.js natureWorld: the trees' trunks are Tree Trunks (was the Wood Block). Cave floors: every dug tile with dirt
+    / rock right under it gets a Rose (`NATURE.caveRose` 14%) or Grass (`caveGrass` 40%).
+  - render.js background pass: the background is now drawn behind ROCK too (it skipped every `sheet` ground block:
+    dirt, rock, lava, bedrock): the round boulder shows its tile's background, or the sky / weather when the tile has
+    none. Dirt / lava / bedrock unchanged (their rounded edges still show the sky).
+- Nov 22 2026 build t (owner: "the trunk as fat as the blocks, not thin; the vine: with a block above, take the 2
+  leaves away; only with nothing above"). treetrunk.js `trunkPic`: the bark fills the whole tile's width (columns
+  0-31, outline at both edges, lit from the left, grooves, two knots); roots = dark root arches in the bottom rows
+  (inside the tile); the cut top's ring oval is tile-wide. cyberblocks.js: a Hanging Vines tile with ANY block on the
+  tile above is drawn as if a vine were above (`joinMask | 1`): the vine runs on from the top edge, no two top leaves;
+  with nothing above, the leaves as before. (The vines under a tree's hedge crown now have no top leaves.)
+  GAME_BUILD '2026-11-22 t'.
+- Nov 22 2026 build u (owner: "when he gets burned, above all by lava, use the death sound; the sound it had for a burn
+  goes to breaking"; "take the blocks' strokes away too, or make them the dark of the colour next to them").
+  GAME_BUILD '2026-11-22 u'.
+  - sound.js top level: `SFX_BURN` = 'ouch' (the death sound), `SFX_BREAK` = 'fire' (the old burn sound). physics.js
+    lava burn plays SFX_BURN (cactus / spikes unchanged); a block / background / tree / asteroid / vending machine /
+    vacuum break plays SFX_BREAK (actions.js x2, farming.js x2, vend.js, vacuum.js, moonroids.js). A tool's hit before
+    the break still plays 'break' (actions.js startPunch). Tested: dirt punched = punch, punch, punch, fire; lava = ouch.
+  - softstroke.js: `hdCanvas` (every HD_TEX / HD_DECO painter: Hedge / Rose Hedge, flowers, Leaf / Vine Block...) and
+    treetrunk.js `trunkPic` added to the still-picture makers, so their black outlines also become the darker colour of
+    the pixel inside (they were drawn with black outlines). Safe: they always make new canvases, never repainted.
+    Checked side by side: Hedge, Tree Trunk, Wood Block, Leaf / Vine Block, Rock, Hanging Vines, flowers softer.
+- Nov 22 2026 build v (owner: "foliage too, not only hedge"; "no ring on top of the trunk, just the whole bark").
+  world.js natureWorld: each tree's crown is FOLIAGE (block 161, walk-through, drawn in front of players) for about half
+  of them (`NATURE.leafy` 0.5), else Hedge; the vines go under whichever crown; on the ground's top a Foliage now and
+  then (`NATURE.foliage` 5%). Tested: 4 new worlds have 39-73 Foliage tiles, a Foliage tree in the game.
+  treetrunk.js: the cut top with rings is never drawn (world and icon): the bark goes all the way up; desc updated.
+  GAME_BUILD '2026-11-22 v'.
+- Nov 22 2026 build w (owner: "I mean one tree with hedge AND foliage"): natureWorld crowns are no longer all-Hedge or
+  all-Foliage per tree: each crown tile is Foliage when it is near the crown's edge (ellipse value > 0.45) with
+  `NATURE.leafy` 0.75, else (and 15% of the middle tiles) Hedge; the vines go under either. Tested: 4 new worlds with
+  41-46 Foliage and 31-62 Hedge tiles; trees in the game show Hedge in the middle and Foliage round it.
+  GAME_BUILD '2026-11-22 w'.
+- Nov 22 2026 build x (owner: "the trunk like a platform on top: you can step on it"; "the break sound: not at the end,
+  all of it, take the old one away"). GAME_BUILD '2026-11-22 x'.
+  - treetrunk.js: Tree Trunk `plat: true` (blocks.js isPlat): stand on its top, jump up through it, walk through it
+    from the side. Tested: dropped on a 2-trunk pillar, the player stands on its top row.
+  - actions.js startPunch: a punch on a tile with a block, a background or a tree plays SFX_BREAK ('fire') on EVERY hit
+    (was 'punch' / tool 'break', and SFX_BREAK only for the breaking hit); the breaking hit plays nothing more
+    (actions.js block / background break, farming.js tree break: their SFX_BREAK calls removed). A punch at the air or a
+    player keeps 'punch' / tool 'break'; Laser Eyes 'laser'. Vend / vacuum / asteroid breaks unchanged. Tested: dirt =
+    fire, fire, fire (3 hits, nothing extra); air = punch.
+- Nov 22 2026 build y (owner: "add sound: take the landing page's, but quiet; birds that sing only now and then; wind now
+  and then"). GAME_BUILD '2026-11-22 y'.
+  - titlescreen.js: the landing piano loop (tmus) now also plays IN A WORLD (`tmusMode()`: 'land' on the landing page,
+    'game' in a world with the start screen hidden) at `TMUS_GAME_VOL` 0.05 (landing TMUS_VOL 0.16); going between
+    the two glides the volume (TMUS_FADE). Off with the Sound setting or the landing page's music button (landMusicOn).
+  - NEW core/ambient.js (after landinglinks.js): Web Audio nature sounds, only in a world, Sound on, tab visible, not on
+    the Moons / MOONEVENT. BIRDS every `AMB.bird` 14-38 s: one phrase of 2-5 chirps (sine whistle sweeping up or down
+    2.6-4.2 kHz with a warble, `birdVol` 0.035, panned left / right), 35% a second bird answers. WIND every `AMB.wind`
+    28-70 s: a 4-7.5 s gust of band-passed noise swelling and fading (`windVol` 0.05), its pitch rising then falling,
+    panned across. Tested in headless Chromium: music in game at 0.05, a bird and a gust played, no errors.
+- Nov 22 2026 build z (owner: "the world's default sound only plays when there is no piano; once a piano plays, the
+  default goes; only when it's off does it come back"): music.js `pianoMusicOn()` = a song you started (preview) or a
+  Piano in this world that is on with a song (not while the song maker is open, when the world's Pianos are quiet
+  anyway). titlescreen.js tmusSchedule: in a world the default (landing) music is not wanted while pianoMusicOn(), so
+  it fades out (TMUS_FADE) and starts again when no Piano plays. Birds / wind (ambient.js) unchanged. Tested: no piano =
+  music on; a Piano switched on = off; the Piano off = on again. GAME_BUILD '2026-11-22 z'.
+- Nov 22 2026 build za (owner: "put back the worlds I broke: keep only START; delete RECIPES too, and BUYGATESPIKE, ATM,
+  those" -> asked: keep the special worlds, every player's worlds; "delete RECIPES: make an icon and a whole section
+  appears with everything needed for fishing, the recipes, the combining for the events; the blocks / items listed;
+  click one and its info shows: icon, name, info, seeds combine, time and rarity"). GAME_BUILD '2026-11-22 za'.
+  - NEW supabase/admin/2026-11-22_reset_worlds.sql: STEP 1 lists, STEP 2 (one transaction) deletes every saved world
+    except START, MOONEVENT, SPLASHWARS, SPLASHPRIZE, MOON1-9, with their vend_backed stock, world_bans, world_kicks,
+    world_moves, world_keys. A deleted world comes back brand new (with the build q-z nature). Tested on a scratch
+    Postgres 16. NOT run here: the owner runs it.
+  - RECIPES world gone: worlds.js listWorlds pins only LOBBY, enterWorldNow no longer builds it (signs.js
+    buildRecipesWorld / recipeList stay unused); moonevent.js puts MOONEVENT under LOBBY (during the event it is still
+    at the top). Typing RECIPES opens the Guide's RECIPES tab instead (guide.js wraps enterWorld; no loading screen).
+  - NEW ui/guide.js: a book button (#guideBtn, class newsbtn guidebtn) in the top-right row before the news scroll ->
+    #guide window (Esc / X closes). Tabs: ITEMS (every non-seed, non-retired, non-deleted item A-Z, search + kind chips
+    ALL / BLOCKS / BACKGROUNDS / WEAR / TOOLS / OTHER, a grid of icons; tap = its card), RECIPES (every SPLICE: result =
+    seed + seed, searchable), STOVE (`gStove()`: Blue / Red / White Crystal Gates, Rainbow Shift Block, the Moon crystal
+    blocks / walls, Legendary Stone with its 5%, Fuel Jar, hair dyes: read from crystalgate.js / mooncrystals.js /
+    asteroids.js / blocks64i.js / dyes.js constants), FISHING (how to fish, rods with how to get them: the Fishing Rod
+    from the Fish Tank Set, Golden / Noah's "not out yet (seasonal)", baits, Bait Basket, every fish with its tier, Fish
+    Tank). The card: big icon, name, type, rarity (rarityOf number + tier, or the item's rarity), info text, seeds
+    (tappable), grows in (treeTime / fmtLeft), punches (blocks), Stove recipe, used in (up to 24), "In the Shop".
+    Any item button in the guide shows its card. Tested: 774 items, 525 recipes, 16 Stove combines.
+- Nov 22 2026 build zb (owner: "not a pop-up: the whole screen, only an X at the top to close it"): guide.js #guide
+  covers the whole screen (inset 0, z-index 70: over the HUD, the chat drawer 60, under toasts 101), plain --panel
+  background, no border / shadow, safe-area padding; a bigger X (38 px) top right; the card column up to 380 px / 40%.
+  GAME_BUILD '2026-11-22 zb'.
+- Nov 22 2026 build zc (owner: "animate the blocks that weren't in the first view: they appear when you scroll, better
+  with a flip"): guide.js `gFlipIn(box, sel)`: after a list is drawn (ITEMS grid cells, RECIPES / STOVE / FISHING rows),
+  every item gets `.gwait` (hidden, rotateY 90deg); an IntersectionObserver on the list (its first callback = what is
+  on screen at once: just shown, no animation) flips the others in as they scroll into view (`.gflip`, 0.42 s,
+  cubic-bezier overshoot, staggered 28 ms each, up to 12), then stops watching them. prefers-reduced-motion: no
+  animation. Tested: 774 items, 110 on screen at once, scrolling 400 px flipped 88 in.
+  GAME_BUILD '2026-11-22 zc'.
+- Nov 22 2026 build zd (owner, his bag screenshot: "wider on PC only; bigger slots, or the whole screen's width with a
+  50px margin left and right"): css/dock.css (end) for `(hover: hover) and (pointer: fine) and (min-width: 900px)` and
+  not body.touch: the open dock is calc(100vw - 100px) wide (50 px each side), bag slots minmax(58px, 1fr) with 6 px
+  gaps (icons grow with them: .cell canvas 72%), the button column 110 px. ui/dock.js `DOCK_PC()`, `DOCK_MAX_H` 380 px
+  on PC (300 elsewhere). Phones / touch unchanged. Tested at 1280 x 760: margins 50 / 50, slots 59 px.
+  GAME_BUILD '2026-11-22 zd'.
+- Nov 22 2026 build ze (owner: "add about 50 more slots to the inventory"): config.js BAG_FREE 24 -> 74 (open from the
+  start), BAG_MAX 80 -> 130; BAG_LEVEL 10 / BAG_STEP 2 unchanged, so levels 10-37 each open 2 more (slotLevel(129) =
+  37). The server has no bag-size limit (only the game's bagSize). Tested: a new level-1 account = 74 open slots
+  ("1 / 74"), 56 locked shown, 130 cells. GAME_BUILD '2026-11-22 ze'.
+- Nov 22 2026 build zf (owner: "put the old break sound back"): sound.js SFX_BREAK = 'break' again (was 'fire' since
+  build u); actions.js startPunch back to 'punch' / tool 'break' on each hit (build x's break-sound-on-every-hit is
+  undone) and the breaking hit plays SFX_BREAK again (actions.js block / background, farming.js tree x2). The lava
+  burn keeps the death sound (SFX_BURN 'ouch'). Tested: dirt = punch, punch, punch, break; lava = ouch.
+  GAME_BUILD '2026-11-22 zf'.
+- Nov 22 2026 build zg (owner: "the slots that were passed: scrolling back up they must flip in again"): guide.js
+  gFlipIn keeps watching every item: leaving the list's view puts `.gwait` back (hidden), coming back in from either
+  side flips it in again (animation restarted with a reflow, staggered). The ones on screen when the list is drawn
+  still just show the first time. Tested: scrolled down = top cells hidden; back to the top = 110 flip again.
+  GAME_BUILD '2026-11-22 zg'.

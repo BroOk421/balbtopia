@@ -1149,11 +1149,10 @@ const Net = (() => {
       const x = i % WW,
         y = (i / WW) | 0;
       if (fg[i] && !f) {
-        burst(x, y, fg[i], 10);
-        smoke(x, y, 8, 1.3);
+        breakPuffs(x, y);
       } else if (!fg[i] && f) placeFx(x, y, f, false);
       else if (!bg[i] && b && !f) placeFx(x, y, (BGS[b] || BGS[1]).fx, false);
-      else if (bg[i] && !b && !f) smoke(x, y, 6, 1);
+      else if (bg[i] && !b && !f) breakPuffs(x, y);
       fg[i] = snapFg[i] = f;
       bg[i] = snapBg[i] = b;
       vari[i] = snapVari[i] = v;

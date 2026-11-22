@@ -69,12 +69,8 @@ Net.onPunchFx = (r, p) => {
       need = rfxNeed(b, h);
     const n = c && now - c.t <= healMs(need) ? c.n + 1 : 1;
     rCrack.set(i, { n, t: now, need, ft: fg[i] });
-    burst(x, y, fg[i], 3);
-    smoke(x, y, 5, 1);
-  } else {
-    burst(x, y, (BGS[bg[i]] || BGS[1]).fx, 3);
-    smoke(x, y, 4, 0.9);
-  }
+    if (n < need) breakPuffs(x, y); // (the break itself gives 3: net.js)
+  } else breakPuffs(x, y);
   // the tool's sparks (or a scythe's flame / leaves, thrown off their own blade)
   fxWho = r;
   try {

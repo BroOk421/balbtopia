@@ -1,32 +1,12 @@
 // Hand items that DO something (owner, Oct 26 2026). Loaded after weapons2.js.
-// - Chainsaw: its chain runs (the teeth move, the motor shakes a little) while you hold it (`CHAINSAW_PICS`,
-//   toolSprite is wrapped).
 // - Water Gun: clicking shoots a straight jet of water at the point you aim at (Nov 12 2026; was a spray of drops). It never hurts blocks (holding it
 //   down does nothing to them). Another player the water hits is pushed away from you (Net.hit, like a punch), but
 //   not while a Punch Blocker is on in the world (the water still splashes).
-// - Heartbow: clicking shoots an arrow at the point you aim at. A player it hits is knocked back (same rule as
-//   the Water Gun: not with a Punch Blocker on); clicking a block also punches it like a normal punch (reach and
-//   locks as usual).
+// (owner, Nov 22 2026: the Chainsaw, the Feather Bow, the thrown Spear and the Guitar were deleted with every
+// code-drawn weapon; the Water Gun / Tsunami Blaster shots stay)
 // Shots fly as `SHOTS` (world px), stop at the first solid block or player, and are drawn with the live effects.
 // Others see them through the 'shot' realtime event (net.js N.sendShot / N.onShot): only the shooter decides hits.
 // ===== handfx =====
-// ---------- Chainsaw ----------
-function chainsawPic(f) {
-  return hdtSprite((set) => {
-    const j = f % 2; // the motor shakes by a pixel
-    hdtSeg(set, [15, 15 - j], [29, 3 - j], 2.6, (t, s) =>
-      Math.abs(s) > 0.72 ? ((Math.floor(t * 18) + f) % 3 === 0 ? '#ffffff' : '#3a3a44') : s < 0 ? '#c8ccd6' : '#8a8a96',
-    );
-    hdtDisc(set, 10, 20 - j, 6, (dx, dy) => (dx + dy < -0.5 ? '#fff0a0' : dx + dy > 0.6 ? '#a87808' : '#f0b020'));
-    hdtSeg(set, [4, 18 - j], [9, 13 - j], 1.2, () => '#2a2a34');
-    hdtSeg(set, [5, 26], [3, 29], 1.3, () => '#2a2a34');
-    set(10, 20 - j, '#2a2a34');
-    if (f % 3 === 0) set(4, 22, '#c8ccd6'); // a puff of exhaust now and then
-  });
-}
-const CHAINSAW_PICS = [0, 1, 2, 3, 4, 5].map(chainsawPic);
-toolSprite = ((prev) => (id) => (id === 'chainsaw' ? CHAINSAW_PICS[Math.floor(now / 50) % 6] : prev(id)))(toolSprite);
-
 // ---------- shots ----------
 const SHOTS = [];
 const WATER_JET = 70; // world px: the Water Gun drop's trail of tiny drops is at most this long behind it
@@ -34,15 +14,14 @@ const SHOT = {
   // (owner, Nov 12 2026: "the Water Gun's spray must look different: straight, not spreading") one straight jet:
   // one drop, no spread, drawn as a streak of water from the gun (see drawLiveFx below); was 6 drops, spread 0.07
   water: { speed: 520, life: 1.5, grav: 0, n: 1, spread: 0 },
-  arrow: { speed: 560, life: 1.5, grav: 0, n: 1, spread: 0 },
 };
 // (owner, Oct 27 2026) a shot flies only to the point you clicked and stops there, and that point is kept inside
-// the same square of tiles you can break / place in (REACH round your tile, +1 with Red Visor / Laser Eyes)
+// the same square of tiles you can break / place in (REACH round your tile)
 function clampAim(tx, ty) {
   const p = playerTile(),
     // (build p, owner: "with the Tsunami Blaster a longer range: 5 tiles"; Nov 13 2026: "the normal Water Gun the same
     // range as the mega") both water guns aim up to 5 tiles
-    r = isWaterGun(hand) ? Math.max(5, REACH) + (laserFace(equipped) ? 1 : 0) : REACH + (laserFace(equipped) ? 1 : 0) + (hand === 'heart_bow' ? BOW_RANGE : 0),
+    r = isWaterGun(hand) ? Math.max(5, REACH) : REACH,
     hp = handPoint(P),
     x0 = (p.x - r) * TS + 1,
     x1 = (p.x + r + 1) * TS - 1,
@@ -58,62 +37,6 @@ function clampAim(tx, ty) {
   k = Math.max(0, k);
   return { x: hp.x + dx * k, y: hp.y + dy * k };
 }
-// The flying arrow (owner, Oct 27 2026: bigger, more detailed pixels): 24 x 9 cells, tip on the right, drawn at
-// ARROW_PX game px a cell. Steel head (lit top, dark underside, a bright edge), two-tone wooden shaft with a binding,
-// striped white / grey feathers top and bottom, a nock; dark outline round it all.
-const ARROW_PX = 0.55, // (owner: the size of the arrow on the bow)
-  BOW_RANGE = 1; // the Feather Bow reaches one tile further than breaking / placing
-const ARROW_PIC = (() => {
-  const W = 24,
-    H = 9,
-    m = 4, // middle row
-    cell = [];
-  const put = (i, j, c) => i >= 0 && j >= 0 && i < W && j < H && (cell[j * W + i] = c);
-  // shaft
-  for (let i = 4; i <= 17; i++) {
-    put(i, m, '#e0b878');
-    put(i, m + 1, '#9a6a3a');
-  }
-  put(16, m, '#5a3a20'), put(16, m + 1, '#3a2414'); // binding under the head
-  put(5, m, '#5a3a20'), put(5, m + 1, '#3a2414'); // binding at the feathers
-  // nock
-  put(1, m, '#8a5a32'), put(1, m + 1, '#5a3a20'), put(2, m, '#c8964a'), put(2, m + 1, '#8a5a32'), put(3, m, '#e0b878'), put(3, m + 1, '#9a6a3a');
-  // feathers: swept back, white with grey stripes
-  for (let i = 2; i <= 9; i++) {
-    const h = Math.min(3, 1 + Math.floor((i - 2) / 2));
-    for (let k = 1; k <= h; k++) {
-      const c = (i + k) % 3 === 0 ? '#c4c8d4' : '#ffffff';
-      put(i, m - k, c);
-      put(i, m + 1 + k, (i + k) % 3 === 0 ? '#a8acb8' : '#e8e8ee');
-    }
-  }
-  // steel head: a long diamond
-  for (let i = 18; i <= 23; i++) {
-    const h = i <= 19 ? 2 : i === 20 ? 2 : i === 21 ? 1 : i === 22 ? 1 : 0;
-    for (let j = m - h; j <= m + 1 + h - (i >= 22 ? 1 : 0); j++) {
-      if (i === 23 && j !== m) continue;
-      const up = j <= m;
-      put(i, j, j === m - h && i < 22 ? '#ffffff' : up ? '#dfe3ea' : j === m + 1 ? '#9aa0ad' : '#6a707c');
-    }
-  }
-  const c = document.createElement('canvas');
-  c.width = W + 2;
-  c.height = H + 2;
-  const x = c.getContext('2d'),
-    filled = (i, j) => i >= 0 && j >= 0 && i < W && j < H && cell[j * W + i];
-  for (let j = -1; j <= H; j++)
-    for (let i = -1; i <= W; i++) {
-      if (filled(i, j)) {
-        x.fillStyle = cell[j * W + i];
-        x.fillRect(i + 1, j + 1, 1, 1);
-      } else if (filled(i - 1, j) || filled(i + 1, j) || filled(i, j - 1) || filled(i, j + 1)) {
-        x.fillStyle = '#1a1420';
-        x.fillRect(i + 1, j + 1, 1, 1);
-      }
-    }
-  return c;
-})();
-const ARROW_TIP = 24.5; // the tip's column on ARROW_PIC (it is drawn so the tip is where the arrow is)
 // where shots leave the hand of a player (you or a remote one)
 const handPoint = (c) => ({ x: c.x + c.w / 2 + (c.face || 1) * 7, y: c.y + c.h * 0.45 });
 function addShot(k, x, y, tx, ty, mine) {
@@ -211,7 +134,7 @@ function stepShots(dt) {
       s.vy += (G * dt) / steps;
       const tx = Math.floor(s.x / TS),
         ty = Math.floor(s.y / TS);
-      // water goes through blocks (owner, Oct 27 2026); arrows stop at them. In a Red vs Blue world water stops at
+      // water goes through blocks (owner, Oct 27 2026). In a Red vs Blue world water stops at
       // solid blocks too (owner, Nov 12 2026: "the water gun must not go through blocks with collision: only in the
       // open can a player be shot"); rvb.js `rvbOn`
       if (!inW(tx, ty) || ((s.k !== 'water' || (typeof rvbOn === 'function' && rvbOn())) && solidAt(tx, ty))) {
@@ -222,7 +145,7 @@ function stepShots(dt) {
       const r = typeof Net !== 'undefined' && Net.bodyAt ? Net.bodyAt(s.x, s.y) : null;
       if (r) {
         // one push per spray: only the first drop to reach someone pushes them
-        if (s.lead || s.k === 'arrow') shotHit(r, s);
+        if (s.lead) shotHit(r, s);
         else splash(s.x, s.y, s.dark ? 'mwater' : s.k);
         gone = true;
       } else if (s.left <= 0) {
@@ -316,20 +239,6 @@ drawLiveFx = ((prev) =>
         g.arc(0.25 * R, -0.35 * R, 0.4 * R, 0, Math.PI * 2);
         g.fill();
         g.restore();
-      } else {
-        // the arrow picture (ARROW_PIC: big detailed pixels), turned the way it flies, with a faint streak behind
-        const q = ARROW_PX * Z,
-          an = Math.atan2(s.vy, s.vx);
-        g.save();
-        g.translate(x, y);
-        g.rotate(an);
-        g.globalAlpha = 0.35;
-        g.fillStyle = '#ffffff';
-        g.fillRect(-ARROW_TIP * q - 9 * q, -0.5 * q, 8 * q, q);
-        g.globalAlpha = 1;
-        g.imageSmoothingEnabled = false;
-        g.drawImage(ARROW_PIC, -ARROW_TIP * q, -(ARROW_PIC.height / 2) * q, ARROW_PIC.width * q, ARROW_PIC.height * q);
-        g.restore();
       }
     }
     return prev();
@@ -342,7 +251,6 @@ function remoteShot(id, k, tx, ty) {
   if (!r || !SHOT[k] || !Number.isFinite(tx) || !Number.isFinite(ty)) return;
   const h = handPoint(r);
   if (k === 'water') waterShot(r.name, h.x, h.y, tx, ty, false, r.hand === 'mega_water_gun');
-  else addShot(k, h.x, h.y, tx, ty, false);
   if (Math.abs(tx - (r.x + r.w / 2)) > 2) r.face = tx > r.x + r.w / 2 ? 1 : -1;
 }
 Net.onShot = (p) => {
@@ -355,7 +263,7 @@ Net.onShot = (p) => {
   setTimeout(() => remoteShot(p.id, p.k, +p.tx, +p.ty), a.length * gap);
 };
 
-// ---------- clicking with the Water Gun / Heartbow ----------
+// ---------- clicking with the Water Gun ----------
 let shotT = 0;
 // (build p) the Water Gun and the Mega Water Gun (megagun.js) shoot the same water
 const WATER_GUNS = new Set(['water_gun', 'mega_water_gun']),
@@ -363,21 +271,13 @@ const WATER_GUNS = new Set(['water_gun', 'mega_water_gun']),
 // (owner, Nov 13 2026: "the normal Water Gun: one at a time, held down like the mega, but one straight jet") held down it
 // fires every 0.09 s like the Tsunami Blaster (main.js repeats act at the tool's rate), each shot ONE drop (no spray)
 if (TOOLS.water_gun) TOOLS.water_gun.rate = 0.09;
-const actNoShot = act; // the act from before the Water Gun / Heartbow (for doors you stand in)
+const actNoShot = act; // the act from before the Water Gun (for doors you stand in)
 act = ((prev) =>
   function () {
-    if (P.dead || doorTrip || (!isWaterGun(hand) && hand !== 'heart_bow')) return prev();
-    // (owner, Nov 2 2026) the Feather Bow does nothing (no shot, no pose) when the tile you click is out of reach:
-    // the same square as breaking, where the cursor square turns red (`inReach`; BOW_RANGE's extra tile no longer
-    // lets it shoot at a red square)
-    if (hand === 'heart_bow') {
-      const tu = tileUnder();
-      if (!inReach(tu.x, tu.y)) return;
-    }
-    if (now - shotT < (isWaterGun(hand) ? 90 : 380)) return; // a short wait between shots
+    if (P.dead || doorTrip || !isWaterGun(hand)) return prev();
+    if (now - shotT < 90) return; // a short wait between shots
     shotT = now;
-    if (hand === 'heart_bow') P.bowT = now; // the bow's draw / twang animation
-    const k = isWaterGun(hand) ? 'water' : 'arrow',
+    const k = 'water',
       aimAt = clampAim(ptr.x, ptr.y),
       tx = aimAt.x,
       ty = aimAt.y;
@@ -385,33 +285,20 @@ act = ((prev) =>
     const cx = P.x + P.w / 2;
     if (Math.abs(tx - cx) > 2 && !sittingNow()) P.face = tx > cx ? 1 : -1;
     const hp = handPoint(P);
-    if (k === 'water') waterShot(playerName, hp.x, hp.y, tx, ty, true, hand === 'mega_water_gun');
-    else addShot(k, hp.x, hp.y, tx, ty, true);
+    waterShot(playerName, hp.x, hp.y, tx, ty, true, hand === 'mega_water_gun');
     Net.sendShot(k, hp.x, hp.y, tx, ty);
-    if (k === 'water') {
-      // water never hurts blocks: just the swing (the gun lifted in the back hand) and the spray
-      P.punch = { t: 0, x: tx, y: ty };
-      P.angry = ANGRY_TIME; // (owner, Nov 13 2026) shooting makes the angry face, like breaking (others: net.js 'punch')
-      Net.sendPunch(tx, ty);
-      Sfx.play('water', 0.5);
-      return;
-    }
-    // the arrow: a player there is hit by the arrow when it gets there (not by a punch); a block you clicked within
-    // reach is punched like with bare hands (prev: reach, locks, breaking), shown as the shot, not a swing
-    if ((Net.bodyAt && Net.bodyAt(tx, ty)) || Math.hypot(tx - ptr.x, ty - ptr.y) > 1) {
-      P.punch = { t: 0, x: tx, y: ty };
-      Net.sendPunch(tx, ty);
-      Sfx.play('punch', 0.6);
-      return;
-    }
-    return prev();
+    // water never hurts blocks: just the swing (the gun lifted in the back hand) and the spray
+    P.punch = { t: 0, x: tx, y: ty };
+    P.angry = ANGRY_TIME; // (owner, Nov 13 2026) shooting makes the angry face, like breaking (others: net.js 'punch')
+    Net.sendPunch(tx, ty);
+    Sfx.play('water', 0.5);
   })(act);
 
 // ---------- doors come first (owner, Oct 26 2026) ----------
-// Holding any hand item but a pickaxe / shovel (weapons, Water Gun, Heartbow, Chainsaw, Sword...): standing IN a
+// Holding any hand item but a pickaxe / shovel (weapons, Water Gun, Sword...): standing IN a
 // door (the main door, a door with a destination, a Mystery Door) and clicking that door uses the door, even if
 // another player stands there too. Clicking a door you are not standing in: the item works as usual (the Water
-// Gun sprays whoever is at the door, the Heartbow shoots...).
+// Gun sprays whoever is at the door...).
 const doorFirstTool = (h) => !!heldTool(h) && h !== 'wrench' && h !== 'shovel' && !/pickaxe$/.test(h);
 act = ((prev) =>
   function () {
@@ -421,447 +308,20 @@ act = ((prev) =>
       // the main door, while standing in it: out to the lobby (in the lobby: the world list)
       if (isDoorTile(t.x, t.y) && onDoor()) return worldName === LOBBY_WORLD ? openWorlds() : exitToLobby();
       // any other door you are standing in: the old act handles it (useDoor / Mystery Door list); the item's own
-      // click (the Water Gun / Heartbow wrapper) is skipped by calling the old act below that wrapper
+      // click (the Water Gun wrapper) is skipped by calling the old act below that wrapper
       const i = at(t.x, t.y);
       if (isDoorT(fg[i]) && doorUnderPlayer() === i) return actNoShot();
     }
     return prev();
   })(act);
 
-// ---------- Heartbow: drawing back and letting go ----------
-// idle: an arrow nocked; just shot: string pulled back (90 ms), then let go: no arrow, the string twangs, and a
-// new arrow comes back after BOW_RELOAD. Your shots (`P.bowT`) and other players' (`r.bowT`, from their 'shot').
-const BOW_DRAW = 90,
-  BOW_RELOAD = 420;
-// (owner, Oct 27 2026, his picture) the arrow lies along the picture's diagonal: a steel blade at the far end
-// (top right), a heart at the back; the bow's dark limbs cross it at the grip and curve back to the string.
-function bowPic(state, wob) {
-  const O = [12.5, 19.5], // the grip, where the hand holds it
-    U = [Math.SQRT1_2, -Math.SQRT1_2], // along the arrow (forwards)
-    V = [Math.SQRT1_2, Math.SQRT1_2], // across
-    pt = (u, v) => [O[0] + u * U[0] + v * V[0], O[1] + u * U[1] + v * V[1]],
-    TIP = -4.5, // where the limbs' tips are (u) and the string rests
-    nock = state === 'draw' ? -7.5 : TIP;
-  return hdtSprite((set) => {
-    const each = (f) => {
-      for (let y = 0; y < 32; y++)
-        for (let x = 0; x < 32; x++) {
-          const dx = x + 0.5 - O[0],
-            dy = y + 0.5 - O[1],
-            c = f(dx * U[0] + dy * U[1], dx * V[0] + dy * V[1]);
-          if (c) set(x, y, c);
-        }
-    };
-    // the string: straight (a twang bends it a little) or pulled back to the nock
-    const mid = state === 'draw' ? nock : TIP + wob * 1.3;
-    for (const v of [-9, 9]) hdtSeg(set, pt(TIP, v), pt(mid, 0), 0.35, () => (wob ? '#e8e0d0' : '#ffffff'));
-    // the limbs: thick at the grip, thinner to the tips, outline + shine
-    each((u, v) => {
-      const av = Math.abs(v);
-      if (av > 9.6) return null;
-      const cu = 1.5 - 0.074 * v * v,
-        w = 1.7 - av * 0.08,
-        d = u - cu;
-      if (Math.abs(d) > w + 0.7) return null;
-      if (Math.abs(d) > w) return '#1c2424';
-      return d > w * 0.35 ? '#86ad9c' : d < -w * 0.4 ? '#2f4440' : '#4e6b62';
-    });
-    hdtDisc(set, ...pt(1.2, 0), 1.4, () => '#8a5a32'); // leather wrap on the grip
-    if (state === 'shot') return;
-    // the shaft
-    hdtSeg(set, pt(nock, 0), pt(nock + 14, 0), 0.6, (t, s) => (s < 0 ? '#e8c890' : '#b08850'));
-    // the steel blade
-    each((u, v) => {
-      const a = u - (nock + 13.5),
-        half = 2.4 * (1 - a / 5);
-      if (a < 0 || a > 5 || Math.abs(v) > half + 0.5) return null;
-      if (Math.abs(v) > half - 0.2) return '#3a3f4a';
-      return v < -0.3 ? '#eef1f6' : v > 0.6 ? '#7a808e' : '#c8ccd6';
-    });
-    // the feathers at the back (fletching): two vanes swept back from the shaft, white with a grey edge
-    each((u, v) => {
-      const a = u - (nock + 0.4), // 0 at the back end .. 5 towards the bow
-        av = Math.abs(v);
-      if (a < 0 || a > 5.2 || av < 0.5) return null;
-      const w = 0.6 + a * 0.42 - (a > 4.2 ? (a - 4.2) * 1.8 : 0); // widest just before the front, cut back
-      if (av > w + 0.6) return null;
-      if (av > w) return '#5a5a66';
-      return (Math.floor(a) % 2 ? '#e8e0d0' : '#ffffff');
-    });
-  });
-}
-HDT_ART.heart_bow = () => bowPic('idle', 0); // bag / shop icon
-const BOW_PICS = { idle: bowPic('idle', 0), draw: bowPic('draw', 0), shotA: bowPic('shot', 1), shotB: bowPic('shot', -1), shot: bowPic('shot', 0) };
-let bowWho = null; // the character being drawn right now (drawCharacter wrapper)
-drawCharacter = ((prev) =>
-  function (c, ox, oy) {
-    bowWho = c;
-    const r = prev(c, ox, oy);
-    bowWho = null;
-    return r;
-  })(drawCharacter);
-toolSprite = ((prev) =>
-  function (id) {
-    if (id !== 'heart_bow') return prev(id);
-    const t = bowWho && bowWho.bowT ? now - bowWho.bowT : Infinity;
-    if (t < BOW_DRAW) return BOW_PICS.draw;
-    if (t < BOW_DRAW + 160) return Math.floor(t / 40) % 2 ? BOW_PICS.shotA : BOW_PICS.shotB; // the string twangs
-    if (t < BOW_RELOAD) return BOW_PICS.shot;
-    return BOW_PICS.idle;
-  })(toolSprite);
-Net.onShot = ((prev) =>
-  function (p) {
-    const r = Net.remotes.get(p.id);
-    if (r && p.k === 'arrow') r.bowT = now;
-    return prev(p);
-  })(Net.onShot);
-
-// ---------- aiming pose for the Water Gun / Heartbow (owner, Oct 27 2026) ----------
-// After a shot the arm is held straight out at the clicked point with the gun / bow pointed there (the bow's own
-// picture pulls the string and lets go), instead of the tool swing / the gun just lifted. Drawn with the placing
-// arm (drawPunch with a `place` at arm's length), for you and other players (`aim`, set from their 'shot').
-// ---------- Guitar (id leaf_blower; owner, Oct 27 2026, renamed Nov 1 2026) ----------
-// Holding the Guitar (in the hand or the Hand slot) and dancing (/dance) standing still: you play it across your
-// body, the hand strumming, and music notes in different colours float up. Works on a ride and sitting on a chair /
-// couch too (owner, Nov 1 2026); not in bed.
-// Bigger than other tools (GTR_BIG), held at the body with the neck pointing up and forward (owner: it was upside
-// down); swung by the neck, the body out at the end.
-const AIM_MS = 520,
-  AIM_ARM = 13, // world px from the shoulder to the hand
-  LB_WAIT = 0, // (guitar only while dancing: /dance, jump.js)
-  LB_NOTE_MS = 320,
-  NOTE_COLS = ['#ff4a6a', '#ffd040', '#4ad0ff', '#7aea5a', '#c070ff', '#ff9a30', '#ffffff'],
-  NOTES = [];
+// hide the held tool while `hideHold` is on (rest.js)
 let hideHold = false;
 drawHeldTool = ((prev) =>
   function (...a) {
     if (hideHold) return;
     return prev(...a);
   })(drawHeldTool);
-let sitStrum = false; // drawing the guitar of someone playing it sitting (drawSitTool wrapper below)
-const GTR_BIG = 1.35,
-  GTR_GRIP = [10.5, 21.5], // the hand on the body, where you strum (of the 32 x 32 picture)
-  GTR_NECK = [23.5, 8.5], // swinging: the hand on the neck
-  GTR_TURN = 0.4; // held / played: the neck up and forward
-drawArmWithTool = ((prev) =>
-  function (id, arm, hand, turn, toolTurn = TOOL_TURN, lift = 0) {
-    if (id !== 'leaf_blower') return prev(id, arm, hand, turn, toolTurn, lift);
-    const swing = toolTurn !== TOOL_TURN;
-    if (sitStrum && !swing) turn += Math.sin(now / 110) * 0.09; // playing it sitting: the arm strums
-    const grip = swing ? GTR_NECK : GTR_GRIP,
-      s = toolSprite(id),
-      sz = (17 * GTR_BIG) / (CHAR_H / FR.h),
-      k = sz / 32,
-      px = SHOULDER[0] - FR.w / 2,
-      py = SHOULDER[1];
-    g.save();
-    g.translate(px, py);
-    g.rotate(turn);
-    g.translate(-px, -py);
-    g.save();
-    g.translate(hand[0] - FR.w / 2, hand[1] - lift * (FR.h / CHAR_H));
-    g.rotate(swing ? toolTurn + Math.PI : GTR_TURN);
-    g.imageSmoothingEnabled = false;
-    if (!swing && typeof twoHandAt === 'function') twoHandAt(id, k, grip); // (Nov 13 2026) the other hand on the neck (megagun.js)
-    g.drawImage(s, -grip[0] * k, -grip[1] * k, sz, sz);
-    g.restore();
-    g.imageSmoothingEnabled = true;
-    if (arm) g.drawImage(arm, -FR.w / 2, 0);
-    g.restore();
-  })(drawArmWithTool);
 // the local player: drawn from a new object every frame (render.js), with `equipped` itself, or on a ride with a copy
 // of it (rides.js keeps the real one in `rideBase`)
 const isMeDrawn = (c) => (c.equipped === equipped || c.rideBase === equipped) && c.name === playerName && !Net.remotes.has(c.id);
-const shownTool = (c) => {
-  const eq = c.equipped || {};
-  return heldTool(c.hand) && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null;
-};
-function guitarOn(c, st) {
-  const sit = c.rest && c.rest.k === 'sit',
-    ok =
-    st.dance && shownTool(c) === 'leaf_blower' && !c.dead && (!c.rest || sit) && (sit || c.ground !== false) && !c.walking && !c.punch && !c.place && !(c.aim && now - c.aim.t < AIM_MS) && !swimPose(c);
-  if (!ok) return (st.lbT = 0), false;
-  if (!st.lbT) st.lbT = now;
-  return now - st.lbT >= LB_WAIT;
-}
-let guitarC = null; // the character playing right now (drawHeldTool / drawTalk wrappers)
-drawHeldTool = ((prev) =>
-  function (id, top, sc, dy, skin, im, key) {
-    if (!guitarC || id !== 'leaf_blower') return prev(id, top, sc, dy, skin, im, key);
-    // the normal hold (the hand over the handle), the arm rocking a little like strumming
-    const parts = armParts(im, key),
-      strum = Math.sin(now / 110) * 0.09;
-    g.save();
-    g.translate(0, top + dy * sc * Z);
-    g.scale(sc * Z, sc * Z);
-    drawArmWithTool(id, parts.arm, parts.hand, strum, TOOL_TURN, HOLD_LIFT);
-    g.restore();
-  })(drawHeldTool);
-// the mouth moves like talking while playing (the chat mouth shapes)
-drawTalk = ((prev) =>
-  function (c, top, sc, dy, mouthY) {
-    if (guitarC !== c || c.say) return prev(c, top, sc, dy, mouthY);
-    const el = ((now - (guitarC.st.lbT + LB_WAIT)) / 1000) % 2.9;
-    return prev({ skin: c.skin, say: { text: 'x'.repeat(60), T: 3, t: 3 - el } }, top, sc, dy, mouthY);
-  })(drawTalk);
-// sitting on a chair / couch (rest.js drawSitTool): the hand on the guitar strums too
-drawSitTool = ((prev) =>
-  function (c, ...a) {
-    sitStrum = guitarC === c && shownTool(c) === 'leaf_blower';
-    try {
-      return prev(c, ...a);
-    } finally {
-      sitStrum = false;
-    }
-  })(drawSitTool);
-function guitarNotes(c, st) {
-  if (st.lbNote && now - st.lbNote <= LB_NOTE_MS) return;
-  st.lbNote = now;
-  NOTES.push({
-    x: c.x + c.w / 2 + c.face * (4 + Math.random() * 6),
-    y: c.y + c.h * 0.25,
-    vx: c.face * (6 + Math.random() * 14) * (Math.random() < 0.25 ? -1 : 1),
-    vy: -22 - Math.random() * 14,
-    t: 0,
-    life: 1.5 + Math.random() * 0.5,
-    col: NOTE_COLS[Math.floor(Math.random() * NOTE_COLS.length)],
-    two: Math.random() < 0.35,
-    ph: Math.random() * 6,
-  });
-}
-drawCharacter = ((prev) =>
-  function (c, ox, oy) {
-    if (!c || c.dead || (c.rest && c.rest.k !== 'sit') || c.portrait) return prev(c, ox, oy);
-    // the local player is drawn from a new object every frame (render.js): its state lives on P
-    const me = isMeDrawn(c),
-      st = me ? P : c;
-    if (me) {
-      c.aim = P.aim;
-      c.bowT = P.bowT;
-    }
-    if (guitarOn(c, st)) {
-      guitarC = c;
-      c.st = st;
-      try {
-        return prev(c, ox, oy);
-      } finally {
-        guitarC = null;
-        guitarNotes(c, st);
-      }
-    }
-    return prev(c, ox, oy);
-  })(drawCharacter);
-stepFx = ((prev) =>
-  function (dt) {
-    prev(dt);
-    for (let k = NOTES.length - 1; k >= 0; k--) {
-      const n = NOTES[k];
-      n.t += dt;
-      n.x += (n.vx + Math.sin(n.t * 5 + n.ph) * 10) * dt;
-      n.y += n.vy * dt;
-      n.vx *= 0.98;
-      if (n.t > n.life) NOTES.splice(k, 1);
-    }
-  })(stepFx);
-// a little pixel note (1 game px cells): head, stem, flag; or two joined by a beam
-const NOTE_ONE = ['..##', '..#.#', '..#..#', '..#', '..#', '###', '###'],
-  NOTE_TWO = ['..#####', '..#####', '..#...#', '..#...#', '###.###', '###.###'];
-drawLiveFx = ((prev) =>
-  function () {
-    const ox = -cam.x * Z,
-      oy = -cam.y * Z;
-    for (const n of NOTES) {
-      const rows = n.two ? NOTE_TWO : NOTE_ONE,
-        q = Math.max(1, Z * 0.6), // a note's pixel
-        x0 = ox + n.x * Z - 3 * q,
-        y0 = oy + n.y * Z - 4 * q,
-        f = n.t < 0.15 ? n.t / 0.15 : Math.min(1, (n.life - n.t) / 0.5);
-      g.globalAlpha = Math.max(0, f);
-      for (const [col, d] of [['#1a1020', 1], [n.col, 0]])
-        for (let j = 0; j < rows.length; j++)
-          for (let i = 0; i < rows[j].length; i++) {
-            if (rows[j][i] !== '#') continue;
-            g.fillStyle = col;
-            if (d) g.fillRect(x0 + (i - 1) * q, y0 + (j - 1) * q, 3 * q, 3 * q);
-            else g.fillRect(x0 + i * q, y0 + j * q, q, q);
-          }
-      g.globalAlpha = 1;
-    }
-    return prev();
-  })(drawLiveFx);
-
-// Heartbow (owner, Oct 27 2026): drawn bigger, held BY THE BOW'S GRIP (the middle of its arc, `BOW_GRIP` in the
-// picture) so the hand and arm lie over the bow, held and swung.
-const BOW_GRIP = [12.5, 19.5],
-  BOW_BIG = 1.4,
-  BOW_HOLD_TURN = 1.9,
-  BOW_NUDGE = [5, -6]; // body px // owner's sketch: turned further right than other tools
-drawArmWithTool = ((prev) =>
-  function (id, arm, hand, turn, toolTurn = TOOL_TURN, lift = 0) {
-    if (id !== 'heart_bow') return prev(id, arm, hand, turn, toolTurn, lift);
-    const holding = toolTurn === TOOL_TURN;
-    if (holding) toolTurn = BOW_HOLD_TURN; // just holding it: string on top, arc below, arrow down-right
-    const s = toolSprite(id),
-      sz = (17 * BOW_BIG) / (CHAR_H / FR.h),
-      k = sz / 32,
-      px = SHOULDER[0] - FR.w / 2,
-      py = SHOULDER[1];
-    g.save();
-    g.translate(px, py);
-    g.rotate(turn);
-    g.translate(-px, -py);
-    g.save();
-    g.translate(hand[0] - FR.w / 2, hand[1] - lift * (FR.h / CHAR_H));
-    if (holding) g.translate(BOW_NUDGE[0], BOW_NUDGE[1]); // a little up and right so the hand is on the arc
-    g.rotate(toolTurn);
-    g.imageSmoothingEnabled = false;
-    g.drawImage(s, -BOW_GRIP[0] * k, -BOW_GRIP[1] * k, sz, sz);
-    g.restore();
-    g.imageSmoothingEnabled = true;
-    if (arm) g.drawImage(arm, -FR.w / 2, 0);
-    g.restore();
-  })(drawArmWithTool);
-
-// ---------- Spear: thrown (owner, Nov 2 2026) ----------
-// Breaking / punching with the Spear throws it: it flies from the hand to the point you hit like the Feather Bow's
-// arrow (straight, turned the way it flies, a faint streak), sticks there a moment and is gone: the spear is in the
-// hand again (owner: no flying back). While it is out the hand is empty (the arm still swings), no second throw.
-// Others see it through the 'shot' event with k 'spear' (older builds ignore it).
-const SPEAR_SPEED = 620, // world px a second, out and back
-  SPEAR_STICK = 120, // ms stuck in the block, then it is back in the hand
-  SPEAR_LEN = 17, // world px (the size it has in the hand)
-  SPEARS = []; // { who: 'me' | remote id, x0, y0, tx, ty, t0, out, back }
-const spearOwner = (who) => (who === 'me' ? P : Net.remotes.get(who));
-function throwSpear(who, x0, y0, tx, ty) {
-  for (let k = SPEARS.length - 1; k >= 0; k--) if (SPEARS[k].who === who) SPEARS.splice(k, 1);
-  const out = (Math.hypot(tx - x0, ty - y0) / SPEAR_SPEED) * 1000;
-  SPEARS.push({ who, x0, y0, tx, ty, t0: now, out: Math.max(60, out) });
-}
-const spearOut = (who) => SPEARS.some((s) => s.who === who);
-// where a flying spear is now, and the way it points (tip first)
-function spearAt(s) {
-  const t = now - s.t0;
-  if (t < s.out) {
-    const u = t / s.out;
-    return { x: s.x0 + (s.tx - s.x0) * u, y: s.y0 + (s.ty - s.y0) * u, a: Math.atan2(s.ty - s.y0, s.tx - s.x0) };
-  }
-  // (owner: no flying back) it sticks a moment, then it is gone and the spear is simply in the hand again
-  if (t < s.out + SPEAR_STICK) return { x: s.tx, y: s.ty, a: Math.atan2(s.ty - s.y0, s.tx - s.x0), stuck: true };
-  return null;
-}
-// throwing: every punch / break with the Spear in hand (also seated); not while it is still out
-startPunch = ((prev) =>
-  function (wx, wy) {
-    const r = prev(wx, wy);
-    if (hand === 'spear' && !spearOut('me')) {
-      const hp = handPoint(P);
-      throwSpear('me', hp.x, hp.y, wx, wy);
-      Net.sendShot('spear', hp.x, hp.y, wx, wy);
-    }
-    return r;
-  })(startPunch);
-act = ((prev) =>
-  function () {
-    if (hand === 'spear' && spearOut('me') && !P.dead) return; // it comes back first
-    return prev();
-  })(act);
-Net.onShot = ((prev) =>
-  function (p) {
-    if (p && p.k === 'spear') {
-      const r = Net.remotes.get(p.id);
-      if (r) {
-        const h = handPoint(r);
-        throwSpear(p.id, h.x, h.y, p.tx, p.ty);
-      }
-      return;
-    }
-    return prev(p);
-  })(Net.onShot);
-// the hand is empty while the spear is out: drawArmWithTool draws only the arm for that character
-let spearHide = false;
-drawCharacter = ((prev) =>
-  function (c, ox, oy) {
-    if (!c || !SPEARS.length) return prev(c, ox, oy);
-    const who = isMeDrawn(c) ? 'me' : c.id;
-    const was = spearHide;
-    spearHide = spearOut(who);
-    try {
-      return prev(c, ox, oy);
-    } finally {
-      spearHide = was;
-    }
-  })(drawCharacter);
-// held (not thrown) like the scythe (owner): about level, pointing forward, the hand up near the blade, the rest of
-// the shaft behind
-const SPEAR_GRIP = [16, 16], // the hand on the shaft, near the blade (of the 32 x 32 picture; the point is at 31, 1)
-  SPEAR_HOLD_TURN = Math.PI / 4 - 0.16; // level and pointing forward (the picture points up-right), tip raised a bit
-drawArmWithTool = ((prev) =>
-  function (id, arm, hand, turn, toolTurn = TOOL_TURN, lift = 0) {
-    if (id === 'spear' && !spearHide && toolTurn === TOOL_TURN) {
-      const s = toolSprite(id),
-        sz = 17 / (CHAR_H / FR.h),
-        k = sz / 32,
-        px = SHOULDER[0] - FR.w / 2,
-        py = SHOULDER[1];
-      g.save();
-      g.translate(px, py);
-      g.rotate(turn);
-      g.translate(-px, -py);
-      g.save();
-      g.translate(hand[0] - FR.w / 2, hand[1] - lift * (FR.h / CHAR_H));
-      g.rotate(SPEAR_HOLD_TURN);
-      g.imageSmoothingEnabled = false;
-      g.drawImage(s, -SPEAR_GRIP[0] * k, -SPEAR_GRIP[1] * k, sz, sz);
-      g.restore();
-      g.imageSmoothingEnabled = true;
-      if (arm) g.drawImage(arm, -FR.w / 2, 0);
-      g.restore();
-      return;
-    }
-    if (id !== 'spear' || !spearHide) return prev(id, arm, hand, turn, toolTurn, lift);
-    const px = SHOULDER[0] - FR.w / 2,
-      py = SHOULDER[1];
-    g.save();
-    g.translate(px, py);
-    g.rotate(turn);
-    g.translate(-px, -py);
-    g.imageSmoothingEnabled = true;
-    if (arm) g.drawImage(arm, -FR.w / 2, 0);
-    g.restore();
-  })(drawArmWithTool);
-// the flying spear, drawn with the live effects (after the players)
-drawLiveFx = ((prev) =>
-  function () {
-    const ox = -cam.x * Z,
-      oy = -cam.y * Z,
-      pic = SPEARS.length ? toolSprite('spear') : null;
-    for (let k = SPEARS.length - 1; k >= 0; k--) {
-      const p = spearAt(SPEARS[k]);
-      if (!p) {
-        SPEARS.splice(k, 1);
-        continue;
-      }
-      if (!pic) continue;
-      const sz = SPEAR_LEN * Z,
-        q = sz / 32;
-      g.save();
-      g.translate(ox + p.x * Z, oy + p.y * Z);
-      g.rotate(p.a + Math.PI / 4); // the picture's spear points to the top right (-45 deg)
-      if (!p.stuck) {
-        // a faint streak behind it, like the arrow's
-        g.save();
-        g.rotate(-Math.PI / 4);
-        g.globalAlpha = 0.35;
-        g.fillStyle = '#ffffff';
-        g.fillRect(-sz * 0.95, -0.5 * Z * 0.55, sz * 0.4, Z * 0.55);
-        g.restore();
-      }
-      g.globalAlpha = 1;
-      g.imageSmoothingEnabled = false;
-      // the tip (picture px 31, 1) on the spear's point, so it flies point first and sticks in by the tip
-      g.drawImage(pic, -31 * q, -1 * q, sz, sz);
-      g.restore();
-    }
-    return prev();
-  })(drawLiveFx);
-

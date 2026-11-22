@@ -121,17 +121,11 @@ const A = {
   walk_deep_11: 'assets/character/deep/walk_stride_11.png',
   walkstep_deep_11: 'assets/character/deep/walk_step_11.png',
   punch_porcelain: 'assets/character/porcelain/punch_body.png',
-  fist_porcelain: 'assets/character/porcelain/fist.png',
   punch_peach: 'assets/character/peach/punch_body.png',
-  fist_peach: 'assets/character/peach/fist.png',
   punch_tan: 'assets/character/tan/punch_body.png',
-  fist_tan: 'assets/character/tan/fist.png',
   punch_honey: 'assets/character/honey/punch_body.png',
-  fist_honey: 'assets/character/honey/fist.png',
   punch_brown: 'assets/character/brown/punch_body.png',
-  fist_brown: 'assets/character/brown/fist.png',
   punch_deep: 'assets/character/deep/punch_body.png',
-  fist_deep: 'assets/character/deep/fist.png',
   bg_sky: 'assets/background/sky.webp',
   bg_sun: 'assets/background/sun.webp',
   bg_clouds: 'assets/autumn/fall_clouds.png', // (owner, Nov 21 2026) the desert's clouds everywhere (world/clouds.js)
@@ -200,27 +194,6 @@ const A = {
   bed_front_hospital: 'assets/character/bed_front_hospital.png',
   // mouths for talking, from the owner's sheet: closed, o, open, wide, grin, teeth (32x24 cells, our scale)
   mouths: 'assets/character/mouths.png',
-  aura_golden: 'assets/items/aura_golden.png', // 8 frames side by side (Golden Aura)
-  aura_dark: 'assets/items/aura_dark.png', // the same frames recoloured (art-source/items/aura_recolor.py)
-  aura_red: 'assets/items/aura_red.png',
-  aura_diamond: 'assets/items/aura_diamond.png',
-  aura_white: 'assets/items/aura_white.png',
-  // wings cut from the owner's sheets (art-source/items/wings_cut.py; the hairs were deleted Nov 19 2026)
-  wings_seraph: 'assets/items/wings_seraph.png',
-  wings_demon: 'assets/items/wings_demon.png',
-  wings_phoenix: 'assets/items/wings_phoenix.png',
-  wings_crystal: 'assets/items/wings_crystal.png',
-  wings_fairy: 'assets/items/wings_fairy.png',
-  wings_shadow: 'assets/items/wings_shadow.png',
-  wings_celestial: 'assets/items/wings_celestial.png',
-  wings_dragon: 'assets/items/wings_dragon.png',
-  wings_leaf: 'assets/items/wings_leaf.png',
-  wings_galaxy: 'assets/items/wings_galaxy.png',
-  wings_angel: 'assets/items/wings_angel.png',
-  wings_tiny_angel: 'assets/items/wings_tiny_angel.png',
-  wings_tiny_devil: 'assets/items/wings_tiny_devil.png',
-  wings_vampire: 'assets/items/wings_vampire.png',
-  wings_tiny_vampire: 'assets/items/wings_tiny_vampire.png',
 };
 // arm colours for the punch (skin + shade), sampled from each skin
 const ARM_COLOR = {
@@ -271,7 +244,6 @@ const ARM_COLOR = {
 // names are written out here: keep them the same as SUB_SKINS)
 for (const s of ['red', 'white', 'green', 'violet', 'orange']) {
   A['punch_' + s] = 'assets/character/' + s + '/punch_body.png';
-  A['fist_' + s] = 'assets/character/' + s + '/fist.png';
   for (const f of ['open', 'half', 'closed']) A['skin_' + s + '_' + f] = 'assets/character/' + s + '/idle_' + f + '.png';
   for (let i = 0; i < 12; i++) {
     const n = String(i).padStart(2, '0');

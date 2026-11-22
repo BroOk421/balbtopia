@@ -64,6 +64,9 @@ const SPW_NAME = 'SPLASH WARS', // (owner: "change its name") was "Red vs Blue";
   SPW_TEAM = 10, // 10 v 10
   SPW_TICKET = 'splash_ticket',
   SPW_WIN_TIX = 5, // tickets for each player of the winning team (the other team gets none; a draw gives none)
+  // (owner, Nov 22 2026 build o: "whoever is the leader / first gets more tickets: 10") the match's top splasher(s)
+  // (most kills, the median of every player's kill list; at least 1) get this many instead, on either team
+  SPW_MVP_TIX = 10,
   SPW_POLL = 2000, // asking the server (spw_status) this often in SPLASHWARS / a match world
   SPW_MATCH_RE = /^SPW[A-Z0-9]{6}$/, // a match world's name (made by the server, never saved)
   // (build h) the winners' world: they take their tickets from the Ticket Master (block 462) there
@@ -742,6 +745,11 @@ function netRvb(p) {
     if (!rvbSees(from)) return; // (water stops at solid blocks: no hits through walls)
     if (!rvbShotAtMe(p.id)) return; // (build j: a real jet of his, seen here, that came at me)
     die('water');
+    // (Nov 22 2026 build n) the kill list: I tell everyone who splashed me (the one place that knows it really counted)
+    rvbKill(who, playerName);
+    Net.sendRvb && Net.sendRvb({ t: 'ko', g: rvb.g, by: who });
+  } else if (p.t === 'ko' && p.g === rvb.g && rvbPlaying() && typeof p.by === 'string') {
+    rvbKill(p.by.slice(0, 16), who); // (someone splashed `who`, he says so)
   } else if (p.t === 'pull' && fromOwner && typeof p.to === 'string' && lc(p.to) === lc(playerName)) {
     if (rvbRunning()) return;
     const t = rvbTeamOf(playerName);
@@ -1223,7 +1231,7 @@ ITEMS[SPW_TICKET] = {
   kind: 'material',
   rarity: 'Rare',
   retired: true, // (never in the bag: the server keeps the count)
-  desc: 'Won in SPLASH WARS, the summer water gun event (March 15 to April 15): every player of the winning team gets ' + SPW_WIN_TIX + '. Saved up to exchange for items.',
+  desc: 'Won in SPLASH WARS, the summer water gun event (March 15 to April 15): every player of the winning team gets ' + SPW_WIN_TIX + ', the top splasher (most kills) ' + SPW_MVP_TIX + '. Saved up to exchange for items.',
 };
 let spwTixPic = null;
 SHOP_ICON[SPW_TICKET] = () => {
@@ -1312,11 +1320,23 @@ function spwLocal(fn, a) {
     m.red_score = med(0);
     m.blue_score = med(1);
     m.settled = true;
-    for (const nm of [...m.red, ...m.blue]) {
+    // (build o, like the server) each player's kills = the median of the kill lists; the most (>= 1) = top splasher(s)
+    const kls = Object.values(m.kills || {}),
+      kOf = (nm) => {
+        if (!kls.length) return 0;
+        const v = kls.map((o) => Math.max(0, Math.min(500, Math.floor(+o[lc(nm)] || 0)))).sort((x, y) => x - y);
+        return v[Math.floor((v.length - 1) / 2)];
+      },
+      all = [...m.red, ...m.blue],
+      best = Math.max(0, ...all.map(kOf));
+    m.mvp = best > 0 ? all.filter((nm) => kOf(nm) === best) : [];
+    for (const nm of all) {
       const k = (db.t[nm] ||= { tickets: 0, wins: 0, played: 0 }),
-        won = (m.winner === 'r' && m.red.includes(nm)) || (m.winner === 'b' && m.blue.includes(nm));
+        won = (m.winner === 'r' && m.red.includes(nm)) || (m.winner === 'b' && m.blue.includes(nm)),
+        top = m.mvp.includes(nm);
       k.played++;
-      if (won) (db.p[nm] = (db.p[nm] || 0) + SPW_WIN_TIX), k.wins++; // (waiting at the Ticket Master)
+      if (won) k.wins++;
+      if (won || top) db.p[nm] = (db.p[nm] || 0) + (top ? SPW_MVP_TIX : SPW_WIN_TIX); // (waiting at the Ticket Master)
     }
   };
   const make = () => {
@@ -1348,7 +1368,7 @@ function spwLocal(fn, a) {
       prize: (db.p || {})[me] || 0,
       shop: SPW_SHOP_OFF,
       shop_qty: SPW_QTY_OFF,
-      match: m ? { id: m.id, t0: m.t0, red: m.red, blue: m.blue, team: m.red.includes(me) ? 'r' : 'b', settled: m.settled, red_score: m.red_score ?? null, blue_score: m.blue_score ?? null, winner: m.winner || null } : null,
+      match: m ? { id: m.id, t0: m.t0, red: m.red, blue: m.blue, team: m.red.includes(me) ? 'r' : 'b', settled: m.settled, red_score: m.red_score ?? null, blue_score: m.blue_score ?? null, winner: m.winner || null, mvp: m.mvp || [] } : null,
     };
   };
   db.p ||= {};
@@ -1385,6 +1405,7 @@ function spwLocal(fn, a) {
     if (!m || !mine(m)) throw new Error('Not your match');
     if (t >= endOf(m) - 2000 && !m.settled) {
       m.rep[me] ||= [Math.max(0, Math.min(6000, a.p_red | 0)), Math.max(0, Math.min(6000, a.p_blue | 0))];
+      (m.kills ||= {})[me] ||= a.p_kills && typeof a.p_kills === 'object' ? a.p_kills : {};
       settle(m);
     }
   }
@@ -1410,7 +1431,7 @@ function openSpwDesk() {
   const body = dialog(
     SPW_NAME,
     `<div class="spwdesk">
-       <p class="dmsg">The summer water gun event! Register, and when enough players are in the queue a <b>new world</b> is made for your match: up to ${SPW_TEAM} v ${SPW_TEAM}, 5 minutes, paint the most tiles and splash the other team. Every player of the winning team gets <b>${SPW_WIN_TIX} ${ITEMS[SPW_TICKET].name}s</b>.</p>
+       <p class="dmsg">The summer water gun event! Register, and when enough players are in the queue a <b>new world</b> is made for your match: up to ${SPW_TEAM} v ${SPW_TEAM}, 5 minutes, paint the most tiles and splash the other team. Every player of the winning team gets <b>${SPW_WIN_TIX} ${ITEMS[SPW_TICKET].name}s</b>; the TOP SPLASHER (most kills, either team) gets <b>${SPW_MVP_TIX}</b>.</p>
        <p class="spwline">${line}</p>
        <div class="spwtix"><span>TICKETS<b>${st ? st.tickets : '–'}</b></span><span>WINS<b>${st ? st.wins : '–'}</b></span><span>MATCHES<b>${st ? st.played : '–'}</b></span></div>
        <p class="mnote">${info.open ? 'The event ends in ' + fmtLeft(Math.max(1, Math.round((info.end - info.now) / 1000))) + '.' : 'The event is closed (GM only).'} Stay in this world while you wait: leaving it takes you off the queue.</p>
@@ -1509,7 +1530,7 @@ function spwMatchTick() {
     spw.reported.add(m.id);
     rvbFlush();
     rvbTally();
-    spwCall('spw_report', { p_match: m.id, p_red: rvbCount.r, p_blue: rvbCount.b }).catch((e) => console.warn('spw report', e));
+    spwCall('spw_report', { p_match: m.id, p_red: rvbCount.r, p_blue: rvbCount.b, p_kills: Object.fromEntries(RVB_KILLS) }).catch((e) => console.warn('spw report', e));
   }
 }
 // the result pop-up of a match world: the server's (it waits for it)
@@ -1529,16 +1550,22 @@ rvbResult = ((prev) =>
     const w = m.winner,
       me = m.team,
       won = w === me,
+      mvp = Array.isArray(m.mvp) ? m.mvp.filter((n) => typeof n === 'string') : [],
+      top = mvp.some((n) => lc(n) === lc(playerName)),
+      tix = top ? SPW_MVP_TIX : SPW_WIN_TIX,
       win = w === 'r' ? 'RED WINS!' : w === 'b' ? 'BLUE WINS!' : 'DRAW!',
       col = w === 'r' ? '#ff7a84' : w === 'b' ? '#7ab0ff' : '#ffd23f';
+    // (build o) the top splasher(s) of the match, with their kills from the list
+    const mvpLine = mvp.length ? `<p class="mnote">TOP SPLASHER: <b style="color:#ffd23f">${mvp.map(esc).join(', ')}</b> (${RVB_KILLS.get(lc(mvp[0])) || 0} kills): ${SPW_MVP_TIX} tickets</p>` : '';
     dialog(
       SPW_NAME,
       `<p class="rvbwin" style="color:${col}">${win}</p>
        <div class="rvbscore"><span class="r">RED<b>${m.red_score ?? '–'}</b></span><span class="b">BLUE<b>${m.blue_score ?? '–'}</b></span></div>
-       ${won ? `<p class="rvbtix">You won ${SPW_WIN_TIX} ${ITEMS[SPW_TICKET].name}s!</p><p class="mnote">Off to ${SPW_PRIZE}: wrench the Ticket Master there to take them.</p>` : `<p class="mnote">${w === 'd' ? 'A draw: no tickets this time.' : 'Your team lost: no tickets this time.'} Back to your lobby in a moment.</p>`}`,
+       ${mvpLine}
+       ${won || top ? `<p class="rvbtix">${top ? 'TOP SPLASHER! ' : ''}You won ${tix} ${ITEMS[SPW_TICKET].name}s!</p><p class="mnote">Off to ${SPW_PRIZE}: wrench the Ticket Master there to take them.</p>` : `<p class="mnote">${w === 'd' ? 'A draw: no tickets this time.' : 'Your team lost: no tickets this time.'} Back to your lobby in a moment.</p>`}`,
       [{ label: 'OK', run: () => {} }],
     );
-    if (won) Sfx.play('pickup');
+    if (won || top) Sfx.play('pickup');
     spw.backT = now + 5000;
   })(rvbResult);
 
@@ -1568,7 +1595,7 @@ setInterval(async () => {
   // (build h) the winners go to SPLASHPRIZE (the Ticket Master), everybody else straight to his own lobby
   if (!entering && ((spw.backT && now >= spw.backT && rvb.ph === 'idle') || el > SPW_T.end + 30000)) {
     spw.backT = 0;
-    const won = m.settled && m.winner === m.team && rvbTeamOf(playerName);
+    const won = m.settled && rvbTeamOf(playerName) && (m.winner === m.team || (Array.isArray(m.mvp) && m.mvp.some((n) => lc(String(n)) === lc(playerName)))); // (build o: the top splasher too)
     if (!$('dlg').hidden) closeDialog(); // (the result pop-up stays behind)
     enterWorld(won ? SPW_PRIZE : LOBBY_WORLD);
   }
@@ -1925,7 +1952,7 @@ listWorlds = ((prev) =>
 //   with every hair and beard; build p: the swim rings, Hawaiian polos and Cargo Shorts with every shirt / pants /
 //   shoe. They are out of this list and of schema.sql spw_shop.)
 const SPW_SHOP_OFF = {
-  boss_shades: 400,
+  // (the Boss Shades were deleted with every code-made wearable, Nov 22 2026)
   pet_penguin: 1500, // (owner: "add a pet to the exchange too, the penguin, 1.5k")
   water_gun: 800, // (owner, build p: "and the water gun 800")
   mega_water_gun: 3000, // ("make a bigger water gun too, 3k, with a glow": megagun.js)
@@ -1980,12 +2007,10 @@ function spwBooth() {
   });
   fg[at(SPW_CLERK_AT[0], SPW_CLERK_AT[1])] = SPW_NPC_T;
 }
-// Tatang, the Exchange clerk: wears the prizes (the Boss Shades; his ring, hair, beard and Hawaiian shirt were deleted)
+// Tatang, the Exchange clerk: wears the prizes (his Boss Shades, ring, hair, beard and Hawaiian shirt were deleted)
 const SPW_CLERK = { ...SPW_NPC, id: 'npc_tatang', name: 'Tatang', skin: 'tan', hand: 'mega_water_gun', blink: 555, equipped: null }; // (id: his pet follows him, pets.js drawPetOf)
 function spwClerkLook() {
-  const pick = (...ids) => ids.find(spwHas) || null;
   SPW_CLERK.equipped = {
-    face: pick('boss_shades'),
     pet: typeof PET_BY_ID !== 'undefined' && PET_BY_ID.pet_penguin ? 'pet_penguin' : null, // (owner: "put the penguin on the exchanger")
   };
 }
@@ -2085,7 +2110,7 @@ async function openSpwShop(note) {
        ${st ? '' : `<p class="spwline">Can't reach the server: ${esc(spw.err || 'try again')}</p>`}
        ${note ? `<p class="spwline">${note}</p>` : ''}
        <div class="spwgrid">${rows}</div>
-       <p class="mnote">${sel ? `<b>${esc(selIt.name)}${spwQty(sel[0]) > 1 ? ' x' + spwQty(sel[0]) : ''}</b>: ${esc(selIt.desc || '')}` : 'Win SPLASH WARS matches for tickets (5 for each win).'}</p>
+       <p class="mnote">${sel ? `<b>${esc(selIt.name)}${spwQty(sel[0]) > 1 ? ' x' + spwQty(sel[0]) : ''}</b>: ${esc(selIt.desc || '')}` : 'Win SPLASH WARS matches for tickets (5 for each win, ' + SPW_MVP_TIX + ' for the top splasher).'}</p>
      </div>`,
     [
       { label: 'Close', cls: 'ghost', run: () => {} },
@@ -2135,3 +2160,62 @@ async function spwSwap(id, price) {
 `;
   document.head.appendChild(st);
 }
+
+// ---------- the kill list (owner, Nov 22 2026 build n: "put a list of how many kills each one has") ----------
+// While a match is playing (and on its result) a list at the left shows every player of both teams with how many
+// players of the other team they splashed, most first: RED on top, BLUE under it, you highlighted. It starts at 0 for
+// every match (READY / WAIT clear it). Counted when a splash really counts: in a real match the splashed player's
+// game sends 'ko' (by = who splashed him) after it accepted the hit (netRvb 'out'), so every game, the shooter's too,
+// adds it; in the PLAY WITH AI test spwai.js calls rvbKill for every splash.
+const RVB_KILLS = new Map(); // lower-case name -> kills
+function rvbKill(by, victim) {
+  if (!by || !victim) return;
+  const a = rvbTeamOf(by),
+    b = rvbTeamOf(victim);
+  if (!a || !b || a === b) return;
+  RVB_KILLS.set(lc(by), (RVB_KILLS.get(lc(by)) || 0) + 1);
+}
+rvbEnter = ((prev) =>
+  function (ph, left) {
+    const was = rvb.ph;
+    if ((ph === 'ready' || ph === 'wait') && ph !== was) RVB_KILLS.clear();
+    return prev(ph, left);
+  })(rvbEnter);
+const rvbKillsEl = document.createElement('div');
+rvbKillsEl.id = 'rvbKills';
+rvbKillsEl.hidden = true;
+document.body.appendChild(rvbKillsEl);
+{
+  const st = document.createElement('style');
+  st.textContent = `
+#rvbKills{position:fixed;left:calc(10px + env(safe-area-inset-left));top:calc(62px + env(safe-area-inset-top));z-index:30;pointer-events:none;font:7px var(--pixel);display:flex;flex-direction:column;gap:4px;max-height:calc(100vh - 170px);overflow:hidden}
+#rvbKills[hidden]{display:none}
+#rvbKills .kt{min-width:112px;border-radius:5px;border:2px solid #10285c;background:rgba(10,21,48,.78);padding:4px 5px;display:flex;flex-direction:column;gap:2px}
+#rvbKills .kh{display:flex;justify-content:space-between;font-size:7px;padding:1px 3px 3px;color:#fff}
+#rvbKills .r .kh{color:#ff8a94}#rvbKills .b .kh{color:#8ec0ff}
+#rvbKills .kr{display:flex;justify-content:space-between;gap:8px;padding:2px 3px;border-radius:3px;color:#eaf3ff;white-space:nowrap}
+#rvbKills .r .kr{background:rgba(160,22,34,.45)}#rvbKills .b .kr{background:rgba(30,80,190,.45)}
+#rvbKills .kr.me{outline:1px solid #fff}
+#rvbKills .kr b{font-weight:normal;color:#fff}
+#rvbKills .kr span{overflow:hidden;text-overflow:ellipsis;max-width:92px}
+@media (orientation: landscape) and (max-height: 520px){#rvbKills{top:calc(52px + env(safe-area-inset-top));font-size:6px}#rvbKills .kt{min-width:96px}}
+`;
+  document.head.appendChild(st);
+}
+setInterval(() => {
+  const show = rvbOn() && $('start').hidden && (rvb.ph === 'play' || rvb.ph === 'end') && (rvbW.red.length || rvbW.blue.length);
+  let h = '';
+  if (show) {
+    const team = (names, t, label) => {
+      const rows = names
+        .map((n) => ({ n, k: RVB_KILLS.get(lc(n)) || 0 }))
+        .sort((x, y) => y.k - x.k || x.n.localeCompare(y.n))
+        .map((o) => `<div class="kr${lc(o.n) === lc(playerName) ? ' me' : ''}"><span>${esc(o.n)}</span><b>${o.k}</b></div>`)
+        .join('');
+      const tot = names.reduce((s, n) => s + (RVB_KILLS.get(lc(n)) || 0), 0);
+      return `<div class="kt ${t}"><div class="kh"><span>${label}</span><span>${tot} KILLS</span></div>${rows}</div>`;
+    };
+    h = team(rvbW.red, 'r', 'RED') + team(rvbW.blue, 'b', 'BLUE');
+  }
+  rvbSet(rvbKillsEl, h, !!show);
+}, 250);

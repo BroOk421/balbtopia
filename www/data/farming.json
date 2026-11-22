@@ -427,25 +427,13 @@
     "pencil": {
       "growSeconds": 300
     },
-    "cyclopean_visor": {
-      "growSeconds": 240
-    },
     "just_one_boxing_glove": {
       "growSeconds": 300
-    },
-    "backpack": {
-      "growSeconds": 240
     },
     "sword": {
       "growSeconds": 300
     },
-    "jetpack": {
-      "growSeconds": 240
-    },
     "pickaxe": {
-      "growSeconds": 300
-    },
-    "laser_eyes": {
       "growSeconds": 300
     },
     "piano": {
@@ -1051,82 +1039,7 @@
     "wishing_well": {
       "growSeconds": 420
     },
-    "katana": {
-      "growSeconds": 360
-    },
-    "fire_sword": {
-      "growSeconds": 360
-    },
-    "ice_sword": {
-      "growSeconds": 360
-    },
-    "golden_sword": {
-      "growSeconds": 360
-    },
-    "plasma_sword": {
-      "growSeconds": 360
-    },
-    "battle_axe": {
-      "growSeconds": 360
-    },
-    "war_hammer": {
-      "growSeconds": 360
-    },
-    "spear": {
-      "growSeconds": 360
-    },
-    "bolo": {
-      "growSeconds": 360
-    },
-    "arnis_stick": {
-      "growSeconds": 360
-    },
-    "hand_scythe": {
-      "growSeconds": 360
-    },
-    "leaf_blower": {
-      "growSeconds": 360
-    },
-    "paper_umbrella": {
-      "growSeconds": 360
-    },
-    "smores_staff": {
-      "growSeconds": 360
-    },
-    "death_scythe": {
-      "growSeconds": 360
-    },
-    "golden_scythe": {
-      "growSeconds": 360
-    },
-    "flame_scythe": {
-      "growSeconds": 360
-    },
-    "furious_scythe": {
-      "growSeconds": 360
-    },
-    "garden_scythe": {
-      "growSeconds": 360
-    },
-    "heart_bow": {
-      "growSeconds": 360
-    },
-    "fire_wand": {
-      "growSeconds": 360
-    },
-    "ice_wand": {
-      "growSeconds": 360
-    },
-    "chainsaw": {
-      "growSeconds": 360
-    },
     "water_gun": {
-      "growSeconds": 360
-    },
-    "dragon_hand": {
-      "growSeconds": 360
-    },
-    "thunder_hammer": {
       "growSeconds": 360
     },
     "pastel_pink_bg": {
@@ -1491,6 +1404,27 @@
     },
     "knife": {
       "growSeconds": 360
+    },
+    "hand_scythe": {
+      "growSeconds": 360
+    },
+    "death_scythe": {
+      "growSeconds": 360
+    },
+    "golden_scythe": {
+      "growSeconds": 360
+    },
+    "flame_scythe": {
+      "growSeconds": 360
+    },
+    "furious_scythe": {
+      "growSeconds": 360
+    },
+    "garden_scythe": {
+      "growSeconds": 360
+    },
+    "tree_trunk": {
+      "growSeconds": 120
     }
   },
   "splices": [
@@ -2684,15 +2618,6 @@
     },
     {
       "seeds": [
-        "red_block",
-        "window"
-      ],
-      "result": "cyclopean_visor",
-      "source": "classic",
-      "note": "Red Visor = Red Block + Window"
-    },
-    {
-      "seeds": [
         "blueberry",
         "red_block"
       ],
@@ -2702,30 +2627,12 @@
     },
     {
       "seeds": [
-        "bed",
-        "super_crate_box"
-      ],
-      "result": "backpack",
-      "source": "classic",
-      "note": "Backpack = Bed + Crate"
-    },
-    {
-      "seeds": [
         "death_spikes",
         "rock_background"
       ],
       "result": "sword",
       "source": "classic",
       "note": "Sword = Death Spikes + Rock Background"
-    },
-    {
-      "seeds": [
-        "lava",
-        "steel_block"
-      ],
-      "result": "jetpack",
-      "source": "classic",
-      "note": "Jetpack = Lava + Steel Block"
     },
     {
       "seeds": [
@@ -2762,15 +2669,6 @@
       "result": "dark_cave",
       "source": "balbtopia",
       "note": "Two cave walls make it darker (Balbtopia original)"
-    },
-    {
-      "seeds": [
-        "cyclopean_visor",
-        "neon_lights"
-      ],
-      "result": "laser_eyes",
-      "source": "balbtopia",
-      "note": "Laser Eyes = Red Visor + Neon Lights (Balbtopia original)"
     },
     {
       "seeds": [
@@ -4898,183 +4796,12 @@
     },
     {
       "seeds": [
-        "sword",
-        "steel_block"
-      ],
-      "result": "katana",
-      "source": "balbtopia",
-      "note": "Katana = Sword + Steel Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "sword",
-        "lava"
-      ],
-      "result": "fire_sword",
-      "source": "balbtopia",
-      "note": "Fire Sword = Sword + Lava (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "sword",
-        "ice"
-      ],
-      "result": "ice_sword",
-      "source": "balbtopia",
-      "note": "Ice Sword = Sword + Ice (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "sword",
-        "golden_block"
-      ],
-      "result": "golden_sword",
-      "source": "balbtopia",
-      "note": "Golden Sword = Sword + Golden Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "sword",
-        "neon_lights"
-      ],
-      "result": "plasma_sword",
-      "source": "balbtopia",
-      "note": "Plasma Sword = Sword + Neon Lights (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "steel_block",
-        "wood_block"
-      ],
-      "result": "battle_axe",
-      "source": "balbtopia",
-      "note": "Battle Axe = Steel Block + Wood Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "steel_block",
-        "barrel"
-      ],
-      "result": "war_hammer",
-      "source": "balbtopia",
-      "note": "War Hammer = Steel Block + Barrel (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "wooden_platform",
-        "death_spikes"
-      ],
-      "result": "spear",
-      "source": "balbtopia",
-      "note": "Spear = Wooden Platform + Death Spikes (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "sword",
-        "bamboo_block"
-      ],
-      "result": "bolo",
-      "source": "balbtopia",
-      "note": "Bolo = Sword + Bamboo Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "bamboo_block",
-        "red_block"
-      ],
-      "result": "arnis_stick",
-      "source": "balbtopia",
-      "note": "Arnis Stick = Bamboo Block + Red Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "bolo",
-        "grass"
-      ],
-      "result": "hand_scythe",
-      "source": "balbtopia",
-      "note": "Iron Scythe (id hand_scythe) = Bolo + Grass (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "beach_umbrella",
-        "bamboo_block"
-      ],
-      "result": "paper_umbrella",
-      "source": "balbtopia",
-      "note": "Oil-paper Umbrella = Beach Umbrella + Bamboo Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "campfire",
-        "cookie_block"
-      ],
-      "result": "smores_staff",
-      "source": "balbtopia",
-      "note": "Staff of S = Campfire + Cookie Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "rose",
-        "spear"
-      ],
-      "result": "heart_bow",
-      "source": "balbtopia",
-      "note": "Heartbow = Rose + Spear (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "torch",
-        "crystal_block"
-      ],
-      "result": "fire_wand",
-      "source": "balbtopia",
-      "note": "Fire Wand = Torch + Crystal Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "ice",
-        "crystal_cluster"
-      ],
-      "result": "ice_wand",
-      "source": "balbtopia",
-      "note": "Ice Wand = Ice + Crystal Cluster (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "battle_axe",
-        "circuit_block"
-      ],
-      "result": "chainsaw",
-      "source": "balbtopia",
-      "note": "Chainsaw = Battle Axe + Circuit Block (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
         "water_bucket",
         "toy_car"
       ],
       "result": "water_gun",
       "source": "balbtopia",
       "note": "Water Gun = Water Bucket + Toy Car (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "fire_sword",
-        "obsidian_block"
-      ],
-      "result": "dragon_hand",
-      "source": "balbtopia",
-      "note": "Dragon Hand = Fire Sword + Obsidian (Balbtopia recipe)"
-    },
-    {
-      "seeds": [
-        "war_hammer",
-        "glow_block"
-      ],
-      "result": "thunder_hammer",
-      "source": "balbtopia",
-      "note": "Thunder Hammer = War Hammer + Glow Block (Balbtopia recipe)"
     },
     {
       "seeds": [
@@ -5960,12 +5687,12 @@
     },
     {
       "seeds": [
-        "katana",
-        "paper_umbrella"
+        "beach_umbrella",
+        "blue_block"
       ],
       "result": "blue_umbrella",
       "source": "balbtopia",
-      "note": "Blue Umbrella = paper_umbrella + katana (Balbtopia recipe, Nov 9 2026)"
+      "note": "Blue Umbrella = Beach Umbrella + Blue Block (Balbtopia recipe, Nov 22 2026; was Oil-paper Umbrella + Katana, both deleted)"
     },
     {
       "seeds": [
@@ -6410,12 +6137,30 @@
     },
     {
       "seeds": [
-        "bolo",
-        "iron_bars"
+        "iron_bars",
+        "sword"
       ],
       "result": "knife",
       "source": "balbtopia",
-      "note": "Knife = Bolo + Iron Bars (Balbtopia recipe, Nov 20 2026)"
+      "note": "Knife = Sword + Iron Bars (Balbtopia recipe, Nov 22 2026; was Bolo + Iron Bars, Bolo deleted)"
+    },
+    {
+      "seeds": [
+        "grass",
+        "knife"
+      ],
+      "result": "hand_scythe",
+      "source": "balbtopia",
+      "note": "Iron Scythe (id hand_scythe) = Knife + Grass (Balbtopia recipe, Nov 22 2026 build j; was Bolo + Grass, the Bolo was deleted)"
+    },
+    {
+      "seeds": [
+        "bush_block",
+        "wood_block"
+      ],
+      "result": "tree_trunk",
+      "source": "balbtopia",
+      "note": "Tree Trunk = Wood Block + Hedge (Balbtopia recipe, Nov 22 2026 build s)"
     }
   ],
   "notInGameYet": [

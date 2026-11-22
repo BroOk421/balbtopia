@@ -222,7 +222,7 @@ function step(dt) {
     if (chain && P.chainHp > 0) P.chainHp--;
     else P.hp--;
     P.healT = HEAL_TIME;
-    if (!spiky) Sfx.play('fire'); // burned by lava
+    if (!spiky) Sfx.play(SFX_BURN); // burned by lava (build t: the death sound, core/sound.js)
     if (P.hp <= 0) return die(spiky ? 'spikes' : 'lava');
     // (owner, Nov 1 2026) a burn throws you up like a jump AND pushes you the way you are going (the key held, else
     // the way you move, else the way you face); the push holds for a moment (kbT) so it isn't steered away at once.

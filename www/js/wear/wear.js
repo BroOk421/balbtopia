@@ -33,48 +33,10 @@ const WEAR = [
   // shoe goes here (or addWear) with `col` (+ `pat`, `col2`...): outfitBody paints it on the body.
   // hair, hats: (owner, Nov 19 2026 build o) every hair, every code-drawn hat and the beards were deleted; new ones
   // will be made. A hair / hat goes here (or addWear) with `strip` (a picture) or `art` (WEAR_ART).
-  // face
-  { id: 'cyclopean_visor', name: 'Red Visor', slot: 'face', art: 'cyclopean_visor', rarity: 'Uncommon', desc: 'A red visor with a glowing slit. Your punches become a laser and reach one tile further.' },
-  // back
-  { id: 'backpack', name: 'Backpack', slot: 'back', art: 'backpack', desc: 'A brown backpack.' },
-  { id: 'jetpack', name: 'Jetpack', slot: 'back', art: 'jetpack', rarity: 'Rare', desc: 'Twin rockets. Flames come out when you jump.' },
-  // from the Shop
-  // pixel-art wings with their own flap frames (`flaps`: drawn as they are, never squeezed), flapping all the time
-  // (owner, Oct 30 2026: same flap standing and jumping). Made by art-source/items/wings_px/ (cherub.py, bats.py, vampire2.py)
-  { id: 'angel_wings', name: 'Angel Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, flaps: true, strip: { img: 'wings_angel', frames: 6, ms: 110, x: -101, y: -19, w: 320, h: 230, icon: [5, 80, 310, 125] }, desc: 'Soft white wings that curve down at the top and flap all the time. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'golden_wings', name: 'Golden Wings', slot: 'back', art: 'golden_wings', rarity: 'Legendary', shop: true, wings: true, iconBox: [-100, 80, 318, 260], desc: 'Huge shining golden wings, with two small golden wings below them. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'tiny_angel_wings', name: 'Tiny Angel Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_angel', frames: 6, ms: 110, x: -101, y: -19, w: 320, h: 230, icon: [70, 115, 180, 75] }, desc: 'Teeny little white wings at the shoulders, always flapping. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'tiny_devil_wings', name: 'Tiny Devil Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_devil', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [40, 90, 160, 80] }, desc: 'Small bat wings of dark purple skin on red bones. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'vampire_wings', name: 'Vampire Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, flaps: true, strip: { img: 'wings_vampire', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [15, 85, 210, 130] }, desc: 'Red vampire wings on black bones, hooked at the top and pointed at the bottom. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'tiny_vampire_wings', name: 'Tiny Vampire Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, flaps: true, strip: { img: 'wings_tiny_vampire', frames: 6, ms: 110, x: -61, y: -19, w: 240, h: 230, icon: [45, 110, 150, 85] }, desc: 'Small red vampire wings on black bones. While you wear them you can jump once more in the air; land to get the jump back.' },
-  // aura slot: a blazing power aura around the whole body (drawn by drawAura, colours in AURAS)
-  { id: 'dark_diamond_aura', name: 'Dark Diamond Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing dark diamond aura of deep purple flames all around you, with violet lightning.' },
-  { id: 'diamond_aura', name: 'Diamond Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing diamond aura of icy blue flames all around you, with diamond-blue lightning.' },
-  { id: 'white_aura', name: 'White Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing pure white aura all around you, with bright white lightning.' },
-  { id: 'red_aura', name: 'Red Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing red aura of fierce flames all around you, with red lightning.' },
-  { id: 'golden_aura', name: 'Golden Aura', slot: 'aura', aura: true, rarity: 'Legendary', shop: true, desc: 'A blazing golden aura of power flames all around you, with swirling streaks of light and rising sparks.' },
-  // (the owner's hairstyle pictures are on the recipe hairs above: Brown Hair, Long Blonde Hair, ...)
-  // wings from the owner's sheet (art-source/items/wings_cut.py): their particles twinkle and float (8 frames)
-  { id: 'seraph_wings', name: 'Seraph Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_seraph', frames: 1, ms: 140, x: -61, y: -19, w: 240, h: 228, icon: [0, 0, 240, 228] }, desc: 'Big soft white feathered wings. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'demon_wings', name: 'Demon Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_demon', frames: 1, ms: 140, x: -61, y: -15, w: 240, h: 219, icon: [0, 0, 240, 219] }, desc: 'Dark red bat wings with black bones. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'phoenix_wings', name: 'Phoenix Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_phoenix', frames: 8, ms: 140, x: -61, y: -21, w: 240, h: 232, icon: [0, 0, 240, 232] }, desc: 'Blazing golden feathers with twinkling embers. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'crystal_wings', name: 'Crystal Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_crystal', frames: 8, ms: 140, x: -61, y: -29, w: 240, h: 248, icon: [0, 0, 240, 248] }, desc: 'Wings of sharp blue crystal with floating shards. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'fairy_wings', name: 'Fairy Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_fairy', frames: 8, ms: 140, x: -61, y: -19, w: 240, h: 228, icon: [0, 0, 240, 228] }, desc: 'Glowing pink and blue butterfly wings with sparkles. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'shadow_wings', name: 'Shadow Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_shadow', frames: 8, ms: 140, x: -61, y: -31, w: 240, h: 253, icon: [0, 0, 240, 253] }, desc: 'Smoky purple shadow wings with dark sparks. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'celestial_wings', name: 'Celestial Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_celestial', frames: 8, ms: 140, x: -61, y: -22, w: 240, h: 234, icon: [0, 0, 240, 234] }, desc: 'Gold and blue wings with glowing orbs and sparkles. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'dragon_wings', name: 'Dragon Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_dragon', frames: 1, ms: 140, x: -61, y: -21, w: 240, h: 231, icon: [0, 0, 240, 231] }, desc: 'Huge red dragon wings. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'leaf_wings', name: 'Leaf Wings', slot: 'back', rarity: 'Epic', shop: true, wings: true, strip: { img: 'wings_leaf', frames: 8, ms: 140, x: -61, y: -23, w: 240, h: 237, icon: [0, 0, 240, 237] }, desc: 'Wings of green leaves and white flowers, with drifting leaves. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'galaxy_wings', name: 'Galaxy Wings', slot: 'back', rarity: 'Legendary', shop: true, wings: true, strip: { img: 'wings_galaxy', frames: 8, ms: 140, x: -61, y: -25, w: 240, h: 241, icon: [0, 0, 240, 241] }, desc: 'Starry night-sky wings with halos and twinkling stars. While you wear them you can jump once more in the air; land to get the jump back.' },
-  { id: 'laser_eyes', name: 'Laser Eyes', slot: 'face', art: 'laser_eyes', rarity: 'Epic', desc: 'Glowing red eyes. Every punch fires a laser from your eyes, and you reach one tile further.' },
-  // a blank face with two burning blue eyes (fire_eyes.js); `blank`: the normal brows, eyes and mouth are wiped
-  // the fire eyes are only the eyes (face slot); the blank face is its own item in the hair slot (owner)
-  { id: 'red_fire_eyes', name: 'Red Fire Eyes', slot: 'face', art: 'red_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [38, 142, 84, 84], desc: 'Your eyes burn with red-hot fire, flames licking up over your head.' },
-  { id: 'blue_fire_eyes', name: 'Blue Fire Eyes', slot: 'face', art: 'blue_fire_eyes', rarity: 'Legendary', shop: true, iconBox: [38, 142, 84, 84], desc: 'Your eyes burn with blue fire, flames licking up over your head.' },
-  // a baby-blue pacifier over the mouth (baby.js)
-  { id: 'blue_pacifier', name: 'Blue Pacifier', slot: 'mouth', art: 'blue_pacifier', rarity: 'Uncommon', shop: true, iconBox: [60, 186, 32, 32], desc: 'A little teal-blue pacifier. Shh.' },
-  // scarves round the neck (necklace slot; owner, Oct 31 2026): chunky pixel art in scarves.js, each its own style
-  // (Nov 20 2026: the Royal Silk Scarf is now the owner's pixel green-black scarf: pixelwear.js)
-  // capes (back slot; owner, Oct 31 2026): pixel art in capes.js; the Vampire Face (face slot) in vampire_face.js
+  // face / mouth / mask, back (wings, capes, packs), auras: (owner, Nov 22 2026) every code-made wearable was deleted,
+  // keeping only the pixel clothes (pixelwear.js) and the rings (wrist.js); core/gone.js lists them.
+  // capes (back slot; art, swaying and flying out in capes.js, fitted to the blocky body by backfit.js). (owner, Nov 22
+  // 2026 build l: "the capes went too": brought back from the GitHub copy of build 2026-11-21 z5)
   { id: 'hero_cape', name: 'Red Hero Cape', slot: 'back', cape: true, art: 'hero_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A bright red hero cape with a golden lining. It flies out behind you when you run or jump.' },
   { id: 'blue_hero_cape', name: 'Blue Hero Cape', slot: 'back', cape: true, art: 'blue_hero_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A blue hero cape with a silver lining and a silver clasp. It flies out behind you when you run or jump.' },
   { id: 'forest_cape', name: 'Forest Cape', slot: 'back', cape: true, art: 'forest_cape', rarity: 'Rare', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A green ranger cape with a brown lining, for heroes of the woods.' },
@@ -82,10 +44,6 @@ const WEAR = [
   { id: 'royal_cape', name: 'Royal Cape', slot: 'back', cape: true, art: 'royal_cape', rarity: 'Epic', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A purple royal cape with gold edges and a white fur collar.' },
   { id: 'galaxy_cape', name: 'Galaxy Cape', slot: 'back', cape: true, art: 'galaxy_cape', rarity: 'Legendary', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A deep blue cape full of twinkling stars, lined with purple.' },
   { id: 'golden_cape', name: 'Golden Cape', slot: 'back', cape: true, art: 'golden_cape', rarity: 'Legendary', shop: true, iconBox: [-75, 175, 190, 190], desc: 'A shining golden cape that sparkles as it moves.' },
-  { id: 'vampire_face', name: 'Vampire Fangs', slot: 'mouth', art: 'vampire_face', rarity: 'Epic', shop: true, iconBox: [52, 176, 48, 48], desc: 'A long vampire smile with two sharp fangs. Wear it with the Vampire Eyes.' },
-  { id: 'vampire_eyes', name: 'Vampire Eyes', slot: 'face', art: 'vampire_eyes', blank: true, rarity: 'Epic', shop: true, iconBox: [36, 145, 84, 84], desc: 'Tired, glowing red vampire eyes with angry brows. Wear them with the Vampire Fangs.' },
-  // a bald head with no face at all (no brows, eyes or mouth): `blank` (render.js blankFace); icon from fire_eyes.js
-  { id: 'faceless_head', name: 'Faceless Head', slot: 'mask', blank: true, rarity: 'Rare', shop: true, desc: 'A smooth bald head with no face at all: no brows, no eyes, no mouth. Put any eyes on it.' },
 ];
 const WEAR_BY_ID = {};
 for (const w of WEAR) {
@@ -531,116 +489,13 @@ function artCanvas(paint, f = 0) {
   paint({ x, R, E, L, S, f });
   return c;
 }
-const K = '#120c0c';
-// wing colours: fill, shading, feather lines
-const WING_WHITE = ['#ffffff', '#e2eaf6', '#c4d2e8'],
-  WING_GOLD = ['#ffd23f', '#f0b020', '#b87a0c'];
-// a pair of curved wings, one out the back and one out the front (art space: the body is 0..118 wide).
-// col: WING_* colours; sc: size; y: shoulder height; inset: how far in from the body's sides;
-// tilt: extra turn down; shine: little white sparkles on the feathers.
-// f 0: wings up and open; f 1: the down-stroke, tips swept low
-function wingPair({ x, f }, col, sc, y, inset = 0, tilt = 0, shine = false) {
-  const wing = () => {
-    x.beginPath();
-    x.moveTo(0, 6);
-    x.bezierCurveTo(10, -40, 60, -86, 118, -84); // top edge, up to the tip
-    // the lower edge: five rounded feathers back to the shoulder
-    x.quadraticCurveTo(116, -62, 104, -52);
-    x.quadraticCurveTo(108, -32, 90, -26);
-    x.quadraticCurveTo(92, -6, 70, -4);
-    x.quadraticCurveTo(68, 16, 46, 12);
-    x.quadraticCurveTo(38, 28, 18, 22);
-    x.quadraticCurveTo(6, 24, 0, 6);
-    x.closePath();
-  };
-  for (const side of [-1, 1]) {
-    x.save();
-    x.translate(side < 0 ? 40 + inset : 78 - inset, y);
-    x.scale(side * sc, sc);
-    x.rotate((f ? 0.5 : -0.12) + tilt);
-    if (f) x.scale(1, 0.85);
-    wing();
-    x.lineJoin = 'round';
-    x.strokeStyle = K;
-    x.lineWidth = Math.min(10, 6.2 / sc);
-    x.stroke();
-    x.fillStyle = col[0];
-    x.fill();
-    // soft shading and feather lines
-    x.save();
-    x.clip();
-    x.fillStyle = col[1];
-    x.beginPath();
-    x.moveTo(0, 6);
-    x.bezierCurveTo(30, -20, 70, -40, 120, -60);
-    x.lineTo(120, 40);
-    x.lineTo(0, 40);
-    x.fill();
-    x.strokeStyle = col[2];
-    x.lineWidth = Math.min(6, 2.7 / sc);
-    x.lineCap = 'round';
-    for (const [ex, ey] of [[96, -50], [80, -24], [58, -4], [34, 12]]) {
-      x.beginPath();
-      x.moveTo(8, 4);
-      x.quadraticCurveTo(ex * 0.5, ey * 0.2 - 10, ex, ey);
-      x.stroke();
-    }
-    if (shine) {
-      x.fillStyle = '#fff8d0';
-      for (const [px, py, r] of [[70, -58, 5], [40, -30, 3.5], [96, -70, 3], [52, -8, 3]]) {
-        x.beginPath();
-        x.moveTo(px, py - r * 2);
-        x.lineTo(px + r * 0.6, py);
-        x.lineTo(px, py + r * 2);
-        x.lineTo(px - r * 0.6, py);
-        x.closePath();
-        x.fill();
-      }
-    }
-    x.restore();
-    x.restore();
-  }
-}
-const WEAR_ART = {
-  cyclopean_visor: ({ R, f }) => {
-    R(30, 56, 92, 26, K);
-    R(34, 60, 84, 18, '#8a1010');
-    R(36, 66, 80, 6, f ? '#ff4a2a' : '#ff8a5a');
-  },
-  laser_eyes: ({ R }) => {
-    R(58, 58, 14, 22, '#ff2a2a');
-    R(94, 58, 10, 22, '#ff2a2a');
-    R(60, 60, 5, 6, '#ffd0c0');
-    R(95, 60, 4, 6, '#ffd0c0');
-  },
-  angel_wings: (h) => wingPair(h, WING_WHITE, 0.88, 110),
-  // tiny white wings at the shoulder blades
-  tiny_angel_wings: (h) => wingPair(h, WING_WHITE, 0.4, 112, 10),
-  // big golden wings, with a pair of small golden wings below them
-  golden_wings: (h) => {
-    wingPair(h, WING_GOLD, 0.62, 150, 6, 0.75); // the small ones, lower down, pointing out and down
-    wingPair(h, WING_GOLD, 1.2, 104, 0, 0, true);
-  },
-  backpack: ({ R }) => {
-    R(2, 104, 38, 56, K);
-    R(5, 107, 32, 50, '#8a5a32');
-    R(5, 107, 32, 8, '#a86c3c');
-    R(8, 126, 26, 18, '#6b4424');
-    R(18, 130, 6, 6, '#ffd23f');
-  },
-  jetpack: ({ R }) => {
-    for (const x0 of [0, 20]) {
-      R(x0, 100, 20, 64, K);
-      R(x0 + 3, 103, 14, 58, '#9aa0ad');
-      R(x0 + 3, 103, 5, 58, '#c3c9d4');
-      R(x0 + 4, 160, 12, 8, '#4a4f5c');
-    }
-  },
-};
+const K = '#120c0c'; // the dark outline colour (painters in other files use it too: weather.js, ...)
+// worn drawings: id -> painter ({ x, R, E, L, S, f }) in body px (pixelwear.js adds its pictures here)
+const WEAR_ART = {};
 const ARTS = {};
 // animated drawings: ms per frame (2 frames)
-const ANIM = { cyclopean_visor: 300 };
-// longer animations: id -> [ms per frame, frames] (fire_eyes.js)
+const ANIM = {};
+// longer animations: id -> [ms per frame, frames]
 const ANIM_N = {};
 // an animated picture strip worn on the body (e.g. Golden Spike Hair); call inside the character transform
 // sx: squeeze sideways round the strip's middle (wings flapping in the air)
@@ -692,105 +547,17 @@ function drawWearArt(id, top, sc, dy, f, art) {
   g.drawImage(c, (-FR.w / 2 - ART_PAD) * sc * Z, top + (dy - ART_PAD) * sc * Z, c.width * sc * Z, c.height * sc * Z);
 }
 // ---------- auras (the aura slot) ----------
-// An aura is an animated picture strip (IMG[img]: `frames` pictures side by side, from the owner's
-// sprite sheet, background keyed out; source in art-source/items). It is drawn behind the body,
-// standing on the feet, `h` times the body's height, one frame every `ms` milliseconds.
-const AURAS = {
-  golden_aura: { img: 'aura_golden', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#ff9d00', '#ffd400', '#fffbd0'] },
-  dark_diamond_aura: { img: 'aura_dark', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#5a2aff', '#b49cff', '#f6f0ff'] },
-  red_aura: { img: 'aura_red', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#b00000', '#ff3424', '#ffe4d8'] },
-  diamond_aura: { img: 'aura_diamond', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#1a6aa8', '#3ec8f0', '#e8fbff'] },
-  white_aura: { img: 'aura_white', frames: 8, ms: 85, h: 1.7, foot: 8, alpha: 0.7, bolt: ['#8a9ac4', '#e6ecff', '#ffffff'] },
-};
-function auraFrame(id, f) {
-  const a = AURAS[id],
-    im = a && IMG[a.img];
-  if (!im || !im.width) return null;
-  const fw = im.width / a.frames;
-  return { im, sx: (f % a.frames) * fw, fw, fh: im.height };
-}
-// (owner, Oct 31 2026) the aura is drawn WIDER than its picture so it isn't tight round the body; its see-through
-// stays each aura's own `alpha` (0.7). Wings go IN FRONT of the aura now (drawBehind), so they always show.
-const AURA_W = 1.5; // width x the picture's own shape (the height stays)
-// half the aura's width in world px (shadow.js keeps it inside the character's box)
+// (owner, Nov 22 2026) every aura was deleted. The slot and these two hooks stay for the callers (shadow.js,
+// prismtrail.js, render.js, rides.js, rest.js, jump.js, display.js) until a new aura is made.
 function auraHalfW(id) {
-  const a = AURAS[id],
-    fr = a && auraFrame(id, 0);
-  if (!fr) return 0;
-  return ((FR.h * a.h * fr.fw) / fr.fh) * AURA_W * (CHAR_H / FR.h) / 2 + 2;
+  return 0; // half the aura's width in world px
 }
-function drawAura(id, top, sc, dy) {
-  const a = AURAS[id],
-    fr = a && auraFrame(id, Math.floor(now / a.ms));
-  if (!fr) return;
-  const h = FR.h * a.h,
-    w = ((h * fr.fw) / fr.fh) * AURA_W,
-    k = sc * Z;
-  const al = g.globalAlpha;
-  g.globalAlpha = al * (a.alpha ?? 1);
-  g.drawImage(fr.im, fr.sx, 0, fr.fw, fr.fh, (-w / 2) * k, top + (dy + FR.h + a.foot - h) * k, w * k, h * k);
-  g.globalAlpha = al;
-}
-// in front of the body: yellow lightning crackling over the aura. A new set of bolts every LIGHTNING_MS;
-// each one flickers on and off, so it looks alive. Drawn in body-sprite space like drawAura.
-const LIGHTNING_MS = 70;
-function drawAuraFront(c, top, sc, dy) {
-  const id = (c.equipped || {}).aura,
-    a = id && AURAS[id];
-  if (!a || !a.bolt) return;
-  const beat = Math.floor(now / LIGHTNING_MS),
-    // the same random numbers for everyone during one beat (players look alike on every screen)
-    rnd = (n) => {
-      const v = Math.sin(beat * 12.9898 + n * 78.233 + (c.x | 0) * 0.01) * 43758.5453;
-      return v - Math.floor(v);
-    },
-    h = FR.h * a.h,
-    k = sc * Z;
-  g.save();
-  g.translate(0, top + (dy + FR.h + a.foot - h) * k);
-  g.scale(k, k);
-  g.lineJoin = 'round';
-  g.lineCap = 'round';
-  for (let b = 0; b < 3; b++) {
-    if (rnd(b * 31 + 1) < 0.45) continue; // this bolt is off for this beat
-    const side = rnd(b * 31 + 2) < 0.5 ? -1 : 1;
-    // start somewhere round the body (more out to the sides than over the face)
-    let x = side * FR.w * (0.18 + rnd(b * 31 + 3) * 0.45),
-      y = h * (0.12 + rnd(b * 31 + 4) * 0.5);
-    const pts = [[x, y]];
-    for (let s = 0; s < 5; s++) {
-      x += (rnd(b * 31 + 10 + s) - 0.5) * 34 - side * 3;
-      y += 12 + rnd(b * 31 + 20 + s) * 16;
-      pts.push([x, y]);
-    }
-    // a short branch from the middle
-    const m = pts[2],
-      br = [m, [m[0] + side * (10 + rnd(b * 31 + 5) * 14), m[1] + 8], [m[0] + side * (18 + rnd(b * 31 + 6) * 16), m[1] + 22]];
-    // glow, yellow bolt, bright core
-    for (const [w, col, al] of [
-      [16, a.bolt[0], 0.3],
-      [8, a.bolt[1], 1],
-      [3, a.bolt[2], 1],
-    ]) {
-      g.globalAlpha = al;
-      g.strokeStyle = col;
-      g.lineWidth = w;
-      for (const line of [pts, br]) {
-        g.beginPath();
-        line.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py)));
-        g.stroke();
-      }
-    }
-  }
-  g.restore();
-}
-// what goes behind the body: the back item (wings flap in the air), the aura and the back of long hair
+function drawAuraFront(c, top, sc, dy) {} // in front of the body (the old auras' lightning)
+// what goes behind the body: the back item (wings flap in the air) and the back of long hair
 function drawBehind(c, top, sc, dy) {
   const eq = c.equipped || {},
     hw = WEAR_BY_ID[eq.hair];
-  // back to front: the aura, then the back item (wings: over the aura, owner Oct 31 2026), then the back of long
-  // hair; the body goes on top
-  if (eq.aura && AURAS[eq.aura]) drawAura(eq.aura, top, sc, dy);
+  // back to front: the back item, then the back of long hair; the body goes on top
   if (eq.back) {
     // wings stay still (open) on the ground and only flap while jumping / in the air
     const bw = WEAR_BY_ID[eq.back] || {},
@@ -798,32 +565,21 @@ function drawBehind(c, top, sc, dy) {
       flap = bw.wings && !bw.flaps ? (c.ground ? 0 : Math.floor(now / 90) % 2) : undefined;
     if (bw.strip) drawWearStrip(bw, top, sc, dy, bw.wings && !bw.flaps && !c.ground ? 0.72 + 0.28 * Math.abs(Math.cos(now / 95)) : 1);
     else drawWearArt(eq.back, top, sc, dy, flap);
-    if (eq.back === 'jetpack' && !c.ground) drawJetFlame(top, sc, dy);
   }
   if (hw && hw.behind) drawWearArt(eq.hair, top, sc, dy, 0, hw.behind);
   if (hw && hw.strip && hw.strip.split) drawWearStrip(hw, top, sc, dy, 1, 'back'); // long hair below the shoulders
 }
-// jetpack flames while you're in the air
-function drawJetFlame(top, sc, dy) {
-  const f = Math.floor(now / 60) % 2;
-  g.fillStyle = '#ff8a1e';
-  for (const x0 of [4, 24]) {
-    g.fillRect((-FR.w / 2 + x0) * sc * Z, top + (dy + 168) * sc * Z, 12 * sc * Z, (16 + f * 8) * sc * Z);
-    g.fillStyle = '#ffd23f';
-    g.fillRect((-FR.w / 2 + x0 + 3) * sc * Z, top + (dy + 168) * sc * Z, 6 * sc * Z, (8 + f * 6) * sc * Z);
-    g.fillStyle = '#ff8a1e';
-  }
-}
-
 // ---------- hand items: tools ----------
 // bonus: punches taken off every block (dirtOnly: only off dirt), at least 1 punch always.
+// (owner, Nov 22 2026 build m: "the pickaxes break too fast, make it normal") the pickaxes have bonus 0 and no `rate`:
+// they break like the bare hand (same punches, same swing speed); only the look and the sparkles are left.
 // sparkle: colours of the sparkles it gives off; rate: seconds between punches when you hold the mouse down
 const TOOLS = {
-  pickaxe: { name: 'Pickaxe', bonus: 1, rarity: 'Rare', head: ['#9aa0ad', '#e0e4ea', '#4a4f5c'], desc: 'Breaks every block in one punch less.' },
+  pickaxe: { name: 'Pickaxe', bonus: 0, rarity: 'Rare', head: ['#9aa0ad', '#e0e4ea', '#4a4f5c'], desc: 'A trusty iron pickaxe.' },
   shovel: { name: 'Shovel', bonus: 2, dirtOnly: true, rarity: 'Uncommon', head: ['#9aa0ad', '#e0e4ea', '#4a4f5c'], shovel: true, desc: 'Digs dirt in two punches less (dirt only).' },
-  golden_pickaxe: { name: 'Golden Pickaxe', bonus: 2, rarity: 'Epic', head: ['#f0b020', '#fff0a0', '#a06008'], handle: ['#fff0a0', '#d89a14', '#8a5006', '#b07810'], sparkle: ['#ffd23f', '#fff4b8', '#ffffff'], rate: 0.2, desc: 'Breaks every block in two punches less. Shines with gold sparkles.' },
-  diamond_pickaxe: { name: 'Diamond Pickaxe', bonus: 2, rarity: 'Legendary', head: ['#3ec8f0', '#d0faff', '#1a6aa8'], handle: ['#d0faff', '#30b0e0', '#165a90', '#2088c0'], sparkle: ['#7fe8ff', '#ffffff', '#c8f4ff'], rate: 0.18, desc: 'Breaks every block in two punches less, and swings faster. Glitters with diamond dust.' },
-  black_diamond_pickaxe: { name: 'Black Diamond Pickaxe', bonus: 2, rarity: 'Legendary', head: ['#7a5ad8', '#d0c4ff', '#2e1a66'], handle: ['#c4b4ff', '#6a4ac8', '#26145a', '#4e30a0'], sparkle: ['#a99cff', '#6a5aff', '#ffffff'], rate: 0.16, desc: 'Breaks every block in two punches less, and swings fastest. Trails dark purple sparks.' },
+  golden_pickaxe: { name: 'Golden Pickaxe', bonus: 0, rarity: 'Epic', head: ['#f0b020', '#fff0a0', '#a06008'], handle: ['#fff0a0', '#d89a14', '#8a5006', '#b07810'], sparkle: ['#ffd23f', '#fff4b8', '#ffffff'], desc: 'A golden pickaxe. Shines with gold sparkles.' },
+  diamond_pickaxe: { name: 'Diamond Pickaxe', bonus: 0, rarity: 'Legendary', head: ['#3ec8f0', '#d0faff', '#1a6aa8'], handle: ['#d0faff', '#30b0e0', '#165a90', '#2088c0'], sparkle: ['#7fe8ff', '#ffffff', '#c8f4ff'], desc: 'A diamond pickaxe. Glitters with diamond dust.' },
+  black_diamond_pickaxe: { name: 'Black Diamond Pickaxe', bonus: 0, rarity: 'Legendary', head: ['#7a5ad8', '#d0c4ff', '#2e1a66'], handle: ['#c4b4ff', '#6a4ac8', '#26145a', '#4e30a0'], sparkle: ['#a99cff', '#6a5aff', '#ffffff'], desc: 'A black diamond pickaxe. Trails dark purple sparks.' },
   // held items from recipes (just for show)
   sword: { name: 'Sword', bonus: 0, rarity: 'Uncommon', blade: true, head: ['#c3c9d4', '#ffffff', '#5a606e'], desc: 'A shiny sword. Hold it in your hand.' },
   flashlight: { name: 'Flashlight', bonus: 0, rarity: 'Common', light: true, head: ['#2a2830', '#ffd23f', '#121116'], desc: 'Lights up whatever you point at.' },
@@ -1368,34 +1124,10 @@ function stepToolFx(dt) {
 }
 
 // laser from the eyes to where you punched (drawn by render.js while the punch lasts)
-function drawLaser(c, cx, top, sc, ox, oy) {
-  const ex = cx + c.face * (100 - FR.w / 2) * sc * Z,
-    ey = top + 68 * sc * Z,
-    tx = ox + c.punch.x * Z,
-    ty = oy + c.punch.y * Z,
-    a = 1 - c.punch.t / PUNCH_TIME;
-  g.save();
-  g.globalAlpha = Math.max(0, a);
-  g.lineCap = 'round';
-  g.strokeStyle = 'rgba(255,40,40,.5)';
-  g.lineWidth = 4 * Z;
-  g.beginPath();
-  g.moveTo(ex, ey);
-  g.lineTo(tx, ty);
-  g.stroke();
-  g.strokeStyle = '#ffd0c0';
-  g.lineWidth = 1.2 * Z;
-  g.stroke();
-  g.fillStyle = '#ffffff';
-  g.beginPath();
-  g.arc(tx, ty, (2 + Math.random() * 2) * Z, 0, 7);
-  g.fill();
-  g.restore();
-}
-
-// face items that turn punches into a laser and reach one tile further
-const LASER_FACE = ['laser_eyes', 'cyclopean_visor'];
-const laserFace = (eq) => !!eq && LASER_FACE.includes(eq.face);
+// face items that turned punches into a laser reaching one tile further (Laser Eyes, Red Visor): deleted Nov 22 2026;
+// the hooks stay for the callers (render.js, rides.js, rest.js, actions.js, net.js, handfx.js)
+function drawLaser(c, cx, top, sc, ox, oy) {}
+const laserFace = (eq) => false;
 // ---------- icons ----------
 const WEAR_ICON = {};
 function wearIcon(id) {
@@ -1424,14 +1156,6 @@ function wearIcon(id) {
       ix = 16 - (bw * f) / 2,
       iy = 16 - (bh * f) / 2;
     if (im && im.width) x.drawImage(im, bx * kk, by * kk, bw * kk, bh * kk, ix, iy, bw * f, bh * f);
-  } else if (w.aura) {
-    // the first frame of the aura, fitted into the icon
-    const fr = auraFrame(id, 0);
-    if (fr) {
-      const ih = 31,
-        iw = (ih * fr.fw) / fr.fh;
-      x.drawImage(fr.im, fr.sx, 0, fr.fw, fr.fh, 16 - iw / 2, 0.5, iw, ih);
-    }
   } else {
     // hats, faces, back items, hairstyles: the drawing, scaled to fit
     const a = wearArt(w.art),

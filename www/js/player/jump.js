@@ -1,4 +1,4 @@
-// Jumping pose and the jetpack's flight (owner, Oct 27 2026). Loaded after handfx.js.
+// Jumping pose (owner, Oct 27 2026). Loaded after handfx.js.
 // - Jumping: the owner's 3 jumping pictures (art-source/character/jump_cut.py -> assets/character/<skin>/
 //   jump_00..02.png, made at our scale and repainted per skin): 0 crouch (just took off / just landed), 1 going up,
 //   2 top of the jump / falling. Each picture is the standing frame (118 x 215) with JUMP_PAD more on the sides and
@@ -6,9 +6,7 @@
 //   hair, face items and back items are drawn as when standing. Clothes: outfitBody with the frame's own rows
 //   (the pictures wear jeans + sneakers like the sitting / swimming ones, so no pants = white briefs + bare legs and
 //   no shoes = black flip-flops; bands.pose 'jump', bt / bb = the briefs' rows). A held tool isn't drawn mid-jump.
-// - Jetpack (back slot): hold jump in the air (near the top of a jump or falling) and it flies you up with flames
-//   and smoke for JET_FUEL seconds in all; then it is empty until JET_REFILL seconds have passed without flying (the
-//   same wait refills a half-used one). A small bar over your head shows the fuel while it isn't full.
+// - (the Jetpack and its flying were deleted with every code-made wearable, owner Nov 22 2026)
 // ===== jump =====
 const JUMP_PAD = 40,
   JUMP_W = 198,
@@ -199,11 +197,9 @@ function drawJumpTool(c, f) {
   if (!id) return;
   const s = id === 'wrench' ? wrenchSprite() : toolSprite(id);
   if (!s) return;
-  const bow = id === 'heart_bow',
-    gtr = id === 'leaf_blower', // the Guitar: bigger, held at its body (handfx.js)
-    sz = (17 * (bow ? BOW_BIG : gtr ? GTR_BIG : 1)) / (CHAR_H / FR.h),
+  const sz = 17 / (CHAR_H / FR.h),
     k = sz / 32,
-    grip = bow ? BOW_GRIP : gtr ? GTR_GRIP : GRIP,
+    grip = GRIP,
     [hx, hy] = JUMP_HAND[f],
     sc = CHAR_H / FR.h;
   // the character transform is face-scaled round cx; jump picture px -> that space
@@ -219,7 +215,7 @@ function drawJumpTool(c, f) {
 let jumpTop = 0;
 // /dance (owner, Oct 27 2026; Nov 21 2026 new dance): the body bobs up and down and steps left and right, the arms go
 // round like swimming the other way (blockybody.js, c._dance), the /nice smile (render.js), till you move, jump, punch
-// or place. With the Guitar (leaf_blower) in hand you stand and play it instead (handfx.js) (owner, Nov 1 2026).
+// or place.
 // (owner, same day: "don't jump left and right": he stays in place and TURNS, facing left then facing right)
 // (owner: "not so fast, with timing") he faces each way for DANCE_BEATS bounces, turning as he lands
 const DANCE_MS = 1100, // two bounces
@@ -242,17 +238,15 @@ drawCharacter = ((prev) =>
     if (!c) return prev(c, ox, oy);
     const me = isMeDrawn(c) && !c.portrait,
       st = me ? P : c;
-    // (owner, Nov 1 2026) sitting on a chair / couch keeps the dance going (the Guitar is played sitting); a bed stops it
+    // (owner, Nov 1 2026) sitting on a chair / couch keeps the dance going; a bed stops it
     const sitting = c.rest && c.rest.k === 'sit';
     if (me && P.dance && (c.walking || (c.ground === false && !sitting) || c.punch || c.place || (c.rest && !sitting) || c.dead)) P.dance = false;
     if (!me && c.dance && !c.danceT) c.danceT = now;
     if (!me && !c.dance) c.danceT = 0;
     const f = jumpFrame(c, st);
     let res;
-    const eq = c.equipped || {},
-      guitar = (heldTool(c.hand) && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null) === 'leaf_blower';
-    // no lean with the Guitar, nor on a ride (the ride stays put under you) or sitting
-    if (f < 0 && st.dance && !c.portrait && !guitar && !c.rideBase && !c.rest) {
+    // no lean on a ride (the ride stays put under you) or sitting
+    if (f < 0 && st.dance && !c.portrait && !c.rideBase && !c.rest) {
       const fx = Math.round(ox + (c.x + c.w / 2) * Z),
         fy = oy + (c.y + c.h) * Z;
       const d = danceShift(st);
@@ -273,58 +267,8 @@ drawCharacter = ((prev) =>
         c.face = face0;
       }
     } else res = f >= 0 ? drawJumping(c, ox, oy, f) : prev(c, ox, oy);
-    if (me && res && P.jet !== undefined && P.jet < JET_FUEL && (equipped.back === 'jetpack')) drawJetBar(res);
     return res;
   })(drawCharacter);
-
-// ---------- jetpack ----------
-const JET_FUEL = 5, // seconds of flying
-  JET_REFILL = 5, // seconds without flying before it is full again
-  JET_UP = -230, // climbing speed
-  JET_PUSH = 2600; // how fast it gets there
-P.jet = JET_FUEL;
-P.jetIdle = 0;
-function stepJet(dt) {
-  const on = equipped.back === 'jetpack' && !P.dead && !P.rest && !P.ground && !inWater(P) && !!(keys.Space || keys.KeyW || keys.ArrowUp) && P.vy > -160 && P.jet > 0;
-  P.jetOn = on;
-  if (on) {
-    P.jet = Math.max(0, P.jet - dt);
-    P.jetIdle = 0;
-    P.vy = Math.max(JET_UP, P.vy - JET_PUSH * dt);
-    P.rise = false;
-    // flames and smoke out of both nozzles
-    const bx = P.x + P.w / 2 - P.face * 5;
-    for (let k = 0; k < 2; k++)
-      parts.push({ x: bx + (Math.random() - 0.5) * 6, y: P.y + P.h * 0.78, vx: (Math.random() - 0.5) * 40, vy: 120 + Math.random() * 90, life: 0.22 + Math.random() * 0.12, c: ['#ffd23f', '#ff8a1e', '#ff5a10', '#fff4b8'][Math.floor(Math.random() * 4)], s: 2 + Math.random() * 1.5 });
-    if (Math.random() < 0.35) parts.push({ x: bx, y: P.y + P.h * 0.9, vx: (Math.random() - 0.5) * 30, vy: 40 + Math.random() * 30, life: 0.5, c: ['#9a9aa6', '#c4c4ce'][Math.floor(Math.random() * 2)], s: 3 });
-    P.jetSfx = (P.jetSfx || 0) - dt;
-    if (P.jetSfx <= 0) {
-      Sfx.play('fire', 0.35);
-      P.jetSfx = 0.3;
-    }
-    if (P.jet <= 0) toast('Jetpack empty: it refills in ' + JET_REFILL + 's');
-  } else {
-    P.jetIdle += dt;
-    if (P.jetIdle >= JET_REFILL) P.jet = JET_FUEL;
-  }
-}
-stepFx = ((prev) =>
-  function (dt) {
-    prev(dt);
-    if (inWorld) stepJet(dt);
-  })(stepFx);
-// the fuel bar over your head while it isn't full
-function drawJetBar(res) {
-  const w = 18 * Z,
-    h = Math.max(2, 2 * Z),
-    x = res.cx - w / 2,
-    y = res.headTop - 14 * Z,
-    u = P.jet / JET_FUEL;
-  g.fillStyle = 'rgba(20,16,28,.7)';
-  g.fillRect(x - 1, y - 1, w + 2, h + 2);
-  g.fillStyle = P.jet > 0 ? (u > 0.3 ? '#ffb030' : '#ff4a3a') : '#5a5a66';
-  g.fillRect(x, y, w * (P.jet > 0 ? u : Math.min(1, P.jetIdle / JET_REFILL)), h);
-}
 
 // ---------- jump lines (owner, Oct 27 2026) ----------
 // An air jump (wings) leaves a few straight white lines going down from the feet, instead of a puff of feathers.

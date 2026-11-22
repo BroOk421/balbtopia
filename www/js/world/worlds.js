@@ -337,7 +337,7 @@ function loadPlayer() {
 function listWorlds() {
   const known = Net.online ? new Map(Net.worldList.map((w) => [w.name, w])) : null,
     local = Net.online ? null : store().worlds,
-    pinned = [LOBBY_WORLD, RECIPES_WORLD].map((name) => ({ name, owner: GM_USERS[0], visited: 0 }));
+    pinned = [LOBBY_WORLD].map((name) => ({ name, owner: GM_USERS[0], visited: 0 })); // (build za: RECIPES is gone: the Guide, ui/guide.js)
   const mine = seenWorlds.map((s) => {
     const k = known ? known.get(s.n) : local[s.n];
     return { name: s.n, owner: k && k.owner !== undefined ? k.owner : s.o, visited: s.t };
@@ -430,6 +430,7 @@ async function enterWorldNow(name) {
   else if (w) applyWorld(w);
   else if (Net.online || !loadWorld(name)) {
     genWorld(name);
+    if (natureOk(name)) natureWorld(name); // (Nov 22 2026 build q: caves, water, trees, grass, flowers: world.js)
     trees.clear();
     signs.clear();
     vends.clear();
@@ -442,7 +443,7 @@ async function enterWorldNow(name) {
     setLockCfg(null);
   }
   // the RECIPES world is built by the game, and rebuilt when the recipe list changes
-  if (name === RECIPES_WORLD && worldRV !== recipesVersion()) buildRecipesWorld();
+  // (build za: the RECIPES world is no longer built: the recipes are in the Guide, ui/guide.js)
   // MOONEVENT built by the game, and every Moon built again for each Moon Event (moonevent.js)
   if (typeof moonWorldsFix === 'function') moonWorldsFix(name);
   // the GM's own lobby world: built once (lobby.js; never rebuilt while LOBBY_V stays the same)

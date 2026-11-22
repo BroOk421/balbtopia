@@ -7,7 +7,7 @@
 //   game (the old Red vs Blue engine, you as the "owner"), so the SERVER is not asked: no queue, no tickets.
 // - The AI players (`SPWAI.bots`, put in Net.remotes so the game draws them like other players): walk / jump to
 //   spots with tiles to paint, paint the tiles they stand on, shoot the nearest enemy they can see (the shot stops at
-//   blocks), are out when hit and come back at their base after 3 s. Your shots hit them through the game's own
+//   blocks; the same Water Gun range as yours), are out when hit and come back at their own place in their base after 3 s. Your shots hit them through the game's own
 //   Water Gun (shotHit -> Net.sendRvb 'out', caught here).
 // - Click the console in the test world for PLAY AGAIN / LEAVE.
 // Loaded after rvb.js.
@@ -65,11 +65,39 @@ function spwAiSees(a, b) {
   const h = handPoint(a);
   return [b.y + 4, b.y + b.h / 2, b.y + b.h - 4].some((y) => rvbClearLine(h.x, h.y, spwAiCx(b), y));
 }
+// (owner, Nov 22 2026 build n: "their water gun's range must be the same as the character's") the square of tiles a
+// Water Gun reaches round the shooter's tile: handfx.js clampAim (max(5, REACH) tiles each way); was 8.5 tiles round
+const spwAiReach = () => Math.max(5, REACH);
+const spwAiTile = (c) => ({ x: Math.floor(spwAiCx(c) / TS), y: Math.floor((c.y + c.h - 1) / TS) });
+// the aim point kept inside that square, like yours (the jet stops at its edge)
+function spwAiClamp(b, tx, ty) {
+  const p = spwAiTile(b),
+    r = spwAiReach(),
+    hp = handPoint(b),
+    x0 = (p.x - r) * TS + 1,
+    x1 = (p.x + r + 1) * TS - 1,
+    y0 = (p.y - r) * TS + 1,
+    y1 = (p.y + r + 1) * TS - 1,
+    dx = tx - hp.x,
+    dy = ty - hp.y;
+  let k = 1;
+  if (tx < x0) k = Math.min(k, (x0 - hp.x) / dx);
+  if (tx > x1) k = Math.min(k, (x1 - hp.x) / dx);
+  if (ty < y0) k = Math.min(k, (y0 - hp.y) / dy);
+  if (ty > y1) k = Math.min(k, (y1 - hp.y) / dy);
+  k = Math.max(0, k);
+  return { x: hp.x + dx * k, y: hp.y + dy * k };
+}
+// the nearest enemy it can see inside its Water Gun's square (`range` kept for old calls, not used)
 function spwAiEnemy(c, team, range) {
   let best = null,
-    bd = range * TS;
+    bd = Infinity;
+  const me = spwAiTile(c),
+    r = spwAiReach();
   for (const o of spwAiPlayers()) {
     if (o.team === team || !spwAiAlive(o)) continue;
+    const t = spwAiTile(o.c);
+    if (Math.abs(t.x - me.x) > r || Math.abs(t.y - me.y) > r) continue;
     const d = Math.hypot(spwAiCx(o.c) - spwAiCx(c), spwAiCy(o.c) - spwAiCy(c));
     if (d < bd && spwAiSees(c, o.c)) (best = o), (bd = d);
   }
@@ -93,6 +121,7 @@ function spwAiWaypoint(team) {
 }
 function spwAiOut(by, victim) {
   SPWAI.feed.push({ by, victim, t: now });
+  if (typeof rvbKill === 'function') rvbKill(by, victim); // (the kill list, rvb.js)
 }
 function spwAiKill(b, by) {
   if (b.dead || b.spawnT > 0) return false;
@@ -110,7 +139,9 @@ function spwAiStep(b, dt) {
   if (b.dead) {
     if ((b.dead.t += dt) >= RVB_RESPAWN / 1000) {
       b.dead = null;
-      spwAiPut(b, ...RVB_CP[b.team]);
+      // (owner, Nov 22 2026 build n: "when the AI die they must go back to their spawn, at the base") its own place in
+      // its team's base (the same one it starts the match on), not the Checkpoint at the base's door
+      spwAiPut(b, ...spwAiBaseSpot(b));
       b.spawnT = SPAWN_FADE + 1.2;
       b.ai.wp = null;
     }
@@ -140,8 +171,9 @@ function spwAiStep(b, dt) {
         ai.shootT = 0.3 + spwAiRnd() * 0.3;
         const hp = handPoint(b),
           miss = (1 - ai.skill) * 26,
-          tx = spwAiCx(e.c) + (e.c.vx || 0) * 0.12 + (spwAiRnd() - 0.5) * miss,
-          ty = spwAiCy(e.c) + (spwAiRnd() - 0.5) * miss,
+          aim = spwAiClamp(b, spwAiCx(e.c) + (e.c.vx || 0) * 0.12 + (spwAiRnd() - 0.5) * miss, spwAiCy(e.c) + (spwAiRnd() - 0.5) * miss),
+          tx = aim.x,
+          ty = aim.y,
           n0 = SHOTS.length;
         addShot('water', hp.x, hp.y, tx, ty, false);
         for (let k = n0; k < SHOTS.length; k++) Object.assign(SHOTS[k], { aiBy: b, who: b.name, born: now, tgx: tx, tgy: ty }); // (from the gun's tip)
@@ -267,6 +299,13 @@ step = ((prev) =>
       }
     return r;
   })(step);
+// a bot's own place in its team's base (RVB_SPOTS.base, the list wraps; the RED list's first place is yours)
+function spwAiBaseSpot(b) {
+  const list = b.team === 'r' ? SPWAI_RED : SPWAI_BLUE,
+    k = list.indexOf(b.name) + (b.team === 'r' ? 1 : 0),
+    spots = RVB_SPOTS.base[b.team];
+  return spots[k % spots.length];
+}
 // the AI players go where the game puts the players at each phase
 rvbEnter = ((prev) =>
   function (ph, left) {
@@ -277,7 +316,7 @@ rvbEnter = ((prev) =>
       const list = b.team === 'r' ? SPWAI_RED : SPWAI_BLUE,
         k = list.indexOf(b.name) + (b.team === 'r' ? 1 : 0);
       if (ph === 'wait') spwAiPut(b, ...RVB_SPOTS.room[b.team][k % RVB_SPOTS.room[b.team].length]);
-      else if (ph === 'ready') spwAiPut(b, ...RVB_SPOTS.base[b.team][k % RVB_SPOTS.base[b.team].length]);
+      else if (ph === 'ready') spwAiPut(b, ...spwAiBaseSpot(b));
       else if (ph === 'end' || ph === 'idle') {
         b.dead = null;
         spwAiPut(b, ...RVB_SPOTS.room[b.team][k % RVB_SPOTS.room[b.team].length]);

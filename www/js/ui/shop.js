@@ -155,6 +155,14 @@ const SHOP_TABS = [
 let shopTab = 'locks';
 const SHOP = [
   { id: 'world_lock', gold: 2000, cat: 'locks' },
+  // capes (wear.js / capes.js; back in build l, Nov 22 2026)
+  { id: 'hero_cape', gold: 15000, cat: 'wear' },
+  { id: 'blue_hero_cape', gold: 15000, cat: 'wear' },
+  { id: 'forest_cape', gold: 15000, cat: 'wear' },
+  { id: 'vampire_cape', gold: 25000, cat: 'wear' },
+  { id: 'royal_cape', gold: 30000, cat: 'wear' },
+  { id: 'galaxy_cape', gold: 35000, cat: 'wear' },
+  { id: 'golden_cape', gold: 40000, cat: 'wear' },
   // packs for pesos (not open yet): 5 and 10 Gold Locks, and 1 Crystal Lock (= 100 Gold Locks)
   { id: 'world_lock', qty: 5, peso: true, cat: 'locks' },
   { id: 'world_lock', qty: 10, peso: true, cat: 'locks' },
@@ -174,44 +182,8 @@ const SHOP = [
   // (Golden Pickaxe: no longer sold; it is the level 100 reward, levels.js)
   { id: 'diamond_pickaxe', bc: 200, cat: 'tools' },
   { id: 'black_diamond_pickaxe', bc: 300, cat: 'tools' },
-  { id: 'angel_wings', bc: 30, cat: 'wear' },
-  { id: 'tiny_angel_wings', bc: 16, cat: 'wear' },
-  // pixel wings (Oct 30 2026; prices picked by Claude, owner gave none)
-  { id: 'tiny_devil_wings', gold: 10000, cat: 'wear' },
-  { id: 'vampire_wings', gold: 20000, cat: 'wear' },
-  { id: 'tiny_vampire_wings', gold: 10000, cat: 'wear' },
-  { id: 'golden_wings', bc: 120, cat: 'wear' },
-  { id: 'golden_aura', bc: 200, cat: 'wear' },
-  { id: 'red_aura', bc: 200, cat: 'wear' },
-  { id: 'dark_diamond_aura', bc: 200, cat: 'wear' },
-  { id: 'diamond_aura', bc: 200, cat: 'wear' },
-  { id: 'white_aura', bc: 200, cat: 'wear' },
-  { id: 'seraph_wings', gold: 20000, cat: 'wear' },
-  { id: 'demon_wings', gold: 20000, cat: 'wear' },
-  { id: 'phoenix_wings', gold: 20000, cat: 'wear' },
-  { id: 'crystal_wings', gold: 20000, cat: 'wear' },
-  { id: 'fairy_wings', gold: 20000, cat: 'wear' },
-  { id: 'shadow_wings', gold: 20000, cat: 'wear' },
-  { id: 'celestial_wings', gold: 20000, cat: 'wear' },
-  { id: 'dragon_wings', gold: 20000, cat: 'wear' },
-  { id: 'leaf_wings', gold: 20000, cat: 'wear' },
-  { id: 'galaxy_wings', gold: 20000, cat: 'wear' },
-  { id: 'blue_fire_eyes', bc: 200, cat: 'wear' }, // fire_eyes.js (Oct 26 2026; price picked by Claude)
-  { id: 'red_fire_eyes', bc: 200, cat: 'wear' }, // same price as the blue ones
-  { id: 'faceless_head', gold: 20000, cat: 'wear' }, // price picked by Claude
-  { id: 'blue_pacifier', gold: 5000, cat: 'wear' }, // price picked by Claude
-  // scarves (scarves.js, Oct 31 2026; prices picked by Claude)
-  // (royal_silk_scarf: pixelwear.js, Nov 20 2026)
-  // capes and the Vampire Face (capes.js, vampire_face.js; Oct 31 2026; prices picked by Claude)
-  { id: 'hero_cape', gold: 15000, cat: 'wear' },
-  { id: 'blue_hero_cape', gold: 15000, cat: 'wear' },
-  { id: 'forest_cape', gold: 15000, cat: 'wear' },
-  { id: 'vampire_cape', gold: 25000, cat: 'wear' },
-  { id: 'royal_cape', gold: 30000, cat: 'wear' },
-  { id: 'galaxy_cape', gold: 35000, cat: 'wear' },
-  { id: 'golden_cape', gold: 40000, cat: 'wear' },
-  { id: 'vampire_face', gold: 15000, cat: 'wear' }, // Vampire Fangs
-  { id: 'vampire_eyes', gold: 20000, cat: 'wear' },
+  // (wings, auras, fire eyes, Faceless Head, pacifier, capes, Vampire Fangs / Eyes: deleted Nov 22 2026, core/gone.js;
+  // the owner's pixel clothes are sold from pixelwear.js)
   // (every shirt / pants / shoe and every hair were deleted, Nov 19 2026 builds o-p: new ones go here)
 ];
 

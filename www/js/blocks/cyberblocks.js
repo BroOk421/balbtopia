@@ -231,7 +231,9 @@ drawNewBlock = ((prev) =>
   function (b, x, y, px, py, T) {
     if (!CYB_IDS.has(b.id)) return prev(b, x, y, px, py, T);
     let pic;
-    if (b.id === 'hanging_vines') pic = vinePic(joinMask(x, y));
+    // (owner, Nov 22 2026 build t: "with a block above it take the 2 leaves away; only with nothing above") any block on
+    // the tile above counts like a vine above: the vine runs on from the top edge, no top leaves
+    if (b.id === 'hanging_vines') pic = vinePic(joinMask(x, y) | (inW(x, y - 1) && fg[at(x, y - 1)] ? 1 : 0));
     else if (ARROW_DIR[b.id]) pic = arrowPic(b.id, Math.floor(now / ARROW_MS) % ARROW_FRAMES);
     else pic = neonColorPic(b.id, joinMask(x, y));
     g.drawImage(pic, px, py, T, T);

@@ -11,7 +11,7 @@
 // - Names, prices and rarity picked by Claude. Shop WEAR tab; schema.sql shop_prices + keep list + item_info rows.
 // Loaded after oldman.js.
 // ===== pixel wear =====
-const PXW_SKINNED = new Set(['black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt']);
+const PXW_SKINNED = new Set(['black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs']);
 const PXW_LIST = [
   // t-shirts
   ['midnight_tee', 'Midnight Tee', 'shirt', 'Common', 800, 'A plain dark navy t-shirt.'],
@@ -73,6 +73,11 @@ const PXW_LIST = [
   ['trucker_cap', 'Trucker Cap', 'hat', 'Uncommon', 2500, 'A navy cap with a white front panel.'],
   // hoodie: the whole top with its hood; worn hair shows only inside the hood (PXW_HOOD below)
   ['gray_hoodie', 'Gray Hoodie', 'shirt', 'Uncommon', 4000, 'A cozy gray hoodie with the hood up. Your hair peeks out of the hood.', { hideHair: true }],
+  // (owner, Nov 22 2026: bonnet / frog / topless .aseprite) a beanie worn like any hat (hatfit.js lifts it onto the
+  // hair), a frog hood that hides the hair like the Shadow Hood, and a bare chest with abs in the shirt slot (per skin tone)
+  ['black_beanie', 'Black Beanie', 'hat', 'Uncommon', 2000, 'A snug black knit beanie with a gray fold.'],
+  ['frog_hood', 'Frog Hood', 'hat', 'Rare', 5000, 'A green frog hood with big frog eyes on top. Hides your hair.', { hideHair: true }],
+  ['six_pack_abs', 'Six-Pack Abs', 'shirt', 'Rare', 5000, 'No shirt, just a chiselled six-pack.'],
 ];
 const PXW = {}; // id -> { slot, sk }
 const PXW_PAD = 40; // the pictures have 40 px of room each side of the 118 px frame
@@ -188,6 +193,51 @@ const PXW_HOOD = new Set(['gray_hoodie']);
 // kept for a later hat that needs it; its hat then needs a hair_hole.png, pixelwear_cut.py `CAP_HAIR_HOLE`)
 const PXW_CAP_HAIR = new Set();
 for (const id of PXW_CAP_HAIR) pxwImg(id, 'hair_hole');
+// (owner, Nov 22 2026: "with the bonnet only the hair UNDER it shows, the curve at the bottom; remove the bits at the
+// sides") hats that sit on the hair as usual (lifted by hatfit.js's hairLift) but show the worn hair ONLY in a strip
+// right under the hat's bottom edge, following its curve: in each column the hat covers, from just under the lifted
+// hat down to `PXW_FRINGE[id]` body px under where the hat's bottom is on the bald head. Hair beside the hat (spikes,
+// side locks), under the part of the hat that curves down at the back (`PXW_FRINGE_FRONT`) and lower down is cut off. The mask is made from the hat's own picture.
+const PXW_FRINGE = { black_beanie: 12 },
+  PXW_FRINGE_FRONT = 14; // body px the hat's bottom may be lower than its highest bottom row and still show hair under it
+const PXW_FRINGE_HOLE = new Map();
+function pxwFringeHole(id, lift) {
+  const key = id + ':' + lift;
+  if (PXW_FRINGE_HOLE.has(key)) return PXW_FRINGE_HOLE.get(key);
+  const im = pxwImg(id, 'idle');
+  if (!im) return null;
+  const W = im.width,
+    H = im.height,
+    c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const x = c.getContext('2d');
+  x.drawImage(im, 0, 0);
+  const d = x.getImageData(0, 0, W, H).data;
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = '#fff';
+  const low = [];
+  for (let i = 0; i < W; i++) {
+    low[i] = -1;
+    for (let j = H - 1; j >= 0; j--)
+      if (d[(j * W + i) * 4 + 3] > 0) {
+        low[i] = j;
+        break;
+      }
+  }
+  const top = Math.min(...low.filter((v) => v >= 0));
+  for (let i = 0; i < W; i++) {
+    const lo = low[i];
+    // only the front, where the hat's bottom edge is near its highest (over the forehead): no hair under the part
+    // that curves down at the back / side of the head
+    if (lo < 0 || lo > top + PXW_FRINGE_FRONT) continue;
+    const y0 = lo + 1 - lift,
+      y1 = lo + 1 + PXW_FRINGE[id];
+    x.fillRect(i, y0, 1, y1 - y0);
+  }
+  PXW_FRINGE_HOLE.set(key, c);
+  return c;
+}
 const PXW_GLOW = { royal_silk_scarf: true };
 for (const id in PXW_GLOW) pxwImg(id, 'glow');
 let PXW_HAIR_CV = null;
@@ -206,12 +256,15 @@ addEventListener('DOMContentLoaded', () => {
         g.globalAlpha = a0;
       }
       const isHood = PXW_HOOD.has(eq.shirt),
-        isCap = !isHood && PXW_CAP_HAIR.has(eq.hat);
-      if (!isHood && !isCap) return prev(c, top, sc, dy);
+        isCap = !isHood && PXW_CAP_HAIR.has(eq.hat),
+        fringe = !isHood && !isCap && PXW_FRINGE[eq.hat] && eq.hair && ITEMS[eq.hair] && !(WEAR_BY_ID[eq.shirt] && WEAR_BY_ID[eq.shirt].hideHair);
+      if (!isHood && !isCap && !fringe) return prev(c, top, sc, dy);
+      // the beanie: lifted onto the hair like hatfit.js does, the hair cut to the strip under its bottom edge
+      const lift = fringe && typeof hairLift === 'function' ? hairLift(eq.hair, prev) : 0;
       const id = isHood ? eq.shirt : eq.hat,
         hair = eq.hair && ITEMS[eq.hair] ? eq.hair : null,
         hood = isHood ? pxwImg(id, hair ? 'hood_idle' : 'hood_nohair') : null,
-        hole = hair ? pxwImg(id, isHood ? 'hood_hole' : 'hair_hole') : null,
+        hole = !hair ? null : fringe ? pxwFringeHole(id, lift) : pxwImg(id, isHood ? 'hood_hole' : 'hair_hole'),
         k = sc * Z,
         x0 = (-FR.w / 2 - PXW_PAD) * k,
         y0 = top + dy * k,
@@ -225,7 +278,7 @@ addEventListener('DOMContentLoaded', () => {
       g.imageSmoothingEnabled = false;
       // the hood first, then the hair over its opening and its dark inner outline (hood_hole.png): no line between
       if (hood) g.drawImage(hood, x0, y0, hood.width * k, hood.height * k);
-      if (hair && hole && (hood || isCap)) {
+      if (hair && hole && (hood || isCap || fringe)) {
         // the hair alone on a canvas the size of the hood picture, cut to the opening, then put in place
         const W = Math.max(1, Math.ceil(hole.width * k)),
           H = Math.max(1, Math.ceil(hole.height * k));
@@ -253,7 +306,13 @@ addEventListener('DOMContentLoaded', () => {
         g.drawImage(cv2, x0, y0, W, H);
       }
       g.imageSmoothingEnabled = smooth;
-      if (eq.hat) only({ hat: eq.hat });
+      if (fringe && !hole) only({ hair }); // (beanie picture not loaded yet: the hair as it is)
+      if (fringe && lift) {
+        g.save();
+        g.translate(0, -lift * k);
+        only({ hat: eq.hat });
+        g.restore();
+      } else if (eq.hat) only({ hat: eq.hat });
       if (eq.face) only({ face: eq.face });
     })(drawWorn);
 });

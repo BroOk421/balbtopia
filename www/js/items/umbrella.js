@@ -39,7 +39,7 @@ A.umbrella_open = 'assets/items/umbrella_open.png';
     rarity: 'Epic',
     head: ['#2a6ae0', '#5ac8ff', '#ffc020'],
     desc: 'A blue umbrella with a golden handle, carried closed. Jump and it opens: you float down slowly.',
-    rec: ['paper_umbrella', 'katana'],
+    rec: ['beach_umbrella', 'blue_block'], // (Nov 22 2026: was Oil-paper Umbrella + Katana, both deleted)
   };
   TOOLS[UMB_ID] = { name: w.name, bonus: 0, rarity: w.rarity, blade: true, weapon: true, head: w.head, desc: w.desc };
   ITEMS[UMB_ID] = { name: w.name, kind: 'tool', tool: TOOLS[UMB_ID], desc: w.desc + ' Hold it in your hand. ' + w.name + ' = ' + w.rec.map((r) => (ITEMS[r] ? ITEMS[r].name : r)).join(' + ') + '.', rarity: w.rarity };

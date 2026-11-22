@@ -30,10 +30,10 @@ PCARD.innerHTML = '<div class="pchead"><canvas id="pcHead" width="64" height="64
   st.textContent =
     '.pcard{position:absolute;left:calc(10px + env(safe-area-inset-left,0px));top:calc(10px + env(safe-area-inset-top,0px));z-index:5;zoom:var(--btnz,1);' +
     'display:flex;align-items:center;gap:7px;height:42px;box-sizing:border-box;padding:3px 10px 3px 3px;' +
-    'background:rgba(28,16,51,.82);border:2px solid var(--line,#8a6ad8);border-radius:8px;pointer-events:none}' +
+    'background:rgba(10,21,48,.82);border:2px solid var(--line,#4a8fe8);border-radius:8px;pointer-events:none}' +
     'body.landing .pcard{display:none}' +
     '.pcard .pcrow{display:flex;align-items:center;gap:10px}' +
-    '.pcard .pchead{width:32px;height:32px;flex:none;border-radius:6px;background:radial-gradient(circle at 50% 40%,#5a3fa0,#241540);border:2px solid var(--night,#1c1033);overflow:hidden;display:grid;place-items:center}' +
+    '.pcard .pchead{width:32px;height:32px;flex:none;border-radius:6px;background:radial-gradient(circle at 50% 40%,#2c5aa8,#0d1c3c);border:2px solid var(--night,#0a1530);overflow:hidden;display:grid;place-items:center}' +
     '.pcard .pchead canvas{width:32px;height:32px;image-rendering:pixelated}' +
     '.pcard .pcinfo{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:44px}' +
     '.pcard .pcinfo b{font:9px/1 var(--pixel,monospace);color:#b8f4ea;font-weight:normal;white-space:nowrap}' +
@@ -41,9 +41,9 @@ PCARD.innerHTML = '<div class="pchead"><canvas id="pcHead" width="64" height="64
     '.pcard .gold canvas{width:13px;height:13px}' +
     '.pcard .gold.bcbox{font-size:9px;gap:3px}.pcard .gold.bcbox canvas{width:11px;height:11px}' +
     // the game clock (owner, Nov 21 2026): the day and the 24 h time, right of the level / gold, after a thin line
-    '.pcard .pctime{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:3px;padding-left:8px;margin-left:1px;border-left:1px solid rgba(138,106,216,.55)}' +
+    '.pcard .pctime{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:3px;padding-left:8px;margin-left:1px;border-left:1px solid rgba(74,143,232,.55)}' +
     '.pcard .pctime b{font:9px/1 var(--pixel,monospace);font-weight:normal;white-space:nowrap}' +
-    '.pcard .pctime #pcDay{color:#d8ccff}.pcard .pctime #pcClock{font-size:10px;color:#ffe08a}.pcard .pctime.night #pcClock{color:#9ec4ff}' +
+    '.pcard .pctime #pcDay{color:#cfe2ff}.pcard .pctime #pcClock{font-size:10px;color:#b8e2ff}.pcard .pctime.night #pcClock{color:#9ec4ff}' +
     '@media (orientation: landscape) and (max-height: 520px){.pcard{height:36px;padding:2px 8px 2px 2px}.pcard .pchead,.pcard .pchead canvas{width:28px;height:28px}}' +
     '';
   document.head.appendChild(st);
@@ -135,14 +135,14 @@ CHAT_BTN.onclick = () => (gOpenNow ? gShow(false) : chatOpen(true));
     ':root{--chatW:min(' + W + ',calc(100vw - 40px))}' +
     '#chatBtn{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:61;' +
     'width:28px;height:62px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;' +
-    'background:rgba(28,16,51,.9);border:2px solid var(--line,#8a6ad8);border-right:0;border-radius:10px 0 0 10px;cursor:pointer}' +
-    '#chatBtn i{width:6px;height:6px;border-radius:50%;background:#e8e4ff;display:block}' +
+    'background:rgba(10,21,48,.9);border:2px solid var(--line,#4a8fe8);border-right:0;border-radius:10px 0 0 10px;cursor:pointer}' +
+    '#chatBtn i{width:6px;height:6px;border-radius:50%;background:#e4f0ff;display:block}' +
     // open: stuck to the drawer's left side, in the drawer's colour
     // (owner: the tab must move together with the chat) opening: tab and drawer slide the same distance (the drawer's
     // width) in the same CHAT_SLIDE time and curve; closing: both go at once
-    '#chatBtn.on{right:var(--chatW);transition:right ' + CHAT_SLIDE + ' ' + CHAT_EASE + ';background:rgba(58,33,102,.97);border-color:var(--glow,#ffd23f)}#chatBtn.on i{background:#ffd23f}' +
+    '#chatBtn.on{right:var(--chatW);transition:right ' + CHAT_SLIDE + ' ' + CHAT_EASE + ';background:rgba(22,48,95,.97);border-color:var(--glow,#8fd0ff)}#chatBtn.on i{background:#8fd0ff}' +
     '#chatBtn .gbadge{position:absolute;top:-8px;left:-9px;min-width:18px;height:18px;box-sizing:border-box;padding:0 4px;border-radius:9px;' +
-    'background:var(--danger,#e8303e);color:#fff;font:8px/14px var(--pixel,monospace);text-align:center;border:2px solid var(--night,#1c1033)}' +
+    'background:var(--danger,#e8303e);color:#fff;font:8px/14px var(--pixel,monospace);text-align:center;border:2px solid var(--night,#0a1530)}' +
     '#chatBtn .gbadge[hidden]{display:none}' +
     'body.landing #chatBtn{display:none}' +
     // the chat: a full-height drawer on the right (no bar)

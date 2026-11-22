@@ -8,7 +8,7 @@
   st.textContent =
     'body.landing .topr,body.landing #hotbar,body.landing #bag,body.landing .pad,body.landing .gchat,' +
     'body.landing .wname,body.landing .coords{display:none !important}' +
-    '.start .win{background:rgba(58,33,102,.72);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}';
+    '.start .win{background:rgba(22,48,95,.72);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}';
   document.head.appendChild(st);
   const start = $('start'),
     sync = () => document.body.classList.toggle('landing', !start.hidden);

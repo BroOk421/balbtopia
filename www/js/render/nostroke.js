@@ -1,11 +1,11 @@
 // Outlines of the hand tools / weapons drawn by code (owner, Nov 19 2026). Build h: no outline on any of them.
-// Build i (owner): only COMMON tools have no outline; Uncommon and up keep theirs; the Guitar (leaf_blower) gets a
-// light one (`NOSTROKE_SOFT`: its outline pixels at that opacity). The pickaxes stay without (wear.js, the owner's
+// Build i (owner): only COMMON tools have no outline; Uncommon and up keep theirs; tools in `NOSTROKE_SOFT` get a
+// light one (its outline pixels at that opacity; the Guitar had one, deleted Nov 22 2026). The pickaxes stay without (wear.js, the owner's
 // diamond_pickaxe.png). An outline pixel = an opaque pixel that touches see-through (8 neighbours) and is dark
 // (lightness < NOSTROKE_DARK). Cached per picture (animated tools: per frame). Loaded LAST before main.js, so it
 // wraps the other files' toolSprite wrappers.
 const NOSTROKE_DARK = 72,
-  NOSTROKE_SOFT = { leaf_blower: 0.4 }, // tool -> how much of its outline is left (0 = none)
+  NOSTROKE_SOFT = {}, // tool -> how much of its outline is left (0 = none)
   NOSTROKE = new WeakMap(),
   NOSTROKE_S = {};
 function noStroke(pic, keep = 0) {

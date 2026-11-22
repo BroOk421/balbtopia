@@ -17,7 +17,7 @@
 //   MOON8 / MOON9 at the top. Every rocket's bubble says its Moon and seat. Main door bottom right. Desert backdrop.
 //   Listed in the world list (under LOBBY / RECIPES) and open ONLY while the event is on (build f); nobody but the GM
 //   changes anything there.
-// - The MOONS (moon.js buildMoon) are built again when an event starts (`moonWorldsFix`: rv 'MOONEV3:<ev>').
+// - The MOONS (moon.js buildMoon) are built again when an event starts (`moonWorldsFix`: rv 'MOONEV4:<ev>').
 // - When the event closes, players still on a Moon or in MOONEVENT are sent to their LOBBY (build f; was MOONEVENT).
 // ===== moonevent =====
 // (owner, Nov 6 2026, build f: "back to every 3 days, 24 hours before it ends", as in build b; builds d-e had every
@@ -139,7 +139,7 @@ function buildMoonEvent() {
     put(MEV_HOLE, mf, 0); // the hole up from the cabin
     put(MEV_HOLE, F - 1, ITEMS.spring.block);
     const suit = {}, // (the Space Suit, Boots and Helmet were deleted, Nov 19 2026 builds p-q)
-      wings = typeof CW_COLOURS !== 'undefined' ? [null, ...CW_COLOURS.map(cwId), ...CW_COLOURS.map(cwGlowId)] : [null];
+      wings = [null]; // (the Mannequins wore the Crystal Wings: deleted Nov 22 2026, one bare Mannequin is left)
     let n = 0;
     for (let x = mx0 + 2; x <= mx1 - 2 && n < wings.length; x += 2, n++) {
       const i = at(x, mf - 1);
@@ -227,7 +227,7 @@ function moonWorldsFix(name) {
     // random places, for the next event") the Moon is built again when an event starts AND once it is over (':c'), each
     // time with its own seed, so what players broke is back and the asteroids are somewhere else
     const info = mevNowInfo(),
-      v = 'MOONEV3:' + info.ev + (info.open ? '' : ':c'); // (2: build k, the pad's shelves at the side; 3: build l, at most 200 asteroids, moonstay.js)
+      v = 'MOONEV4:' + info.ev + (info.open ? '' : ':c'); // (2: build k, the pad's shelves at the side; 3: build l, at most 200 asteroids; 4: Nov 22 2026 build n, at most 50: moonstay.js)
     if (worldRV !== v) {
       trees.clear();
       signs.clear();
@@ -498,7 +498,7 @@ act = ((prev) =>
 listWorlds = ((prev) =>
   function () {
     const l = prev().filter((w) => w.name !== MOON_EVENT_WORLD),
-      k = l.findIndex((w) => w.name === RECIPES_WORLD);
+      k = l.findIndex((w) => w.name === LOBBY_WORLD); // (build za: RECIPES is gone; MOONEVENT right under LOBBY)
     l.splice(k + 1, 0, { name: MOON_EVENT_WORLD, owner: GM_USERS[0], visited: 0 });
     return l;
   })(listWorlds);

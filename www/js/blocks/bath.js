@@ -201,10 +201,10 @@ drawResting = ((prev) =>
 // ---------- in the bath only the scarf's effect stays (owner, Nov 9 2026) ----------
 // "remove the other effects (weapon, boots and the rest), keep only the scarf's": while bathing, every effect drawn
 // round the character works from a stripped copy of what he wears (`bathEq`: the head items of BATH_KEEP, without
-// effect faces like the Fire Eyes, plus the Royal Silk Scarf so its reaper flies on: scarfreaper.js), no hand item,
-// no pet; and particles thrown for a bather (the scythes' flames, tool sparkles, autumn leaves: stepToolFx, or while
+// effect faces (BATH_NO_FX, none since the Fire Eyes were deleted Nov 22 2026), plus the Royal Silk Scarf so its reaper flies on: scarfreaper.js), no hand item,
+// no pet; and particles thrown for a bather (the scythes' flames, tool sparkles: stepToolFx, or while
 // he is drawn) are taken out again, except the bath's own soap bubbles.
-const BATH_NO_FX = new Set(['red_fire_eyes', 'blue_fire_eyes']), // worn on the head, but they ARE an effect
+const BATH_NO_FX = new Set(), // items worn on the head that ARE an effect
   BATH_SCARF = 'royal_silk_scarf';
 const bathing = (c) => !!(c && c.rest && c.rest.k === 'bath' && !c.dead);
 function bathEq(eq) {

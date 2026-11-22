@@ -1,0 +1,128 @@
+/* The blue UI (owner, Nov 22 2026 build j, with a picture of the blue ALL button: "change the UI colour, instead of
+   gold and violet make it like that, the buttons a bit darker; the Shop too, everything"). style.css / dock.css had
+   their violet / gold / peach colours swapped for dark navy and blues (the variables in :root and the colours written
+   out); this file, loaded LAST, gives every button the ALL button's look (a top-to-bottom blue gradient, a dark navy
+   edge, a darker band at the bottom, a thin light line at the top, white text), a little darker than the ALL button.
+   The chosen / open one (a selected tab, a switched-on button) is the light blue one; secondary buttons ("ghost",
+   tabs not chosen) a deeper blue. Red buttons (danger, SPAWN, Ban) keep red, in the same style. */
+:root {
+  --b-top: #4a8fe8;
+  --b-bot: #2559c2;
+  --b-edge: #10285c;
+  --b-on-top: #7cc0ff;
+  --b-on-bot: #3a7fe0;
+  --b-on-edge: #d6ebff;
+  --b-dim-top: #2c5aa8;
+  --b-dim-bot: #1a3a78;
+  --b-red-top: #f0605a;
+  --b-red-bot: #c0282a;
+  --b-red-edge: #5a0a10;
+}
+
+/* every ordinary button */
+.btn,
+.shopbtn,
+.tabs button,
+#menu .tabs button,
+.atabs button,
+#shopTabs button,
+#shop #shopTabs button,
+#shopSub button,
+.pmbtns button,
+.dock .dbtn,
+.dock .dleft .gmtabs button,
+.gtab,
+.gmodebtn,
+#gModes button,
+.searchbtn,
+.trashbtn,
+.wstay,
+.tback,
+.newsbtn,
+#chatBtn {
+  background: linear-gradient(var(--b-top), var(--b-bot)) !important;
+  border: 2px solid var(--b-edge) !important;
+  border-radius: 6px;
+  color: #fff !important;
+  text-shadow: 0 1px 0 rgba(8, 24, 70, 0.75);
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.26),
+    inset 0 2px 0 rgba(255, 255, 255, 0.16) !important;
+}
+.btn:hover:not(:disabled),
+.tabs button:hover,
+.atabs button:hover,
+.pmbtns button:hover,
+#shopTabs button:hover,
+#shopSub button:hover {
+  filter: brightness(1.08);
+}
+.btn:active:not(:disabled),
+.shopbtn:active,
+.pmbtns button:active,
+.dock .dbtn:active {
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.3) !important;
+  transform: translateY(1px);
+}
+
+/* secondary: ghost buttons and tabs that are not chosen */
+.btn.ghost,
+.tabs button:not([aria-selected='true']),
+.atabs button:not([aria-selected='true']),
+#shopTabs button:not([aria-selected='true']):not(.on),
+#shopSub button:not([aria-selected='true']):not(.on),
+.gtab:not(.on):not([aria-selected='true']) {
+  background: linear-gradient(var(--b-dim-top), var(--b-dim-bot)) !important;
+  color: #d6e6ff !important;
+}
+
+/* the chosen one */
+.tabs button[aria-selected='true'],
+.atabs button[aria-selected='true'],
+#shopTabs button[aria-selected='true'],
+#shopTabs button.on,
+#shopSub button[aria-selected='true'],
+#shopSub button.on,
+.gtab.on,
+.gtab[aria-selected='true'],
+.dock .dbtn.on,
+.dock .dleft .gmtabs button[aria-selected='true'] {
+  background: linear-gradient(var(--b-on-top), var(--b-on-bot)) !important;
+  border-color: var(--b-on-edge) !important;
+  color: #fff !important;
+}
+
+/* red ones stay red, same shape */
+.btn.danger,
+.btn.spawnbtn,
+.pmbtns button.pmdanger {
+  background: linear-gradient(var(--b-red-top), var(--b-red-bot)) !important;
+  border-color: var(--b-red-edge) !important;
+  color: #fff !important;
+}
+
+/* the Shop button at the top: blue too (was gold), its drop under it dark blue */
+.shopbtn {
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.26),
+    inset 0 2px 0 rgba(255, 255, 255, 0.16),
+    0 3px 0 #0a1a40 !important;
+}
+
+/* close buttons (X) and the burger: small dark blue squares with the navy edge */
+.x,
+.burger {
+  background: linear-gradient(var(--b-dim-top), var(--b-dim-bot)) !important;
+  border: 2px solid var(--b-edge) !important;
+  color: #fff !important;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.26) !important;
+}
+.burger span {
+  background: #fff !important;
+}
+
+.btn:disabled,
+.dock .dbtn:disabled {
+  filter: grayscale(0.5);
+  opacity: 0.5;
+}

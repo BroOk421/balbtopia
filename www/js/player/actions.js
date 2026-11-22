@@ -35,6 +35,8 @@ function startPunch(wx, wy) {
   P.angry = ANGRY_TIME; // punching and breaking make an angry face
   Net.sendPunch(wx, wy);
   // Red Visor / Laser Eyes: every punch is a laser (owner's laser sound); a tool swing sounds like breaking
+  // (build x played the break sound on every hit; build zf, owner: "put the old break sound back": the punch / tool
+  // sound on each hit again, the break sound when it breaks)
   Sfx.play(laserFace(equipped) ? 'laser' : heldTool(hand) ? 'break' : 'punch');
 }
 // placing (classic style): the arm is out at once, the hand gives a little shake,
@@ -120,13 +122,11 @@ function hitBlockAt(x, y, i) {
   dmgT[i] = now;
   shake = 2.5;
   Native.haptic(dmg[i] >= need ? 'medium' : 'light');
-  burst(x, y, fg[i], 3);
-  smoke(x, y, 5, 1);
+  if (dmg[i] < need) breakPuffs(x, y); // (the breaking punch gives only the break's 3 puffs)
   toolSparkles(heldTool(hand), x * TS + 16, y * TS + 16, 5, 24);
   if (dmg[i] >= need) {
-    Sfx.play('break');
-    burst(x, y, fg[i], 12);
-    smoke(x, y, 11, 1.6);
+    Sfx.play(SFX_BREAK); // (build zf: back to the old break sound)
+    breakPuffs(x, y);
     const id = b.dropAs || b.id; // (a Wet Sponge drops like a Sponge)
     vends.delete(i);
     displays.delete(i);
@@ -295,19 +295,17 @@ function act() {
       bgDmg[i]++;
       dmgT[i] = now;
       shake = 1.5;
-      burst(x, y, (BGS[bg[i]] || BGS[1]).fx, 3);
-      smoke(x, y, 4, 0.9);
+      if (bgDmg[i] < bgHits(bg[i])) breakPuffs(x, y);
       const t = heldTool(hand);
       toolSparkles(t, x * TS + 16, y * TS + 16, 3, 24);
       // (owner, Nov 12 2026, build x: "pickaxes normal: no extra break on backgrounds") every background takes its
       // `hits` (default 2; Suction Hose / Intake 3: vacuumhose.js), whatever is in your hand
       if (bgDmg[i] >= bgHits(bg[i])) {
         const bk = BGS[bg[i]] || BGS[1];
-        Sfx.play('break');
-        burst(x, y, bk.fx, 10);
+        Sfx.play(SFX_BREAK); // (build zf)
         bg[i] = 0;
         bgDmg[i] = 0;
-        smoke(x, y, 9, 1.4);
+        breakPuffs(x, y);
         const got = breakDrop(bk.id);
         if (got.block) spawnDrop(bk.id, x * TS + 16, y * TS + 16);
         if (got.seed) dropSeed(bk.id, x, y);
@@ -443,6 +441,38 @@ function smoke(x, y, n, power) {
       f: Math.random() < 0.5, // mirrored
     });
   }
+}
+// The break smoke (owner, Nov 22 2026, his breakeffect.png: "use this for the break smoke, only 3, a small one and ones
+// this size, with the smoke's effects; remove the little squares in the block's colour"): 3 puffs of his picture
+// (assets/fx/break_puff.png, cut from art-source/fx/breakeffect.png), 1 small + 2 at his size (his 32 x 35 canvas = the
+// character's, so 1 picture px = CHAR_H / 35 world px), moving like the old smoke (swirl out round the block centre, rise,
+// fade: render.js drawSmoke). Used when a block, background or tree is hit or breaks, yours or another player's.
+// (owner, Nov 22 2026, later: "the smoke must SPIN, 3 come out on every hit, the break too, from the centre outwards,
+// not too far, then fade") every punch on it gives the same 3 puffs, the breaking punch only its 3 (not 3 + 3). Each
+// puff starts at the block's centre, goes straight out (its own way, the three spread round) `out` world px with an
+// ease-out, turning round its own middle (`rot` rad/s) and fading (render.js drawSmoke, `p.img`).
+const BREAK_PUFF_PX = CHAR_H / 35,
+  BREAK_PUFF_SIZES = [0.6, 1, 1];
+A.break_puff = 'assets/fx/break_puff.png';
+function breakPuffs(x, y, power = 1) {
+  const cx = x * TS + 16,
+    cy = y * TS + 16,
+    a0 = Math.random() * Math.PI * 2;
+  BREAK_PUFF_SIZES.forEach((k, n) =>
+    puffs.push({
+      cx,
+      cy,
+      img: 'break_puff',
+      k: k * BREAK_PUFF_PX,
+      dir: a0 + (n / 3) * Math.PI * 2 + (Math.random() - 0.5) * 0.6, // which way it goes
+      out: (7 + Math.random() * 4) * power, // how far (world px): not far
+      rot0: Math.random() * Math.PI * 2,
+      rot: (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 2.5), // spinning
+      t: 0,
+      life: 0.5 + Math.random() * 0.2,
+      f: Math.random() < 0.5, // mirrored
+    }),
+  );
 }
 // an item floating in the world; joins a nearby drop of the same kind
 // a seed falls out of a broken block (the chance is rolled in breakDrop, farming.js; ripe trees give none)

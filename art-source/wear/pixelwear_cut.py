@@ -23,7 +23,8 @@ CHS = ROOT + '/art-source/character/'
 CH = ROOT + '/www/assets/character/'
 OUT = ROOT + '/www/assets/wear/'
 OLD = CHS + 'old_frames_base_owner/'
-SKINS = sorted(d for d in os.listdir(CH) if os.path.exists(CH + d + '/idle_open.png'))
+# (the 'mannequin' folder is the Mannequin's dummy, not a skin tone: it uses porcelain, display.js MANN_SKIN)
+SKINS = sorted(d for d in os.listdir(CH) if os.path.exists(CH + d + '/idle_open.png') and d != 'mannequin')
 
 # file -> game id (names / prices / rarity are in www/js/wear/pixelwear.js)
 ITEMS = {
@@ -60,7 +61,13 @@ ITEMS = {
     'scarf/red-black-scarf.aseprite': 'crimson_silk_scarf',
     # cap (owner's cap.aseprite: its visible cap layer, 'Cap2'; the hidden 'Cap' is not used), Head slot
     'cap/cap.aseprite': 'trucker_cap',
+    # (owner, Nov 22 2026) hat/: a piece on its own visible layer over the head ('Bonnet' = a beanie, worn like a hat on
+    # the hair; frog's 'Mask' = a hood that hides the hair); bonnet.aseprite's hidden 'Mask' (the frog) is not used
+    'hat/bonnet.aseprite': 'black_beanie', 'hat/frog.aseprite': 'frog_hood',
+    # topless.aseprite: no sando, the 'shape' layer has abs drawn on the belly = a shirt that is bare skin (per skin tone)
+    'tshirt/topless.aseprite#topless': 'six_pack_abs',
 }
+BODY_LAYERS = {'sleeve left', 'shape', 'short', 'sando', 'sleeve right', 'mouth', 'nose', 'eyes', 'eyebrows'}
 
 
 def read_frames(path):
@@ -297,6 +304,11 @@ for f, iid in ITEMS.items():
         hole = hole | (near & dark)
         hole_rgba = np.zeros_like(cels['mask'])
         hole_rgba[hole] = 255
+    elif part == 'topless':  # bare chest: the file's body (with the abs) where the sando was; all of it skin
+        cat = 'tshirt'
+        t = cels['shape'].copy()
+        t[look['sando'][..., 3] == 0] = 0
+        cels['tshirt'] = t
     elif part == 'hood':  # the hood: the mask layer above the shoulders, drawn like a hat
         cat = 'hat'
         m = cels['mask'].copy()
@@ -341,7 +353,8 @@ for f, iid in ITEMS.items():
         for nm in ('sleeve left', 'tshirt', 'sleeve right') + (('mask',) if part == 'hoodie' else ()):  # (from cels: the robe's 'tshirt' is made above; a hoodie's hood too)
             m = cels[nm][..., 3] > 0
             icon[m] = cels[nm][m]
-        icon[is_skin(icon)] = 0
+        if part != 'topless':  # (topless: the icon IS the bare chest)
+            icon[is_skin(icon)] = 0
     elif cat == 'pants':
         pa = cels['pants'].copy()
         bare = (look['short'][..., 3] > 0) & (body == look['short']).all(axis=2) & (pa[..., 3] == 0)
@@ -390,7 +403,8 @@ for f, iid in ITEMS.items():
         icon[is_skin(icon)] = 0
     else:  # shades / hair / hood: drawn by WEAR_ART over the head in every pose (the head is in the same place in all)
         # (hair: the visible layer whose name starts with 'hair': girl-hair uses 'hair2', goodboy-hair 'hair2 Copy')
-        lname = ('shades' if cat == 'shades' else 'hood' if cat == 'hat' else 'Scarf' if cat == 'scarf'
+        lname = ('shades' if cat == 'shades' else 'hood' if cat == 'hat' and 'hood' in cels
+                 else next(n for n, v in reversed(L) if v and n not in BODY_LAYERS and n in cels) if cat == 'hat' else 'Scarf' if cat == 'scarf'
                  else next(n for n, v in L if v and n.startswith('Cap') and n in cels) if cat == 'cap'
                  else next(n for n, v in L if v and n.startswith('hair') and n in cels))
         a, ask = piece(cels[lname], body)

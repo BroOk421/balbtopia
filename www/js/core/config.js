@@ -260,7 +260,8 @@ const TREE_FRUIT = [1, 4]; // blocks a ripe tree gives (min, max)
 // built-in recipes; data/farming.json replaces them when the game is served (npm run serve, the app, GitHub Pages)
 // (the same list as data/farming.json; classic recipes first, then Balbtopia's own)
 const SPLICE = {
-  "bolo+iron_bars": "knife", // rodknife.js (Nov 20 2026)
+  "grass+knife": "hand_scythe", // weapons2.js (Nov 22 2026 build j: the Iron Scythe back; was bolo+grass, the Bolo was deleted)
+  "iron_bars+sword": "knife", // rodknife.js (Nov 20 2026; Nov 22: was bolo+iron_bars, the Bolo was deleted)
   "death_spikes+steel_block": "spike_gate", // blocks64b.js (Oct 26 2026)
   "blue_block+crystal_block": "sapphire_block",
   "crystal_block+orange_block": "topaz_block",
@@ -397,27 +398,7 @@ const SPLICE = {
   "red_block+water_dispenser": "fire_hydrant",
   "skeleton+wooden_platform": "pirate_flag",
   "stone_wall+water_bucket": "wishing_well",
-  "steel_block+sword": "katana", // weapons.js (Oct 26 2026)
-  "lava+sword": "fire_sword",
-  "ice+sword": "ice_sword",
-  "golden_block+sword": "golden_sword",
-  "neon_lights+sword": "plasma_sword",
-  "steel_block+wood_block": "battle_axe",
-  "barrel+steel_block": "war_hammer",
-  "death_spikes+wooden_platform": "spear",
-  "bamboo_block+sword": "bolo",
-  "bamboo_block+red_block": "arnis_stick",
-  "bolo+grass": "hand_scythe", // weapons2.js (Oct 26 2026)
-  // ("electric_fan+leaf_block": the Guitar, leaf_blower, is Shop-only since Nov 10 2026: musicset.js)
-  "bamboo_block+beach_umbrella": "paper_umbrella",
-  "campfire+cookie_block": "smores_staff",
-  "rose+spear": "heart_bow",
-  "crystal_block+torch": "fire_wand",
-  "crystal_cluster+ice": "ice_wand",
-  "battle_axe+circuit_block": "chainsaw",
   "toy_car+water_bucket": "water_gun",
-  "fire_sword+obsidian_block": "dragon_hand",
-  "glow_block+war_hammer": "thunder_hammer",
   "glass_block+ice": "crystal_block", // blocks64.js (Oct 26 2026)
   "crystal_block+red_block": "ruby_block",
   "crystal_block+green_block": "emerald_block",
@@ -578,16 +559,12 @@ const SPLICE = {
   "black_block+steel_block": "boombox",
   "black_block+yellow_block": "flashlight",
   "wood_block+yellow_block": "pencil",
-  "red_block+window": "cyclopean_visor",
   "blueberry+red_block": "just_one_boxing_glove",
-  "bed+super_crate_box": "backpack",
   "death_spikes+rock_background": "sword",
-  "lava+steel_block": "jetpack",
   "cave+portcullis": "pickaxe",
   "dirt+dirt": "grass",
   "rock+rock": "lava",
   "cave+cave": "dark_cave",
-  "cyclopean_visor+neon_lights": "laser_eyes",
   "rock+white_block": "marble_block",
   "amber_glass+yellow_block": "honeycomb_block",
   "glass_pane+torch": "lantern",
@@ -817,8 +794,10 @@ const GOLD_AMOUNT = [1, 3]; // how much gold one drop gives (min, max)
 // game masters: everything in the Shop is free for them (lower-case usernames)
 const GM_USERS = ["anTz"]; // (renamed from tae123, Oct 27 2026: supabase/admin/rename_gm.sql)
 // the bag: BAG_FREE slots from the start; from level BAG_LEVEL on, every level opens BAG_STEP more, up to BAG_MAX
-const BAG_MAX = 80,
-  BAG_FREE = 24,
+// (owner, Nov 22 2026 build ze: "add about 50 more slots to the inventory") +50 from the start (24 -> 74) and +50 at
+// most (80 -> 130); levels still open 2 more each from level 10 until the top (level 37)
+const BAG_MAX = 130,
+  BAG_FREE = 74,
   BAG_LEVEL = 10,
   BAG_STEP = 2;
 const MAXSTACK = 200,

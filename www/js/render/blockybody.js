@@ -104,6 +104,10 @@ function blockyTarget(c, s, top, sc, dy) {
   if (blockyUmbOpen(s.tool)) return { back: s.bj === 'up' ? BLOCKY.jumpFar : 0, front: -Math.PI + 0.001 };
   // (owner, Nov 21 2026) going up: BOTH sleeves at the same place, up forward (about 1 o'clock facing right), like the
   // sleeve that holds the weapon (was: the far one straight out, jumpFar)
+  // (owner, Nov 22 2026: "on the cars / trucks the hands move, they shouldn't; the leaf too") riding (any ride: the
+  // ride code sets c.rideBase while it draws the rider) the arms stay down, jumping or moving; punching / holding
+  // a tool / the open umbrella above still move them
+  if (c.rideBase) return { back: 0, front: 0 };
   if (s.bj === 'up') return { back: BLOCKY.jumpNear, front: BLOCKY.jumpNear };
   if (s.walking) {
     const a = BLOCKY.swing * Math.sin((2 * Math.PI * (c.walkPh || s.wf) * BLOCKY.swingSpeed) / 12);
@@ -174,7 +178,7 @@ const BLOCKY_AXE_MAP = ['...a.......', '..ab.......', '.aac.......', '.ab.......
 // Build k (owner): the Guitar (under the front sleeve), both umbrellas, the Spear and the guns (Water Gun, Mega Water
 // Gun, Laser Gun: barrel level, aimed at the spot while shooting) are held here too; the Blue Umbrella opens in the
 // air in the front hand raised straight up (no extra arm any more).
-const BLOCKY_TOOL_SKIP = new Set(['heart_bow', 'fishing_rod', 'golden_rod', 'noah_rod', 'dragon_hand', 'just_one_boxing_glove', 'wrench']),
+const BLOCKY_TOOL_SKIP = new Set(['fishing_rod', 'golden_rod', 'noah_rod', 'just_one_boxing_glove', 'wrench']),
   BLOCKY_HAND = [0, 5.5], // the hand (where the pickaxe's handle sits) from the front shoulder, sprite px
   BLOCKY_TOOL_LEN = (17 * CHAR_H) / 32; // world px a 32 px tool picture is drawn at (like drawArmWithTool; grows with the body)
 // scythes in the hand (build r, owner): this much bigger, and this much longer again along the handle
@@ -197,7 +201,6 @@ const blockyIsGun = (id) => typeof GUN_IDS !== 'undefined' && GUN_IDS.has(id);
 const blockyUmbOpen = (id) => typeof UMB_ID !== 'undefined' && id === UMB_ID && typeof UMB_CUR !== 'undefined' && !!UMB_CUR && UMB_CUR.u >= 0.3;
 function blockyTool(c, id, ang, top, sc, dy, s) {
   if (blockyIsPick(id)) return blockyAxe(id, ang, top, sc, dy);
-  if (id === 'spear' && typeof spearHide !== 'undefined' && spearHide) return; // thrown: the hand is empty
   const k = sc * Z,
     p = BLOCKY.px * k;
   g.save();

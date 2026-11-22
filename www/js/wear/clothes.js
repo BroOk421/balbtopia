@@ -5,7 +5,7 @@
 //  shorts: `short: 178` = covered down to that body row, bare legs below with a darker hem (wear.js); `side` = a
 //          stripe down each side
 //  feet:   `slip: { sole, strap }` = slippers (the flip-flops recoloured), `pat: 'sole'` = sneakers with a white sole
-// Loaded after vampire_face.js; prices in shop.js and schema.sql (shop_prices). Names / prices picked by Claude.
+// Loaded after vampire_face.js (deleted Nov 22 2026); prices in shop.js and schema.sql (shop_prices). Names / prices picked by Claude.
 // ===== clothes =====
 // (owner, Nov 19 2026 build p) every shirt, pants and shoe was deleted; the patterns below stay for new clothes. New
 // clothes go in this list: { id, name, slot, col, col2, col3, pat, short, skirt, dress, slip, rarity, desc }.

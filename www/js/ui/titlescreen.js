@@ -56,7 +56,7 @@ $('wrap').appendChild(TITLE_FADE);
     '.start .tbtns{display:flex;flex-direction:column;gap:12px;width:min(240px,62vw)}' +
     '.start .tbtns .btn{width:100%;padding:12px 0;font-size:13px;letter-spacing:.08em}' +
     '.start .tbtns .tplay{font-size:15px;padding:14px 0}' +
-    '.start .tbtns .ghost{background:rgba(28,16,51,.82)}' +
+    '.start .tbtns .ghost{background:rgba(10,21,48,.82)}' +
     // coming in: the logo drops in, the buttons rise one after another
     'body.titlemenu.tin .start .tlogo{animation:tDrop .6s cubic-bezier(.2,1.4,.4,1) both}' +
     'body.titlemenu.tin .start .tbtns .btn{animation:tRise .45s ease-out both}' +
@@ -69,7 +69,7 @@ $('wrap').appendChild(TITLE_FADE);
     'body.landing:not(.titlemenu) .start .win{animation:tRise .3s ease-out}' +
     '.start .win{position:relative;left:auto;top:auto}' +
     '.start .tback{position:absolute;left:10px;top:10px;padding:5px 9px;font:9px var(--pixel,monospace);color:#d8cdf0;' +
-    'background:rgba(0,0,0,.25);border:2px solid var(--night,#1c1033);border-radius:4px;cursor:pointer}' +
+    'background:rgba(0,0,0,.25);border:2px solid var(--night,#0a1530);border-radius:4px;cursor:pointer}' +
     // the fade from black over the world (under the title)
     '.tfade{position:absolute;inset:0;background:#000;pointer-events:none;opacity:0;z-index:2}' +
     '.tfade.on{animation:tFade ' + TITLE_FADE_MS + 'ms ease-in forwards}' +
@@ -217,7 +217,17 @@ $('tExit').onclick = () => {
 // it starts with the first touch.
 const TMUS_BPM = 76,
   TMUS_VOL = 0.16,
-  TMUS_FADE = 1.2; // s
+  TMUS_FADE = 1.2, // s
+  // (owner, Nov 22 2026 build y: "use the landing page's music in the game too, but quiet") in a world the same loop
+  // plays at this volume (the landing page's TMUS_VOL there); the landing music button (landinglinks.js) turns it off
+  // in both places, the Sound setting too
+  TMUS_GAME_VOL = 0.05;
+// where the music plays now: 'land' (the landing page), 'game' (in a world), or null
+function tmusMode() {
+  if (document.body.classList.contains('landing')) return 'land';
+  if (typeof inWorld !== 'undefined' && inWorld && $('start').hidden) return 'game';
+  return null;
+}
 const TMUS_CHORDS = [
   [48, 55, 60, 64], // C
   [43, 50, 55, 59], // G
@@ -283,21 +293,32 @@ function tmusSchedule() {
   const ac = typeof Sfx !== 'undefined' && Sfx.ctx();
   if (!ac || ac.state !== 'running') return;
   // (landinglinks.js: the music button on the landing screen turns it off / on)
-  const want =
-    document.body.classList.contains('landing') &&
-    !(typeof settings !== 'undefined' && settings.sound === false) &&
-    (typeof landMusicOn !== 'function' || landMusicOn());
+  const mode = tmusMode(),
+    want =
+      !!mode &&
+      !(typeof settings !== 'undefined' && settings.sound === false) &&
+      (typeof landMusicOn !== 'function' || landMusicOn()) &&
+      !(mode === 'game' && typeof pianoMusicOn === 'function' && pianoMusicOn()), // (build z: a Piano is playing)
+    vol = mode === 'game' ? TMUS_GAME_VOL : TMUS_VOL;
   if (want && !tmus) {
     const out = ac.createGain(),
       dry = ac.createGain(),
       wet = ac.createGain();
     out.gain.setValueAtTime(0.0001, ac.currentTime);
-    out.gain.exponentialRampToValueAtTime(TMUS_VOL, ac.currentTime + TMUS_FADE);
+    out.gain.exponentialRampToValueAtTime(vol, ac.currentTime + TMUS_FADE);
     wet.gain.value = 0.35;
     dry.connect(out);
     dry.connect(tmusRoom(ac)).connect(wet).connect(out);
     out.connect(ac.destination);
-    tmus = { out, dry, next: ac.currentTime + 0.1, step: 0 };
+    tmus = { out, dry, next: ac.currentTime + 0.1, step: 0, vol };
+  }
+  // landing <-> game: glide to the other volume
+  if (want && tmus && tmus.vol !== vol) {
+    const t = ac.currentTime;
+    tmus.out.gain.cancelScheduledValues(t);
+    tmus.out.gain.setValueAtTime(Math.max(0.0001, tmus.out.gain.value), t);
+    tmus.out.gain.exponentialRampToValueAtTime(vol, t + TMUS_FADE);
+    tmus.vol = vol;
   }
   if (!want && tmus) {
     const T = tmus,

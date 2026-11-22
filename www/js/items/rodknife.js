@@ -5,7 +5,7 @@
 //   under the front sleeve and turning with it. Rods: his rod for the Fishing Rod, the same rod in gold (Golden Rod)
 //   and in pale wood with rainbow guides (Noah's Rod), no outline (owner). Bag / Shop icons: the rod laid diagonally.
 // - KNIFE (`knife`, new hand tool, Common weapon): his knife picture as the icon, his held knife in the hand.
-//   Balbtopia recipe Bolo + Iron Bars (farming.json + SPLICE).
+//   Balbtopia recipe Sword + Iron Bars (Nov 22 2026; was Bolo + Iron Bars, the Bolo was deleted) (farming.json + SPLICE).
 // - FISHING POSE: while your line is out the front arm is raised a little (`ROD_HOLD`) so the rod slants up; casting
 //   swings the arm up over the head and down (`rodSwingAngle`), reeling in swings it up and back.
 // - A BITE: the rod's front bends down (drawn column by column, `rodBend`) and the CATCH BAR pops up over you: a fish
@@ -35,7 +35,7 @@ for (const id of ['fishing_rod', 'golden_rod', 'noah_rod']) BLOCKY_TOOL_SKIP.del
 
 // ---------- the Knife ----------
 {
-  const rec = ['bolo', 'iron_bars'],
+  const rec = ['sword', 'iron_bars'],
     head = ['#e8e8ec', '#ffffff', '#704f40'];
   TOOLS.knife = { name: 'Knife', bonus: 0, rarity: 'Common', blade: true, weapon: true, head, desc: 'A kitchen knife: a white steel blade on a brown wooden handle.' };
   ITEMS.knife = { name: 'Knife', kind: 'tool', tool: TOOLS.knife, desc: TOOLS.knife.desc + ' Hold it in your hand. Knife = ' + rec.map((r) => (ITEMS[r] ? ITEMS[r].name : r)).join(' + ') + '.', rarity: 'Common' };

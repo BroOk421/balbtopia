@@ -155,7 +155,7 @@ function musicPoster() {
   // ---- the characters on the stage, a bit blurred ----
   const chars = [
     [musicChar(3, 'tan', 'omg', null, 1), 5.0],
-    [musicChar(3, 'peach', null, 'leaf_blower', 1), 6.0],
+    [musicChar(3, 'peach', null, null, 1), 6.0], // (he held the Guitar: deleted Nov 22 2026)
     [musicChar(3, 'brown', 'love', null, -1), 7.0],
   ];
   for (const [ch, cxT] of chars) {

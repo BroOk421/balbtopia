@@ -11,7 +11,8 @@
 // decided by a hash of the tile and the Moon's name + event (the same on every screen, spread evenly); the others
 // become Moon Sand with the wall the tiles round them have. Moons are rebuilt for the current event because
 // moonevent.js's tag is now 'MOONEV3:' (was 'MOONEV2:').
-const MOON_ROCK_MAX = 200;
+// (owner, Nov 22 2026 build n: "instead of 200 make it 50") 50 at most, the floating ones included
+const MOON_ROCK_MAX = 50;
 buildMoon = ((prev) =>
   function (name = worldName, ev = typeof mevNowInfo === 'function' ? mevNowInfo().ev : 0, ...more) {
     const r = prev(name, ev, ...more);

@@ -237,7 +237,11 @@ function ssStill(name) {
     return r;
   };
 }
-['texCanvas', 'decoCanvas', 'darkTile', 'lockSprite', 'woodDoorSprite', 'grassTuft', 'groundPic', 'rockTile', 'pix64Canvas'].forEach(ssStill);
+// (owner, Nov 22 2026 build t: "take the blocks' strokes away too, or make them the dark of the colour next to them")
+// + hdCanvas (every HD_TEX / HD_DECO painter: Hedges, flowers, Leaf / Vine Blocks... were still drawn with black
+// outlines) and the Tree Trunk's pictures (treetrunk.js trunkPic). All of them make new canvases that are never painted
+// again, so they are safe to treat as still.
+['texCanvas', 'decoCanvas', 'darkTile', 'lockSprite', 'woodDoorSprite', 'grassTuft', 'groundPic', 'rockTile', 'pix64Canvas', 'hdCanvas', 'trunkPic'].forEach(ssStill);
 // loaded images never change (the IMG sheets, pictures from files)
 const ssIsStill = (pic) => pic instanceof HTMLImageElement || SS_STILL.has(pic);
 

@@ -37,7 +37,7 @@ const PETS = [
   // behind you. The two dragons breathe a fireball at the blocks and seeds you hit (one hit less to break them).
   // mouth: in the picture's pixels; ball: the fireball picture, its bright head and the way it points (degrees).
   { id: 'trex', name: 'T-Rex', move: 'big', img: 'pet_trex', gold: 80000, rarity: 'Legendary', desc: 'A big orange T-Rex that stomps along behind you.' },
-  { id: 'raptor', name: 'Raptor', move: 'big', img: 'pet_raptor', gold: 80000, rarity: 'Legendary', desc: 'A blue raptor with golden spots that runs along behind you.' },
+  // (the Raptor was deleted, owner Nov 22 2026)
   // Tyapa (owner, Oct 28 2026): the owner's cyborg robot, 2 tiles tall. Its own strip (art-source/pets/
   // cyborg_cut.py): 20 frames of 60 x 61, idle / walk drawn facing right AND left (left frames are not mirrored at
   // draw time, see drawBig). Same price as the Legendary dragons (Cosmic / Fire Dragon).
@@ -217,7 +217,7 @@ function bigClaws(cnv) {
   x.putImageData(im, 0, 0);
   return cnv;
 }
-// T-Rex / Raptor (owner: the automatic claws looked bad on them): their feet are placed by hand per frame, as
+// T-Rex (owner: the automatic claws looked bad on it): their feet are placed by hand per frame, as
 // [first x, toe x, bottom row] in the frame picture (walking 0-5, then the 4 breathing frames). Each foot gets a
 // sole row in its own shade (not under the heel) and the toe pushed 1 px forward (no claws: owner, Oct 28 2026).
 const DINO_FEET = {
@@ -229,15 +229,6 @@ const DINO_FEET = {
     [[34, 38, 64], [51, 59, 62]],
     [[36, 40, 64], [49, 57, 62]],
     ...Array(4).fill([[35, 39, 64], [50, 58, 64]]),
-  ],
-  raptor: [
-    [[51, 62, 56], [65, 69, 56]],
-    [[50, 62, 54], [66, 70, 56]],
-    [[48, 60, 54], [68, 72, 56]],
-    [[47, 59, 56], [69, 73, 56]],
-    [[48, 60, 56], [68, 72, 54]],
-    [[50, 62, 56], [66, 70, 54]],
-    ...Array(4).fill([[49, 61, 56], [67, 71, 56]]),
   ],
 };
 function dinoFeet(cnv, spec) {

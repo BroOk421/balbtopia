@@ -4,9 +4,9 @@
 // (schema.sql shop_buy). What players already have stays theirs, and a chest bought during the event can still be
 // opened later.
 // The Autumn Chest is a block: place it and break it, and ONE random reward floats out (AUTUMN_LOOT, rarest first):
-// Autumn Wings, Fall Machine, Autumn Scythe, gold coins, Leaf Headband, Autumn Leaf
-// Shirt / Shorts, Autumn Boots, Autumn Leaf Block / Maple Plank Block (10 each), Autumn Leaf Wall background (10).
-// The wings (and the deleted headband and cape) are the owner's own pictures (his sheet, cut by art-source/autumn/autumn_cut.py).
+// Fall Machine, Autumn Scythe (back in build j), gold coins, Autumn Leaf Block / Maple Plank Block (10 each), Autumn Leaf Wall background (10).
+// (Deleted: the Leaf Headband, leaf shirt / shorts, boots, the Autumn Cape, and on Nov 22 2026 the Autumn Wings and the
+// Autumn Scythe; worlds and bags lose them by themselves: core/gone.js.)
 // Blocks 395-398 and background 42 are permanent. Loaded after concert.js, before main.js.
 // ===== autumn =====
 const AUTUMN_FROM = Date.parse('2026-11-04T00:00:00+08:00'),
@@ -256,7 +256,7 @@ drawWeatherSky = ((prev) =>
 // falling leaves (behind the world, like the snow; pinned to the world): the OWNER'S leaf picture (Nov 5 2026: "use
 // these leaves, random, for the falling ones"; art-source/autumn/fall_leaves_source.png, cut by fall_leaves_cut.py into
 // assets/autumn/fall_leaves.png, one box per leaf in FALL_LEAF_BOX), each leaf a random one of his 15, drifting down,
-// swinging and turning, flipping now and then. Also used by the Autumn Wings' jump leaves (below).
+// swinging and turning, flipping now and then.
 A.autumn_fall_leaves = 'assets/autumn/fall_leaves.png';
 const FALL_LEAF_BOX = [[0, 0, 93, 101], [93, 0, 39, 35], [132, 0, 63, 74], [195, 0, 104, 86], [299, 0, 83, 96], [382, 0, 79, 109], [461, 0, 91, 89], [552, 0, 75, 68], [627, 0, 46, 69], [673, 0, 85, 74], [758, 0, 66, 84], [824, 0, 55, 43], [879, 0, 80, 75], [959, 0, 64, 49], [1023, 0, 54, 50]];
 const FALL_LEAF_PX = 6; // about how many picture px make one of his art pixels (his sheet is pixel art blown up)
@@ -304,6 +304,7 @@ function drawFall() {
   g.restore();
 }
 
+// (owner, Nov 22 2026 build j: the Autumn Scythe is back, deleted in build b; restored from build 2026-11-21 z5)
 // ---------- the Autumn Scythe (scythes.js look; a vine of autumn leaves round its handle) ----------
 SCY_LOOK.autumn_scythe = {
   lit: '#ffd88a',
@@ -418,180 +419,48 @@ paintPixel = ((prev) =>
     return rgbOf(c).map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
   })(paintPixel);
 
-// ---------- the owner's autumn pieces (his sheet, Nov 4 2026: art-source/autumn/autumn_sheet.png, cut and scaled to
-// the character by art-source/autumn/autumn_cut.py into www/assets/autumn/*_s.png, 1 picture px = 1 body px; placed
-// like his mockup of the character wearing them) ----------
-A.autumn_wings2 = 'assets/autumn/wings_s.png';
-// (the Leaf Headband was deleted with every hat, owner Nov 19 2026 build q)
-// (the Autumn Cape and its Cape slot were deleted, owner Nov 21 2026: out of the game, the chest and every bag)
-const autSwim = (c) => typeof swimPose === 'function' && !c.portrait && swimPose(c);
-// (owner: "animate the wings, up and down; flying, they open") the Autumn Wings are drawn here, each wing turned round
-// its shoulder (its inner top corner): standing, they rise and sink slowly; in the air they beat, opening wide (tips up
-// and spread) and closing again, a few times a second
-// (owner: "raise the wings on the back a bit, they're low") the pivots 10 body px higher than at first (66)
-const AUT_WING = { w: 129, pivL: [34, 56], pivR: [92, 56], img: { lx: 0, rx: 187, top: 52 }, big: 1.3 };
-// (owner, later: "bigger; jumping, just ONE beat"; "no animation standing; beat again on the double jump, riding
-// too"; then his raised-wings picture, art-source/autumn/wing_high.ase: "going up use the HIGH one, then mid, then
-// down; the beat must be fast, no slow motion") drawn AUT_WING.big times bigger round the shoulders. Standing they
-// keep still (mid). Leaving the ground and every air jump (the double jump: physics.js calls jumpLines, wrapped
-// below, noting P.airJumpT; other players show only the leaving-the-ground beat) play ONE quick beat of three
-// pictures, `AUT_BEAT` s each: HIGH (his raised wings, wings_hi_s.png), MID (the sheet's wings), LOW (the mid wings
-// turned tips-down by `AUT_LOW` rad), then back to mid until landing.
-const AUT_BEAT = 0.07,
-  AUT_LOW = 0.38,
-  // his raised wings: where each half sits (scaled px of wings_hi_s.png): the left half is x 0..141, the right one
-  // from 144; `at` = the half's top-left relative to its shoulder pivot (body px, before AUT_WING.big), so its root
-  // lands where the mid wing's root is
-  AUT_HI = { lw: 141, rx: 144, rw: 137, atL: [-139.8, -36.4], atR: [3.3, -36.4] },
-  AUT_AIR = new Map(); // per player: { t } = when the beat started
-A.autumn_wings_hi = 'assets/autumn/wings_hi_s.png';
-jumpLines = ((prev) =>
-  function (...a) {
-    P.airJumpT = now;
-    return prev(...a);
-  })(jumpLines);
-// (owner, Nov 7 2026: "take that effect off when stepping on the Up Arrow, the asteroid too: the wings' effect only
-// when jumping, Space or W") your leaving the ground beats the wings only if you pressed jump just before
-// (`P.jumpPressT`: a new press seen by the physics step: the jump key / touch button fills P.buf); being lifted by an
-// Up Arrow Gate, a Spring, an asteroid... keeps them still. Air jumps always need a press, so they still beat.
-const AUT_PRESS_MS = 300;
-step = ((prev) =>
-  function (dt) {
-    if (P.buf > (P.bufSeen || 0) + 0.001) P.jumpPressT = now; // a fresh press since the last step
-    const r = prev(dt);
-    P.bufSeen = P.buf;
-    return r;
-  })(step);
-// (owner, Nov 5 2026: "when jumping, autumn leaves come out from under the wings") every beat drops `AUT_SHED.n`
-// of his leaves (FALL_LEAF_BOX, random) from under each wing: they slip out a little sideways, then fall slowly,
-// swinging and turning, and fade. World particles (`parts`), so they stay where they fell out while you fly on.
-const AUT_SHED = { n: 3, art: 0.75, life: [1.1, 1.7], fall: [14, 26], out: [6, 18] };
-function autWingLeaves(c, im) {
-  const sc = CHAR_H / FR.h, // body px -> world px
-    W = AUT_WING.w * AUT_WING.big,
-    up = (AUT_WING.pivL[1] - AUT_WING.img.top) * AUT_WING.big,
-    low = (im.height * AUT_WING.big - up) * 0.55, // the wing's lower edge, below its shoulder
-    x0 = c.x + c.w / 2,
-    y0 = c.y + c.h - CHAR_H + FOOT_SINK;
-  for (const [side, piv] of [[-1, AUT_WING.pivL], [1, AUT_WING.pivR]])
-    for (let k = 0; k < AUT_SHED.n; k++) {
-      const along = 0.15 + Math.random() * 0.6, // where under the wing, root to tip
-        life = AUT_SHED.life[0] + Math.random() * (AUT_SHED.life[1] - AUT_SHED.life[0]);
-      parts.push({
-        x: x0 + (piv[0] - FR.w / 2 + side * W * along) * sc,
-        y: y0 + (piv[1] + low * (0.6 + Math.random() * 0.4)) * sc,
-        vx: side * (AUT_SHED.out[0] + Math.random() * (AUT_SHED.out[1] - AUT_SHED.out[0])),
-        vy: AUT_SHED.fall[0] + Math.random() * (AUT_SHED.fall[1] - AUT_SHED.fall[0]),
-        life,
-        life0: life,
-        plus: true,
-        draw: autWingLeaf,
-        n: fallLeafN(),
-        ph: Math.random() * 6.28,
-        spin: (Math.random() - 0.5) * 3,
-        c: '#000',
-      });
-    }
-}
-function autWingLeaf(p, ox, oy) {
-  const age = p.life0 - p.life,
-    sw = Math.sin(age * 4 + p.ph);
-  p.vx *= 0.94; // the sideways push dies down, then it just falls and swings
-  g.save();
-  g.imageSmoothingEnabled = true;
-  g.globalAlpha = Math.min(1, p.life * 1.5) * Math.min(1, age / 0.08);
-  g.translate(Math.round(ox + (p.x + sw * 2.5) * Z), Math.round(oy + p.y * Z));
-  g.rotate(sw * 0.7 + p.spin * age);
-  g.scale((Math.cos(age * 3 + p.ph) < -0.6 ? -1 : 1) * Math.min(1, 0.4 + age / 0.15), Math.min(1, 0.4 + age / 0.15));
-  drawFallLeaf(p.n, AUT_SHED.art * Z);
-  g.restore();
-}
-function drawAutumnWings(c, top, sc, dy) {
-  const im = IMG.autumn_wings2,
-    hi = IMG.autumn_wings_hi;
-  if (!im || !im.width) return;
-  const key = c.id || 'n:' + (c.name || ''),
-    // (riding the Leaf Glider / Cloud Ride the rider is drawn as if standing: `realGround`, rides.js)
-    air = (c.realGround !== undefined ? c.realGround : c.ground) === false && !c.portrait;
-  let S = AUT_AIR.get(key);
-  if (!air) AUT_AIR.delete(key);
-  else if (!S) AUT_AIR.set(key, (S = { t: now, still: !c.id && !(now - (P.jumpPressT || -1e9) < AUT_PRESS_MS) }));
-  if (air && !c.id && P.airJumpT > S.t) {
-    S.t = P.airJumpT; // you jumped again in the air: another beat
-    S.still = false;
-  }
-  if (S && !S.still && S.shed !== S.t) {
-    S.shed = S.t; // a new beat (leaving the ground or an air jump): leaves drop out from under both wings
-    autWingLeaves(c, im);
-  }
-  const kp = sc * Z, // body px -> screen (positions)
-    k = kp * AUT_WING.big, // the wing pictures, bigger
-    f = air && !S.still ? Math.floor((now - S.t) / 1000 / AUT_BEAT) : 9, // 0 high, 1 mid, 2 low, then mid
-    pose = f === 0 && hi && hi.width ? 'hi' : f === 2 ? 'low' : 'mid',
-    W = AUT_WING.w,
-    H = im.height,
-    up = AUT_WING.pivL[1] - AUT_WING.img.top;
-  for (const [side, piv, sx] of [[-1, AUT_WING.pivL, AUT_WING.img.lx], [1, AUT_WING.pivR, AUT_WING.img.rx]]) {
-    g.save();
-    g.translate((-FR.w / 2 + piv[0]) * kp, top + (piv[1] + dy) * kp);
-    if (pose === 'hi') {
-      const [ax, ay] = side < 0 ? AUT_HI.atL : AUT_HI.atR,
-        hx = side < 0 ? 0 : AUT_HI.rx,
-        hw = side < 0 ? AUT_HI.lw : AUT_HI.rw;
-      g.drawImage(hi, hx, 0, hw, hi.height, ax * k, ay * k, hw * k, hi.height * k);
-    } else {
-      if (pose === 'low') g.rotate(side * AUT_LOW); // tips down: the left wing anticlockwise, the right one clockwise
-      g.drawImage(im, sx, 0, W, H, side < 0 ? -W * k : 0, -up * k, W * k, H * k);
-    }
-    g.restore();
-  }
-}
-drawBehind = ((prev) =>
-  function (c, top, sc, dy) {
-    const eq = c.equipped || {},
-      wings = eq.back === 'autumn_wings' && !autSwim(c),
-      pass = typeof RIDE_PASS !== 'undefined' ? RIDE_PASS : 0;
-    if (!wings) return prev(c, top, sc, dy);
-    // (owner, Nov 8 2026: long hair was cut off by the Autumn Wings) back to front: the aura, the back item
-    // (other wings), the Autumn Wings, THEN the back of long hair, so the hair is never covered
-    const only = (e) => {
-      const c2 = Object.create(c);
-      c2.equipped = e;
-      return c2;
-    };
-    prev(only({ aura: eq.aura, back: wings ? null : eq.back }), top, sc, dy);
-    // on a seated ride (rides.js two passes) things behind the body go on the real canvas in pass 1, uncut by the
-    // seat, and are skipped in pass 2, like the aura / wings there
-    if (pass === 1) rideOnReal(() => autBehind(c, top, sc, dy, wings));
-    else if (pass !== 2) autBehind(c, top, sc, dy, wings);
-    prev(only({ ...eq, aura: null, back: null }), top, sc, dy);
-  })(drawBehind);
-function autBehind(c, top, sc, dy, wings) {
-  if (wings) drawAutumnWings(c, top, sc, dy);
-}
 
-// ---------- Autumn Wings: the owner's pair of maple-leaf wings on twigs (his sheet), behind the body like his mockup;
-// in the air they flap by squeezing sideways like the other picture wings ----------
-WEAR.push({
-  id: 'autumn_wings',
-  name: 'Autumn Wings',
-  slot: 'back',
-  rarity: 'Legendary',
-  wings: true,
-  strip: { img: 'autumn_wings2', frames: 1, ms: 1000, x: -95, y: 62, w: 316, h: 101, icon: [0, 0, 316, 101] },
-  desc: 'Big wings of glowing orange maple leaves on dark twigs, with amber buds on top. While you wear them you can jump once more in the air; land to get the jump back. From the Autumn Chest.',
-});
-WEAR_BY_ID.autumn_wings = WEAR[WEAR.length - 1];
-ITEMS.autumn_wings = { name: 'Autumn Wings', kind: 'clothing', slot: 'back', desc: WEAR_BY_ID.autumn_wings.desc + ' Wear it from your bag.', rarity: 'Legendary' };
+// ---------- leaf clothes (the Autumn Leaf Shirt / Shorts and the Autumn Boots were deleted with every shirt / pants /
+// shoe, owner Nov 19 2026 build p; their patterns 'leafy' and `boot` stay for new clothes) ----------
+// two staggered layers of leaves (every 9 px), each leaf its own turn and colour, over a dark rust base
+paintPixel = ((prev) =>
+  function (w, x, y, f) {
+    if (w.pat !== 'leafy') return prev(w, x, y, f);
+    let c = w.col;
+    for (const [G, o] of [[9, 0], [9, 4.5]])
+      for (let gy = Math.floor((y - o) / G) - 1; gy <= Math.floor((y - o) / G) + 1; gy++)
+        for (let gx = Math.floor((x - o) / G) - 1; gx <= Math.floor((x - o) / G) + 1; gx++) {
+          const cx = gx * G + o + G / 2 + (clHash(gx, gy + 31) - 0.5) * 4,
+            cy = gy * G + o + G / 2 + (clHash(gx + 17, gy) - 0.5) * 4,
+            q = autLeafAt(x + 0.5, y + 0.5, cx, cy, clHash(gx + 5, gy + o) * Math.PI, 11, 5.5);
+          if (q) c = autLeafCol(AUT_LEAF_RAMPS[Math.floor(clHash(gx + o, gy + 9) * 3)], q);
+        }
+    return rgbOf(c).map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
+  })(paintPixel);
+
+// ---------- Autumn Boots (owner: "the boots too, like the mockup"): brown boots with a cream sole and an orange cuff
+// with a light top edge. Painted on the feet of every body picture like the sneakers (wear.js outfitMasked: `pat:
+// 'sole'` gives the sole rows `col2`), so they walk with the legs; `bootTop` (row 183) carries them up the shins (wear.js),
+// `boot` paints the cuff on their top rows ----------
+paintPixel = ((prev) =>
+  function (w, x, y, f) {
+    if (!w.boot) return prev(w, x, y, f);
+    // up the shins from `bootTop` (wear.js outfitMasked); its top rows are the cuff: a light edge, orange, a dark line
+    const T = w.bootTop || 190,
+      c = y < T + 2 ? '#ffb04a' : y < T + 6 ? (x % 6 < 3 ? '#e8781e' : '#d0601a') : y < T + 7 ? '#3a1a0a' : w.col;
+    return rgbOf(c).map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
+  })(paintPixel);
+
+// (the Autumn Wings were deleted with every wearable but the pixel clothes and the rings, owner Nov 22 2026: out of
+// the chest; their pictures too)
 
 // ---------- the Autumn Chest: one random prize per chest ----------
 // [prize, chance %, how many]; gold: [min, max] gold as coins. ONE prize per chest, for GMs too (owner: "one item only;
-// the rare ones hard to get, the common and uncommon ones the most often"). Rarest first: wings, then the weather
-// machine, the scythe, gold, then the common blocks and wall (the clothes and the hat were deleted, Nov 19 2026).
+// the rare ones hard to get, the common and uncommon ones the most often"). Rarest first: the weather machine, gold,
+// then the common blocks and wall (the clothes and the hat were deleted Nov 19 2026; the wings and the scythe Nov 22).
 const AUTUMN_LOOT = [
-  ['autumn_wings', 0.5, 1], // Legendary
   ['fall_weather_machine', 1, 1], // Legendary
-  ['autumn_scythe', 2, 1], // Legendary
+  ['autumn_scythe', 2, 1], // Legendary (back in build j, Nov 22 2026)
   ['gold', 3, [5000, 10000]],
   ['autumn_leaf_block', 18, 10], // Uncommon
   ['maple_plank_block', 18, 10], // Uncommon
@@ -640,17 +509,4 @@ buy = ((prev) =>
     return prev(s);
   })(buy);
 
-// ---------- (owner, Nov 21 2026) the Autumn Cape is deleted: out of every world (drops, Display Boxes, Mannequins,
-// Vending Machines); bags and what you wear lose it by themselves (cleanInv: no ITEMS entry) ----------
-const AUT_GONE = 'autumn_cape';
-applyWorld = ((prev) =>
-  function (...a) {
-    const r = prev(...a);
-    try {
-      if (Array.isArray(drops)) for (let k = drops.length - 1; k >= 0; k--) if (drops[k] && drops[k].id === AUT_GONE) drops.splice(k, 1);
-      if (typeof displays !== 'undefined') for (const [i, id] of [...displays]) if (id === AUT_GONE) displays.delete(i);
-      if (typeof vends !== 'undefined') for (const [i, v] of [...vends]) if (v && v.id === AUT_GONE) vends.delete(i);
-      if (typeof manns !== 'undefined') for (const m of manns.values()) if (m) for (const sl in m) if (m[sl] === AUT_GONE) delete m[sl];
-    } catch (e) {}
-    return r;
-  })(applyWorld);
+// (the Autumn Cape, deleted Nov 21 2026, is in core/gone.js now with every other deleted item)

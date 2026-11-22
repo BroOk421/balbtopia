@@ -870,6 +870,25 @@ function drawSmoke(ox, oy) {
       a = p.ang + p.spin * u;
     const wx = p.cx + Math.cos(a) * r,
       wy = p.cy + Math.sin(a) * r - p.rise * ease;
+    if (p.img) {
+      // the owner's break puff (actions.js breakPuffs): from the centre straight out `out` px (ease-out), spinning
+      // round its own middle, growing a little, fading
+      const im = IMG[p.img];
+      if (!im || !im.width) continue;
+      const q = p.k * (1 + 0.2 * ease) * Z,
+        w = im.width * q,
+        h = im.height * q,
+        px2 = p.cx + Math.cos(p.dir) * p.out * ease,
+        py2 = p.cy + Math.sin(p.dir) * p.out * ease;
+      g.globalAlpha = 0.95 * (1 - u * u);
+      g.save();
+      g.translate(Math.round(ox + px2 * Z), Math.round(oy + py2 * Z));
+      g.rotate(p.rot0 + p.rot * p.t);
+      if (p.f) g.scale(-1, 1);
+      g.drawImage(im, -w / 2, -h / 2, w, h);
+      g.restore();
+      continue;
+    }
     // size in game px, in steps of 2 so the pixels stay crisp
     const D = Math.max(6, Math.min(40, Math.round(((p.s0 + p.sg * ease) * 2.1) / 2) * 2)),
       thin = u < 0.55 ? 0 : Math.min(3, Math.floor((u - 0.55) / 0.15) + 1),
@@ -896,7 +915,7 @@ function render() {
   g.clearRect(0, 0, cv.width, cv.height);
   drawBg();
   Sfx.loop('rain', weatherNow === 'rain' && inWorld); // rain sound while it rains (sound.js)
-  Sfx.loop('fireplace', inWorld, fireplaceVol()); // crackling fire near a Fireplace
+  Sfx.loop('fireplace', inWorld, fireplaceVol()); // crackling fire near a Fireplace, a lit Torch or Campfire
   // weather (rain / sand / leaves) sits behind the world, over the backdrop only (weather.js); the SNOW falls in front
   // of everything (owner, Nov 13 2026), see drawWeatherFlash below
   if (weatherNow === 'rain') drawRain();
@@ -920,7 +939,10 @@ function render() {
       const i = at(x, y);
       if (!bg[i]) continue;
       const b = fg[i] && BLOCK[fg[i]];
-      if (b && (b.sheet || b.art === 'dark')) continue;
+      // (owner, Nov 22 2026 build s: "the stone shows the weather behind it: with a background on the tile, the
+      // background must show; with none, the weather") ROCK is a round boulder on its tile: its background shows
+      // behind it like behind any decoration
+      if (b && (b.sheet || b.art === 'dark') && fg[i] !== ROCK) continue;
       const px = ox + x * T,
         py = oy + y * T;
       g.drawImage(bgImage(bg[i], i), px, py, T, T); // (i: the tile, for walls with one picture per tile, mooncrystals.js)
@@ -1746,30 +1768,68 @@ function bubbleLines(text, maxW) {
   if (line) lines.push(line);
   return lines;
 }
-function drawBubble(text, x, y, a) {
-  // (owner, Nov 13 2026: "a little smaller") 4 world px letters (was 5), lines and padding to match
-  g.font = `${4 * Z}px "Press Start 2P", monospace`;
-  const lines = bubbleLines(text, CHAT_BUBBLE_W * Z),
-    lh = 5.8 * Z,
-    w = Math.max(...lines.map((l) => g.measureText(l).width)) + 7 * Z,
-    h = lines.length * lh + 4.5 * Z;
-  g.globalAlpha = a;
-  g.fillStyle = '#fffaf0';
-  g.strokeStyle = '#1c1033';
-  g.lineWidth = Z;
+// (owner, Nov 22 2026: "the chat head and the signs in the inventory's style: gold border, the violet background,
+// white text, less padding, a bit smaller font, no arrow") then (build j, with the blue ALL button: "like this, just a
+// border round it, still shrunk to the chat") the box of the blue ALL button: a blue top-to-bottom gradient, a dark
+// navy edge, a darker band along the bottom, a thin light line along the top, white text with a dark shadow; it still
+// fits the text. u = the edge's thickness in screen px. (Used by drawBubble and signs.js drawSignBubble.)
+// (owner, Nov 22 2026 build k: "the chat: just make the background see-through") the chat bubble's inside
+const CHAT_BG_ALPHA = 0.6;
+const BAG_BOX = { top: '#4a8fe8', bot: '#2559c2', edge: '#10285c', text: '#ffffff', shadow: 'rgba(8,24,70,.8)' };
+// bg: the opacity of the inside only (the edge and the text stay solid); the chat bubble uses CHAT_BG_ALPHA
+function bagBox(x, y, w, h, r, u, bg = 1) {
+  const gr = g.createLinearGradient(0, y, 0, y + h),
+    a0 = g.globalAlpha;
+  gr.addColorStop(0, BAG_BOX.top);
+  gr.addColorStop(1, BAG_BOX.bot);
+  g.fillStyle = gr;
+  g.globalAlpha = a0 * bg;
   g.beginPath();
-  g.roundRect(x - w / 2, y - h, w, h, 3 * Z); // just the rounded box, no arrow under it (owner, Oct 29 2026)
+  g.roundRect(x, y, w, h, r);
   g.fill();
+  // the darker band along the bottom and the light line along the top, inside the edge
+  g.save();
+  g.beginPath();
+  g.roundRect(x + u, y + u, w - 2 * u, h - 2 * u, Math.max(0, r - u));
+  g.clip();
+  g.fillStyle = 'rgba(0,0,0,0.26)';
+  g.fillRect(x, y + h - u - Math.max(1, 1.5 * u), w, Math.max(1, 1.5 * u));
+  g.fillStyle = 'rgba(255,255,255,0.18)';
+  g.fillRect(x, y + u, w, Math.max(1, u));
+  g.restore();
+  g.globalAlpha = a0;
+  g.lineWidth = u;
+  g.strokeStyle = BAG_BOX.edge;
+  g.beginPath();
+  g.roundRect(x + u / 2, y + u / 2, w - u, h - u, Math.max(0, r - u / 2));
   g.stroke();
-  g.fillStyle = '#1c1033';
+}
+// white text with the ALL button's dark shadow under it (one screen px per world px down)
+function bagBoxText(t, x, y, k = Z) {
+  g.fillStyle = BAG_BOX.shadow;
+  g.fillText(t, x, y + Math.max(1, 0.45 * k));
+  g.fillStyle = BAG_BOX.text;
+  g.fillText(t, x, y);
+}
+function drawBubble(text, x, y, a) {
+  // (Nov 13 2026: 4 world px letters; Nov 22 2026: 3.4, less padding, the bag-slot look, still no arrow)
+  g.font = `${3.4 * Z}px "Press Start 2P", monospace`;
+  const lines = bubbleLines(text, CHAT_BUBBLE_W * Z),
+    lh = 5 * Z,
+    w = Math.max(...lines.map((l) => g.measureText(l).width)) + 6 * Z, // (build j: a little more room at the sides for the edge)
+    h = lines.length * lh + 4 * Z;
+  g.globalAlpha = a;
+  bagBox(x - w / 2, y - h, w, h, 1.6 * Z, Math.max(1, 0.6 * Z), CHAT_BG_ALPHA);
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  lines.forEach((l, k) => g.fillText(l, x, y - h + 2.25 * Z + lh * (k + 0.5) + Z * 0.4));
+  lines.forEach((l, k) => bagBoxText(l, x, y - h + 2 * Z + lh * (k + 0.5) + Z * 0.2));
   g.textBaseline = 'alphabetic';
   g.globalAlpha = 1;
 }
-// body px above the top of the body picture where every name tag sits (render.js, rest.js)
-const NAME_TOP = -26;
+// body px from the top of the body picture where every name tag sits (render.js, rest.js), 4 world px above it.
+// (owner, Nov 22 2026 build j: "the name is too far from the character, bring it down": was -26, the old hood height;
+// now just over the tallest worn thing: the spiky hairs reach body row 4, a hat lifted onto them about -14)
+const NAME_TOP = 4;
 // the name, with the player's flag (if any) at its left; the two are centred together on x. Returns the width.
 function drawNameTag(name, x, y, flag) {
   const ns = 1; // (the Name size setting was removed)
@@ -1785,7 +1845,7 @@ function drawNameTag(name, x, y, flag) {
     const fx = Math.round(x - total / 2),
       fy = Math.round(y - 0.3 * Z - fh),
       o = Math.max(1, Math.round(0.45 * Z));
-    g.fillStyle = 'rgba(20,10,30,.85)';
+    g.fillStyle = 'rgba(6,12,28,.85)';
     g.fillRect(fx - o, fy - o, fw + 2 * o, fh + 2 * o);
     g.imageSmoothingEnabled = false;
     g.drawImage(fc, fx, fy, fw, fh);
@@ -2138,23 +2198,40 @@ function drawSprout(put) {
   leaf(20.5, 5, 5, 2.4, -0.45);
   leaf(11.8, 5.8, 3.6, 1.8, Math.PI + 0.5);
 }
-// how loud the Fireplace crackle is: 1 standing on a Fireplace, fading in a straight line to 0 at FIRE_HEAR tiles
-// (owner: from the fireplace tile, gone by 5 tiles). Only the nearest Fireplace counts; only tiles within reach are checked.
+// how loud the fire crackle (sound.js loop 'fireplace', the owner's bonfire) is where you stand: 1 on the fire,
+// fading out with distance; the loudest fire counts. Only tiles within reach are checked.
+// - Fireplace: gone by FIRE_HEAR 5 tiles (owner).
+// - Torch (owner, Nov 22 2026: "the torch makes its sound when you come near, it goes when you walk away"): a LIT torch
+//   only, softer (`vol`), gone by 4 tiles.
+// - Campfire ("the bonfire like the boombox"): a LIT one, heard as far as the Boombox (liven.js BOOM_HEAR 12 tiles),
+//   with the same smooth fade (loud near it, gentle at the edge).
+// A torch / campfire that is switched off (vari ANIM_OFF) is silent.
 const FIRE_HEAR = 5;
+const FIRE_SOUNDS = [
+  { id: 'fireplace', hear: FIRE_HEAR, vol: 1, lit: false, smooth: false },
+  { id: 'torch', hear: 4, vol: 0.55, lit: true, smooth: false },
+  { id: 'campfire', hear: 12, vol: 1, lit: true, smooth: true },
+];
 function fireplaceVol() {
   if (!inWorld) return 0;
-  const T = ITEMS.fireplace && ITEMS.fireplace.block;
-  if (!T) return 0;
-  const px = (P.x + P.w / 2) / TS,
+  const srcs = FIRE_SOUNDS.map((f) => ({ ...f, t: ITEMS[f.id] && ITEMS[f.id].block })).filter((f) => f.t);
+  if (!srcs.length) return 0;
+  const R = Math.max(...srcs.map((f) => f.hear)),
+    px = (P.x + P.w / 2) / TS,
     py = (P.y + P.h / 2) / TS;
-  let best = FIRE_HEAR;
-  for (let y = Math.floor(py - FIRE_HEAR); y <= Math.ceil(py + FIRE_HEAR); y++)
-    for (let x = Math.floor(px - FIRE_HEAR); x <= Math.ceil(px + FIRE_HEAR); x++) {
-      if (!inW(x, y) || fg[at(x, y)] !== T) continue;
-      // tile centre to your centre: 0 on the Fireplace, 5 when it is 5 tiles away (silent)
-      best = Math.min(best, Math.hypot(x + 0.5 - px, y + 0.5 - py));
+  let v = 0;
+  for (let y = Math.floor(py - R); y <= Math.ceil(py + R); y++)
+    for (let x = Math.floor(px - R); x <= Math.ceil(px + R); x++) {
+      if (!inW(x, y)) continue;
+      const i = at(x, y),
+        f = srcs.find((q) => q.t === fg[i]);
+      if (!f || (f.lit && vari[i] & ANIM_OFF)) continue;
+      // tile centre to your centre: 1 on it, 0 at `hear` tiles
+      const d = Math.hypot(x + 0.5 - px, y + 0.5 - py),
+        u = Math.max(0, 1 - d / f.hear);
+      v = Math.max(v, f.vol * (f.smooth ? u * u * (3 - 2 * u) : u));
     }
-  return 1 - best / FIRE_HEAR;
+  return v;
 }
 
 // A floating item drop (owner, Oct 27 2026, his picture; Nov 7 2026: a thin rounded dark-magenta box): the item inside; with more than

@@ -6,7 +6,9 @@
 // Picked-up items (owner): a NEW item goes on a free hotbar slot (2-4) when there is one, else into the bag.
 // Loaded after hotbar.js (ui.js's functions and elements are there).
 // ===== dock =====
-const DOCK_MAX_H = () => Math.round(Math.min(window.innerHeight * 0.52, 300)); // the open drawer's height (px)
+// the open drawer's height (px); (build zd) a little taller on a PC, where the slots are bigger (css/dock.css)
+const DOCK_PC = () => matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches && !document.body.classList.contains('touch');
+const DOCK_MAX_H = () => Math.round(Math.min(window.innerHeight * 0.52, DOCK_PC() ? 380 : 300));
 (function dockSetup() {
   const wrap = $('wrap') || document.body,
     hotbar = $('hotbar'),

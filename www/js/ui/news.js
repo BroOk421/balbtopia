@@ -239,7 +239,7 @@ function openNewsEdit() {
 // ---------- the scroll button (top right, next to SHOP) ----------
 const NEWS_SCROLL_SVG =
   '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 4h11a3 3 0 0 1 0 6h-1v8a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h1V7a3 3 0 0 1 3-3" fill="#fff"/>' +
-  '<path d="M7 15v3M10 8h5M10 11h5M10 14h3" stroke="#3a2a5a" stroke-width="1.4" stroke-linecap="round" fill="none"/><circle cx="17" cy="7" r="1.6" fill="#d8d0e8"/><circle cx="6" cy="18" r="1.6" fill="#d8d0e8"/></svg>';
+  '<path d="M7 15v3M10 8h5M10 11h5M10 14h3" stroke="#1e3560" stroke-width="1.4" stroke-linecap="round" fill="none"/><circle cx="17" cy="7" r="1.6" fill="#d8d0e8"/><circle cx="6" cy="18" r="1.6" fill="#d8d0e8"/></svg>';
 const newsBtn = document.createElement('button');
 newsBtn.id = 'newsBtn';
 newsBtn.className = 'newsbtn';
@@ -305,7 +305,7 @@ showPlayBox = ((prev) =>
 {
   const st = document.createElement('style');
   st.textContent = [
-    '.newsbtn{position:relative;flex:none;width:38px;height:38px;box-sizing:border-box;display:grid;place-content:center;padding:0;border-radius:6px;border:2px solid var(--line);background:rgba(28,16,51,.82);cursor:pointer}',
+    '.newsbtn{position:relative;flex:none;width:38px;height:38px;box-sizing:border-box;display:grid;place-content:center;padding:0;border-radius:6px;border:2px solid var(--line);background:rgba(10,21,48,.82);cursor:pointer}',
     '.newsbtn:hover{border-color:var(--glow)}',
     // (owner: "a red number like the world chat's") the same tag as the Global Chat's: white number on red
     '.newsbtn .badge{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;box-sizing:border-box;padding:0 4px;border-radius:9px;' +

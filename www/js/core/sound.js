@@ -5,6 +5,12 @@
 // the first tap or key (browsers and phones only allow sound after the player does something).
 // Menu -> Settings -> Sound turns them off (settings.sound).
 // ===== sound =====
+// (owner, Nov 22 2026 build t: "when he gets burned, above all by lava, use the death sound; the sound it had for a burn
+// goes to breaking") SFX_BURN = the death sound ('ouch'), SFX_BREAK = the old burn sound ('fire'), for a block /
+// background / tree / asteroid that breaks; a tool's hit before the break still plays 'break' (actions.js startPunch)
+// (owner, build zf: "put the old break sound back") SFX_BREAK is the old 'break' sound again; the burn keeps 'ouch'
+const SFX_BURN = 'ouch',
+  SFX_BREAK = 'break';
 const Sfx = (() => {
   // (Nov 11 2026, owner's factory sounds, played by machines.js machSound, quieter with distance): steam_hiss = Steam
   // Pipes / Suction Intakes, lift_gate = a Lift Gate slamming shut, factory_gate = a Factory Gate opening (only the

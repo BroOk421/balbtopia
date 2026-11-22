@@ -18,8 +18,8 @@
 //   ("Laser: READY" or the time left). The total is the Moon's count when it was built (world `ast0`).
 // - FOSSILS: Ammonite / Fish / Dino Skull Fossil (materials) in ROCK_LOOT.
 // - STOVE: the Legendary Stone recipe (runs before every other Stove recipe).
-// - SCYTHES: Golden / Flame / Garden / Dark / Furious Scythe recipes removed (config.js SPLICE + farming.json); they
-//   are sold in the Shop TOOLS tab (schema.sql shop_prices rows: RE-RUN schema.sql).
+// - SCYTHES: Golden / Flame / Garden / Dark / Furious and the Nocturn are sold in the Shop TOOLS tab (schema.sql
+//   shop_prices rows); the Iron Scythe has a recipe (Knife + Grass). (Deleted Nov 22 2026 build b, back in build j.)
 // - Old Moon names MOON, MOON6-9 are closed to everyone but the GM (`MOON_RETIRED`).
 // ===== asteroids =====
 
@@ -64,7 +64,9 @@ worldHidden = ((prev) =>
 
 // ---------- the Laser Gun ----------
 const LASER_ID = 'laser_gun',
-  LASER_CD = 15 * 60 * 1000, // one shot, then 15 minutes to charge
+  // (owner, Nov 22 2026 build n: "the Laser Gun unlimited for the asteroids") no charging any more: every click on an
+  // asteroid works (was 15 minutes after each shot); the HUD always says READY (FIRING while a shot runs)
+  LASER_CD = 0,
   LASER_REACH = 6, // tiles: how far a shot reaches a floating asteroid (Moon Rock tiles: the normal reach)
   LASER_BEAM_MS = 320,
   LASER_KEY = 'balb_laser:';
@@ -103,7 +105,7 @@ TOOLS[LASER_ID] = {
 ITEMS[LASER_ID] = { name: 'Laser Gun', kind: 'tool', tool: TOOLS[LASER_ID], rarity: 'Epic' };
 // (build z: the countdown is not in the text any more; the item info shows it live under Status, below)
 ITEMS[LASER_ID].desc = TOOLS[LASER_ID].desc =
-  'A white and red space blaster from the Astronaut Set. On the Moons it is the only thing that breaks asteroids: hold it and click an asteroid once; the laser burns it for a few seconds, cracking it bit by bit until it breaks. Then it needs 15 minutes to charge before the next asteroid. Moon Sand and walls still break the normal way.';
+  'A white and red space blaster from the Astronaut Set. On the Moons it is the only thing that breaks asteroids: hold it and click an asteroid once; the laser burns it for a few seconds, cracking it bit by bit until it breaks. No charging: shoot as many asteroids as you like. Moon Sand and walls still break the normal way.';
 // ---------- gun pictures (build za, owner, with two reference pictures: "make the laser gun look like this" - a
 // silver ray gun with a glowing green tank on top, green coils in rings at the front and green waves out of the tip -
 // "and the water gun like this" - a blue super soaker with a green tank, orange parts and a white nozzle) ----------
@@ -479,7 +481,7 @@ setInterval(() => {
 if (typeof ASTRO_SET !== 'undefined') {
   ASTRO_SET.extra = [LASER_ID];
   ITEMS[ASTRO_SET.id].desc =
-    'You get: a Laser Gun. It goes in your bag. The Laser Gun is the only thing that breaks asteroids (one shot every 15 minutes).';
+    'You get: a Laser Gun. It goes in your bag. The Laser Gun is the only thing that breaks asteroids (as many shots as you like).';
 }
 // players who bought the set before the gun existed: one Laser Gun, once (per player, on this device)
 const LASER_GRANT_KEY = 'balb_laser_grant:';
@@ -512,7 +514,7 @@ setInterval(laserGrant, 5000);
 // the gun to it, it glows green and is PULLED in front of the gun (a floating one moves there, its position sent to the
 // others; a Moon Rock tile is lifted out: the tile isn't drawn and its picture flies there), cracking in 3 steps. Then
 // it bursts in front of the gun (normal loot roll) and the drop is put on you, so the pickup flies it into the bag.
-// The 15-minute charge starts then. Stopping early (gone, out of reach, gun away, dead, rocket) uses nothing.
+// (No charge after it since build n, Nov 22 2026: unlimited shots.)
 const LASER_CHANNEL = 3000,
   LASER_PULL = 0.62, // share of the time the pull takes; then it sits in front of the gun cracking
   LASER_QUICK_MS = 150, // the quick beam of an ordinary break
@@ -609,13 +611,12 @@ function laserDone(ch) {
       ptr.y = sy;
     }
     broke = fg[i] !== MOON_ROCK_T;
-    if (broke) smoke(t.x / TS - 0.5, t.y / TS - 0.5, 12, 1.5); // it bursts where its picture was: in front of the gun
+    if (broke) breakPuffs(t.x / TS - 0.5, t.y / TS - 0.5); // it bursts where its picture was: in front of the gun (the owner's break smoke)
   }
   laserCh = null;
   P.punch = null;
   laserRadEnd();
   if (!broke) return;
-  burst(t.x / TS - 0.5, t.y / TS - 0.5, ['#3ef05a', '#9dff9a', '#eaffe8', '#4c4670'], 18);
   laserLootToBag(before);
   laserUsed();
   Native.haptic('heavy');
@@ -1090,7 +1091,7 @@ stoveCook = ((prev) =>
   })(stoveCook);
 if (ITEMS.stove) ITEMS.stove.desc += ' Legendary Stone: 5 White Crystals + 5 Black Crystals + 15 Glowing Stones + 10 Green Acid (only a 5% chance; it usually fails and nothing comes out).';
 
-// ---------- the scythes: only the Iron Scythe has a recipe, the others are sold in the Shop ----------
+// ---------- the scythes: only the Iron Scythe has a recipe, the others are sold in the Shop (deleted Nov 22 2026 b, back in build j) ----------
 const SCYTHE_SHOP = [
   ['garden_scythe', 15000],
   ['golden_scythe', 30000],

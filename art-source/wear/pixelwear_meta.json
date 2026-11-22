@@ -400,5 +400,27 @@
   "poses": [
    "idle"
   ]
+ },
+ "black_beanie": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "frog_hood": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "six_pack_abs": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
  }
 }

@@ -1,30 +1,13 @@
 // Music things and wearable Holey Pants (owner, Nov 10 2026).
-// - GUITAR (id leaf_blower): "put the guitar in music, not with the ordinary items; only when they buy it does it show
-//   up in their bag, like the piano". No recipe any more (taken out of SPLICE, config.js and farming.json; its seed is
-//   retired, old seeds still grow), so it is never in the Starter Pack either. Shop MUSIC tab, GUITAR_GOLD.
-// - MUSIC SET (set_music, Shop MUSIC, 20,000 like the outfit sets; + Piano, Drum Set, Boombox): "a music character set: t-shirt, pants, shoes and
-//   holding a guitar". New pieces: Music Tee (black, two gold beamed notes on the chest: a tees.js print 'note'),
-//   Rocker Jeans (dark ripped jeans: pattern 'holey'), Rocker Sneakers (black, white soles) and the Guitar in the Hand
-//   slot. The pieces are set-only (no recipes, not in the Starter Pack).
+// - (the GUITAR, id leaf_blower, was deleted with every code-drawn weapon, owner Nov 22 2026)
+// - MUSIC SET (set_music, Shop MUSIC, 20,000 like the outfit sets): a Piano, a Drum Set and a Boombox. (Its Music Tee,
+//   Rocker Jeans and Rocker Sneakers were deleted Nov 19 2026, its Guitar Nov 22 2026.)
 // - HOLEY PANTS: "the pants should be wearable" -> a Pants-slot clothing now (faded blue jeans, ripped: pattern 'holey'
 //   = dark holes with white frayed threads round them), still fished up (fishjunk.js keeps it in JUNK).
 // - (The Octopus Beard was deleted with every beard, owner Nov 19 2026 build o.)
-// Server (schema.sql shop_prices): 'leaf_blower' 5,000 and 'set_music' 20,000: RE-RUN schema.sql.
+// Server (schema.sql shop_prices): 'set_music' 20,000.
 // Loaded before main.js, after tees.js, sets.js, music.js, fish.js and fishjunk.js.
 // ===== musicset =====
-const GUITAR_ID = 'leaf_blower',
-  GUITAR_GOLD = 5000;
-
-// ---------- the Guitar: Shop only ----------
-for (const k in SPLICE) if (SPLICE[k] === GUITAR_ID) delete SPLICE[k];
-if (ITEMS[GUITAR_ID + '_seed']) ITEMS[GUITAR_ID + '_seed'].retired = true;
-if (ITEMS[GUITAR_ID]) {
-  ITEMS[GUITAR_ID].desc = ITEMS[GUITAR_ID].desc.replace(/\s*[^.]*=[^.]*\+[^.]*\.\s*$/, '').trim();
-  if (TOOLS[GUITAR_ID]) TOOLS[GUITAR_ID].desc = ITEMS[GUITAR_ID].desc;
-}
-SHOP.push({ id: GUITAR_ID, gold: GUITAR_GOLD, cat: 'music' });
-// (data/farming.json, loaded later, skips it: config.js loadFarming leaves out results whose seed is retired)
-
 // ---------- new clothes ----------
 // (owner, Nov 19 2026 build p) the Music Tee, Rocker Jeans, Rocker Sneakers and Holey Pants were deleted with every
 // shirt / pants / shoe; addWear stays (other files use it), and so do the note print and the ripped pattern below.
@@ -82,7 +65,7 @@ paintPixel = ((prev) =>
 // piano out, put it in music") the set also gives a Piano, a Drum Set (drums.js: plays with sound) and a Boombox, and
 // it is sold in the MUSIC tab now; the Piano alone is no longer sold (it comes with the set).
 {
-  const st = { id: 'set_music', name: 'Music Set', skin: 'tan', eq: { hand: GUITAR_ID }, extra: ['piano', 'drum_set', 'boombox'] };
+  const st = { id: 'set_music', name: 'Music Set', skin: 'tan', eq: {}, extra: ['piano', 'drum_set', 'boombox'] };
   OUTFIT_SETS.push(st);
   SET_BY_ID[st.id] = st;
   ITEMS[st.id] = { name: st.name, kind: 'set', desc: 'You get: ' + setPieces(st.id).map((p) => ITEMS[p].name).join(', ') + '. They go in your bag.', rarity: 'Rare', retired: true };

@@ -115,7 +115,6 @@ const TWO_HAND = {
   [MEGA_GUN]: { at: ((rx, ry) => [7 + ((rx - 33 + ry - 43) * Math.SQRT1_2) / 4, 25 + ((ry - 43 - (rx - 33)) * Math.SQRT1_2) / 4])(61, 47), when: 'shoot' },
   water_gun: { at: [14.5, 16.5], when: 'shoot' }, // under the barrel, on the pump
   [LASER_ID]: { at: [13.5, 17], when: 'shoot' }, // under the silver barrel
-  leaf_blower: { at: [24.5, 10.9], when: 'hold', reach: 1.4 }, // under the Guitar's neck, the arm stretched out (behind the guitar)
 };
 const TWO_HAND_STRETCH = [0.8, 1.2];
 let twoHandTodo = null; // the front arm waiting to be drawn, behind the tool (twoHandArm)
