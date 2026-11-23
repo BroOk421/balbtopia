@@ -168,6 +168,11 @@ function drawWaterTile(x, y, ox, oy, T) {
     radii = [top && !left ? r : 0, top && !right ? r : 0, floating && !right ? r : 0, floating && !left ? r : 0],
     round = radii.some((v) => v) && typeof g.roundRect === 'function';
   g.save();
+  // (owner, Nov 23 2026: "the line goes past its own tile, it should animate only inside the tile") everything is
+  // clipped to the tile's own columns (the waves may still rise a little over the surface)
+  g.beginPath();
+  g.rect(px, sy - Z * 3, T, py + T - sy + Z * 3);
+  g.clip();
   if (round) {
     g.beginPath();
     g.roundRect(px, sy, T, py + T - sy, radii);
@@ -180,6 +185,9 @@ function drawWaterTile(x, y, ox, oy, T) {
     g.restore();
     g.save();
     g.beginPath();
+    g.rect(px, sy - Z * 3, T, py + T - sy + Z * 3);
+    g.clip();
+    g.beginPath();
     g.roundRect(px, sy - Z * 3, T, py + T - sy + Z * 3, radii.map((v) => (v ? v + Z * 3 * 0.6 : 0)));
     g.clip();
   }
@@ -190,15 +198,21 @@ function drawWaterTile(x, y, ox, oy, T) {
       const wx = px + (k * T) / 8,
         off = Math.sin(now / 420 + (x * 8 + k) * 0.8) * wv;
       g.fillStyle = 'rgba(200,240,255,.85)';
-      g.fillRect(wx, sy + off - Z, T / 8 + 0.5, Z * 1.2);
+      const ww = Math.min(T / 8 + 0.5, px + T - wx); // (the last piece ends at the tile's edge)
+      g.fillRect(wx, sy + off - Z, ww, Z * 1.2);
       g.fillStyle = 'rgba(90,170,240,.5)';
-      g.fillRect(wx, sy + off + Z * 0.2, T / 8 + 0.5, Z);
+      g.fillRect(wx, sy + off + Z * 0.2, ww, Z);
     }
   }
   // a few drifting light streaks
   g.fillStyle = 'rgba(200,240,255,.18)';
-  const s = (now / 1600 + x * 0.37 + y * 0.61) % 1;
-  g.fillRect(px + T * s, py + T * 0.55, T * 0.18, Z);
+  // (it slides across its own tile; the part past the right edge comes back in on the left, so it never leaves it)
+  const s = (now / 1600 + x * 0.37 + y * 0.61) % 1,
+    sw = T * 0.18,
+    sx = T * s,
+    over = Math.max(0, sx + sw - T);
+  g.fillRect(px + sx, py + T * 0.55, sw - over, Z);
+  if (over > 0) g.fillRect(px, py + T * 0.55, over, Z);
   g.restore();
 }
 

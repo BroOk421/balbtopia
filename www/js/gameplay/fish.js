@@ -8,7 +8,7 @@
 //   bobs; after a while something bites (the float jerks under, "!" and splashes) for BITE_MS. A NEW click anywhere
 //   while it bites = caught: the fish flies along the line to you and goes into the bag (a toast with its weight in lb,
 //   "New record!" for your heaviest of that kind: `fishRec`). A click before the bite = reel in (no bait used); the
-//   bite missed = "It got away" and it waits for the next one. Clicking a block with the rod still punches it.
+//   bite missed = "It got away" and the line comes back in (Nov 23 2026: click the water again). Clicking a block with the rod still punches it.
 //   Only you see your line (drawn on your screen).
 // - Fish (kind 'fish', FISH_LIST): each animal in 3 sizes (Small 50-105 lb, Medium 110-150, Large 160-200), each its own item.
 // - Aquarium (384, walk-through, Glass Block + Water Bucket): see-through dark glass. Hold a fish and click it (or wrench it
@@ -569,10 +569,9 @@ function stepFishing() {
     Sfx.play('water', 0.6);
     Native.haptic('light');
   } else if (F.st === 'bite' && now - F.t0 >= BITE_MS) {
-    F.st = 'wait';
-    F.t0 = now;
+    // (owner, Nov 23 2026) missed: the line comes back in, cast again
+    fishing = { ...F, st: 'back', t0: now, fromX: F.x, fromY: F.y };
     toast('It got away!');
-    nextBite();
   } else if ((F.st === 'back' && now - F.t0 >= BACK_MS) || (F.st === 'catch' && now - F.t0 >= CATCH_MS)) fishing = null;
 }
 function drawFishing(ox, oy) {

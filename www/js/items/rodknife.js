@@ -11,8 +11,8 @@
 // - A BITE: the rod's front bends down (drawn column by column, `rodBend`) and the CATCH BAR pops up over you: a fish
 //   swims left and right in a track, you move the green bar with the walk keys (left / right; you don't walk while it
 //   is up) to keep it on the fish; the progress bar under it fills while the fish is in the green and drains while it
-//   isn't. Full = caught (fish.js reel: bait, bag, records as before), empty = "It got away!" and you wait for the next
-//   bite. Bigger fish move faster and turn more often (`MG`). Clicks do nothing while the bar is up.
+//   isn't. Full = caught (fish.js reel: bait, bag, records as before), empty = "It got away!" and the line comes back
+//   in (Nov 23 2026): click the water again to cast for the next one. Bigger fish move faster and turn more often (`MG`). Clicks do nothing while the bar is up.
 // Loaded last before main.js (after fish.js, blockybody.js, shadow.js).
 // ===== held rod / knife, catch bar =====
 Object.assign(A, {
@@ -176,11 +176,10 @@ function mgStep(F) {
     F.mg = null;
     reel(); // fish.js: still 'bite', so this is the catch (bait, bag room, records, toast)
   } else if (m.prog <= 0) {
-    F.mg = null;
-    F.st = 'wait';
-    F.t0 = now;
+    // (owner, Nov 23 2026: "when the fish isn't caught it should reset, not go on: click the water again to fish") the
+    // line comes back in; cast again for the next one (the bait isn't used)
+    fishing = { ...F, mg: null, st: 'back', t0: now, fromX: F.x, fromY: F.y };
     toast('It got away!');
-    nextBite();
   }
 }
 stepFishing = ((prev) =>
@@ -221,16 +220,84 @@ step = ((prev) =>
       K.forEach((k, i) => (keys[k] = held[i]));
     }
   })(step);
-// the bar over your head (screen px)
+// the bar over your head (screen px). (owner, Nov 23 2026: "don't show the specific fish, just a fish; make the bar
+// less tall and wider; inside it a design like water with sea life") the track is a little sea: water getting darker
+// down, a sandy floor with seaweed swaying, coral, rocks, a starfish and a shell, bubbles rising, light glinting on
+// top; the fish you chase is one plain orange fish (`MG_FISH`), whatever is really on the line.
+const MG_BAR = { w: 104, h: 9, prog: 2 }; // bar px: track width / height, progress bar height
+const MG_FISH = ['....KKKKKK.', 'KK.KOOOOEOK', 'KOKOOOOOOOK', 'KK.KLLLLLLK', '....KKKKKK.'], // facing right
+  MG_FISH_COL = { K: '#1c1033', O: '#ff8a2a', L: '#ffd08a', E: '#14101c' };
+// the sea's still things: [x, kind, height] in bar px (s seaweed, c coral, r rock, t starfish, h shell)
+const MG_SEA = [[5, 's', 5], [12, 'r', 2], [19, 's', 4], [27, 'c', 3], [36, 's', 6], [44, 't', 1], [52, 's', 3], [60, 'h', 1], [67, 'c', 4], [75, 's', 5], [83, 'r', 2], [89, 's', 4], [97, 'c', 2], [100, 's', 3]];
+function drawMgSea(x0, y0, u) {
+  const W = MG_BAR.w,
+    H = MG_BAR.h,
+    p = (i, j, c) => {
+      if (i < 0 || i >= W || j < 0 || j >= H) return;
+      g.fillStyle = c;
+      g.fillRect(x0 + i * u, y0 + j * u, u, u);
+    };
+  // water, lighter at the top
+  const WATER = ['#4a9ad0', '#3a86bc', '#3078ac', '#2a6c9e', '#26628f', '#225884', '#1f5079', '#1c4a70'];
+  for (let j = 0; j < H; j++) {
+    g.fillStyle = WATER[Math.min(WATER.length - 1, j)];
+    g.fillRect(x0, y0 + j * u, W * u, u);
+  }
+  // light glinting on the surface, sliding along
+  for (let k = 0; k < 6; k++) {
+    const i = Math.floor((k * 19 + now / 140) % W);
+    p(i, 0, '#bfe6ff');
+    p((i + 1) % W, 0, '#8ccaf0');
+  }
+  // the sandy floor (the bottom row), a few darker grains
+  for (let i = 0; i < W; i++) p(i, H - 1, (i * 7) % 11 < 2 ? '#b08a4a' : '#d8b874');
+  // the floor's things
+  for (const [x, k, h] of MG_SEA) {
+    if (k === 's') {
+      // seaweed: a stalk swaying more towards its top, a lighter side
+      for (let j = 0; j < h; j++) {
+        const sw = Math.round(Math.sin(now / 520 + x * 0.7 + j * 0.6) * (j / h) * 1.4);
+        p(x + sw, H - 2 - j, j % 2 ? '#3aa04a' : '#2a7a3a');
+        if (j === h - 1) p(x + sw, H - 2 - j, '#62d070');
+      }
+    } else if (k === 'c') {
+      // coral: a little pink branching clump
+      for (let j = 0; j < h; j++) p(x, H - 2 - j, '#e8607a');
+      p(x - 1, H - 3, '#ff8aa0');
+      if (h > 2) p(x + 1, H - 4, '#ff8aa0');
+      if (h > 3) p(x - 1, H - 5, '#ff8aa0');
+    } else if (k === 'r') {
+      p(x, H - 2, '#6a7888');
+      p(x + 1, H - 2, '#4a5868');
+      if (h > 1) p(x, H - 3, '#8494a4');
+    } else if (k === 't') {
+      p(x, H - 2, '#ffa040');
+      p(x - 1, H - 2, '#ff8030');
+      p(x + 1, H - 2, '#ff8030');
+    } else if (k === 'h') {
+      p(x, H - 2, '#fff0e0');
+      p(x + 1, H - 2, '#f0c8b0');
+    }
+  }
+  // bubbles rising from the seaweed, popping at the top
+  for (let k = 0; k < 7; k++) {
+    const sp = 1800 + (k % 3) * 500,
+      u0 = ((now + k * 977) % sp) / sp,
+      x = MG_SEA[(k * 3) % MG_SEA.length][0] + Math.round(Math.sin(now / 300 + k) * 0.8),
+      j = Math.round((H - 2) * (1 - u0));
+    if (j >= 1) p(x, j, 'rgba(225,245,255,.75)');
+  }
+}
 function drawCatchBar(ox, oy) {
   const F = fishing,
     m = F && F.mg;
   if (!m) return;
   const u = Math.max(2, Math.round(Z * 2)), // one bar pixel (2 screen px at zoom 1)
-    W = 64 * u,
-    H = 12 * u,
+    W = MG_BAR.w * u,
+    H = MG_BAR.h * u,
+    PH = MG_BAR.prog * u,
     cx = Math.round(ox + (P.x + P.w / 2) * Z),
-    y0 = Math.round(oy + (P.y + P.h - CHAR_H) * Z) - 34 * u,
+    y0 = Math.round(oy + (P.y + P.h - CHAR_H) * Z) - 24 * u,
     x0 = cx - W / 2,
     pop = Math.min(1, (now - F.t0) / 160); // grows in
   g.save();
@@ -238,50 +305,49 @@ function drawCatchBar(ox, oy) {
   g.scale(pop, pop);
   g.translate(-cx, -(y0 + H));
   g.imageSmoothingEnabled = false;
-  // frame
+  // frame (round the track and the progress bar under it)
   g.fillStyle = '#14101c';
-  g.fillRect(x0 - 2 * u, y0 - 2 * u, W + 4 * u, H + 4 * u + 7 * u);
-  g.fillStyle = '#2a4a6a';
-  g.fillRect(x0, y0, W, H); // the water track
-  g.fillStyle = '#3a6a90';
-  g.fillRect(x0, y0, W, 2 * u);
-  // the green bar
+  g.fillRect(x0 - u, y0 - u, W + 2 * u, H + PH + 3 * u);
+  // the sea
+  drawMgSea(x0, y0, u);
+  // the green bar: see-through so the sea shows, bright edges
   const gw = Math.round(m.w * W),
     gx = Math.round(x0 + m.bar * W - gw / 2);
-  g.fillStyle = m.on ? '#5ae05a' : '#3aa83a';
-  g.fillRect(gx, y0 + u, gw, H - 2 * u);
-  g.fillStyle = 'rgba(255,255,255,.35)';
-  g.fillRect(gx, y0 + u, gw, u);
-  // the fish
+  g.fillStyle = m.on ? 'rgba(90,224,90,.38)' : 'rgba(58,168,58,.3)';
+  g.fillRect(gx, y0, gw, H);
+  g.fillStyle = m.on ? '#8aff7a' : '#5ae05a';
+  g.fillRect(gx, y0, u, H);
+  g.fillRect(gx + gw - u, y0, u, H);
+  // the fish: a plain fish (not the real one), facing the way it swims
   const fx = x0 + m.fish * W,
-    fy = y0 + H / 2,
-    fl = 10 * u;
+    fy = y0 + Math.round(H / 2 - 2.5 * u + Math.sin(now / 120) * u * 0.5);
   g.save();
-  g.translate(fx, fy + Math.sin(now / 120) * u * 0.6);
+  g.translate(Math.round(fx), fy);
   if (m.to < m.fish) g.scale(-1, 1);
-  if (F.f && FISH_BY[F.f.id]) drawFishAt(g, F.f.id, fl, Math.floor(now / 90));
-  else {
-    // something that isn't a fish on the line: a dark fish shape (what it is shows when it comes up)
-    const rows = ['..KKKK..K', '.KKKKKKKK', 'KKWKKKKK.', '.KKKKKKKK', '..KKKK..K'];
-    g.fillStyle = '#1e2a3a';
-    rows.forEach((r, j) => [...r].forEach((ch, i) => ch !== '.' && g.fillRect((i - 4.5) * u * 0.9, (j - 2.5) * u * 0.9, u * 0.9, u * 0.9)));
-    g.fillStyle = '#e8f0ff';
-    g.fillRect((2 - 4.5) * u * 0.9, (2 - 2.5) * u * 0.9, u * 0.9, u * 0.9);
-  }
+  const tail = Math.floor(now / 140) % 2; // the tail flicks
+  MG_FISH.forEach((row, j) =>
+    [...row].forEach((ch, i) => {
+      if (ch === '.' || (tail && i === 0 && (j === 1 || j === 3))) return;
+      g.fillStyle = MG_FISH_COL[ch];
+      g.fillRect((i - 5.5) * u, j * u, u, u);
+    })
+  );
   g.restore();
-  // progress
-  const py = y0 + H + 2 * u;
+  // progress (thin, as wide as the track)
+  const py = y0 + H + u;
   g.fillStyle = '#3a2a1a';
-  g.fillRect(x0, py, W, 4 * u);
+  g.fillRect(x0, py, W, PH);
   g.fillStyle = m.prog > 0.66 ? '#5ae05a' : m.prog > 0.33 ? '#ffd23f' : '#ff6a3a';
-  g.fillRect(x0, py, Math.round(W * m.prog), 4 * u);
+  g.fillRect(x0, py, Math.round(W * m.prog), PH);
   // arrows: which keys
   g.fillStyle = '#ffffff';
   g.font = `${5 * u}px "Press Start 2P", monospace`;
   g.textAlign = 'center';
-  g.fillText('◀', x0 - 6 * u, y0 + H - u);
-  g.fillText('▶', x0 + W + 6 * u, y0 + H - u);
+  g.textBaseline = 'middle';
+  g.fillText('◀', x0 - 6 * u, y0 + H / 2);
+  g.fillText('▶', x0 + W + 6 * u, y0 + H / 2);
   g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
   g.restore();
 }
 drawFishing = ((prev) =>

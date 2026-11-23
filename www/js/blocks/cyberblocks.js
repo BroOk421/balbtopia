@@ -99,9 +99,33 @@ function vineLeaf(a, bx, by, tx, ty, w) {
       a.px(x, y, c);
     }
 }
-function vinePic(m) {
-  const k = m & 15;
+// (owner, Nov 23 2026: "the vine, when there is no tile under it, curve it") `curl`: nothing under the tile, so the
+// vine's end thins out and curls up to the right like a tendril (`vineCurl`) instead of stopping flat
+// the vine's curled end: from (cx, y0) (the stem's middle) it goes down, round to the right and up, spiralling in and
+// getting thinner, ending in a little bud. Outline first, then the stem, then its lit stripe, so the passes join up.
+function vineCurl(a, cx, y0) {
+  const G = VINE_G,
+    R0 = 10.5,
+    C = [cx + R0, y0],
+    N = 90,
+    pts = [];
+  for (let n = 0; n <= N; n++) {
+    const s = n / N,
+      th = Math.PI - s * Math.PI * 1.75,
+      R = R0 * (1 - 0.6 * s);
+    pts.push([C[0] + R * Math.cos(th), C[1] + R * Math.sin(th), 4 - 2.6 * s]);
+  }
+  for (const [x, y, r] of pts) a.disc(x, y, r + 1, G[0]);
+  for (const [x, y, r] of pts) a.disc(x, y, r, G[3]);
+  for (const [x, y, r] of pts) if (r > 1.6) a.disc(x - r * 0.35, y - r * 0.3, r * 0.45, G[4]);
+  const [ex, ey] = pts[N];
+  a.disc(ex, ey, 2.2, G[0]);
+  a.disc(ex, ey, 1.4, G[5]);
+}
+function vinePic(m, curl) {
+  const k = (m & 15) | (curl && !(m & 4) ? 16 : 0);
   if (VINE_PICS[k]) return VINE_PICS[k];
+  const C = !!(k & 16);
   const U = !!(k & 1),
     R = !!(k & 2),
     D = !!(k & 4),
@@ -111,7 +135,9 @@ function vinePic(m) {
     // the vine: 8 px thick, swaying, outlined, lit on its left, with darker bands like a twisted stem
     const vx = (j) => 28 + Math.sin(j / 10) * 3.5;
     // (owner: stacked ones join) a vine above: it runs on from the top edge, no top leaves; one below: on to the bottom
-    for (let j = U ? 0 : 8; j < (D ? 64 : 63); j++) {
+    const CURL_Y = 48; // where the curl starts
+    if (C) vineCurl(a, Math.round(vx(CURL_Y)) + 3.5, CURL_Y); // (first: the stem over it hides the curl's outline at the join)
+    for (let j = U ? 0 : 8; j < (D ? 64 : C ? CURL_Y : 63); j++) {
       const x = Math.round(vx(j)),
         twist = (j + Math.round(Math.sin(j / 10) * 3)) % 7 < 1;
       for (let w = -1; w <= 8; w++) {
@@ -119,10 +145,10 @@ function vinePic(m) {
         a.px(x + w, j, c);
       }
     }
-    if (!D) a.rect(Math.round(vx(63)) - 1, 63, 10, 1, G[0]);
+    if (!D && !C) a.rect(Math.round(vx(63)) - 1, 63, 10, 1, G[0]);
     // smaller leaves down the vine, left and right in turn
     // (owner: fatter leaves) and more of them when the vine runs on up
-    for (const [y, s] of [...(U ? [[6, 1]] : []), [20, -1], [31, 1], [42, -1], [54, 1]]) {
+    for (const [y, s] of [...(U ? [[6, 1]] : []), [20, -1], [31, 1], [42, -1], ...(C ? [] : [[54, 1]])]) {
       const bx = Math.round(vx(y)) + (s > 0 ? 8 : -1);
       vineLeaf(a, bx, y, bx + s * 15, y + 5, 5.6);
     }
@@ -233,13 +259,13 @@ drawNewBlock = ((prev) =>
     let pic;
     // (owner, Nov 22 2026 build t: "with a block above it take the 2 leaves away; only with nothing above") any block on
     // the tile above counts like a vine above: the vine runs on from the top edge, no top leaves
-    if (b.id === 'hanging_vines') pic = vinePic(joinMask(x, y) | (inW(x, y - 1) && fg[at(x, y - 1)] ? 1 : 0));
+    if (b.id === 'hanging_vines') pic = vinePic(joinMask(x, y) | (inW(x, y - 1) && fg[at(x, y - 1)] ? 1 : 0), !(inW(x, y + 1) && fg[at(x, y + 1)]));
     else if (ARROW_DIR[b.id]) pic = arrowPic(b.id, Math.floor(now / ARROW_MS) % ARROW_FRAMES);
     else pic = neonColorPic(b.id, joinMask(x, y));
     g.drawImage(pic, px, py, T, T);
   })(drawNewBlock);
 for (const [, id] of CYB) {
-  const pic = id === 'hanging_vines' ? vinePic(0) : ARROW_DIR[id] ? arrowPic(id, 0) : neonColorPic(id, 0);
+  const pic = id === 'hanging_vines' ? vinePic(0, true) : ARROW_DIR[id] ? arrowPic(id, 0) : neonColorPic(id, 0);
   for (let f = 0; f < 4; f++) NEWART[id + ':' + f] = pic;
   NEWART[id] = pic;
   SHOP_ICON[id] = () => pic;

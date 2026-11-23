@@ -5,6 +5,9 @@
 //   whistle sweeping up or down, with a little warble), from the left or the right; sometimes a second bird answers.
 // - WIND: every `AMB.wind` seconds a gust: soft filtered noise that swells over a few seconds, its pitch drifting, and
 //   dies away, panned slowly across.
+// - CRICKETS (owner, Nov 23 2026: "at night the sfx should be crickets, the bird only in the morning"): at night (the
+//   day/night cycle's dark part, or the Night Machine) there are no birds; every `AMB.cricket` seconds a cricket (or two)
+//   chirps instead: a few fast trills of a high sine pulse. Birds only in the day (`ambIsNight`).
 // Loaded after titlescreen.js (tmusMode) and sound.js (Sfx.ctx).
 // ===== ambient =====
 const AMB = {
@@ -14,9 +17,19 @@ const AMB = {
   wind: [28, 70], // seconds between gusts
   windVol: 0.05,
   windLen: [4, 7.5], // seconds a gust lasts
+  cricket: [3, 9], // seconds between cricket songs (at night)
+  cricketVol: 0.022,
 };
+// night: the day/night cycle is dark (daynight.js), or the Night Machine is on
+function ambIsNight() {
+  const w = typeof currentWeather === 'function' ? currentWeather() : null;
+  if (w === 'night') return true;
+  if (w !== null) return false;
+  return typeof dnKey === 'function' && typeof dnTime === 'function' && dnKey(DN_NIGHT, dnTime()) > 0.5;
+}
 const ambRnd = (a) => a[0] + Math.random() * (a[1] - a[0]);
 let ambBirdAt = 0,
+  ambCricketAt = 0,
   ambWindAt = 0,
   ambNoise = null; // a few seconds of white noise, made once
 function ambOn() {
@@ -67,6 +80,36 @@ function ambBird(ac, t, p) {
   setTimeout(() => pan.disconnect(), (tt - ac.currentTime + 1) * 1000);
   return tt;
 }
+// one cricket's song at t from pan p: 2-4 trills, each a burst of 3-6 very short high pulses
+function ambCricket(ac, t, p) {
+  const pan = ac.createStereoPanner ? ac.createStereoPanner() : ac.createGain();
+  if (pan.pan) pan.pan.value = p;
+  pan.connect(ac.destination);
+  const f = 4200 + Math.random() * 900,
+    trills = 2 + Math.floor(Math.random() * 3),
+    pulses = 3 + Math.floor(Math.random() * 4),
+    vol = AMB.cricketVol * (0.6 + Math.random() * 0.4);
+  let tt = t;
+  for (let k = 0; k < trills; k++) {
+    for (let i = 0; i < pulses; i++) {
+      const o = ac.createOscillator(),
+        g = ac.createGain(),
+        len = 0.018;
+      o.type = 'sine';
+      o.frequency.value = f * (1 + (Math.random() - 0.5) * 0.01);
+      g.gain.setValueAtTime(0.0001, tt);
+      g.gain.exponentialRampToValueAtTime(vol, tt + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, tt + len);
+      o.connect(g).connect(pan);
+      o.start(tt);
+      o.stop(tt + len + 0.01);
+      tt += 0.026;
+    }
+    tt += 0.18 + Math.random() * 0.12; // the gap between trills
+  }
+  setTimeout(() => pan.disconnect(), (tt - ac.currentTime + 1) * 1000);
+  return tt;
+}
 function ambGust(ac, t) {
   if (!ambNoise) {
     const len = ac.sampleRate * 3;
@@ -106,10 +149,20 @@ setInterval(() => {
     // (off: the next ones come a while after it is on again)
     ambBirdAt = Math.max(ambBirdAt, nowS + 4);
     ambWindAt = Math.max(ambWindAt, nowS + 10);
+    ambCricketAt = Math.max(ambCricketAt, nowS + 3);
     return;
   }
   const ac = Sfx.ctx();
-  if (nowS >= ambBirdAt) {
+  if (ambIsNight()) {
+    // night: crickets, no birds
+    if (nowS >= ambCricketAt) {
+      const p = Math.random() * 1.6 - 0.8,
+        end = ambCricket(ac, ac.currentTime + 0.05, p);
+      if (Math.random() < 0.5) ambCricket(ac, end + 0.2 + Math.random() * 0.8, -p * (0.5 + Math.random() * 0.5));
+      ambCricketAt = nowS + ambRnd(AMB.cricket);
+    }
+    ambBirdAt = Math.max(ambBirdAt, nowS + 4);
+  } else if (nowS >= ambBirdAt) {
     const p = Math.random() * 1.6 - 0.8,
       end = ambBird(ac, ac.currentTime + 0.05, p);
     if (Math.random() < AMB.answer) ambBird(ac, end + 0.4 + Math.random() * 0.6, -p * (0.6 + Math.random() * 0.4));

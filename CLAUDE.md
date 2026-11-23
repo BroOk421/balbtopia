@@ -288,6 +288,25 @@ list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/sta
 - Deleted (gone.js + schema gone list): Cloud Ride `ride_cloud` and Cloud Ring `cloud_ring` (its code in rides.js /
   wrist.js stays unused).
 
+## Night crickets, fishing reset, catch bar sea, water clip, vine curl (owner, Nov 23 2026)
+
+- `core/ambient.js`: at night (`ambIsNight`: the day/night cycle's `DN_NIGHT` > 0.5, or the Night Machine) no birds;
+  crickets instead (`ambCricket`: 2-4 trills of short ~4.5 kHz sine pulses, every `AMB.cricket` 3-9 s, sometimes a
+  second one answers). Birds only in the day. Wind both.
+- Fishing: a fish that gets away (catch bar empty, rodknife.js `mgStep`; or a bite running out, fish.js
+  `stepFishing`) no longer waits for the next bite: the line comes back (`st 'back'`), click the water again to cast.
+  The bait is not used.
+- Catch bar (rodknife.js `drawCatchBar`): `MG_BAR` 104 x 9 bar px track, 2 px progress under it (was 64 x 12 + 4).
+  The track is a little sea (`drawMgSea`: water rows, sand, seaweed swaying, coral, rocks, starfish, shell, bubbles,
+  surface glints; `MG_SEA`), the green bar see-through, and the fish is always one plain orange pixel fish
+  (`MG_FISH`), never the real catch.
+- Water (gates.js `drawWaterTile`): everything clipped to the tile's own columns; the drifting light streak wraps
+  round inside its tile (it used to run past the right edge).
+- Hanging Vines (cyberblocks.js): with NO tile under it (empty, or the world's edge) the vine's end curls up to the
+  right like a tendril (`vineCurl`, from row 48, thinning to a bud; drawn before the stem so the join is clean; the
+  lowest leaf is left out). `vinePic(m, curl)`, cache key bit 16. The bag / Shop icon is the curled one. A block under
+  it (not a vine): the vine stops flat on it as before.
+
 ## Rules that are easy to break
 
 - **Block and background numbers are permanent.** Saved worlds store tile numbers (`fg`, `bg` are Uint8Arrays).
