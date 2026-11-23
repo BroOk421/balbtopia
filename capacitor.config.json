@@ -8,13 +8,6 @@
   "plugins": {
     "StatusBar": {
       "overlaysWebView": true
-    },
-    "CapacitorUpdater": {
-      "autoUpdate": false,
-      "statsUrl": "",
-      "appReadyTimeout": 30000,
-      "autoDeletePrevious": true,
-      "resetWhenUpdate": true
     }
   }
 }

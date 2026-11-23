@@ -238,6 +238,21 @@ list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/sta
   characters normally walk"): walk0-5.png made again with WALK_BOB zeroed (head and clothes stay level, only the
   legs stride); bootflow.js walkers move at a game walking speed (`sp` 80-110 world px/s, scaled by the sheet's 3x)
   with the feet at walkRate's pace, so a step covers the same ground as in a world (no feet sliding).
+- Build d: Rocker Mohawk `rocker_mohawk` (hair/rockstar.aseprite, Uncommon 4,000) and Fluffy Afro `fluffy_afro`
+  (hair/afro.aseprite, Rare 7,000); names by Claude (the old deleted afro.js used `afro_hair`, kept apart). The afro's
+  file is 32 x 40 (body 5 rows lower): pixelwear_cut.py now takes taller files (align compares the bottom rows,
+  `tall_under`, fit() makes the picture 5 x 6 px taller at the top, meta "top": 30) and pixelwear.js `PXW_TOP` draws
+  it that much higher. schema.sql: prices + rarity rows: RE-RUN it.
+- LIVE APP (build d, owner: "I don't want it downloading; when I push to GitHub the others should have it too"): the
+  APK no longer plays its own copy: android.yml sets LIVE_APP (repo variable, default '1'; set it to 0 to go back) and
+  make-config.js writes capacitor server.url = the GitHub Pages site (OTA_BASE) + errorPath offline.html (www/offline.html:
+  "Can't connect", Retry -> OTA_BASE). So a push -> Pages deploy -> every phone plays it on its next start (Pages
+  caches ~10 min). @capgo/capacitor-updater REMOVED (package.json / lock; capacitor.config.json's block too);
+  bootflow.js bfCheckUpdate treats the app on the live site like a browser (one reload when ota/manifest.json is newer).
+  Needs ONE new APK install; players log in once more (the site is a new origin for saved logins). Changing native
+  things (plugins, icon, permissions) still needs a new APK.
+- Boot walkers slower (build d, owner: "they walk too fast"): `sp` 50-65 world px/s, feet at 15 * sp / 160 frames a
+  second (same ground per step as in the game).
 - Deleted (gone.js + schema gone list): Cloud Ride `ride_cloud` and Cloud Ring `cloud_ring` (its code in rides.js /
   wrist.js stays unused).
 

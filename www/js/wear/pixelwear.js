@@ -102,7 +102,12 @@ const PXW_LIST = [
   ['frost_spikes', 'Frost Spikes', 'hair', 'Rare', 5000, 'Wild icy-white spiky hair that sticks up everywhere.'],
   ['onyx_shades', 'Onyx Shades', 'face', 'Uncommon', 3000, 'Black sunglasses with pitch-black lenses and a little shine.'],
   ['blank_face', 'Blank Face', 'face', 'Epic', 6000, 'No eyes, no mouth, just a nose. Spooky. Takes on your skin colour.'],
+  // (owner, Nov 23 2026 c: rockstar.aseprite, afro.aseprite; names by Claude)
+  ['rocker_mohawk', 'Rocker Mohawk', 'hair', 'Uncommon', 4000, 'A short spiky black mohawk. Ready to rock.'],
+  ['fluffy_afro', 'Fluffy Afro', 'hair', 'Rare', 7000, 'A big, round, soft black afro.'],
 ];
+// pictures taller than the frame at the top (pixelwear_meta.json "top": the afro's file has 5 more rows over the head)
+const PXW_TOP = { fluffy_afro: 30 };
 const PXW = {}; // id -> { slot, sk }
 const PXW_PAD = 40; // the pictures have 40 px of room each side of the 118 px frame
 const PXW_IMG = {};
@@ -167,7 +172,7 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
       const im = pxwImg(id, 'idle', PXW[id].sk ? SKINS[f] || 'porcelain' : undefined);
       if (!im) return;
       x.imageSmoothingEnabled = false;
-      x.drawImage(im, -PXW_PAD, 0);
+      x.drawImage(im, -PXW_PAD, -(PXW_TOP[id] || 0));
     };
 }
 // shades: start loading now (their WEAR_ART canvas is made again when the picture arrives: pxwImg)

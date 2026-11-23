@@ -18,8 +18,7 @@
     "@capacitor/core": "6.2.2",
     "@capacitor/haptics": "6.0.3",
     "@capacitor/screen-orientation": "6.0.4",
-    "@capacitor/status-bar": "6.0.3",
-    "@capgo/capacitor-updater": "6.41.1"
+    "@capacitor/status-bar": "6.0.3"
   },
   "devDependencies": {
     "@capacitor/cli": "6.2.2"

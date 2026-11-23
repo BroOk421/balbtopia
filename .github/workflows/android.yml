@@ -40,6 +40,8 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           OTA_BASE: ${{ vars.OTA_BASE }}
+          # (Nov 23 2026) the app opens the GitHub Pages site live: a push reaches every phone, no downloads
+          LIVE_APP: ${{ vars.LIVE_APP || '1' }}
 
       - name: Copy the game into the Android project
         run: npx cap sync android

@@ -1,0 +1,60 @@
+<!doctype html>
+<!-- (Nov 23 2026) shown by the phone app (capacitor server.errorPath) when the live game site can't be reached -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Balbtopia</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #1c1033;
+        color: #fff;
+        font-family: system-ui, sans-serif;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      img {
+        width: min(260px, 60vw);
+        image-rendering: pixelated;
+      }
+      p {
+        margin: 0;
+        opacity: 0.85;
+      }
+      button {
+        font: inherit;
+        font-weight: 700;
+        color: #fff;
+        background: #2f6fe0;
+        border: 0;
+        border-radius: 10px;
+        padding: 12px 28px;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="assets/icon/logo.webp" alt="Balbtopia" onerror="this.remove()" />
+    <p>Can't connect to the server.<br />Check your internet connection.</p>
+    <button id="retry">Retry</button>
+    <script src="js/online/online-config.js"></script>
+    <script>
+      const go = () => {
+        const u = typeof OTA_BASE === 'string' && OTA_BASE ? OTA_BASE : 'index.html';
+        location.href = u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+      };
+      document.getElementById('retry').onclick = go;
+      addEventListener('online', go);
+    </script>
+  </body>
+</html>

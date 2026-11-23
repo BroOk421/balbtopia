@@ -108,3 +108,20 @@ console.log(url && key ? `✓ online-config.js: online (${url})` : '✓ online-c
 console.log('  functions: signup -> ' + fnSignup + ', forgot password -> ' + fnReset);
 console.log('  build ' + webBuild + (webTime ? ' (' + new Date(webTime * 1000).toISOString() + ')' : '') + ', updates from ' + (otaBase || '(none)'));
 console.log('  written to ' + out);
+
+// (Nov 23 2026, owner: "I don't want it downloading; when I push to GitHub everyone should just have it") LIVE_APP=1
+// (android.yml): the APK opens the GitHub Pages site itself (Capacitor server.url) instead of its own copy of www/, so
+// every push that reaches Pages is what every phone plays on its next start, with nothing to download. No connection:
+// the copy's offline.html (server.errorPath) with a retry button. Only the CI copy of capacitor.config.json changes.
+if (/^(1|true|yes)$/i.test(process.env.LIVE_APP || env.LIVE_APP || '')) {
+  const capPath = path.join(root, 'capacitor.config.json');
+  const cap = JSON.parse(fs.readFileSync(capPath, 'utf8'));
+  if (otaBase) {
+    cap.server = Object.assign({}, cap.server, { url: otaBase, errorPath: 'offline.html' });
+    console.log('✓ capacitor.config.json: the app opens ' + otaBase + ' (live, no downloads)');
+  } else {
+    delete cap.server;
+    console.warn('! LIVE_APP is on but there is no OTA_BASE / GITHUB_REPOSITORY: the app plays its own copy');
+  }
+  fs.writeFileSync(capPath, JSON.stringify(cap, null, 2) + '\n');
+}

@@ -86,6 +86,8 @@ ITEMS = {
     # the head differs from the bare body (skin over the eyes and mouth), so it is written per skin tone
     'hair/white-hair.aseprite': 'frost_spikes', 'shades/black-shade.aseprite': 'onyx_shades',
     'blank/faceless.aseprite': 'blank_face',
+    # (owner, Nov 23 2026 c) a short black rocker mohawk and a big afro
+    'hair/rockstar.aseprite': 'rocker_mohawk', 'hair/afro.aseprite': 'fluffy_afro',
 }
 BODY_LAYERS = {'sleeve left', 'shape', 'short', 'sando', 'sleeve right', 'mouth', 'nose', 'eyes', 'eyebrows'}
 
@@ -145,9 +147,12 @@ S, FW, FH, PAD = 6, 118, 215, 40
 
 def fit(spr):
     H0, W0 = spr.shape[:2]
+    # (Nov 23 2026: the afro's file is 5 rows taller, the body 5 rows lower) rows over the normal 35 make the picture
+    # that much taller at the top (pixelwear.js PXW_TOP draws it that much higher)
+    extra = max(0, H0 - 35)
     big = np.array(Image.fromarray(spr).resize((W0 * S, H0 * S), Image.NEAREST))[:, ::-1]
-    X_OFF, Y_OFF = (FW - W0 * S) // 2 + PAD, 214 - H0 * S
-    out = np.zeros((FH, FW + 2 * PAD, 4), np.uint8)
+    X_OFF, Y_OFF = (FW - W0 * S) // 2 + PAD, 214 - H0 * S + extra * S
+    out = np.zeros((FH + extra * S, FW + 2 * PAD, 4), np.uint8)
     x0 = max(0, X_OFF)
     sx0 = x0 - X_OFF
     w = min(out.shape[1] - x0, big.shape[1] - sx0)
@@ -277,12 +282,20 @@ def align(cels, name):
     if 'shape' not in cels:
         return cels
     S, D = cels['shape'][..., 3] > 0, look['shape'][..., 3] > 0
+    if S.shape[0] > D.shape[0]:  # a taller file (room above the head): compare its bottom rows
+        S = S[S.shape[0] - D.shape[0]:]
     best = max(((np.sum(shift(S, dx, dy) & D) - np.sum(shift(S, dx, dy) ^ D), dx, dy) for dy in range(-8, 9) for dx in range(-10, 11)))
     _, dx, dy = best
     if dx or dy:
         print('  ', name, 'body moved in the file: shifting the pieces by', dx, dy)
         cels = {k: shift(v, dx, dy) for k, v in cels.items()}
     return cels
+
+
+def tall_under(a, under):
+    """the bare body under a piece from a taller file: empty rows on top"""
+    extra = a.shape[0] - under.shape[0]
+    return np.concatenate([np.zeros((extra,) + under.shape[1:], under.dtype), under]) if extra > 0 else under
 
 
 ONLY = set(sys.argv[2:])
@@ -464,7 +477,7 @@ for f, iid in ITEMS.items():
                  else next(n for n, v in reversed(L) if v and n not in BODY_LAYERS and n in cels) if cat == 'hat' else 'Scarf' if cat == 'scarf'
                  else next(n for n, v in L if v and n.startswith('Cap') and n in cels) if cat == 'cap'
                  else next(n for n, v in L if v and n.startswith('hair') and n in cels))
-        a, ask = piece(cels[lname], body)
+        a, ask = piece(cels[lname], tall_under(cels[lname], body))
         poses['idle'] = (a, ask)
         icon = cels[lname].copy()
     if part == 'hoodie':
@@ -497,5 +510,8 @@ for f, iid in ITEMS.items():
     ys, xs = np.where(icon[..., 3] > 0)
     Image.fromarray(icon[ys.min():ys.max() + 1, xs.min():xs.max() + 1][:, ::-1]).save(d + '/icon.png')
     meta[iid] = {'cat': cat, 'sk': skinned, 'poses': sorted(poses)}
+    top = max(a.shape[0] for a, _ in poses.values()) - 35
+    if top > 0:
+        meta[iid]['top'] = top * S  # picture px above the normal top (pixelwear.js PXW_TOP)
     print(iid, cat, 'skinned' if skinned else '', sorted(poses))
 json.dump(meta, open(ROOT + '/art-source/wear/pixelwear_meta.json', 'w'), indent=1)

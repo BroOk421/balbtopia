@@ -134,7 +134,12 @@ async function bfCheckUpdate() {
   }
   const mine = typeof WEB_TIME === 'number' ? WEB_TIME : 0;
   if (!m || !m.build || m.build === build || !(m.time > mine) || !Array.isArray(m.files)) return false;
-  if (!bfIsApp()) {
+  // (Nov 23 2026) the app opening the live site (LIVE_APP, capacitor server.url) is like a browser: no download
+  let live = false;
+  try {
+    live = bfIsApp() && location.origin === new URL(base).origin;
+  } catch (e) {}
+  if (!bfIsApp() || live) {
     // browser: the site already IS the new version; a page from the cache gets one fresh load
     const k = 'balbtopia.otaReload';
     try {
@@ -303,7 +308,7 @@ function bfSceneStart() {
   if (!wbox.children.length) {
     bfScene = { walkers: [], flyers: [] };
     for (let i = 0; i < BF_WALKERS; i++)
-      bfScene.walkers.push({ el: mk(wbox, 'assets/ui/boot/walk' + i + '.png'), x: 0.06 + (i / BF_WALKERS) * 0.88, dir: Math.random() < 0.5 ? -1 : 1, sp: 80 + Math.random() * 30, rest: 0, ph: Math.random() * 12 });
+      bfScene.walkers.push({ el: mk(wbox, 'assets/ui/boot/walk' + i + '.png'), x: 0.06 + (i / BF_WALKERS) * 0.88, dir: Math.random() < 0.5 ? -1 : 1, sp: 50 + Math.random() * 15, rest: 0, ph: Math.random() * 12 });
     for (let i = 0; i < BF_FLYERS; i++)
       bfScene.flyers.push({ el: mk(fbox, 'assets/ui/boot/fly' + i + '.png'), x: Math.random(), y: 0.12 + i * 0.13 + Math.random() * 0.05, dir: i % 2 ? -1 : 1, sp: 0.05 + Math.random() * 0.03, ph: Math.random() * 12, bob: Math.random() * 6 });
     bfSceneSaved = bfScene;
@@ -335,7 +340,7 @@ function bfSceneStart() {
         // speed (world px a second, a slow walk) and the feet step like in the game (walkRate: WALK_FPS frames a
         // second at 160): each frame moves the same distance as in a world, so no feet sliding on the spot
         k.x += (k.dir * k.sp * dt * (wh / (BF_FH / 3))) / W;
-        k.ph += dt * 15 * Math.max(0.5, k.sp / 160);
+        k.ph += (dt * 15 * k.sp) / 160;
         if (k.x < 0.03) (k.x = 0.03), (k.dir = 1);
         if (k.x > 0.97) (k.x = 0.97), (k.dir = -1);
         if (Math.random() < dt * 0.12) (k.rest = 0.8 + Math.random() * 1.6), (k.ph = 0);

@@ -569,5 +569,20 @@
   "poses": [
    "idle"
   ]
+ },
+ "rocker_mohawk": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "fluffy_afro": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 30
  }
 }
