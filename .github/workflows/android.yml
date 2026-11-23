@@ -5,6 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# (Nov 23 2026) contents: write = the build may update the "latest-apk" release (last step)
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -81,3 +89,21 @@ jobs:
         with:
           name: balbtopia-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # (owner, Nov 23 2026: "on the phone the download apk doesn't show on GitHub, on the PC it does") an artifact can
+      # only be downloaded when signed in to GitHub, and it comes zipped. The same APK also goes to the release
+      # "latest-apk" (replaced on every build): one fixed link, no sign-in needed (public repo), a plain .apk:
+      #   https://github.com/<owner>/<repo>/releases/download/latest-apk/balbtopia.apk
+      - name: Publish the APK to the "latest-apk" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk balbtopia.apk
+          NOTES="Build ${GITHUB_SHA::7} ($(date -u '+%Y-%m-%d %H:%M UTC')). Download balbtopia.apk below and open it on your phone."
+          if gh release view latest-apk > /dev/null 2>&1; then
+            gh release upload latest-apk balbtopia.apk --clobber
+            gh release edit latest-apk --notes "$NOTES" --latest
+          else
+            gh release create latest-apk balbtopia.apk --title "Balbtopia APK (latest)" --notes "$NOTES" --latest
+          fi
+          echo "APK link: https://github.com/${GITHUB_REPOSITORY}/releases/download/latest-apk/balbtopia.apk" >> "$GITHUB_STEP_SUMMARY"
