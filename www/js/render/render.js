@@ -1061,6 +1061,9 @@ function render() {
       joke: jokeOn(), // /facejoke
       emo: typeof emoOn === 'function' && emoOn() ? P.emo.k : null, // /thumbsup, /love, /omg, /sleep (emotes.js)
       emoT: P.emo ? P.emo.t : 0,
+      bub: !!P.bub, // Bubble Gum floating (bubblegum.js)
+      bubT: P.bub ? P.bub.t : 0,
+      bubInf: P.bub && P.bub.inf !== undefined ? P.bub.inf : -1,
     },
     ox,
     oy,

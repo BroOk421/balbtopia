@@ -771,6 +771,8 @@ const Net = (() => {
       typing: !!p.ty,
       joke: p.jk === 1 ? 'wacky' : p.jk === 2 ? 'troll' : false,
       dance: !!p.dn, // /dance (jump.js)
+      bub: !!p.bg, // Bubble Gum bubble (bubblegum.js)
+      bubInf: p.bg === 2,
       rvbCd: !!p.rc, // (events/rvb.js) still dead, counting down to come back
       emo,
       seen: now,
@@ -828,6 +830,7 @@ const Net = (() => {
       ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)
       jk: { wacky: 1, troll: 2 }[jokeOn()] || undefined, // /facejoke or /troll face (render.js)
       dn: P.dance ? 1 : undefined, // dancing (/dance, jump.js)
+      bg: P.bub ? (P.bub.inf !== undefined ? 2 : 1) : undefined, // floating on a Bubble Gum bubble, 2 = swelling to pop (bubblegum.js)
       em: typeof emoToNet === 'function' ? emoToNet() : undefined, // emote (/thumbsup, /love, /omg, /sleep: emotes.js)
     };
     if (!force && !othersHere() && now - beatT < SOLO_BEAT * 1000) return; // alone: heartbeat only

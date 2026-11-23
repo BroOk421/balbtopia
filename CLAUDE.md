@@ -253,6 +253,22 @@ list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/sta
   things (plugins, icon, permissions) still needs a new APK.
 - Boot walkers slower (build d, owner: "they walk too fast"): `sp` 50-65 world px/s, feet at 15 * sp / 160 frames a
   second (same ground per step as in the game).
+- Aura bag icon: one frame (160 x 242 of the strip, in body px), was two flames side by side.
+- Build e: the owner's new afro.aseprite (40 x 40 canvas now): pixelwear_cut.py align() takes any bigger canvas
+  (finds the default 32 x 35 body in it, keeps its 32 columns and the rows above as extra top room).
+- Bubble Gum `bubble_gum` (build e, Mouth slot, Rare, 6,000 gold; wear/bubblegum.js, after auras.js): wearing it,
+  click / tap your own character (any hand, the wrench too; `act` wrapper): the bubble (his 'bubblegum' layer ->
+  assets/wear/bubble_gum/bubble.png by art-source/wear/bubblegum_cut.py, drawn at his layer's opacity (94.5% since his update), blown up from the
+  mouth in 0.3 s) lifts you 6 tiles at 70 px/s (`step` wrapper sets vy; left / right steer as normal), then pops
+  and you fall. Pops early against a block over the head (0.3 s) or after 5 s; cancelled by water,
+  death, sitting. Works ON A RIDE too (owner; the click box is bigger then). Before the bubble: the gum's icon
+  flies in an arc into the mouth (BUB.feed 0.4 s, owner: "the inventory icon goes to the mouth, then he rises").
+  Pop sound: the owner's assets/sfx/bubble_pop.mp3 (Sfx 'bubble_pop', trimmed to 0.2 s; original in
+  art-source/sfx/bubble_pop-original.mp3); another player's pop plays softer when their bubble goes (build f).
+  Build g (owner: "it gets bigger before it pops, no square bits"): at the top (or stuck / 5 s) it HOVERS for
+  BUB.inflate 0.35 s while the bubble swells +50% with a little wobble (P.bub.inf; render `bubInf`; net bg 2 ->
+  remote `bubInf` true), then it is just gone with the sound. No particles. Arms: the jump-up pose all the way (`jumpFrame` wrapper sets c._bj 'up'). Others see it:
+  net.js `bg` -> remote `bub`; local `bub` / `bubT` in render.js. Icon = his bubblegum-icon.png. schema.sql rows: RE-RUN.
 - Deleted (gone.js + schema gone list): Cloud Ride `ride_cloud` and Cloud Ring `cloud_ring` (its code in rides.js /
   wrist.js stays unused).
 

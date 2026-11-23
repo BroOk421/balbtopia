@@ -282,8 +282,21 @@ def align(cels, name):
     if 'shape' not in cels:
         return cels
     S, D = cels['shape'][..., 3] > 0, look['shape'][..., 3] > 0
-    if S.shape[0] > D.shape[0]:  # a taller file (room above the head): compare its bottom rows
-        S = S[S.shape[0] - D.shape[0]:]
+    if S.shape != D.shape:
+        # (Nov 23 2026) a bigger canvas (the afro / bubble gum files are 40 x 40): find where the default 32 x 35 body
+        # sits in it, keep that many columns and everything from the top down to the body's bottom (the rows above
+        # the normal top stay: room for tall hair, fit() makes the picture taller)
+        H0, W0 = D.shape
+        _, oy, ox = max((np.sum(S[y:y + H0, x:x + W0] & D) - np.sum(S[y:y + H0, x:x + W0] ^ D), y, x)
+                        for y in range(S.shape[0] - H0 + 1) for x in range(S.shape[1] - W0 + 1))
+        for k, v in cels.items():
+            lost = v[:, :ox, 3].any() or v[:, ox + W0:, 3].any() or v[oy + H0:, :, 3].any()
+            if lost:
+                print('  ', name, k, 'has pixels outside the body\'s 32 columns / under its feet: cut off')
+        cels = {k: v[:oy + H0, ox:ox + W0] for k, v in cels.items()}
+        S = cels['shape'][..., 3] > 0
+        S = S[S.shape[0] - H0:]
+        print('  ', name, 'canvas', 'body at', ox, oy, '->', oy, 'rows above the normal top')
     best = max(((np.sum(shift(S, dx, dy) & D) - np.sum(shift(S, dx, dy) ^ D), dx, dy) for dy in range(-8, 9) for dx in range(-10, 11)))
     _, dx, dy = best
     if dx or dy:

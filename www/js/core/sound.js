@@ -15,9 +15,9 @@ const Sfx = (() => {
   // (Nov 11 2026, owner's factory sounds, played by machines.js machSound, quieter with distance): steam_hiss = Steam
   // Pipes / Suction Intakes, lift_gate = a Lift Gate slamming shut, factory_gate = a Factory Gate opening (only the
   // first sound of the owner's 34 s file). Originals in art-source/sfx/*-original.mp3.
-  const NAMES = ['punch', 'break', 'jump', 'pickup', 'door', 'rain', 'ouch', 'fire', 'fireplace', 'portcullis', 'water', 'laser', 'swim', 'steam_hiss', 'lift_gate', 'factory_gate', 'checkpoint'],
+  const NAMES = ['punch', 'break', 'jump', 'pickup', 'door', 'rain', 'ouch', 'fire', 'fireplace', 'portcullis', 'water', 'laser', 'swim', 'steam_hiss', 'lift_gate', 'factory_gate', 'checkpoint', 'bubble_pop'],
     // ouch / fire files are normalised so that with these volumes they are as loud as break / jump / door
-    VOL = { punch: 0.55, break: 0.7, jump: 0.45, pickup: 0.6, door: 0.75, ouch: 0.5, fire: 0.6, portcullis: 0.7, water: 0.7, laser: 0.6, swim: 1, steam_hiss: 0.45, lift_gate: 0.8, factory_gate: 0.85, checkpoint: 0.55 }, // checkpoint: a made chime (art-source/sfx/checkpoint_make.py, owner Nov 21 2026)
+    VOL = { punch: 0.55, break: 0.7, jump: 0.45, pickup: 0.6, door: 0.75, ouch: 0.5, fire: 0.6, portcullis: 0.7, water: 0.7, laser: 0.6, swim: 1, steam_hiss: 0.45, lift_gate: 0.8, factory_gate: 0.85, checkpoint: 0.55, bubble_pop: 0.7 }, // bubble_pop: the owner's pop (Bubble Gum, bubblegum.js; original in art-source/sfx/bubble_pop-original.mp3) // checkpoint: a made chime (art-source/sfx/checkpoint_make.py, owner Nov 21 2026)
     GAP = 45; // ms: the same sound never starts twice closer than this (picking up a pile, holding the punch)
   let ctx = null;
   const bufs = {},

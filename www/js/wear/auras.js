@@ -36,7 +36,7 @@ for (const a of AURAS) {
     rarity: a.rarity,
     desc: a.desc,
     // (the strip: wearIcon shows its first frame; drawn here by drawAura, not by drawBehind's back-item code)
-    strip: { img: a.img, frames: 8, ms: AURA_MS, x: AURA_X, y: AURA_Y, w: AURA_W, h: AURA_H, icon: [0, 0, AURA_W, AURA_H] },
+    strip: { img: a.img, frames: 8, ms: AURA_MS, x: AURA_X, y: AURA_Y, w: AURA_W, h: AURA_H, icon: [0, 0, Math.floor((AURA_H * 160) / 242), AURA_H] }, // (owner: two flames showed in the slot) one 160 x 242 frame, in body px
   });
   SHOP.push({ id: a.id, bc: 200, cat: 'wear' });
 }
