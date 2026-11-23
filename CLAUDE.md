@@ -204,7 +204,7 @@ list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/sta
   file once, ~38 MB, as this plugin version can't read the APK's own files) -> `set()` restarts into it.
   `notifyAppReady()` at DOMContentLoaded (else it rolls back after appReadyTimeout 30 s). A new APK resets to its own
   files (resetWhenUpdate). Browser: one reload when newer. Native code / plugins / permissions still need a new APK.
-- Android: compileSdk 35 (androidx.work in the plugin), targetSdk still 34; gradle.properties
+- Android: compileSdk 35 (androidx.work in the plugin), minSdk 23 (the updater pulls play-services-tasks 18.4, which needs 23; was 22: the GitHub build failed on the manifest merge, Nov 23), targetSdk still 34; gradle.properties
   android.suppressUnsupportedCompileSdk=35 (AGP 8.2.1). Not built here (no Google Maven in this sandbox): watch the
   first GitHub build.
 - AURAS BACK (owner, Nov 23 2026: "bring them back, just remove the lightning effects"): NEW `wear/auras.js` (right
