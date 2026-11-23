@@ -667,14 +667,15 @@ function drawCharacter(c, ox, oy) {
     g.drawImage(bodyPic, 0, nk, FR.w, FR.h - nk, (-FR.w * k) / 2, top + nk * k, FR.w * k, (FR.h - nk) * k);
     g.drawImage(bodyPic, 0, 0, FR.w, nk, (-FR.w * k) / 2, top + sleepDrop * k, FR.w * k, nk * k);
   } else g.drawImage(bodyPic, (-FR.w * sc * Z) / 2, top, FR.w * sc * Z, FR.h * sc * Z);
-  if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
-  else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // (Blank Face wins over every face: Nov 23 2026)
+  else if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (c._swim && typeof swimFace === 'function' && swimFace(c.skin)) g.drawImage(swimFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // in water: only the face changes (owner, Nov 20 2026)
   // (an emote face shows in the air too: the walking frame's own face under it, not the jump face; owner Nov 21 2026)
   else if (air && !(c.emo && emoElapsedSafe(c) && c.emo !== 'love') && blockyAirFace(c.skin, c._bj)) g.drawImage(blockyAirFace(c.skin, c._bj), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else drawTalk(c, top, sc, hdy, MOUTH_Y);
-  if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, hdy); // /love heart eyes, /omg, /sleep (emotes.js)
+  if (blankFaceOn(c)) {} // (Blank Face: no emote face / /dance smile either, the eyes and mouth stay hidden)
+  else if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, hdy); // /love heart eyes, /omg, /sleep (emotes.js)
   // /dance (owner, Nov 21 2026): the /nice smile (set by jump.js: c._dance)
   else if (c._dance && typeof blockyImg === 'function') {
     const nf = blockyImg(c.skin, 'expr_nice') || blockyImg('porcelain', 'expr_nice');

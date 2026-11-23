@@ -12,64 +12,32 @@
 //   without the Account row (no profile / log out); what you change is kept and put back over the save once you log
 //   in (applyPlayer wrapper). EXIT: closes the phone app (Capacitor App.exitApp), in a browser tries window.close.
 // - No character in the background while the landing screen shows (drawCharacter skipped inside render()).
+// - (owner, Nov 23 2026: "remove the three buttons PLAY, settings..., straight to the log in, popping in") NO title
+//   buttons any more: after the camera glide the log in pop-up itself pops in (`body.lwait` hides it until
+//   TITLE_MENU_AT, then `body.lpop` bounces it in). OPTIONS / EXIT / Back are gone (Settings is in the Menu once in).
 // Loaded after hudcard.js, right before main.js (outermost render / drawCharacter wrappers).
 // ===== title screen =====
 const TITLE_PAN_MS = 2600,
   TITLE_FADE_MS = 1400,
-  TITLE_MENU_AT = 1900; // ms after the start: the buttons come in
-const TITLE = document.createElement('div');
-TITLE.className = 'title';
-TITLE.innerHTML =
-  '<h1 class="tlogo"><img src="assets/icon/logo.webp" alt="Balbtopia" draggable="false" /></h1>' +
-  '<nav class="tbtns">' +
-  '<button type="button" class="btn tplay" id="tPlay">PLAY</button>' +
-  '<button type="button" class="btn ghost" id="tOpts">OPTIONS</button>' +
-  '<button type="button" class="btn ghost" id="tExit">EXIT</button>' +
-  '</nav>';
-$('start').appendChild(TITLE);
+  TITLE_MENU_AT = 700; // ms after the start: the log in pop-up pops in (Nov 23 2026; was the buttons at 1900)
 const TITLE_FADE = document.createElement('div');
 TITLE_FADE.className = 'tfade';
 $('wrap').appendChild(TITLE_FADE);
 {
-  const back = document.createElement('button');
-  back.type = 'button';
-  back.className = 'tback';
-  back.id = 'tBack';
-  back.textContent = '◀ Back';
   const win = document.querySelector('#start .win');
-  if (win) win.insertBefore(back, win.firstChild);
   // the log in pop-up's title: the logo picture too (owner: keep it, with more room above and below the pop-up's content)
   const h = win && win.querySelector('h1');
   if (h) h.innerHTML = '<img class="wlogo" src="assets/icon/logo.webp" alt="Balbtopia" draggable="false" />';
   const st = document.createElement('style');
   st.textContent =
-    // the title: logo + a column of buttons in the middle
-    '.start .title{display:none;flex-direction:column;align-items:center;gap:22px}' +
-    'body.titlemenu .start .title{display:flex}' +
-    'body.titlemenu .start .win{display:none}' +
-    'body.titlemenu .start{background:transparent}' +
+    // the log in pop-up: hidden while the camera glides in, then it pops in (Nov 23 2026)
+    'body.lwait .start .win{visibility:hidden}' +
+    'body.landing.lpop .start .win{animation:lPop .5s cubic-bezier(.2,1.6,.4,1) both}' +
+    '@keyframes lPop{0%{opacity:0;transform:scale(.6)}60%{opacity:1}100%{transform:scale(1)}}' +
     // (owner: the logo picture instead of the text; assets/icon/logo.webp, from art-source/logo/balbtopia_logo_original.png)
-    '.start .tlogo{margin:0;line-height:0}' +
-    '.start .tlogo img{width:min(520px,70vw);max-height:30vh;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));user-select:none;pointer-events:none}' +
     '.start .win h1 .wlogo{height:clamp(40px,9vh,64px);width:auto;max-width:70%;display:block;margin:0 auto;pointer-events:none}' +
     '.start .win{padding-top:44px !important;padding-bottom:28px !important}.start .win h1{margin:0 0 12px}' +
-    '.start .tbtns{display:flex;flex-direction:column;gap:12px;width:min(240px,62vw)}' +
-    '.start .tbtns .btn{width:100%;padding:12px 0;font-size:13px;letter-spacing:.08em}' +
-    '.start .tbtns .tplay{font-size:15px;padding:14px 0}' +
-    '.start .tbtns .ghost{background:rgba(10,21,48,.82)}' +
-    // coming in: the logo drops in, the buttons rise one after another
-    'body.titlemenu.tin .start .tlogo{animation:tDrop .6s cubic-bezier(.2,1.4,.4,1) both}' +
-    'body.titlemenu.tin .start .tbtns .btn{animation:tRise .45s ease-out both}' +
-    'body.titlemenu.tin .start .tbtns .btn:nth-child(2){animation-delay:.1s}' +
-    'body.titlemenu.tin .start .tbtns .btn:nth-child(3){animation-delay:.2s}' +
-    'body.titlemenu.twait .start .title{visibility:hidden}' +
-    '@keyframes tDrop{from{opacity:0;transform:translateY(-40px) scale(.9)}}' +
-    '@keyframes tRise{from{opacity:0;transform:translateY(24px)}}' +
-    // the log in pop-up coming in after PLAY, and its Back button
-    'body.landing:not(.titlemenu) .start .win{animation:tRise .3s ease-out}' +
     '.start .win{position:relative;left:auto;top:auto}' +
-    '.start .tback{position:absolute;left:10px;top:10px;padding:5px 9px;font:9px var(--pixel,monospace);color:#d8cdf0;' +
-    'background:rgba(0,0,0,.25);border:2px solid var(--night,#0a1530);border-radius:4px;cursor:pointer}' +
     // the fade from black over the world (under the title)
     '.tfade{position:absolute;inset:0;background:#000;pointer-events:none;opacity:0;z-index:2}' +
     '.tfade.on{animation:tFade ' + TITLE_FADE_MS + 'ms ease-in forwards}' +
@@ -83,34 +51,39 @@ let titleT0 = 0, // when the intro started (performance.now), 0 = not running
   titleShown = false; // landing came up and the intro was started for it
 function titleStart() {
   titleT0 = performance.now();
-  document.body.classList.add('titlemenu', 'twait');
-  document.body.classList.remove('tin');
-  TITLE_FADE.classList.remove('on');
-  void TITLE_FADE.offsetWidth;
-  TITLE_FADE.classList.add('on');
+  document.body.classList.add('lwait');
+  document.body.classList.remove('lpop');
+  // (Nov 23 2026: no fade from black any more: the scene behind the pop-up is the loading screen's, not the world)
   setTimeout(() => {
-    if (!document.body.classList.contains('titlemenu')) return;
-    document.body.classList.remove('twait');
-    document.body.classList.add('tin');
+    if (!document.body.classList.contains('lwait')) return;
+    document.body.classList.remove('lwait');
+    document.body.classList.add('lpop');
+    if (typeof Sfx !== 'undefined') Sfx.play('door');
+    const pb = $('playBox');
+    const f = !(pb && !pb.hidden) && document.querySelector('#start .win input:not([type=hidden])');
+    if (f && !('ontouchstart' in window)) setTimeout(() => f.focus(), 450); // (phones: no keyboard jumping up by itself)
   }, TITLE_MENU_AT);
 }
-// the title again without the camera / fade (from the log in pop-up's Back)
-function titleBack() {
-  document.body.classList.remove('twait', 'tin');
-  document.body.classList.add('titlemenu');
-  void TITLE.offsetWidth;
-  document.body.classList.add('tin');
+// (owner, Nov 23 2026: "make the log in page's background like the loading screen") the loading screen's scene
+// (bootflow.js: blue glow, walking characters, riders flying across) stays behind the log in pop-up: body.bootscene
+function sceneSync(landing) {
+  const cl = document.body.classList;
+  if (landing && !cl.contains('bootscene')) {
+    cl.add('bootscene');
+    if (typeof bfSceneStart === 'function') requestAnimationFrame(bfSceneStart);
+  } else if (!landing && cl.contains('bootscene')) cl.remove('bootscene');
 }
 function titleSync() {
   const landing = !$('start').hidden,
     booting = document.body.classList.contains('booting');
+  sceneSync(landing && !booting);
   if (!landing) {
     titleShown = false;
     titleT0 = 0;
     // (only when one is there: classList.remove rewrites the class attribute even when nothing changes, and this runs
     // from a MutationObserver on that very attribute: it would call itself forever)
     const cl = document.body.classList;
-    if (cl.contains('titlemenu') || cl.contains('twait') || cl.contains('tin')) cl.remove('titlemenu', 'twait', 'tin');
+    if (cl.contains('lwait') || cl.contains('lpop')) cl.remove('lwait', 'lpop');
     if (TITLE_FADE.classList.contains('on')) TITLE_FADE.classList.remove('on');
     return;
   }
@@ -121,8 +94,8 @@ function titleSync() {
 }
 new MutationObserver(titleSync).observe($('start'), { attributes: true, attributeFilter: ['hidden'] });
 new MutationObserver(titleSync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-// (until the boot screen goes, keep the title waiting: no buttons over the loading bar)
-if (!$('start').hidden) document.body.classList.add('titlemenu', 'twait');
+// (until the boot screen goes, keep the log in pop-up hidden)
+if (!$('start').hidden) document.body.classList.add('lwait');
 titleSync();
 
 // the camera: from the top of the map down to where main.js has it, eased (only while drawing)
@@ -131,6 +104,13 @@ render = ((prev) =>
   function (...a) {
     const landing = document.body.classList.contains('landing');
     if (!landing) return prev(...a);
+    // (the scene covers it: the world isn't drawn every frame) but once a second it is, on the hidden canvas, so the
+    // pictures it makes the first time (the mountains' recoloured copy, shadows, tiles...) are made HERE and not in the
+    // first seconds of playing (owner, Nov 23 2026: "laggy at the start, then it goes away")
+    if (document.body.classList.contains('bootscene')) {
+      if (performance.now() - titleWarmAt < 1000) return;
+      titleWarmAt = performance.now();
+    }
     let realY = null;
     if (titleT0) {
       const u = Math.min(1, (performance.now() - titleT0) / TITLE_PAN_MS);
@@ -148,67 +128,13 @@ render = ((prev) =>
     }
   })(render);
 // no character in the landing screen's background
-let titleNoChar = false;
+let titleNoChar = false,
+  titleWarmAt = 0;
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
     if (titleNoChar) return { cx: 0, headTop: 0, tagW: 0, bald: 0 };
     return prev(c, ox, oy);
   })(drawCharacter);
-
-// ---- the buttons ----
-$('tPlay').onclick = () => {
-  if (typeof Sfx !== 'undefined') Sfx.play('door');
-  // a remembered account: its own PLAY at once
-  const pb = $('playBox'),
-    ab = $('authBox');
-  document.body.classList.remove('titlemenu', 'twait', 'tin');
-  if (pb && !pb.hidden && ab && ab.hidden && $('play')) {
-    $('play').click();
-    return;
-  }
-  const f = document.querySelector('#start .win input:not([type=hidden])');
-  if (f) setTimeout(() => f.focus(), 60);
-};
-$('tBack').onclick = () => {
-  if (typeof Sfx !== 'undefined') Sfx.play('door');
-  titleBack();
-};
-// OPTIONS: Settings without the Account row; kept until the save is loaded, then put back over it
-let titleOpts = null;
-const TITLE_OPT_KEYS = ['sound', 'vibrate', 'btnSize'];
-$('tOpts').onclick = () => {
-  if (typeof Sfx !== 'undefined') Sfx.play('door');
-  const body = dialog('OPTIONS', '<div id="opts"></div>', [
-    {
-      label: 'Close',
-      run: () => {
-        titleOpts = {};
-        for (const k of TITLE_OPT_KEYS) if (settings[k] !== undefined) titleOpts[k] = settings[k];
-      },
-    },
-  ]);
-  const el = body.querySelector('#opts');
-  settingsTab(el);
-  const lo = el.querySelector('#sLogout');
-  if (lo) lo.closest('.set').remove(); // (no account / profile here)
-};
-applyPlayer = ((prev) =>
-  function (p) {
-    const r = prev(p);
-    if (titleOpts) {
-      Object.assign(settings, titleOpts);
-      titleOpts = null;
-      if (typeof applySizes === 'function') applySizes();
-      setTimeout(() => typeof savePlayer === 'function' && savePlayer(), 0);
-    }
-    return r;
-  })(applyPlayer);
-$('tExit').onclick = () => {
-  const app = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
-  if (app && app.exitApp) return app.exitApp();
-  window.close();
-  setTimeout(() => toast('Close this browser tab to exit'), 150);
-};
 
 // ---------- background music on the landing screen (owner, Nov 11 2026: "piano style") ----------
 // A soft piano loop made with Web Audio (no file): 8 bars, C - G - Am - Em - F - C - F - G at TMUS_BPM, a rolling

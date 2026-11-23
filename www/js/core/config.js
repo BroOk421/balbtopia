@@ -7,13 +7,19 @@ let pending = 0,
 // everything has loaded and the game is set up (ready): then the log in pop-up shows
 function boot() {
   const bar = document.getElementById('bootBar');
-  if (bar && bootTotal) bar.style.width = Math.max(4, Math.round(10 + 90 * (1 - pending / bootTotal))) + '%';
+  // (Nov 23 2026: the pictures are the first 70% of the bar, then bootflow.js's server / update steps)
+  if (bar && bootTotal) bar.style.width = Math.max(4, Math.round(70 * (1 - pending / bootTotal))) + '%';
   if (--pending === 0) {
-    try {
-      ready();
-    } finally {
-      bootRelease();
-    }
+    const go = () => {
+      try {
+        ready();
+      } finally {
+        bootRelease();
+      }
+    };
+    // (bootflow.js) server status, maintenance, in-game update, then the game starts
+    if (typeof bootFlowRun === 'function') bootFlowRun(go);
+    else go();
   }
 }
 // the loading screen stays while you are being logged in by yourself (still logged in from last time: online the
@@ -29,7 +35,7 @@ function bootRelease(t0 = performance.now()) {
     restoring = typeof AUTH_RESTORING !== 'undefined' && AUTH_RESTORING;
   if ((entering || restoring) && performance.now() - t0 < 20000) {
     const tx = document.getElementById('bootTxt');
-    if (tx) tx.textContent = 'Logging in...';
+    if (tx) tx.textContent = 'Logging in';
     const bar = document.getElementById('bootBar');
     if (bar) bar.style.width = '100%';
     return setTimeout(() => bootRelease(t0), 100);

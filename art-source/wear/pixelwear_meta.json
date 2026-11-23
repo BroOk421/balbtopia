@@ -548,5 +548,26 @@
   "poses": [
    "idle"
   ]
+ },
+ "frost_spikes": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "onyx_shades": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "blank_face": {
+  "cat": "blank",
+  "sk": true,
+  "poses": [
+   "idle"
+  ]
  }
 }

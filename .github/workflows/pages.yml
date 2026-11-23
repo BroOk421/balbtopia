@@ -22,12 +22,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - id: pages
+        uses: actions/configure-pages@v5
+      # (Nov 23 2026) WEB_BUILD / WEB_TIME / OTA_BASE too: the phone app updates itself from this site (bootflow.js)
       - name: Write online config from GitHub Secrets
         run: node scripts/make-config.js
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      - uses: actions/configure-pages@v5
+          OTA_BASE: ${{ vars.OTA_BASE || format('{0}/', steps.pages.outputs.base_url) }}
+      - name: Update list for the phone app (www/ota/manifest.json)
+        run: node scripts/make-ota.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: www

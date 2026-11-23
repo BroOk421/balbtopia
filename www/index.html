@@ -32,12 +32,28 @@
     <!-- Loading screen (owner, Nov 9 2026: "while loading only the loading, then the log in pop-up"): shown from the
          very first moment; css `body.booting` hides everything else (pop-ups, top-right buttons, hotbar, pads) until
          every picture has loaded (config.js boot -> ready), then it fades and the log in pop-up shows. -->
+    <!-- (owner, Nov 23 2026: like his recording, "but change the style", "the characters walking around") deep blue
+         glow with drifting soft lights, the logo, the step it's on (core/bootflow.js), characters walking along the
+         bottom; the maintenance panel takes the steps' place while the server is down -->
     <div id="boot" aria-live="polite">
+      <div class="bglow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="bootin">
-        <h1>BALBTOPIA</h1>
+        <h1><img src="assets/icon/logo.webp" alt="BALBTOPIA" draggable="false" /></h1>
+        <p id="bootTxt">Loading game files</p>
         <div class="bootbar"><i id="bootBar"></i></div>
-        <p id="bootTxt">Loading...</p>
+        <div class="bmaint" id="bootMaint" hidden>
+          <b>SERVER MAINTENANCE</b>
+          <p id="bmMsg"></p>
+          <p class="bmeta" id="bmEta"></p>
+          <small id="bmNext"></small>
+          <div class="bmbtns">
+            <button type="button" class="btn" id="bmRetry">TRY AGAIN</button>
+            <button type="button" class="alink" id="bmStaff">Staff log in</button>
+          </div>
+        </div>
       </div>
+      <div class="bfly" id="bootFly" aria-hidden="true"></div>
+      <div class="bwalk" id="bootWalk" aria-hidden="true"></div>
     </div>
     <div id="wrap">
       <canvas id="c" aria-label="Game world"></canvas>
@@ -295,6 +311,7 @@
     <script src="js/online/online-config.js"></script>
     <script src="js/core/assets.js"></script>
     <script src="js/core/config.js"></script>
+    <script src="js/core/bootflow.js"></script>
     <script src="js/core/gfx.js"></script>
     <script src="js/blocks/blocks.js"></script>
     <script src="js/art/colors.js"></script>
@@ -463,6 +480,7 @@
     <script src="js/wear/musicset.js"></script>
     <script src="js/gameplay/goldsea.js"></script>
     <script src="js/wear/pixelwear.js"></script>
+    <script src="js/wear/auras.js"></script>
     <script src="js/ui/starterpack.js"></script>
     <script src="js/ui/shopstyle.js"></script>
     <script src="js/blocks/blocks64i.js"></script>

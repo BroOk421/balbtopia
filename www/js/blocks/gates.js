@@ -273,8 +273,8 @@ function drawSwimming(c, ox, oy) {
   // long hair: the part below the shoulders too, over the body, so the whole hairstyle shows (owner, Oct 29 2026)
   swimHairBack(eq, top + hy * sc * Z, sc, headDx, false);
   // /facejoke: the same face drawing, moved onto the swimming head
-  if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), -(FR.w * sc * Z) / 2 + headDx, top + hy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
-  else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), -(FR.w * sc * Z) / 2 + headDx, top + hy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), -(FR.w * sc * Z) / 2 + headDx, top + hy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // (Blank Face wins over every face: Nov 23 2026)
+  else if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), -(FR.w * sc * Z) / 2 + headDx, top + hy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   // hats, hair and face items on the head (a picture shirt like the hoodie lies upright, so not while swimming)
   const c2 = Object.create(c);
   c2.equipped = { ...eq, shirt: null };

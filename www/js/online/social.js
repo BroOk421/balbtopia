@@ -974,11 +974,13 @@ function chatCommand(text) {
   // /gunban NAME lifts it. For everyone else these are unknown commands and never shown in the list.
   if ((cmd === 'gban' || cmd === 'gunban') && isGM()) return gmBanCommand(cmd, rest);
   if (cmd === 'cheats' && isGM()) return openCheats(), 'keep';
+  // (Nov 23 2026, bootflow.js) /maint on [minutes] [message], /maint off
+  if (cmd === 'maint' && isGM() && typeof maintCommand === 'function') return maintCommand(rest);
   if (!CHAT_CMDS[cmd]) {
     toast(
       (cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') +
         'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll, /dance, /nice, /love, /omg, /cry, /sleep' +
-        (isGM() ? '. GM: /gban NAME reason, /gunban NAME, /cheats' : ''),
+        (isGM() ? '. GM: /gban NAME reason, /gunban NAME, /cheats, /maint on [minutes] [message], /maint off' : ''),
     );
     return false;
   }

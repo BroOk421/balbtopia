@@ -82,6 +82,10 @@ ITEMS = {
     'hair/black-long-hair-2.aseprite': 'messy_wolf_cut', 'hair/red-long-hair.aseprite': 'red_wolf_cut',
     'hair/emo.aseprite': 'emo_fringe', 'hair/girl-long-hair.aseprite': 'hime_cut', 'hair/flip-bob.png': 'flipped_bob',
     'hair/poka.aseprite': 'cherry_space_buns', 'hair/shaggy.aseprite': 'professor_tufts',
+    # (owner, Nov 23 2026 b) white spiky hair, black-lens shades, and a face with no eyes / mouth: 'blank/' = what of
+    # the head differs from the bare body (skin over the eyes and mouth), so it is written per skin tone
+    'hair/white-hair.aseprite': 'frost_spikes', 'shades/black-shade.aseprite': 'onyx_shades',
+    'blank/faceless.aseprite': 'blank_face',
 }
 BODY_LAYERS = {'sleeve left', 'shape', 'short', 'sando', 'sleeve right', 'mouth', 'nose', 'eyes', 'eyebrows'}
 
@@ -428,6 +432,30 @@ for f, iid in ITEMS.items():
         poses['sit'] = (ps, np.zeros(ps.shape[:2], bool))
         icon = cels['shoes'].copy()
         icon[is_skin(icon)] = 0
+    elif cat == 'blank':  # (owner, Nov 23 2026: "just hide the eyes and the mouth"; "the mouth's colour on the eyebrows,
+        # whatever the skin") a patch PAINTED ON THE BODY FRAME (pixelwear.js PXW_BODY_FACE), so hair / beard / hats still
+        # go over it: the eyes' and mouth's pixels (+1 px round them) in his plain skin, and the eyebrows in the mouth's
+        # colour. Every pixel takes the wearer's skin tone (FACT), so the eyebrows match that skin's mouth.
+        fl = flat(cels, L)
+        eye_m = look['eyes'][..., 3] > 0
+        mouth_m = look['mouth'][..., 3] > 0
+        brow_m = look['eyebrows'][..., 3] > 0
+        hide = eye_m | mouth_m
+        grow = hide | brow_m
+        g2 = grow.copy()
+        g2[1:] |= grow[:-1]; g2[:-1] |= grow[1:]; g2[:, 1:] |= grow[:, :-1]; g2[:, :-1] |= grow[:, 1:]
+        skin_m = (hide | (g2 & ~brow_m)) & is_skin(fl)
+        a = np.zeros_like(fl)
+        a[skin_m] = fl[skin_m]
+        mc = look['mouth'][mouth_m][:, :3]
+        mouth_col = np.median(mc, axis=0).astype(np.uint8) if len(mc) else np.array([187, 112, 117], np.uint8)
+        a[brow_m, :3] = mouth_col
+        a[brow_m, 3] = 255
+        poses['idle'] = (a, a[..., 3] > 0)
+        # the icon: his head as drawn (rows above the neck), the eyebrows in the mouth's colour like in the game
+        icon = fl.copy()
+        icon[23:] = 0
+        icon[brow_m & (icon[..., 3] > 0), :3] = mouth_col
     else:  # shades / hair / hood: drawn by WEAR_ART over the head in every pose (the head is in the same place in all)
         # (hair: the visible layer whose name starts with 'hair': girl-hair uses 'hair2', goodboy-hair 'hair2 Copy')
         lname = ('shades' if cat == 'shades' else 'eyes' if cat == 'eye'

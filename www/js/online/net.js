@@ -1396,6 +1396,16 @@ const Net = (() => {
       return 'No connection. Try again';
     }
   };
+  // (Nov 23 2026, bootflow.js) GM: start / end a server maintenance; returns null or an error message
+  N.gmMaint = async (on, msg, inMin, lenMin) => {
+    try {
+      const { error } = await sb.rpc('gm_maintenance', { p_on: on, p_msg: msg || '', p_in_min: inMin, p_len_min: lenMin ?? null });
+      if (error) return /Could not find|PGRST202|42883/i.test(error.message) ? 'Maintenance needs the new server setup (RE-RUN schema.sql)' : error.message;
+      return null;
+    } catch (e) {
+      return 'No connection. Try again';
+    }
+  };
   let helloAt = 0;
   function startHello() {
     if (helloTimer) return;

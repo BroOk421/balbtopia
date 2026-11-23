@@ -11,7 +11,7 @@
 // - Names, prices and rarity picked by Claude. Shop WEAR tab; schema.sql shop_prices + keep list + item_info rows.
 // Loaded after oldman.js.
 // ===== pixel wear =====
-const PXW_SKINNED = new Set(['black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs']);
+const PXW_SKINNED = new Set(['black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs', 'blank_face']);
 const PXW_LIST = [
   // t-shirts
   ['midnight_tee', 'Midnight Tee', 'shirt', 'Common', 800, 'A plain dark navy t-shirt.'],
@@ -98,6 +98,10 @@ const PXW_LIST = [
   ['flipped_bob', 'Flipped Bob', 'hair', 'Uncommon', 4500, 'A black bob with blunt bangs, flipped out at the ends.'],
   ['cherry_space_buns', 'Cherry Space Buns', 'hair', 'Rare', 6000, 'Cherry-red hair tied up in two round buns.'],
   ['professor_tufts', 'Professor Tufts', 'hair', 'Common', 2000, 'Bald on top, wild tufts on the sides. Very smart looking.'],
+  // (owner, Nov 23 2026 b: white-hair, black-shade, faceless; names by Claude)
+  ['frost_spikes', 'Frost Spikes', 'hair', 'Rare', 5000, 'Wild icy-white spiky hair that sticks up everywhere.'],
+  ['onyx_shades', 'Onyx Shades', 'face', 'Uncommon', 3000, 'Black sunglasses with pitch-black lenses and a little shine.'],
+  ['blank_face', 'Blank Face', 'face', 'Epic', 6000, 'No eyes, no mouth, just a nose. Spooky. Takes on your skin colour.'],
 ];
 const PXW = {}; // id -> { slot, sk }
 const PXW_PAD = 40; // the pictures have 40 px of room each side of the 118 px frame
@@ -119,9 +123,16 @@ function pxwImg(id, pose, skin) {
   return im.complete && im.naturalWidth ? im : null;
 }
 const PXW_ART_SLOTS = ['face', 'hair', 'hat', 'neck', 'stache']; // drawn over the head as WEAR_ART (the rest change the body frame)
+// face pieces that are a "blank face" instead (owner, Nov 23 2026, Blank Face: "just hide the eyes and the mouth";
+// "when jumping too, and with the emotes the mouth and eyes stay hidden"): render.js's blank-face drawing (blankFaceOn
+// -> blankFace(skin), drawn on the body in every pose: standing, walking, in the air, jumping, swimming, sitting; it
+// wins over the joke / angry / emote faces), with this piece's own picture (blankFace wrapper at the end of this file);
+// hair, beards and hats still go over it
+const PXW_BODY_FACE = new Set(['blank_face']);
 for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
   PXW[id] = { slot, sk: PXW_SKINNED.has(id) };
-  addWear({ id, name, slot, shop: true, px: true, rarity, desc, ...(PXW_ART_SLOTS.includes(slot) ? { art: id } : {}), ...(extra || {}) });
+  const isArt = PXW_ART_SLOTS.includes(slot) && !PXW_BODY_FACE.has(id);
+  addWear({ id, name, slot, shop: true, px: true, rarity, desc, ...(isArt ? { art: id } : PXW_BODY_FACE.has(id) ? { blank: true } : {}), ...(extra || {}) });
   SHOP.push({ id, gold, cat: 'wear' });
   // the bag / Shop icon: the piece alone (icon.png, 1 px art), fitted in whole pixels
   const ic = new Image();
@@ -135,6 +146,10 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
     configurable: true,
     get() {
       if (icon) return icon;
+      // (owner, Nov 23 2026) the piece worn by the Mannequin, cut to its part of the body (pxwMannIcon); until the
+      // Mannequin's pictures are in, the piece alone as before
+      const m = pxwMannIcon(id);
+      if (m) return (icon = m);
       const c = document.createElement('canvas');
       c.width = c.height = 32;
       if (!ic.complete || !ic.naturalWidth) return c;
@@ -142,12 +157,14 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
         k = Math.max(1, Math.floor(30 / Math.max(ic.naturalWidth, ic.naturalHeight)));
       x.imageSmoothingEnabled = false;
       x.drawImage(ic, Math.floor((32 - ic.naturalWidth * k) / 2), Math.floor((32 - ic.naturalHeight * k) / 2), ic.naturalWidth * k, ic.naturalHeight * k);
-      return (icon = c);
+      return PXW_ICON_PART[slot] && !PXW_BODY_FACE.has(id) ? c : (icon = c); // (kept only when no Mannequin icon is coming)
     },
   });
-  if (PXW_ART_SLOTS.includes(slot))
-    WEAR_ART[id] = ({ x }) => {
-      const im = pxwImg(id, 'idle');
+  if (isArt)
+    // (Nov 23 2026: Blank Face) a skinned piece over the head: the art frame number is the wearer's skin (drawWearArt
+    // wrapper below), so every skin tone gets its own cached picture
+    WEAR_ART[id] = ({ x, f }) => {
+      const im = pxwImg(id, 'idle', PXW[id].sk ? SKINS[f] || 'porcelain' : undefined);
       if (!im) return;
       x.imageSmoothingEnabled = false;
       x.drawImage(im, -PXW_PAD, 0);
@@ -155,6 +172,140 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
 }
 // shades: start loading now (their WEAR_ART canvas is made again when the picture arrives: pxwImg)
 for (const [id, , slot] of PXW_LIST) if (PXW_ART_SLOTS.includes(slot)) pxwImg(id, 'idle');
+// ---------- bag / Shop icons on the Mannequin (owner, Nov 23 2026: "use the mannequin as the model, not the full body:
+// the head for shades / mustache / hair, the body with both hands for a t-shirt, shorts down to the feet") ----------
+// The Mannequin (display.js drawMannequinAt) wears only this piece, drawn at PXW_ICON_Z on a spare canvas, then the
+// part's band (PXW_ICON_BAND, fractions of the 41 px character frame from its top; the head band starts above it for
+// hats / tall hair) is cut out round what's drawn there. The canvas is kept at that size (iconCanvas shows a picture
+// wider than 32 px with its own pixels). null while something isn't loaded yet: it's tried again a moment later.
+const PXW_ICON_Z = 3,
+  PXW_ICON_PART = { hair: 'head', face: 'head', stache: 'head', hat: 'head', neck: 'head', shirt: 'body', pants: 'legs', feet: 'legs' },
+  PXW_ICON_BAND = { head: [-0.3, 0.6], body: [0.6, 0.86], legs: [0.74, 1.02] };
+const PXW_ICON_RETRY = new Set();
+function pxwIconRetry(id) {
+  if (PXW_ICON_RETRY.has(id)) return;
+  PXW_ICON_RETRY.add(id);
+  setTimeout(() => {
+    PXW_ICON_RETRY.delete(id);
+    if (typeof ICON !== 'undefined') delete ICON[id];
+    if (typeof renderInv === 'function' && typeof inWorld !== 'undefined' && inWorld) renderInv();
+  }, 500);
+}
+function pxwMannIcon(id) {
+  const p = PXW[id],
+    part = p && PXW_ICON_PART[p.slot];
+  if (!part || PXW_BODY_FACE.has(id) || typeof drawMannequinAt !== 'function' || typeof mannBody !== 'function') return null; // (Blank Face: its own picture, his head)
+  const eq = { [p.slot]: id };
+  // everything it needs: the Mannequin's body (dressed), and the piece's own picture
+  // (the piece first: mannBody keeps what it made, and a body made before the piece's picture came would stay bare)
+  // (owner: "the t-shirt WITH its left and right sleeves") a shirt waits for its two sleeve pictures too; every
+  // picture is asked for at once, so they load together
+  const need = [pxwImg(id, 'idle', p.sk ? MANN_SKIN : undefined)];
+  if (p.slot === 'shirt') need.push(pxwImg(id, 'sleeve_back', MANN_SKIN), pxwImg(id, 'sleeve_front', MANN_SKIN));
+  if (need.some((im) => !im) || !mannBody(eq)) return pxwIconRetry(id), null;
+  const FH = CHAR_H * PXW_ICON_Z,
+    W = Math.ceil(FH * 1.2),
+    top = Math.ceil(FH * 0.35),
+    H = top + Math.ceil(FH * 1.08),
+    c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const x = c.getContext('2d', { willReadFrequently: true }),
+    oldG = g,
+    oldZ = Z;
+  try {
+    g = x;
+    Z = PXW_ICON_Z;
+    drawMannequinAt(W / 2, top, eq);
+  } catch (e) {
+    return null;
+  } finally {
+    g = oldG;
+    Z = oldZ;
+  }
+  const [b0, b1] = PXW_ICON_BAND[part],
+    y0 = Math.max(0, Math.round(top + b0 * FH)),
+    y1 = Math.min(H, Math.round(top + b1 * FH)),
+    d = x.getImageData(0, y0, W, y1 - y0).data;
+  let minX = W,
+    maxX = -1,
+    minY = y1,
+    maxY = -1;
+  for (let yy = 0; yy < y1 - y0; yy++)
+    for (let xx = 0; xx < W; xx++)
+      if (d[(yy * W + xx) * 4 + 3] > 40) {
+        if (xx < minX) minX = xx;
+        if (xx > maxX) maxX = xx;
+        if (yy + y0 < minY) minY = yy + y0;
+        if (yy + y0 > maxY) maxY = yy + y0;
+      }
+  if (maxX < 0) return null;
+  // a square round it, a little room on every side
+  const side = Math.max(maxX - minX, maxY - minY) + 6,
+    cx = (minX + maxX) / 2,
+    cy = (minY + maxY) / 2,
+    o = document.createElement('canvas');
+  o.width = o.height = side;
+  const ox = o.getContext('2d');
+  ox.imageSmoothingEnabled = false;
+  // (only the band: what's above / below it isn't part of this icon)
+  ox.save();
+  ox.beginPath();
+  ox.rect(0, y0 - (cy - side / 2), side, y1 - y0);
+  ox.clip();
+  ox.drawImage(c, Math.round(cx - side / 2), Math.round(cy - side / 2), side, side, 0, 0, side, side);
+  ox.restore();
+  if (p.sk) pxwMannGray(ox, side);
+  return o;
+}
+// a skinned piece (Blank Face, Six-Pack Abs, the open shirts) shows porcelain skin: on the gray Mannequin that skin
+// becomes its gray (porcelain's tones -> the dummy's: light 215 -> 186, 196 -> 165, 176 -> 133, 135 -> 80)
+const PXW_GRAY = [[0, 0], [135, 80], [176, 133], [196, 165], [215.5, 186], [255, 220]];
+function pxwMannGray(x, n) {
+  const im = x.getImageData(0, 0, n, n),
+    d = im.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i],
+      gg = d[i + 1],
+      b = d[i + 2];
+    if (!d[i + 3] || r < 120) continue;
+    const kg = gg / r,
+      kb = b / r;
+    if (kg < 0.5 || kg > 0.86 || kb < 0.5 || kb > 0.8) continue; // not a skin colour
+    const l = 0.3 * r + 0.59 * gg + 0.11 * b;
+    let k = 1;
+    while (k < PXW_GRAY.length - 1 && PXW_GRAY[k][0] < l) k++;
+    const [l0, v0] = PXW_GRAY[k - 1],
+      [l1, v1] = PXW_GRAY[k],
+      v = Math.round(v0 + ((v1 - v0) * (l - l0)) / (l1 - l0));
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  x.putImageData(im, 0, 0);
+}
+// the Mannequin's pictures came in: the icons are made again
+if (typeof MANN_IMG !== 'undefined')
+  for (const im of Object.values(MANN_IMG))
+    im.addEventListener('load', () => {
+      for (const [id] of PXW_LIST) pxwIconRetry(id);
+    });
+// the skin of the character being drawn now (for skinned pieces over the head)
+let PXW_SKIN_NOW = 'porcelain';
+drawCharacter = ((prev) =>
+  function (c, ox, oy) {
+    const was = PXW_SKIN_NOW;
+    PXW_SKIN_NOW = (c && SKINS.includes(c.skin) && c.skin) || 'porcelain';
+    try {
+      return prev(c, ox, oy);
+    } finally {
+      PXW_SKIN_NOW = was;
+    }
+  })(drawCharacter);
+drawWearArt = ((prev) =>
+  function (id, top, sc, dy, f, art) {
+    const a = art || (WEAR_BY_ID[id] && WEAR_BY_ID[id].art);
+    if (f === undefined && PXW[a] && PXW[a].sk && PXW_ART_SLOTS.includes(PXW[a].slot)) f = Math.max(0, SKINS.indexOf(PXW_SKIN_NOW));
+    return prev(id, top, sc, dy, f, art);
+  })(drawWearArt);
 
 // the pose of a body frame, from its key
 function pxwPose(key, im) {
@@ -336,3 +487,60 @@ addEventListener('DOMContentLoaded', () => {
       if (eq.face) only({ face: eq.face });
     })(drawWorn);
 });
+
+// ---------- the Blank Face picture (PXW_BODY_FACE) for render.js blankFace(skin) ----------
+// pixelwear_cut.py 'blank/': the eyes and mouth in plain skin, the eyebrows in the mouth's colour, per skin tone, on
+// the body frame's grid (the pictures have PXW_PAD of room each side). Until it has loaded: the old skin-coloured box.
+const PXW_BLANK = {};
+blankFace = ((prev) =>
+  function (skin) {
+    const sk = SKINS.includes(skin) ? skin : 'porcelain',
+      pic = pxwImg('blank_face', 'idle', sk);
+    if (!pic) return prev(skin);
+    if (PXW_BLANK[sk]) return PXW_BLANK[sk];
+    const c = document.createElement('canvas');
+    c.width = FR.w;
+    c.height = FR.h;
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    x.drawImage(pic, -PXW_PAD, 0);
+    return (PXW_BLANK[sk] = c);
+  })(blankFace);
+for (const s of SKINS) pxwImg('blank_face', 'idle', s); // (loaded ahead: no box showing for a moment)
+
+// the Mannequin (display.js mannBody): what each pixel of its body frame is under the worn pixel clothes, W x H:
+// 1 = clothes (keep), 2 = skin shown by a piece (an open shirt's chest: the gray dummy), 0 = not covered. A pixel shirt /
+// shorts picture leaves out what is the same as the bare body's tank top / shorts under it (pixelwear_cut.py piece()),
+// so their places (assets/character/mannequin/mask_shirt|mask_pants.png, art-source/wear/mann_masks.py) count as clothes
+// too. null when none / loading.
+const PXW_SKIN_LIKE = (r, gg, b) => r >= 120 && gg / r >= 0.5 && gg / r <= 0.86 && b / r >= 0.5 && b / r <= 0.8;
+const PXW_MANN_MASK = {};
+for (const n of ['shirt', 'pants']) {
+  const im = (PXW_MANN_MASK[n] = new Image());
+  im.onload = () => typeof MANN_BODY !== 'undefined' && MANN_BODY.clear();
+  im.src = 'assets/character/mannequin/mask_' + n + '.png';
+}
+function pxwWornMask(eq, W, H) {
+  const slots = ['pants', 'feet', 'shirt'].filter((s) => eq && PXW[eq[s]]);
+  if (!slots.length) return null;
+  const pics = slots.map((s) => pxwImg(eq[s], 'idle', MANN_SKIN)),
+    masks = slots.filter((s) => PXW_MANN_MASK[s]).map((s) => PXW_MANN_MASK[s]);
+  if (pics.some((pc) => !pc) || masks.some((m) => !m.complete || !m.naturalWidth)) return null;
+  const read = (ims) => {
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.imageSmoothingEnabled = false;
+    for (const im of ims) x.drawImage(im, -PXW_PAD, 0);
+    return x.getImageData(0, 0, W, H).data;
+  };
+  const area = masks.length ? read(masks) : null,
+    d = read(pics),
+    m = new Uint8Array(W * H);
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+    if (area && area[i + 3] >= 60) m[j] = 1;
+    if (d[i + 3] >= 60) m[j] = PXW_SKIN_LIKE(d[i], d[i + 1], d[i + 2]) ? 2 : 1;
+  }
+  return m;
+}

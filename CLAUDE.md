@@ -23,7 +23,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 
 | Folder | Files |
 |---|---|
-| `core/` | errors, assets, config, gfx (Nov 23 2026: Graphics settings, right after config.js), ambient (Nov 22 2026 y: birds / wind, right after ui/landinglinks.js), native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), gone (Nov 22 2026: deleted items, right before main.js), main |
+| `core/` | errors, assets, config, bootflow (Nov 23 2026: loading steps / maintenance / in-game update / the scene, right after config.js), gfx (Nov 23 2026: Graphics settings), ambient (Nov 22 2026 y: birds / wind, right after ui/landinglinks.js), native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), gone (Nov 22 2026: deleted items, right before main.js), main |
 | `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, bag (build m, loaded before main.js), gmwatch, subscriber, rename, social, globalchat, keys |
 | `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, daynight (right after weather), clouds (right after daynight: the desert clouds, fixed in the world, drifting left), signs |
 | `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb, spwai (TEMP test, build p) |
@@ -138,8 +138,95 @@ list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/sta
   Cut (black-long-hair-2), Red Wolf Cut, Emo Fringe, Hime Cut (girl-long-hair.aseprite, the owner's fixed file; it replaced
   girlhair.aseprite), Flipped Bob (girl-hair.png only, kept as `hair/flip-bob.png`: the cut script takes a .png
   figure's hair = what differs from the bare body), Cherry Space Buns (poka), Professor Tufts (shaggy).
+- (Nov 23 2026 b) Frost Spikes `frost_spikes` (hair/white-hair), Onyx Shades `onyx_shades` (shades/black-shade, Eyes
+  slot), Blank Face `blank_face` (blank/faceless, Eyes slot, Epic). Owner: "just hide the eyes and the mouth", "the mouth's
+  colour on the eyebrows whatever the skin". Cut category 'blank/': a patch = the default look's eyes + mouth pixels
+  (+1 px round) in his plain skin, the eyebrows in the mouth's colour; SKINNED (idle_<skin>.png, FACT recolours it all,
+  so the brows match each skin's mouth). The item has `blank: true` (pixelwear.js `PXW_BODY_FACE`, no WEAR_ART), so
+  render.js's old blank-face drawing does it in EVERY pose (`blankFaceOn` -> `blankFace(skin)`: render.js standing /
+  walking / in the air, jump.js, gates.js swimming, rest.js sitting), under hair / beards / hats; pixelwear.js wraps
+  `blankFace` to use this patch. Owner: "when jumping too; with the emotes the mouth and eyes stay hidden": a blank face
+  now wins over /facejoke, the angry face, the air face, the talking mouth, emote faces (drawEmoFace) and the /dance
+  smile. Icon = his head from the file (icon.png), not the Mannequin.
+  (Tried and dropped the same day: an overlay on top (covered hair / beards), then painting it into outfitBody frames
+  (missed jumping, emotes).)
+  Skinned art pieces over the head: pixelwear.js passes the wearer's skin as the art frame (drawCharacter wrapper sets
+  `PXW_SKIN_NOW`, drawWearArt wrapper turns it into f = SKINS index; WEAR_ART reads SKINS[f]).
+- (Nov 23 2026 c) Bag / Shop icons of the pixel wear = the Mannequin wearing only that piece, cut to its part
+  (pixelwear.js `pxwMannIcon`): head (hair, face, stache, hat, neck), body with both hands (shirt), shorts down to the
+  feet (pants, feet); bands in `PXW_ICON_BAND`, drawn at `PXW_ICON_Z` 3 with display.js drawMannequinAt on a spare
+  canvas. Skinned pieces get the dummy's gray instead of porcelain skin (`pxwMannGray`). Until the Mannequin / the
+  piece has loaded the old icon.png shows and it's tried again (`pxwIconRetry` clears ICON[id], renderInv()).
+  Mannequin + white clothes (Nov 23 2026 d): mannBody grays every pixel outfitBody didn't change, and a white shirt /
+  shorts has the body's own tank-top white, so it went gray (in the world AND the icons). Worse: a pixel shirt's
+  picture LEAVES OUT what equals the tank top under it (pixelwear_cut.py piece()), so its middle wasn't there at all.
+  Now pixelwear.js `pxwWornMask(eq, W, H)`: 1 = clothes (the pieces' own non-skin pixels + the tank top's / shorts'
+  place, assets/character/mannequin/mask_shirt|mask_pants.png from art-source/wear/mann_masks.py), 2 = skin shown by
+  a piece (open chest: gray), 0 = the old "changed by outfitBody" rule. mannBody doesn't keep a body made before the
+  masks loaded.
+  A shirt's icon waits for its two sleeve pictures too (sleeve_back / sleeve_front: the owner's "left and right sleeve"
+  layers, drawn over the dummy's sleeves by display.js mannSleeve -> pxwSleeve); every picture is asked for at once.
+- (Nov 23 2026 c) Fishing baits: the hanging worm is the owner's picture `assets/fish/bait/worm_tied.png` (his two wraps
+  of line drawn on it, tie spot `BAIT_TIE.worm` 30.5, 36.5); no bait wriggles or sways any more (only shakes on a bite),
+  in the Bait Basket too. Golden Shrimp is tied like the shrimp (`BAIT_TIE[bait] || BAIT_TIE.shrimp`; it used to crash
+  drawFishing: "Cannot read properties of undefined (reading 'a')"). Snail / shrimp wraps are still drawn in code.
 - pixelwear_cut.py now takes ids: `python3 art-source/wear/pixelwear_cut.py . <id> ...`. A FULL re-run changes committed
   pictures (tees, polos, beanie were fixed after), so cut only the new ids, then `pixelwear_gapfix.py www/assets/ fix`.
+
+## Loading screen, maintenance, in-game updates (owner, Nov 23 2026, build '2026-11-23 a')
+
+- (Walkers' soles: BF_FEET row 153 of the 170 px frame, put on the grass line.)
+- Start-up lag (owner: "laggy at the start, then it goes away"): with the scene behind the log in page the world
+  wasn't drawn there any more, so its first-time work (daynight.js dnRecolored on the 6357 x 1953 alpine picture,
+  ~0.5 s; tiles, shadows) moved into the first seconds of playing. titlescreen.js now draws the world on the hidden
+  canvas once a second behind the log in page (`titleWarmAt`). Measured after pressing LOG IN: 1.6 s of long tasks
+  -> 0.19 s (the original build: 0.08 s). The scene loop checks body classes, not getComputedStyle, every frame.
+- `core/bootflow.js` + index.html `#boot`: deep blue glow with drifting soft lights (like his recording, own colours),
+  the logo, the step with animated dots, a striped bar; 6 characters walk along a grass strip (assets/ui/boot/walk0-5.png)
+  and 3 fly across on the Flying Carpet / Leaf Gliders (fly0-2.png). The sheets are 12 frames of 188 x 170 made with the
+  game's own drawCharacter (pixel clothes, new hairs; flyers without shadows) by a Playwright script, not by hand.
+- Steps: config.js `boot()` (pictures, bar 0-70%) -> `bootFlowRun(go)`: "Checking server status" (app_status RPC by plain
+  fetch) -> maintenance panel if on (checks every 15 s; TRY AGAIN; "Staff log in" goes on: non-GMs are sent back once in
+  a world) -> "Checking for updates" -> "Preparing items" -> `go()` = ready() + bootRelease() ("Connecting to server" /
+  "Logging in"). ready() (and so the session restore) waits for the flow: nobody logs in during a maintenance.
+- The log in page has the SAME scene behind it (titlescreen.js `body.bootscene`: #boot stays at z-index 0, its middle
+  hidden, the world isn't drawn). The title buttons PLAY / OPTIONS / EXIT and Back are gone: the log in pop-up pops in
+  (`body.lwait` -> `body.lpop`).
+- Maintenance: schema.sql `app_status` (one row) / `app_status()` (anon) / `gm_maintenance(p_on, p_msg, p_in_min,
+  p_len_min)` (GM). GM chat `/maint on [minutes] [message]`, `/maint off` (social.js -> maintCommand -> Net.gmMaint). In a
+  world app_status every 30 s: a red countdown bar (`.maintbar`) before it starts; started = save + notice + reload
+  (not GMs). By hand: supabase/admin/maintenance.sql. RE-RUN schema.sql.
+- In-game update, no Play Store (Android app only): `@capgo/capacitor-updater` 6.41.1 (self-hosted, no Capgo account,
+  stats off, autoUpdate off; capacitor.config.json). scripts/make-config.js writes WEB_BUILD (git sha), WEB_TIME (commit
+  time), OTA_BASE (the GitHub Pages site from GITHUB_REPOSITORY, or OTA_BASE env / repo variable for a custom domain).
+  The Pages workflow runs scripts/make-ota.js -> www/ota/manifest.json (every file + sha256 + its Pages URL). On start
+  the app compares; newer -> `download({ manifest })` (only files it doesn't have; the very FIRST update downloads every
+  file once, ~38 MB, as this plugin version can't read the APK's own files) -> `set()` restarts into it.
+  `notifyAppReady()` at DOMContentLoaded (else it rolls back after appReadyTimeout 30 s). A new APK resets to its own
+  files (resetWhenUpdate). Browser: one reload when newer. Native code / plugins / permissions still need a new APK.
+- Android: compileSdk 35 (androidx.work in the plugin), targetSdk still 34; gradle.properties
+  android.suppressUnsupportedCompileSdk=35 (AGP 8.2.1). Not built here (no Google Maven in this sandbox): watch the
+  first GitHub build.
+- AURAS BACK (owner, Nov 23 2026: "bring them back, just remove the lightning effects"): NEW `wear/auras.js` (right
+  after pixelwear.js: needs addWear from musicset.js). Golden / Red / Dark Diamond / Diamond / White Aura (Legendary,
+  200 Balb Coins each as before the Nov 22 deletion), the old pictures assets/items/aura_*.png (8 frames 160 x 242).
+  Drawn by a drawBehind wrapper (behind everything: aura -> back item -> long hair's back -> body), 1.25 x the body
+  high (AURA_H 270 body px), centred, bottom a little under the feet, AURA_ALPHA 0.7, AURA_MS 90 a frame; icon = frame 0
+  (strip). `auraHalfW` gives its half width again (shadow.js / prismtrail.js). NO lightning: drawAuraFront stays the
+  empty hook in wear.js. Out of gone.js and the schema gone list; shop_prices rows (bc 200) + rarity rows: RE-RUN
+  schema.sql. Owners' old auras were wiped from bags on Nov 22 (admin/2026-11-22_delete_items.sql): not given back.
+  - Bigger (owner showed the old look): AURA_H 350 x AURA_W 430 body px, centred on the 118-wide body, bottom 30 px
+    under the feet (AURA_X / AURA_Y computed in auras.js).
+  - Cleaned (owner: "still messy", "remove that stroke"): `art-source/items/aura_clean.py <root>` rewrites
+    www/assets/items/aura_*.png from the originals in art-source/items/aura_before_clean/: haze (alpha < 170) and
+    loose sparks removed, holes filled, and the swirl strokes painted out (mask found on the GOLDEN frame, blue >= 215
+    grown into blue >= 165 + 2 px, used on all five colours since they're recolours with identical shapes; filled
+    with a Gaussian-weighted average of the flame round them). Then (owner's recording: he erased the pale outer
+    layer round the flame tongues by hand, "do that on all") `rim_mask` cuts pale pixels (blue >= 80 on the golden
+    frame) reachable from outside within 10 px, keeps the biggest piece, same cut on all colours: spiky flame edges.
+    Re-run it if the originals change.
+- Deleted (gone.js + schema gone list): Cloud Ride `ride_cloud` and Cloud Ring `cloud_ring` (its code in rides.js /
+  wrist.js stays unused).
 
 ## Rules that are easy to break
 

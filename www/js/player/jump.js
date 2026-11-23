@@ -50,8 +50,8 @@ function drawJumping(c, ox, oy, f) {
   g.imageSmoothingEnabled = true;
   drawBehind(c, top, sc, hdy);
   g.drawImage(outfitBody(im, 'jump_' + c.skin + '_' + f, eq, info), -(FR.w / 2 + JUMP_PAD) * sc * Z, top - JUMP_PAD * sc * Z, JUMP_W * sc * Z, JUMP_H * sc * Z);
-  if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
-  else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
+  if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // (Blank Face wins over every face: Nov 23 2026)
+  else if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else drawTalk(c, top, sc, hdy, MOUTH_Y);
   // hats, hair, face items. A picture shirt (Cat Ear Hoodie, Skull Tee) stays on mid-jump (owner, Nov 2 2026: the
   // hoodie vanished when jumping): `pwJump` tells photo_wear.js to draw it fitted to this jump picture

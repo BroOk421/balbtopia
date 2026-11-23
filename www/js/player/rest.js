@@ -369,8 +369,8 @@ function drawResting(c, ox, oy) {
     drawBehind(c, top, sc, 0);
     if (body) g.drawImage(body, (-FR.w / 2 - SIT_PAD) * k, top, body.width * k, body.height * k);
     // the head on the sitting picture is the standing head, so the angry face fits it the same way
-    if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
-    else if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k); // (Blank Face wins over every face: Nov 23 2026)
+    else if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
     else if (angry) g.drawImage(angryFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
     else drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
     drawWorn(c, top, sc, 0);

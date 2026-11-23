@@ -295,6 +295,7 @@ function mannBody(eq) {
   c.height = base.height;
   const x = c.getContext('2d');
   x.drawImage(dressed, 0, 0);
+  let maskMissing = false; // (pixel clothes on, their mask not ready yet: not kept)
   try {
     const W = c.width,
       H = c.height,
@@ -309,10 +310,16 @@ function mannBody(eq) {
     const src = read(base),
       gp = read(gray),
       d = x.getImageData(0, 0, W, H),
-      p = d.data;
+      p = d.data,
+      // (Nov 23 2026: the White Button Polo / White Open Shirt turned gray: their white is the body's own tank-top white,
+      // so "changed by outfitBody" missed it) the pixel shirts / shorts / shoes say themselves which pixels they cover
+      worn = typeof pxwWornMask === 'function' ? pxwWornMask(eq, W, H) : null;
+    maskMissing = !worn && typeof PXW !== 'undefined' && ['shirt', 'pants', 'feet'].some((s) => PXW[eq[s]]);
     for (let i = 0; i < p.length; i += 4) {
-      // a worn piece of clothing (outfitBody changed the pixel) stays as it is
-      if (p[i + 3] >= 60 && (p[i] !== src[i] || p[i + 1] !== src[i + 1] || p[i + 2] !== src[i + 2] || p[i + 3] !== src[i + 3])) continue;
+      // a worn piece of clothing (outfitBody changed the pixel, or a pixel piece covers it with a non-skin colour) stays
+      const w = worn ? worn[i >> 2] : 0;
+      if (p[i + 3] >= 60 && w === 1) continue; // under a pixel piece / where its tank top or shorts are
+      if (p[i + 3] >= 60 && w !== 2 && (p[i] !== src[i] || p[i + 1] !== src[i + 1] || p[i + 2] !== src[i + 2] || p[i + 3] !== src[i + 3])) continue;
       p[i] = gp[i];
       p[i + 1] = gp[i + 1];
       p[i + 2] = gp[i + 2];
@@ -326,7 +333,7 @@ function mannBody(eq) {
   // a pixel shirt / shorts / shoes picture still loading (pixelwear.js gave the bare body): not kept, made again next
   // frame (it was kept for good, so a dressed Mannequin could stay bare)
   const loading = typeof PXW !== 'undefined' && typeof pxwImg === 'function' && ['shirt', 'pants', 'feet'].some((s) => PXW[eq[s]] && !pxwImg(eq[s], 'idle', MANN_SKIN));
-  if (loading) return c;
+  if (loading || maskMissing) return c;
   if (MANN_BODY.size > 200) MANN_BODY.clear();
   MANN_BODY.set(k, c);
   return c;

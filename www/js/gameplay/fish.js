@@ -419,7 +419,11 @@ const FISH_RANGE = 3, // tiles from you (owner, Nov 3 2026: 3 tiles only)
 const BAIT_SIZE = 13; // world px: the bait hanging on the line's end (was the 7 px float)
 // where the snail / shrimp are tied (64 px picture px, from fishing.js paintSnail / paintShrimp): the middle of the
 // BODY, how thick it is there (th) and the direction ACROSS it (a, radians) the wraps of line go
+const WORM_TIED = new Image();
+WORM_TIED.src = 'assets/fish/bait/worm_tied.png';
 const BAIT_TIE = {
+  // (owner's picture) the middle of the two wraps he drew (px 27-34, rows 29-44)
+  worm: { x: 30.5, y: 36.5 },
   // the snail's soft foot, under the front of the shell
   snail: { x: 24, y: 52, th: 10, a: Math.PI / 2 + 0.25 },
   // the shrimp's middle segment, round its curl (across = from the curl's centre out)
@@ -605,29 +609,37 @@ function drawFishing(ox, oy) {
     // hangs on the end of the line, the line tied round its middle; it sways a little (the worm wriggles)
     const bait = typeof baitPic === 'function' && F.bait && BAIT_INFO[F.bait] ? F.bait : null;
     if (bait) {
-      const pic = baitPic(bait, bait === 'worm' ? Math.floor(now / 160) % 4 : 0),
+      // (owner, Nov 23 2026: "don't animate the worm, the others too") no wriggle and no sway: it only shakes on a bite
+      const pic = baitPic(bait, 0),
         S = BAIT_SIZE * Z,
         k = S / 64;
       g.save();
       g.translate(bx, by);
-      g.rotate(Math.sin(now / 380) * 0.12 + (F.st === 'bite' ? Math.sin(now / 40) * 0.25 : 0));
+      g.rotate(F.st === 'bite' ? Math.sin(now / 40) * 0.25 : 0);
       if (tip.x > F.x) g.scale(-1, 1); // its head away from you
       g.imageSmoothingEnabled = true;
       g.strokeStyle = 'rgba(236,240,248,.95)';
       g.lineWidth = Math.max(1, Z * 0.45);
       g.beginPath();
       if (bait === 'worm') {
-        // the worm (owner: fine as it is): the picture's middle on the line's end, the line wound twice round it
-        g.drawImage(pic, -S / 2, -S / 2, S, S);
-        for (const dx of [-0.9, 0.9]) {
-          g.moveTo((dx - 0.6) * Z, -2.4 * Z);
-          g.lineTo((dx + 0.6) * Z, 2.4 * Z);
+        // (owner, Nov 23 2026: his own picture, the two wraps of line drawn on it: assets/fish/bait/worm_tied.png)
+        // its wraps' middle (BAIT_TIE.worm) on the line's end; the code-drawn wraps until it has loaded
+        const t = BAIT_TIE.worm;
+        if (WORM_TIED.complete && WORM_TIED.naturalWidth) {
+          g.imageSmoothingEnabled = false;
+          g.drawImage(WORM_TIED, -t.x * k, -t.y * k, S, S);
+        } else {
+          g.drawImage(pic, -t.x * k, -t.y * k, S, S);
+          for (const dx of [-0.9, 0.9]) {
+            g.moveTo((dx - 0.6) * Z, -2.4 * Z);
+            g.lineTo((dx + 0.6) * Z, 2.4 * Z);
+          }
         }
       } else {
         // (owner: "on the body itself, like the worm, the strokes accurate: tie the line there") the snail / shrimp:
         // its tie spot (BAIT_TIE, picture px) on the line's end, two wraps of line across the body there, as long as the
         // body is thick and square to it
-        const t = BAIT_TIE[bait],
+        const t = BAIT_TIE[bait] || BAIT_TIE.shrimp, // (Golden Shrimp: tied like the shrimp)
           ux = Math.cos(t.a),
           uy = Math.sin(t.a), // along the wraps (across the body)
           vx = -uy,

@@ -32,11 +32,14 @@ jobs:
       - name: Install
         run: npm ci
 
+      # (Nov 23 2026) the APK's www/ knows its build (GITHUB_SHA) and where updates come from (OTA_BASE: the GitHub
+      # Pages site, worked out from the repo name; set a repo variable OTA_BASE for a custom domain): bootflow.js
       - name: Write online config from GitHub Secrets
         run: node scripts/make-config.js
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          OTA_BASE: ${{ vars.OTA_BASE }}
 
       - name: Copy the game into the Android project
         run: npx cap sync android

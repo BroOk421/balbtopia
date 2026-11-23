@@ -1115,7 +1115,6 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   -- more clothes (clothes.js, Oct 31 2026)
   -- t-shirts and polos with sleeves (tees.js, Nov 5 2026)
   -- the Cloud Ring (wrist.js, Nov 5 2026): wearing it = the Cloud Ride, which is no longer sold
-  ('cloud_ring', 1, 100000, true, 0),
   ('prism_ring', 1, 85000, true, 0), -- Phantom Ring (prismtrail.js, Nov 8 2026): dark after-images
   ('ride_horse', 1, 60000, true, 0), -- rides.js (Oct 31 2026)
   ('ride_truck', 1, 80000, true, 0),
@@ -1179,6 +1178,12 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('black_beanie', 1, 2000, true, 0),
   ('frog_hood', 1, 5000, true, 0),
   ('six_pack_abs', 1, 5000, true, 0),
+  -- (Nov 23 2026) the auras are back, 200 Balb Coins each as before
+  ('golden_aura', 1, 0, true, 200),
+  ('red_aura', 1, 0, true, 200),
+  ('dark_diamond_aura', 1, 0, true, 200),
+  ('diamond_aura', 1, 0, true, 200),
+  ('white_aura', 1, 0, true, 200),
   ('handlebar_mustache', 1, 2500, true, 0),
   ('gentleman_mustache', 1, 3000, true, 0),
   ('button_mustache', 1, 1500, true, 0),
@@ -1197,6 +1202,9 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('flipped_bob', 1, 4500, true, 0),
   ('cherry_space_buns', 1, 6000, true, 0),
   ('professor_tufts', 1, 2000, true, 0),
+  ('frost_spikes', 1, 5000, true, 0),
+  ('onyx_shades', 1, 3000, true, 0),
+  ('blank_face', 1, 6000, true, 0),
   ('piano', 1, 3000, true, 0),
   ('genie_teapot', 1, 1000, true, 0),
   ('microphone', 1, 20000, true, 0), -- globalchat.js: one Global Chat broadcast each (20,000 since Nov 13 2026)
@@ -1273,7 +1281,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_jade_dragon', 1, 100000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('royal_silk_scarf', 1), ('cloud_ring', 1), ('prism_ring', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('midnight_tee', 1), ('brown_tee', 1), ('gray_tee', 1), ('green_tee', 1), ('orange_tee', 1), ('pink_tee', 1), ('red_tee', 1), ('smiley_tee', 1), ('black_button_polo', 1), ('white_button_polo', 1), ('charcoal_open_shirt', 1), ('white_open_shirt', 1), ('red_open_shirt', 1), ('black_kung_fu_shirt', 1), ('white_kung_fu_shirt', 1), ('black_shorts', 1), ('blue_shorts', 1), ('lime_shorts', 1), ('orange_shorts', 1), ('red_shorts', 1), ('white_shorts', 1), ('black_sneakers', 1), ('charcoal_sneakers', 1), ('retro_sneakers', 1), ('black_flip_flops', 1), ('gray_flip_flops', 1), ('green_flip_flops', 1), ('orange_flip_flops', 1), ('red_flip_flops', 1), ('black_shades', 1), ('green_shades', 1), ('yellow_shades', 1), ('burst_fade', 1), ('wild_fade', 1), ('wild_side_part', 1), ('red_wild_fade', 1), ('red_side_part', 1), ('bob_cut', 1), ('good_boy_cut', 1), ('silver_wild_fade', 1), ('golden_bob_cut', 1), ('cloud_sole_sneakers', 1), ('shadow_hood', 1), ('shadow_robe', 1), ('gray_hoodie', 1), ('black_silk_scarf', 1), ('crimson_silk_scarf', 1), ('trucker_cap', 1), ('black_beanie', 1), ('frog_hood', 1), ('six_pack_abs', 1), ('handlebar_mustache', 1), ('gentleman_mustache', 1), ('button_mustache', 1), ('silver_walrus_mustache', 1), ('grandpa_beard', 1), ('lumberjack_beard', 1), ('bold_eyeliner', 1), ('brown_neat_cut', 1), ('black_neat_cut', 1), ('red_neat_cut', 1), ('black_wolf_cut', 1), ('messy_wolf_cut', 1), ('red_wolf_cut', 1), ('emo_fringe', 1), ('hime_cut', 1), ('flipped_bob', 1), ('cherry_space_buns', 1), ('professor_tufts', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_astronaut', 1), ('starter_pack', 1), ('set_music', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('golden_wings', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('royal_silk_scarf', 1), ('prism_ring', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('midnight_tee', 1), ('brown_tee', 1), ('gray_tee', 1), ('green_tee', 1), ('orange_tee', 1), ('pink_tee', 1), ('red_tee', 1), ('smiley_tee', 1), ('black_button_polo', 1), ('white_button_polo', 1), ('charcoal_open_shirt', 1), ('white_open_shirt', 1), ('red_open_shirt', 1), ('black_kung_fu_shirt', 1), ('white_kung_fu_shirt', 1), ('black_shorts', 1), ('blue_shorts', 1), ('lime_shorts', 1), ('orange_shorts', 1), ('red_shorts', 1), ('white_shorts', 1), ('black_sneakers', 1), ('charcoal_sneakers', 1), ('retro_sneakers', 1), ('black_flip_flops', 1), ('gray_flip_flops', 1), ('green_flip_flops', 1), ('orange_flip_flops', 1), ('red_flip_flops', 1), ('black_shades', 1), ('green_shades', 1), ('yellow_shades', 1), ('burst_fade', 1), ('wild_fade', 1), ('wild_side_part', 1), ('red_wild_fade', 1), ('red_side_part', 1), ('bob_cut', 1), ('good_boy_cut', 1), ('silver_wild_fade', 1), ('golden_bob_cut', 1), ('cloud_sole_sneakers', 1), ('shadow_hood', 1), ('shadow_robe', 1), ('gray_hoodie', 1), ('black_silk_scarf', 1), ('crimson_silk_scarf', 1), ('trucker_cap', 1), ('black_beanie', 1), ('frog_hood', 1), ('six_pack_abs', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('handlebar_mustache', 1), ('gentleman_mustache', 1), ('button_mustache', 1), ('silver_walrus_mustache', 1), ('grandpa_beard', 1), ('lumberjack_beard', 1), ('bold_eyeliner', 1), ('brown_neat_cut', 1), ('black_neat_cut', 1), ('red_neat_cut', 1), ('black_wolf_cut', 1), ('messy_wolf_cut', 1), ('red_wolf_cut', 1), ('emo_fringe', 1), ('hime_cut', 1), ('flipped_bob', 1), ('cherry_space_buns', 1), ('professor_tufts', 1), ('frost_spikes', 1), ('onyx_shades', 1), ('blank_face', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_astronaut', 1), ('starter_pack', 1), ('set_music', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('golden_wings', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
@@ -3627,7 +3635,7 @@ insert into public.item_info (item, cls) values
   ('cloud_block_seed', 'uncommon'),
   ('cloud_platform', 'uncommon'),
   ('cloud_platform_seed', 'uncommon'),
-  ('cloud_ring', 'legendary'),
+  ('cloud_ring', 'none'), -- (Nov 23 2026: deleted)
   ('clouds', 'uncommon'),
   ('clouds_seed', 'uncommon'),
   ('cloudstone_block', 'uncommon'),
@@ -3686,7 +3694,7 @@ insert into public.item_info (item, cls) values
   ('dark_brown_block_seed', 'common'),
   ('dark_cave', 'uncommon'),
   ('dark_cave_seed', 'uncommon'),
-  ('dark_diamond_aura', 'none'), -- (Nov 22 2026: deleted)
+  ('dark_diamond_aura', 'legendary'), -- (deleted Nov 22 2026, back Nov 23 2026: wear/auras.js)
   ('dark_green_block', 'common'),
   ('dark_green_block_seed', 'common'),
   ('dark_grey_block', 'common'),
@@ -3727,7 +3735,7 @@ insert into public.item_info (item, cls) values
   ('desert_weather_machine', 'epic'),
   ('desk_lamp', 'uncommon'),
   ('desk_lamp_seed', 'uncommon'),
-  ('diamond_aura', 'none'), -- (Nov 22 2026: deleted)
+  ('diamond_aura', 'legendary'), -- (deleted Nov 22 2026, back Nov 23 2026: wear/auras.js)
   ('diamond_lock', 'lock2'),
   ('diamond_pickaxe', 'legendary'),
   ('diamond_plate', 'uncommon'),
@@ -3922,7 +3930,7 @@ insert into public.item_info (item, cls) values
   ('gold_vein', 'legendary'), -- (build p: Legendary now)
   ('gold_vein_seed', 'legendary'),
   ('gold_watch', 'none'), -- (Nov 22 2026: deleted)
-  ('golden_aura', 'none'), -- (Nov 22 2026: deleted)
+  ('golden_aura', 'legendary'), -- (deleted Nov 22 2026, back Nov 23 2026: wear/auras.js)
   ('golden_block', 'rare'),
   ('golden_block_seed', 'rare'),
   ('golden_cape', 'legendary'),
@@ -4471,6 +4479,9 @@ insert into public.item_info (item, cls) values
   ('flipped_bob', 'uncommon'),
   ('cherry_space_buns', 'rare'),
   ('professor_tufts', 'common'),
+  ('frost_spikes', 'rare'),
+  ('onyx_shades', 'uncommon'),
+  ('blank_face', 'epic'),
   ('rainbow_arch', 'rare'),
   ('rainbow_arch_seed', 'rare'),
   ('rainbow_block', 'rare'),
@@ -4479,7 +4490,7 @@ insert into public.item_info (item, cls) values
   ('rainbow_shift_block_seed', 'rare'),
   ('rainbow_wristband', 'none'), -- (Nov 22 2026: deleted)
   ('reaper_scythe', 'legendary'),
-  ('red_aura', 'none'), -- (Nov 22 2026: deleted)
+  ('red_aura', 'legendary'), -- (deleted Nov 22 2026, back Nov 23 2026: wear/auras.js)
   ('red_block', 'common'),
   ('red_block_seed', 'common'),
   ('red_bricks', 'common'),
@@ -4507,7 +4518,7 @@ insert into public.item_info (item, cls) values
   ('rice_cooker_seed', 'uncommon'),
   ('ride_car', 'epic'),
   ('ride_carpet', 'legendary'),
-  ('ride_cloud', 'legendary'),
+  ('ride_cloud', 'none'), -- (Nov 23 2026: deleted)
   ('ride_harvester', 'legendary'),
   ('ride_horse', 'epic'),
   ('ride_leaf', 'legendary'),
@@ -4781,7 +4792,7 @@ insert into public.item_info (item, cls) values
   ('whale', 'legendary'),
   ('whale_l', 'legendary'),
   ('whale_m', 'legendary'),
-  ('white_aura', 'none'), -- (Nov 22 2026: deleted)
+  ('white_aura', 'legendary'), -- (deleted Nov 22 2026, back Nov 23 2026: wear/auras.js)
   ('white_block', 'common'),
   ('white_block_seed', 'common'),
   ('white_bricks', 'common'),
@@ -5419,8 +5430,7 @@ on conflict (item) do update set cls = excluded.cls;
 -- (Nov 22 2026 build j: the scythes, Iron / Golden / Flame / Garden / Dark / Furious / Autumn, came back: out of this list.)
 do $$
 declare gone text[] := array[
-  'cyclopean_visor', 'backpack', 'jetpack', 'dark_diamond_aura',
-    'diamond_aura', 'white_aura', 'red_aura', 'golden_aura', 'laser_eyes',
+  'cyclopean_visor', 'backpack', 'jetpack', 'laser_eyes',
     'red_fire_eyes', 'blue_fire_eyes', 'blue_pacifier', 'vampire_face', 'vampire_eyes', 'faceless_head', 'boss_shades', 'gold_watch',
     'silver_watch', 'diamond_watch', 'black_watch', 'red_wristband', 'blue_wristband',
     'black_wristband', 'white_wristband', 'rainbow_wristband', 'gold_bracelet', 'diamond_diaper',
@@ -5428,8 +5438,7 @@ declare gone text[] := array[
     'golden_sword', 'plasma_sword', 'battle_axe', 'war_hammer', 'spear',
     'bolo', 'arnis_stick', 'leaf_blower', 'smores_staff', 'heart_bow', 'fire_wand', 'ice_wand', 'chainsaw', 'dragon_hand',
     'thunder_hammer', 'paper_umbrella', 'autumn_cape', 'cyclopean_visor_seed',
-    'backpack_seed', 'jetpack_seed', 'dark_diamond_aura_seed', 'diamond_aura_seed',
-    'white_aura_seed', 'red_aura_seed', 'golden_aura_seed', 'laser_eyes_seed', 'red_fire_eyes_seed',
+    'backpack_seed', 'jetpack_seed', 'laser_eyes_seed', 'red_fire_eyes_seed',
     'blue_fire_eyes_seed', 'blue_pacifier_seed', 'vampire_face_seed',
     'vampire_eyes_seed', 'faceless_head_seed', 'boss_shades_seed', 'gold_watch_seed', 'silver_watch_seed',
     'diamond_watch_seed', 'black_watch_seed', 'red_wristband_seed', 'blue_wristband_seed', 'black_wristband_seed',
@@ -5438,7 +5447,9 @@ declare gone text[] := array[
     'plasma_sword_seed', 'battle_axe_seed', 'war_hammer_seed', 'spear_seed', 'bolo_seed',
     'arnis_stick_seed', 'leaf_blower_seed', 'smores_staff_seed', 'heart_bow_seed',
     'fire_wand_seed', 'ice_wand_seed', 'chainsaw_seed', 'dragon_hand_seed', 'thunder_hammer_seed',
-    'paper_umbrella_seed', 'autumn_cape_seed'
+    'paper_umbrella_seed', 'autumn_cape_seed',
+    -- (Nov 23 2026) the Cloud Ride and the Cloud Ring
+    'ride_cloud', 'cloud_ring', 'ride_cloud_seed', 'cloud_ring_seed'
 ];
 begin
   delete from public.bag where item = any (gone);
@@ -5451,3 +5462,48 @@ begin
   delete from public.spw_shop where item = any (gone);
   insert into public.item_info (item, cls) select unnest(gone), 'none' on conflict (item) do update set cls = 'none';
 end $$;
+
+-- ---------- Server maintenance (owner, Nov 23 2026: "when there's an update, a maintenance; after it the game updates
+-- itself before the log in page") ----------
+-- One row. on + starts_at in the future = a warning countdown in the game; on + starts_at passed = maintenance: the
+-- loading screen stops at "Server maintenance" (checks again every 15 s) and players in a world are sent back to it
+-- (GMs can still play). ends_at = when you think it's done (shown as "back in about ..."), may be null.
+-- The game reads it with app_status() (also before logging in); a GM sets it in the chat: /maint on [minutes] [message],
+-- /maint off (gm_maintenance), or by hand: supabase/admin/maintenance.sql.
+create table if not exists public.app_status (
+  id int primary key default 1 check (id = 1),
+  on_ boolean not null default false,
+  msg text not null default '',
+  starts_at timestamptz,
+  ends_at timestamptz,
+  by_name text,
+  updated_at timestamptz not null default now()
+);
+insert into public.app_status (id) values (1) on conflict (id) do nothing;
+alter table public.app_status enable row level security;
+revoke all on public.app_status from anon, authenticated;
+
+create or replace function public.app_status()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('on', s.on_, 'msg', s.msg, 'starts_at', s.starts_at, 'ends_at', s.ends_at, 'now', now())
+  from public.app_status s where s.id = 1
+$$;
+
+create or replace function public.gm_maintenance(p_on boolean, p_msg text default '', p_in_min int default 5, p_len_min int default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_gm() then raise exception 'Only a GM can start a maintenance' using errcode = '42501'; end if;
+  update public.app_status set
+    on_ = p_on,
+    msg = left(coalesce(p_msg, ''), 200),
+    starts_at = case when p_on then now() + make_interval(mins => greatest(0, least(coalesce(p_in_min, 5), 120))) else null end,
+    ends_at = case when p_on and p_len_min is not null
+      then now() + make_interval(mins => greatest(0, least(coalesce(p_in_min, 5), 120)) + greatest(1, least(p_len_min, 1440))) else null end,
+    by_name = public.my_name(),
+    updated_at = now()
+  where id = 1;
+  return public.app_status();
+end $$;
+
+grant execute on function public.app_status() to anon, authenticated;
+grant execute on function public.gm_maintenance(boolean, text, int, int) to authenticated;

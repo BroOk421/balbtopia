@@ -207,10 +207,9 @@ function basketPic(bait, f) {
   x.imageSmoothingEnabled = false;
   if (bait) {
     x.drawImage(basketLayer('back', paintBasketBack), 0, 0);
-    // the bait, half its size, peeking over the rim under the lifted side of the lid
-    const bob = f ? 1 : 0;
+    // the bait, half its size, peeking over the rim under the lifted side of the lid (Nov 23 2026: still, no wriggle)
     const [bx, by] = BAIT_PEEK[bait] || [22, 0];
-    x.drawImage(baitPic(bait, bait === 'worm' ? f : 0), bx, by + bob, 40, 40);
+    x.drawImage(baitPic(bait, 0), bx, by, 40, 40);
   }
   x.drawImage(basketLayer('front', paintBasketFront), 0, 0);
   x.drawImage(basketLayer(bait ? 'lidOpen' : 'lidShut', (a) => paintBasketLid(a, !!bait)), 0, 0);

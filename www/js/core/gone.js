@@ -17,14 +17,15 @@ const GONE_ITEMS = new Set([
   'cyclopean_visor', 'laser_eyes', 'red_fire_eyes', 'blue_fire_eyes', 'boss_shades', 'vampire_eyes', 'blue_pacifier', 'vampire_face', 'faceless_head',
   // wear: back (packs; the wings came back Nov 23 2026 build zh, the capes in build l)
   'backpack', 'jetpack', 'autumn_cape', // (Autumn Cape: Nov 21 2026)
-  // wear: auras
-  'dark_diamond_aura', 'diamond_aura', 'white_aura', 'red_aura', 'golden_aura',
+  // wear: auras (back Nov 23 2026: wear/auras.js, without the lightning)
   // wear: watches / wristbands / bracelet (the rings stay)
   'gold_watch', 'silver_watch', 'diamond_watch', 'black_watch', 'red_wristband', 'blue_wristband', 'black_wristband', 'white_wristband', 'rainbow_wristband', 'gold_bracelet',
   // wear: diapers
   'diamond_diaper', 'golden_diaper',
   // pets
   'pet_raptor',
+  // (owner, Nov 23 2026: "remove the cloud rides") the Cloud Ride and the Cloud Ring that put you on it
+  'ride_cloud', 'cloud_ring',
   // code-drawn weapons (the Water Gun and Laser Gun stay: Splash Wars / asteroids)
   'katana', 'fire_sword', 'ice_sword', 'golden_sword', 'plasma_sword', 'battle_axe', 'war_hammer', 'spear', 'bolo', 'arnis_stick', 'leaf_blower', 'paper_umbrella', 'smores_staff', 'heart_bow', 'fire_wand', 'ice_wand', 'chainsaw', 'dragon_hand', 'thunder_hammer',
 ]);
