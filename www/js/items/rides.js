@@ -730,6 +730,138 @@ function drawLeafTrail(c, ox, oy, list, alpha, front) {
   }
   g.restore();
 }
+// (owner, Nov 23 2026: "leaves going round and round horizontally, like an infinite loop, the long autumn leaf, three
+// colours") leaves flying an ∞ loop lying flat round the glider: x = A sin t, depth = B sin 2t, so they cross in the
+// middle and pass in FRONT of the rider on one half and BEHIND him on the other. The leaf is his long oval autumn leaf
+// (fall_leaves.png box 2) recoloured red / orange / yellow by brightness; each points along the way it flies.
+const LEAF_ORBIT = {
+  box: [132, 0, 63, 74], // the long leaf in assets/autumn/fall_leaves.png
+  n: 6, // leaves on the loop (the three colours twice)
+  ms: 3200, // one trip round the ∞
+  A: 27, // world px from the middle to each end of the loop
+  B: 12, // world px of depth (shown squashed: up = behind, down = in front)
+  up: 7, // world px above the soles where the loop lies
+  len: 9, // world px, the leaf's long side
+  // dark -> light, by the original leaf's brightness
+  ramps: [
+    ['#4a0406', '#8e0e12', '#d8261e', '#ff5a3a', '#ff9a7a'], // red
+    null, // orange: his own colours
+    ['#5a3a00', '#a87404', '#f0b412', '#ffe048', '#fff6a8'], // yellow
+  ],
+  pics: null,
+};
+function leafOrbitPics() {
+  const L = LEAF_ORBIT,
+    im = IMG.autumn_fall_leaves;
+  if (L.pics) return L.pics;
+  if (!im || !im.width) return null;
+  const [bx, by, bw, bh] = L.box;
+  L.pics = L.ramps.map((ramp) => {
+    const cv = document.createElement('canvas');
+    cv.width = bw;
+    cv.height = bh;
+    const x = cv.getContext('2d');
+    x.drawImage(im, bx, by, bw, bh, 0, 0, bw, bh);
+    if (!ramp) return cv;
+    const d = x.getImageData(0, 0, bw, bh),
+      p = d.data,
+      R = ramp.map((h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
+    for (let i = 0; i < p.length; i += 4) {
+      if (!p[i + 3]) continue;
+      const v = Math.min(0.999, (0.5 * p[i] + 0.4 * p[i + 1] + 0.1 * p[i + 2]) / 255) * (R.length - 1),
+        k = Math.floor(v),
+        f = v - k;
+      for (let ch = 0; ch < 3; ch++) p[i + ch] = Math.round(R[k][ch] + (R[k + 1][ch] - R[k][ch]) * f);
+    }
+    x.putImageData(d, 0, 0);
+    return cv;
+  });
+  return L.pics;
+}
+// (owner, Nov 23 2026 later: "they come along when going left / right; they should only face where he is going, going
+// left just left, and be left behind") standing still: the ∞ loop. Gliding: the loop lets go: its leaves (and a new
+// one every `gap` s) all point the way he glides, drift a little that way much slower than him, so they fall behind
+// and fade (world px: they stay where they were let go). Stopping: the loop fades back in.
+const LEAF_ORBITS = new Map();
+Object.assign(LEAF_ORBIT, { gap: 0.16, life: 1.1, fwd: 0.25 /* share of his speed a loose leaf keeps */, fade: 5 /* loop in / out a second */ });
+function leafOrbitStep(c, fy, face) {
+  const L = LEAF_ORBIT,
+    key = c.id || 'n:' + (c.name || ''),
+    O = LEAF_ORBITS.get(key) || LEAF_ORBITS.set(key, { t: now, m: 0, loose: [], next: 0, k: 0, was: false }).get(key),
+    dt = Math.max(0, Math.min(0.05, (now - O.t) / 1000)),
+    T = LEAF_TRAILS.get(key),
+    vx = T ? T.vx : 0,
+    moving = Math.abs(vx) > 25,
+    cx = c.x + c.w / 2,
+    cy = fy - L.up;
+  O.t = now;
+  if (moving && !O.was) {
+    // let go of the loop where it is now
+    for (const p of leafOrbitSpots(c, cx, cy)) O.loose.push({ x: p.x, y: p.y, col: p.col, dir: face, vx: vx * L.fwd, vy: (Math.random() - 0.5) * 6, age: 0, sz: p.sz, fr: p.depth >= 0 });
+  }
+  O.was = moving;
+  O.m += ((moving ? 1 : 0) - O.m) * Math.min(1, dt * L.fade);
+  if (moving) {
+    O.next -= dt;
+    if (O.next <= 0) {
+      O.next = L.gap;
+      O.loose.push({ x: cx + (Math.random() - 0.5) * L.A * 1.2, y: cy + (Math.random() - 0.5) * L.B, col: O.k++ % 3, dir: face, vx: vx * L.fwd, vy: (Math.random() - 0.5) * 6, age: 0, sz: 0.85 + Math.random() * 0.25, fr: Math.random() < 0.5 });
+    }
+  }
+  for (const p of O.loose) {
+    p.age += dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= 1 - dt * 1.5;
+  }
+  O.loose = O.loose.filter((p) => p.age < L.life).slice(-30);
+  return O;
+}
+// where the loop's leaves are now (world px)
+function leafOrbitSpots(c, cx, cy) {
+  const L = LEAF_ORBIT,
+    T0 = ((now + (c.blink || 0) * 7) / L.ms) * Math.PI * 2,
+    out = [];
+  for (let i = 0; i < L.n; i++) {
+    const t = T0 + (i / L.n) * Math.PI * 2,
+      depth = Math.sin(2 * t);
+    out.push({ x: cx + L.A * Math.sin(t), y: cy + L.B * 0.5 * depth, depth, col: i % 3, sz: 0.85 + 0.15 * depth, ang: Math.atan2(L.B * Math.cos(2 * t), L.A * Math.cos(t)) });
+  }
+  return out;
+}
+// front = true: the leaves on the near half (drawn over the rider), false: the far half
+function drawLeafOrbit(c, ox, oy, fy, alpha, front, face) {
+  const L = LEAF_ORBIT,
+    pics = leafOrbitPics();
+  if (!pics) return;
+  const O = front ? LEAF_ORBITS.get(c.id || 'n:' + (c.name || '')) : leafOrbitStep(c, fy, face);
+  if (!O) return;
+  const cx = c.x + c.w / 2,
+    cy = fy - L.up,
+    [, , bw, bh] = L.box,
+    k = (L.len / Math.hypot(bw, bh)) * 1.15 * Z; // the leaf lies diagonally in its box: its long side ~ the diagonal
+  const leaf = (x, y, ang, sz, col, a) => {
+    g.save();
+    g.globalAlpha *= a;
+    g.translate(Math.round(ox + x * Z), Math.round(oy + y * Z));
+    g.rotate(ang + Math.PI / 4); // his leaf points to the top right in the picture
+    g.scale(k * sz, k * sz);
+    g.drawImage(pics[col], -bw / 2, -bh / 2);
+    g.restore();
+  };
+  g.save();
+  g.imageSmoothingEnabled = false;
+  g.globalAlpha *= alpha;
+  const la = 1 - O.m;
+  if (la > 0.02) for (const p of leafOrbitSpots(c, cx, cy)) if (p.depth >= 0 === front) leaf(p.x, p.y, p.ang, p.sz, p.col, la);
+  // the loose ones: pointing the way he glides (a little tilt from their drift), fading at the end
+  for (const p of O.loose) {
+    if (p.fr !== front) continue;
+    const a = Math.min(1, p.age / 0.08) * Math.min(1, (L.life - p.age) / (L.life * 0.6));
+    leaf(p.x, p.y, (p.dir < 0 ? Math.PI : 0) + Math.sin(p.age * 6 + p.x) * 0.25, p.sz, p.col, a);
+  }
+  g.restore();
+}
 // riding the Leaf Glider: the trail behind, the rider STANDING (no walk / jump poses, nothing cut off), the leaf over
 // his feet
 function drawLeafRider(c, ox, oy, r) {
@@ -755,6 +887,7 @@ function drawLeafRider(c, ox, oy, r) {
   g.restore();
   const trail = leafTrail(c, r, face, fy);
   drawLeafTrail(c, ox, oy, trail, alpha, false); // the petals behind the glider
+  drawLeafOrbit(c, ox, oy, fy, alpha, false, face); // the far half of the ∞ loop (and steps it)
   // the rider, standing still on the leaf
   const walking = c.walking,
     ground = c.ground;
@@ -783,6 +916,7 @@ function drawLeafRider(c, ox, oy, r) {
   g.drawImage(pic.front, -RIDE_AX, -RIDE_AY);
   g.restore();
   drawLeafTrail(c, ox, oy, trail, alpha, true); // and the ones over it
+  drawLeafOrbit(c, ox, oy, fy, alpha, true, face); // the near half, over rider and leaf
   rideArmsNow(); // the arm with the weapon, over the leaf
   if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
   return res;

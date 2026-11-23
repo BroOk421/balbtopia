@@ -303,7 +303,7 @@ function bfSceneStart() {
   if (!wbox.children.length) {
     bfScene = { walkers: [], flyers: [] };
     for (let i = 0; i < BF_WALKERS; i++)
-      bfScene.walkers.push({ el: mk(wbox, 'assets/ui/boot/walk' + i + '.png'), x: 0.06 + (i / BF_WALKERS) * 0.88, dir: Math.random() < 0.5 ? -1 : 1, sp: 0.03 + Math.random() * 0.03, rest: 0, ph: Math.random() * 12 });
+      bfScene.walkers.push({ el: mk(wbox, 'assets/ui/boot/walk' + i + '.png'), x: 0.06 + (i / BF_WALKERS) * 0.88, dir: Math.random() < 0.5 ? -1 : 1, sp: 80 + Math.random() * 30, rest: 0, ph: Math.random() * 12 });
     for (let i = 0; i < BF_FLYERS; i++)
       bfScene.flyers.push({ el: mk(fbox, 'assets/ui/boot/fly' + i + '.png'), x: Math.random(), y: 0.12 + i * 0.13 + Math.random() * 0.05, dir: i % 2 ? -1 : 1, sp: 0.05 + Math.random() * 0.03, ph: Math.random() * 12, bob: Math.random() * 6 });
     bfSceneSaved = bfScene;
@@ -331,8 +331,11 @@ function bfSceneStart() {
     for (const k of bfScene.walkers) {
       if (k.rest > 0) k.rest -= dt;
       else {
-        k.x += k.dir * k.sp * dt * kx;
-        k.ph += dt * 14;
+        // (owner, Nov 23 2026: "the feet should walk like the characters normally walk") `sp` is a game walking
+        // speed (world px a second, a slow walk) and the feet step like in the game (walkRate: WALK_FPS frames a
+        // second at 160): each frame moves the same distance as in a world, so no feet sliding on the spot
+        k.x += (k.dir * k.sp * dt * (wh / (BF_FH / 3))) / W;
+        k.ph += dt * 15 * Math.max(0.5, k.sp / 160);
         if (k.x < 0.03) (k.x = 0.03), (k.dir = 1);
         if (k.x > 0.97) (k.x = 0.97), (k.dir = -1);
         if (Math.random() < dt * 0.12) (k.rest = 0.8 + Math.random() * 1.6), (k.ph = 0);

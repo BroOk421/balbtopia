@@ -225,6 +225,19 @@ list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/sta
     layer round the flame tongues by hand, "do that on all") `rim_mask` cuts pale pixels (blue >= 80 on the golden
     frame) reachable from outside within 10 px, keeps the biggest piece, same cut on all colours: spiky flame edges.
     Re-run it if the originals change.
+- Leaf Glider ∞ loop (build '2026-11-23 b', owner: "leaves going round horizontally, like an infinite loop, the long
+  autumn leaf, three colours"): rides.js `LEAF_ORBIT` / `drawLeafOrbit`: 6 leaves fly a figure-8 lying flat round the
+  glider (x = A sin t, depth = B sin 2t; far half drawn before the rider, near half after the leaf, so they pass in
+  front and behind). The leaf = fall_leaves.png box 2 (the long oval one), red / his orange / yellow (recoloured by
+  brightness onto `ramps`), pointing the way it flies. All three Leaf Gliders get it.
+  - Build c (owner: "they come along when going left / right; only where he's going, then left behind"): only
+    STANDING shows the loop. Gliding (trail speed |vx| > 25) the loop lets go: its leaves + a new one every 0.16 s
+    point the way he glides, keep 25% of his speed (slowing), so they fall behind and fade in 1.1 s (world px,
+    `LEAF_ORBITS` per player, `leafOrbitStep`). Stopping fades the loop back in.
+- Boot / login walkers (build c, owner: "the wearables go up and down, keep them still; the feet walk like the
+  characters normally walk"): walk0-5.png made again with WALK_BOB zeroed (head and clothes stay level, only the
+  legs stride); bootflow.js walkers move at a game walking speed (`sp` 80-110 world px/s, scaled by the sheet's 3x)
+  with the feet at walkRate's pace, so a step covers the same ground as in a world (no feet sliding).
 - Deleted (gone.js + schema gone list): Cloud Ride `ride_cloud` and Cloud Ring `cloud_ring` (its code in rides.js /
   wrist.js stays unused).
 
