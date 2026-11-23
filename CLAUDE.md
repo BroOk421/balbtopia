@@ -279,6 +279,12 @@ list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/sta
 - Build i fix: "ReferenceError: playerName is not defined (player.js:59)" in the live app: bootflow.js bfPaintBar
   runs every second from the start and asked isGM() before worlds.js (which declares playerName) had loaded (the
   live site loads scripts slower). isGM() now catches that (false), and bfPaintBar asks only when maintenance is on.
+- Build k: DAY counter (owner: "instead of Mon-Sun a number, DAY: 1 ... the days this account has played; 24 hrs
+  played = 1 day"): NEW ui/playtime.js (after menu.js): `playSecs` grows every second in a world with the app in
+  front (a gap of more than 5 s, the phone asleep, doesn't count), saved in the player data (`playSecs`, rounded to
+  whole minutes so the 4 s save still only goes out when something changed: at most once a minute). hudcard.js shows
+  `DAY: n` (full 24 h played + 1) over the clock; Menu -> Profile adds "Time played" (2d 5h 7m). "Days played"
+  (different dates) stays.
 - Deleted (gone.js + schema gone list): Cloud Ride `ride_cloud` and Cloud Ring `cloud_ring` (its code in rides.js /
   wrist.js stays unused).
 

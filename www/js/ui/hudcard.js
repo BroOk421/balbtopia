@@ -180,16 +180,18 @@ gShow = ((prev) =>
 {
   const tm = document.createElement('div');
   tm.className = 'pctime';
-  tm.innerHTML = '<b id="pcDay">Mon</b><b id="pcClock">06:00</b>';
+  tm.innerHTML = '<b id="pcDay">DAY: 1</b><b id="pcClock">06:00</b>';
   PCARD.appendChild(tm);
   let last = '';
   const tick = () => {
     if (typeof dnClock !== 'function') return;
     const c = dnClock(),
-      txt = c.day + ' ' + String(c.h).padStart(2, '0') + ':' + String(c.m).padStart(2, '0') + (c.night ? 'n' : '');
+      // (owner, Nov 23 2026) the day = DAY: n, the account's days played (playtime.js), not the week's day name
+      day = typeof playDayNo === 'function' ? 'DAY: ' + playDayNo() : c.day,
+      txt = day + ' ' + String(c.h).padStart(2, '0') + ':' + String(c.m).padStart(2, '0') + (c.night ? 'n' : '');
     if (txt === last) return;
     last = txt;
-    $('pcDay').textContent = c.day;
+    $('pcDay').textContent = day;
     $('pcClock').textContent = String(c.h).padStart(2, '0') + ':' + String(c.m).padStart(2, '0');
     tm.classList.toggle('night', c.night);
   };

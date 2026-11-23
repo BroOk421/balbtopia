@@ -86,6 +86,7 @@ function profile(el) {
         <div class="bar"><i style="width:${Math.round((xp / need) * 100)}%"></i></div>
         <dl>
           <dt>Days played</dt><dd>${playDays.length}</dd>
+          ${typeof playTimeText === 'function' ? `<dt>Time played</dt><dd>${playTimeText()}</dd>` : ''}
           <dt>Gold</dt><dd>${P.gold.toLocaleString()}</dd>
           <dt>Worlds</dt><dd>${listWorlds().length}</dd>
         </dl>
