@@ -249,6 +249,7 @@ function hitRoid(o) {
   o.vx += (dx / d) * 12;
   o.vy += (dy / d) * 12;
   if (o.hp < need) {
+    breakPuffs(o.x / TS - 0.5, o.y / TS - 0.5); // (owner, Nov 23 2026: a hit puffs like a block's)
     if (Net.online && Net.sendRoid) Net.sendRoid({ rv: worldRV, u: roidState(o) });
     return;
   }
@@ -258,7 +259,8 @@ function breakRoid(o, mine) {
   const n = roids.indexOf(o);
   if (n < 0) return;
   roids.splice(n, 1);
-  smoke(o.x / TS - 0.5, o.y / TS - 0.5, 12, 1.5);
+  // (owner, Nov 23 2026: was the old grey smoke) the break puff blocks use, a bit wider for the big rock
+  breakPuffs(o.x / TS - 0.5, o.y / TS - 0.5, 1.4);
   if (!mine) return;
   Sfx.play(SFX_BREAK);
   Net.online && Net.sendRoid && Net.sendRoid({ rv: worldRV, b: o.id });

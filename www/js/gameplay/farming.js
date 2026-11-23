@@ -307,7 +307,7 @@ function drawTreeBubble(ox, oy) {
     // above the tree's top, which grows from a sapling to a full tile
     cx = ox + (x * TS + TS / 2) * Z,
     tipY = oy + (Math.min(y * TS + TS * (1 - (0.3 + 0.7 * p)), P.y - 10) - 2) * Z, // above the tree and your name
-    U = Math.max(Z, 2.4 * Math.min(2, devicePixelRatio || 1)),
+    U = Math.max(Z, 2.4 * gfxDpr()),
     l1 = treeName(t.seed),
     l2 = p >= 1 ? 'Ready to harvest!' : 'Ripe in ' + fmtLeft(left);
   g.font = `${4 * U}px "Press Start 2P", monospace`;

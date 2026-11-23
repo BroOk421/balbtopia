@@ -43,7 +43,8 @@ function petBox(c) {
 }
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
-    if (!c || c.portrait || c.dead || shadowBusy || !(c.w > 0)) return prev(c, ox, oy); // (the ghost floats out of the box)
+    if (!c || c.portrait || c.dead || shadowBusy || !(c.w > 0)) return prev(c, ox, oy);
+    if (typeof GFX !== 'undefined' && !GFX.charShadow) return prev(c, ox, oy); // (gfx.js Character Shadow off) // (the ghost floats out of the box)
     const main = g,
       W = cv.width,
       H = cv.height;

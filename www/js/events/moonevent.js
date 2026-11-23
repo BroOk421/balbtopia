@@ -686,11 +686,22 @@ setInterval(() => {
     if (typeof exitToLobby === 'function') exitToLobby();
     else enterWorld(LOBBY_WORLD);
   };
+  // (owner, Nov 23 2026) Spawn (was a button in Profile): a tab right before Leave, in Leave's style.
+  // Stuck somewhere? Die on the spot and come back at the main door (or your Checkpoint).
+  const sp = document.createElement('button');
+  sp.type = 'button';
+  sp.id = 'spawnTab';
+  sp.textContent = 'Spawn';
+  sp.onclick = () => {
+    closeMenu();
+    if (inWorld && !P.dead) die('spawn');
+  };
+  tabs.appendChild(sp);
   tabs.appendChild(b);
   const st = document.createElement('style');
   st.textContent =
-    '#menu .tabs #exitWorld{background:#7a1a2a;color:#ffe0e4;border-color:#c23a50}' +
-    '#menu .tabs #exitWorld:hover{background:#9a2236}' +
+    '#menu .tabs #exitWorld,#menu .tabs #spawnTab{background:#7a1a2a;color:#ffe0e4;border-color:#c23a50}' +
+    '#menu .tabs #exitWorld:hover,#menu .tabs #spawnTab:hover{background:#9a2236}' +
     '.wrow.mevrow{background:linear-gradient(90deg,#1d3a2a,#2a1d4a);border-color:#3ee07a;box-shadow:0 0 0 1px #3ee07a inset}' +
     '.wrow.mevrow .wn{color:#9affc0}' +
     '.wrow .wt.mevclock{color:#3ee07a;font-variant-numeric:tabular-nums;font-weight:bold}';

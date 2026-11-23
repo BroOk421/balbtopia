@@ -78,6 +78,26 @@ const PXW_LIST = [
   ['black_beanie', 'Black Beanie', 'hat', 'Uncommon', 2000, 'A snug black knit beanie with a gray fold.'],
   ['frog_hood', 'Frog Hood', 'hat', 'Rare', 5000, 'A green frog hood with big frog eyes on top. Hides your hair.', { hideHair: true }],
   ['six_pack_abs', 'Six-Pack Abs', 'shirt', 'Rare', 5000, 'No shirt, just a chiselled six-pack.'],
+  // (owner, Nov 23 2026: new.zip "add all to wearables, you think of the names") mustaches / beards (Mustache slot),
+  // eyeliner (Eyes slot) and 11 hairs; names, prices and rarity by Claude
+  ['handlebar_mustache', 'Handlebar Mustache', 'stache', 'Uncommon', 2500, 'A thin brown mustache curled up at both ends.'],
+  ['gentleman_mustache', 'Gentleman Mustache', 'stache', 'Uncommon', 3000, 'A thick brown mustache with proud curled tips.'],
+  ['button_mustache', 'Button Mustache', 'stache', 'Common', 1500, 'A tiny brown mustache right under the nose.'],
+  ['silver_walrus_mustache', 'Silver Walrus Mustache', 'stache', 'Rare', 4000, 'A big bushy silver mustache that spreads past the cheeks.'],
+  ['grandpa_beard', 'Grandpa Beard', 'stache', 'Rare', 5000, 'A fluffy white beard and mustache, full of wisdom.'],
+  ['lumberjack_beard', 'Lumberjack Beard', 'stache', 'Rare', 5000, 'A full thick brown beard from ear to ear.'],
+  ['bold_eyeliner', 'Bold Eyeliner', 'face', 'Uncommon', 2000, 'Sharp dark eyeliner round both eyes.'],
+  ['brown_neat_cut', 'Brown Neat Cut', 'hair', 'Uncommon', 3000, 'Short, tidy brown hair with straight bangs.'],
+  ['black_neat_cut', 'Black Neat Cut', 'hair', 'Uncommon', 3000, 'Short, tidy black hair with straight bangs.'],
+  ['red_neat_cut', 'Red Neat Cut', 'hair', 'Uncommon', 3500, 'Short, tidy red hair with straight bangs.'],
+  ['black_wolf_cut', 'Black Wolf Cut', 'hair', 'Rare', 5000, 'Layered black hair down to the neck, bangs over the eyes.'],
+  ['messy_wolf_cut', 'Messy Wolf Cut', 'hair', 'Rare', 5000, 'Messy layered black hair with choppy bangs.'],
+  ['red_wolf_cut', 'Red Wolf Cut', 'hair', 'Rare', 6000, 'Layered red hair down to the neck, bangs over the eyes.'],
+  ['emo_fringe', 'Emo Fringe', 'hair', 'Rare', 5000, 'Long black hair swept over one eye.'],
+  ['hime_cut', 'Hime Cut', 'hair', 'Uncommon', 4500, 'Long straight black hair with blunt bangs.'],
+  ['flipped_bob', 'Flipped Bob', 'hair', 'Uncommon', 4500, 'A black bob with blunt bangs, flipped out at the ends.'],
+  ['cherry_space_buns', 'Cherry Space Buns', 'hair', 'Rare', 6000, 'Cherry-red hair tied up in two round buns.'],
+  ['professor_tufts', 'Professor Tufts', 'hair', 'Common', 2000, 'Bald on top, wild tufts on the sides. Very smart looking.'],
 ];
 const PXW = {}; // id -> { slot, sk }
 const PXW_PAD = 40; // the pictures have 40 px of room each side of the 118 px frame
@@ -98,7 +118,7 @@ function pxwImg(id, pose, skin) {
   }
   return im.complete && im.naturalWidth ? im : null;
 }
-const PXW_ART_SLOTS = ['face', 'hair', 'hat', 'neck']; // drawn over the head as WEAR_ART (the rest change the body frame)
+const PXW_ART_SLOTS = ['face', 'hair', 'hat', 'neck', 'stache']; // drawn over the head as WEAR_ART (the rest change the body frame)
 for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
   PXW[id] = { slot, sk: PXW_SKINNED.has(id) };
   addWear({ id, name, slot, shop: true, px: true, rarity, desc, ...(PXW_ART_SLOTS.includes(slot) ? { art: id } : {}), ...(extra || {}) });

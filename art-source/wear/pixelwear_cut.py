@@ -12,7 +12,9 @@
 # A piece pixel that is the same as the bare body under it is left out. Skin pixels that must show where the body
 # has something else (the open chest of a polo) make the piece "skinned": its pictures are written per skin tone
 # (<pose>_<skin>.png), the skin recoloured like look_cut.py.
-# Run:  python3 art-source/wear/pixelwear_cut.py <project root>
+# Run:  python3 art-source/wear/pixelwear_cut.py <project root> [id ...]
+# (Nov 23 2026) give ids to cut only those: a full re-run does NOT reproduce every committed picture (some were
+# fixed after, e.g. pixelwear_gapfix.py), so cut new items alone. pixelwear_meta.json is merged, not replaced.
 import sys, os, json, struct, zlib
 import numpy as np
 from PIL import Image
@@ -66,6 +68,20 @@ ITEMS = {
     'hat/bonnet.aseprite': 'black_beanie', 'hat/frog.aseprite': 'frog_hood',
     # topless.aseprite: no sando, the 'shape' layer has abs drawn on the belly = a shirt that is bare skin (per skin tone)
     'tshirt/topless.aseprite#topless': 'six_pack_abs',
+    # (owner, Nov 23 2026: new.zip "bigotes") mustaches / beards (Mustache slot): each its own visible layer over the face
+    'stache/bigote.aseprite': 'handlebar_mustache', 'stache/bigote2.aseprite': 'gentleman_mustache',
+    'stache/short-bigote.aseprite': 'button_mustache', 'stache/mashtache.aseprite': 'silver_walrus_mustache',
+    'stache/messy.aseprite': 'grandpa_beard', 'stache/full-bigote.aseprite': 'lumberjack_beard',
+    # eyeliner (Eyes slot): no layer of its own, his 'eyes' layer is redrawn with dark rims: the pixels that differ
+    'eye/eyeliner.aseprite': 'bold_eyeliner',
+    # hairs ('hair' layer). Hime Cut = girl-long-hair.aseprite (owner's fixed file, Nov 23 2026; replaced girlhair.aseprite,
+    # 3 px different), and the flipped bob came only as a PNG (girl-hair.png, kept as flip-bob.png): a .png is the whole figure, the hair = what differs
+    # from the bare body
+    'hair/goodboy.aseprite': 'brown_neat_cut', 'hair/black-goodboy.aseprite': 'black_neat_cut',
+    'hair/red-goodboy.aseprite': 'red_neat_cut', 'hair/black-long-hair.aseprite': 'black_wolf_cut',
+    'hair/black-long-hair-2.aseprite': 'messy_wolf_cut', 'hair/red-long-hair.aseprite': 'red_wolf_cut',
+    'hair/emo.aseprite': 'emo_fringe', 'hair/girl-long-hair.aseprite': 'hime_cut', 'hair/flip-bob.png': 'flipped_bob',
+    'hair/poka.aseprite': 'cherry_space_buns', 'hair/shaggy.aseprite': 'professor_tufts',
 }
 BODY_LAYERS = {'sleeve left', 'shape', 'short', 'sando', 'sleeve right', 'mouth', 'nose', 'eyes', 'eyebrows'}
 
@@ -265,12 +281,23 @@ def align(cels, name):
     return cels
 
 
-meta = {}
+ONLY = set(sys.argv[2:])
+meta = json.load(open(ROOT + '/art-source/wear/pixelwear_meta.json')) if ONLY else {}
 NEARL, FARL = slice(0, 15), slice(15, 32)  # sprite columns of the two feet (sprite faces left)
 for f, iid in ITEMS.items():
+    if ONLY and iid not in ONLY:
+        continue
     f, part = (f.split('#') + [None])[:2]
-    frames, L = read_frames(SRC + f)
-    cels = align(dict(frames[0]), f)
+    if f.endswith('.png'):  # a whole figure as a PNG: the piece is what differs from the bare body
+        im = np.array(Image.open(SRC + f).convert('RGBA'))
+        hp = im.copy()
+        hp[(im == body).all(axis=2) | (im[..., 3] == 0)] = 0
+        hp[is_skin(hp)] = 0  # (a 1 px sleeve change in his export is not part of the hair)
+        cels, L = dict(look), lL + [('hair', True)]
+        cels['hair'] = hp
+    else:
+        frames, L = read_frames(SRC + f)
+        cels = align(dict(frames[0]), f)
     cat = f.split('/')[0]
     if part == 'robe':  # the robe as a shirt: costume + the mask layer's lines under the head
         cat = 'tshirt'
@@ -403,7 +430,9 @@ for f, iid in ITEMS.items():
         icon[is_skin(icon)] = 0
     else:  # shades / hair / hood: drawn by WEAR_ART over the head in every pose (the head is in the same place in all)
         # (hair: the visible layer whose name starts with 'hair': girl-hair uses 'hair2', goodboy-hair 'hair2 Copy')
-        lname = ('shades' if cat == 'shades' else 'hood' if cat == 'hat' and 'hood' in cels
+        lname = ('shades' if cat == 'shades' else 'eyes' if cat == 'eye'
+                 else next(n for n, v in L if v and n not in BODY_LAYERS and n in cels) if cat == 'stache'
+                 else 'hood' if cat == 'hat' and 'hood' in cels
                  else next(n for n, v in reversed(L) if v and n not in BODY_LAYERS and n in cels) if cat == 'hat' else 'Scarf' if cat == 'scarf'
                  else next(n for n, v in L if v and n.startswith('Cap') and n in cels) if cat == 'cap'
                  else next(n for n, v in L if v and n.startswith('hair') and n in cels))

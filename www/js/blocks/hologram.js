@@ -354,7 +354,7 @@ drawSignBubble = ((prev) =>
       y = (i / WW) | 0,
       cx = ox + (x * TS + TS / 2) * Z,
       tipY = oy + (y * TS - 2) * Z - 30 * Z, // over the player's head
-      U = Math.max(Z, 2.4 * Math.min(2, devicePixelRatio || 1)),
+      U = Math.max(Z, 2.4 * gfxDpr()),
       lh = 9 * U,
       ic = 7 * U;
     g.font = `${4 * U}px "Press Start 2P", monospace`;

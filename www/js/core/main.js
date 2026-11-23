@@ -1,6 +1,7 @@
 // Game loop. Loaded last: starts loading the images.
 // ===== loop =====
 function loop(ts) {
+  if (typeof gfxSkipFrame === 'function' && gfxSkipFrame(ts)) return requestAnimationFrame(loop); // (gfx.js FPS)
   const dt = Math.min(0.05, (ts - (last || ts)) / 1000);
   last = ts;
   now += dt * 1000;

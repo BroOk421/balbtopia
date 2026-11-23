@@ -92,13 +92,8 @@ function profile(el) {
       </div>
     </div>
     <p class="mlabel">Skin</p>
-    <div class="swatches" role="radiogroup" aria-label="Skin colour"></div>
-    <button class="btn spawnbtn" id="spawnBtn" type="button">SPAWN</button>`;
-  // stuck somewhere? die on the spot and come back at the main door (or your Checkpoint)
-  el.querySelector('#spawnBtn').onclick = () => {
-    closeMenu();
-    if (inWorld && !P.dead) die('spawn');
-  };
+    <div class="swatches" role="radiogroup" aria-label="Skin colour"></div>`;
+  // (Nov 23 2026: SPAWN moved to the menu tabs, right before Leave: moonevent.js)
   const sw = el.querySelector('.swatches');
   for (const s of SKINS.filter((n) => !SUB_SKINS.includes(n))) {
     // (the Subscriber skins get their own row: subscriber.js)
@@ -150,14 +145,15 @@ function worldsTab(el) {
 // Friends and Email tabs are in social.js (friendsTab, mailTab)
 function settingsTab(el) {
   // (no Walk style any more: everyone walks with strides, owner Oct 22 2026)
-  el.innerHTML = `
+  el.innerHTML = `<div class="setscroll">
     <label class="set"><span>Sound</span><input type="checkbox" id="sSnd" /></label>
     <label class="set"><span>Vibration ${Native.isApp ? '' : '<small>(phone app)</small>'}</span><input type="checkbox" id="sVib" /></label>
+    ${gfxSettingsHtml()}
     <div class="set"><span>Account <span class="acct">${playerName}</span></span>
       <span class="nrow"><button type="button" id="sLogout">Log out</button></span>
     </div>
     <div class="set"><span>Version</span><small>Build ${GAME_BUILD}</small>
-    </div>`;
+    </div></div>`;
   // (the Camera slider is gone: mouse wheel / pinch zoom, camzoom.js)
   const vib = el.querySelector('#sVib');
   const snd = el.querySelector('#sSnd');
@@ -173,4 +169,9 @@ function settingsTab(el) {
     savePlayer();
   };
   el.querySelector('#sLogout').onclick = logout;
+  gfxSettingsBind(el, () => {
+    const top = el.querySelector('.setscroll').scrollTop;
+    settingsTab(el);
+    el.querySelector('.setscroll').scrollTop = top;
+  }); // Graphics (gfx.js)
 }

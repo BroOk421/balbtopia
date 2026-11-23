@@ -23,7 +23,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 
 | Folder | Files |
 |---|---|
-| `core/` | errors, assets, config, ambient (Nov 22 2026 y: birds / wind, right after ui/landinglinks.js), native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), gone (Nov 22 2026: deleted items, right before main.js), main |
+| `core/` | errors, assets, config, gfx (Nov 23 2026: Graphics settings, right after config.js), ambient (Nov 22 2026 y: birds / wind, right after ui/landinglinks.js), native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), gone (Nov 22 2026: deleted items, right before main.js), main |
 | `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, bag (build m, loaded before main.js), gmwatch, subscriber, rename, social, globalchat, keys |
 | `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, daynight (right after weather), clouds (right after daynight: the desert clouds, fixed in the world, drifting left), signs |
 | `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb, spwai (TEMP test, build p) |
@@ -109,6 +109,37 @@ message ("Wrong username or password", `isWrongLogin`). Supabase's own sign-in r
 | `crystalwings.js` | DELETED Nov 22 2026 (every wing / cape / back item was deleted). |
 | `letters.js` | A-Z, 0-9 and arrow blocks (168-207): `GLYPH_BLOCKS` (id, name, recipe seeds), `FONT57`, `glyphPic` |
 | `ui.js`, `menu.js` | Hotbar, bag (50 slots), item info, gold counter; menu tabs, XP and levels |
+
+## Graphics settings (`core/gfx.js`, owner Nov 23 2026)
+
+Settings -> Graphics: LOW / MEDIUM / HIGH (`GFX_PRESETS`) plus separate Resolution (1x / 1.5x / 2x), FPS (30 / 60 / MAX),
+Block Shadow, Character Shadow, Blur / Glow; changing one by hand makes the preset "custom". Saved per device in
+localStorage `balbtopia.gfx` (not the player save). Default HIGH = how it was before.
+- Resolution: `gfxDpr()` = canvas px per CSS px. render.js `resize()` works out the view at the old res (`gfxFullDpr()`)
+  and scales Z by `k`, so every res shows the same tiles. Text panels (signs, farming, fishing, hologram, holosign) use `gfxDpr()`.
+- Block Shadow off: render.js still draws blocks on `BLOCK_LAYERS.cv` (daynight.js, fish.js, xmaslights.js read it), only the black copy is skipped.
+- Character Shadow off: shadow.js wrapper returns `prev()` at once (no off-screen copy).
+- Blur off: the `shadowBlur` setter is patched to 0 on live contexts only (screen `cv`, `shadowG`, `BLOCK_LAYERS.g`); body `.noblur` drops the loading screen's backdrop blur.
+- FPS: main.js `loop` skips frames with `gfxSkipFrame(ts)`.
+- The Settings tab is wrapped in `.setscroll` (own scroll, max-height min(48vh, 300px)); a Graphics click redraws it and keeps the scroll.
+
+Menu tabs (Nov 23 2026): Profile, Worlds, Friends, Email, Settings, **Spawn**, Leave. Spawn (was a SPAWN button in Profile)
+and Leave are made in moonevent.js (ids `spawnTab`, `exitWorld`, same style). Floating asteroids (moonroids.js) use the
+block break puff (`breakPuffs`) on every hit and on the break (was the old `smoke`); Moon Rock in the ground already did.
+
+## New pixel wear (owner's new.zip, Nov 23 2026)
+
+18 items in pixelwear.js `PXW_LIST` (names / prices / rarity by Claude; Shop WEAR tab; schema.sql shop_prices + keep
+list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/stache/`, `eye/`, `hair/`.
+- Mustache slot (`stache`, now in `PXW_ART_SLOTS`): Handlebar Mustache (bigote), Gentleman Mustache (bigote2), Button
+  Mustache (short-bigote), Silver Walrus Mustache (mashtache), Grandpa Beard (messy), Lumberjack Beard (full-bigote).
+- Eyes slot: Bold Eyeliner (eyeliner.aseprite: no layer of its own, the pixels of his 'eyes' layer that differ).
+- Hair: Brown / Black / Red Neat Cut (goodboy, black-goodboy, red-goodboy), Black Wolf Cut (black-long-hair), Messy Wolf
+  Cut (black-long-hair-2), Red Wolf Cut, Emo Fringe, Hime Cut (girl-long-hair.aseprite, the owner's fixed file; it replaced
+  girlhair.aseprite), Flipped Bob (girl-hair.png only, kept as `hair/flip-bob.png`: the cut script takes a .png
+  figure's hair = what differs from the bare body), Cherry Space Buns (poka), Professor Tufts (shaggy).
+- pixelwear_cut.py now takes ids: `python3 art-source/wear/pixelwear_cut.py . <id> ...`. A FULL re-run changes committed
+  pictures (tees, polos, beanie were fixed after), so cut only the new ids, then `pixelwear_gapfix.py www/assets/ fix`.
 
 ## Rules that are easy to break
 

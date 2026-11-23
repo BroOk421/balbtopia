@@ -5129,3 +5129,17 @@ body.mannmode #inv .searchbtn {
     margin-top: 3px;
   }
 }
+
+/* Graphics: Blur / Glow off (gfx.js) */
+body.noblur .wload {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Settings tab: its own scroll, so the window stays short (owner, Nov 23 2026) */
+.setscroll {
+  max-height: min(48vh, 300px);
+  overflow-y: auto;
+  padding-right: 6px;
+  overscroll-behavior: contain;
+}

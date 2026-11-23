@@ -40,17 +40,25 @@ function flipped(k) {
   return FLIP[k];
 }
 function resize() {
-  const dpr = Math.min(2, devicePixelRatio || 1);
+  // (Nov 23 2026, gfx.js) the canvas may be drawn at a lower res than the screen; the view (tiles that fit) is worked
+  // out at the old res and Z scaled by k, so every res shows the same
+  const dpr = typeof gfxDpr === 'function' ? gfxDpr() : Math.min(2, devicePixelRatio || 1),
+    full = typeof gfxFullDpr === 'function' ? gfxFullDpr() : dpr,
+    k = dpr / full;
   cv.width = Math.round(innerWidth * dpr);
   cv.height = Math.round(innerHeight * dpr);
+  const fh = Math.round(innerHeight * full),
+    fw = Math.round(innerWidth * full);
   // phones and tablets (touch) see about 9 tiles top to bottom; desktops about 15
   const touch = document.body.classList.contains('touch') || matchMedia('(pointer: coarse)').matches;
-  const far = touch
-    ? Math.max(2, Math.round(cv.height / (9 * TS)))
-    : Math.max(1, Math.round(Math.min(cv.height / (15 * TS), cv.width / (13 * TS))));
+  const far =
+    k *
+    (touch
+      ? Math.max(2, Math.round(fh / (9 * TS)))
+      : Math.max(1, Math.round(Math.min(fh / (15 * TS), fw / (13 * TS)))));
   // Settings → Camera: 0 is the farthest view (the default); each step brings it closer,
   // but never so close that fewer than about 4 tiles fit top to bottom
-  const near = Math.max(far, Math.floor(cv.height / (4 * TS)));
+  const near = Math.max(far, k * Math.floor(fh / (4 * TS)));
   // (owner, Nov 5 2026) no Camera setting any more: mouse wheel / two-finger pinch zoom smoothly between far and
   // near (camzoom.js camZ); before it loads, the old way
   Z = typeof camZ === 'function' ? camZ(far, near) : Math.min(far + ((typeof settings !== 'undefined' && settings.zoom) || 0), near);
@@ -980,16 +988,22 @@ function render() {
   } finally {
     g = mainG;
   }
-  BL.sg.globalCompositeOperation = 'copy';
-  BL.sg.drawImage(BL.cv, 0, 0);
-  BL.sg.globalCompositeOperation = 'source-in';
-  BL.sg.fillStyle = '#000';
-  BL.sg.fillRect(0, 0, BL.sh.width, BL.sh.height);
-  BL.sg.globalCompositeOperation = 'source-over';
+  // (gfx.js Block Shadow off: the layer is still made, daynight.js / fish.js read it, but no black copy)
+  const blockShade = typeof GFX === 'undefined' || GFX.blockShadow;
+  if (blockShade) {
+    BL.sg.globalCompositeOperation = 'copy';
+    BL.sg.drawImage(BL.cv, 0, 0);
+    BL.sg.globalCompositeOperation = 'source-in';
+    BL.sg.fillStyle = '#000';
+    BL.sg.fillRect(0, 0, BL.sh.width, BL.sh.height);
+    BL.sg.globalCompositeOperation = 'source-over';
+  }
   g.save();
   g.setTransform(1, 0, 0, 1, 0, 0);
-  g.globalAlpha = typeof SHADOW_ALPHA === 'number' ? SHADOW_ALPHA : 0.2;
-  g.drawImage(BL.sh, Math.round((typeof SHADOW_DX === 'number' ? SHADOW_DX : -2) * Z), Math.round((typeof SHADOW_DY === 'number' ? SHADOW_DY : 2) * Z));
+  if (blockShade) {
+    g.globalAlpha = typeof SHADOW_ALPHA === 'number' ? SHADOW_ALPHA : 0.2;
+    g.drawImage(BL.sh, Math.round((typeof SHADOW_DX === 'number' ? SHADOW_DX : -2) * Z), Math.round((typeof SHADOW_DY === 'number' ? SHADOW_DY : 2) * Z));
+  }
   g.globalAlpha = 1;
   g.drawImage(BL.cv, 0, 0);
   g.restore();

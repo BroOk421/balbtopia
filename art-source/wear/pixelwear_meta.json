@@ -422,5 +422,131 @@
    "idle",
    "sit"
   ]
+ },
+ "handlebar_mustache": {
+  "cat": "stache",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "gentleman_mustache": {
+  "cat": "stache",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "button_mustache": {
+  "cat": "stache",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "silver_walrus_mustache": {
+  "cat": "stache",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "grandpa_beard": {
+  "cat": "stache",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "lumberjack_beard": {
+  "cat": "stache",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "bold_eyeliner": {
+  "cat": "eye",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "brown_neat_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "black_neat_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "red_neat_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "black_wolf_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "messy_wolf_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "red_wolf_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "emo_fringe": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "hime_cut": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "flipped_bob": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "cherry_space_buns": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "professor_tufts": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
  }
 }
