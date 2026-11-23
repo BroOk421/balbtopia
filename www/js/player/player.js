@@ -56,7 +56,13 @@ const isGM = () => {
   try {
     if (Net.online && Net.secure) return Net.gm;
   } catch (e) {}
-  return GM_USERS.some((g) => g.toLowerCase() === String(playerName).toLowerCase());
+  // (Nov 23 2026: "playerName is not defined" in the phone app: loading the game from the live site is slower, and
+  // something asked before worlds.js, which declares playerName, had run) not loaded yet = not a GM
+  try {
+    return GM_USERS.some((g) => g.toLowerCase() === String(playerName).toLowerCase());
+  } catch (e) {
+    return false;
+  }
 };
 // adds n of an item: tops up stacks that aren't full, then fills new slots, MAXSTACK per slot.
 // Adds nothing (and returns false) when it all doesn't fit.

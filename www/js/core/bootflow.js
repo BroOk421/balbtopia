@@ -233,9 +233,14 @@ BF_BAR.className = 'maintbar';
 BF_BAR.hidden = true;
 document.body.appendChild(BF_BAR);
 function bfPaintBar() {
-  const s = bfLastStatus,
-    gm = typeof isGM === 'function' && isGM();
+  const s = bfLastStatus;
   if (!s || !s.on || document.body.classList.contains('booting')) return (BF_BAR.hidden = true);
+  // (asked only now: this runs every second from the first moment, before worlds.js (playerName) has loaded; the
+  // live app loads its scripts from the site, slower: "playerName is not defined", Nov 23 2026)
+  let gm = false;
+  try {
+    gm = typeof isGM === 'function' && isGM();
+  } catch (e) {}
   const left = s.startsAt ? s.startsAt - Date.now() : 0;
   BF_BAR.hidden = false;
   BF_BAR.textContent =

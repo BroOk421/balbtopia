@@ -269,6 +269,16 @@ list + item_info rows: RE-RUN schema.sql). Sources in `art-source/wear/pixel/sta
   BUB.inflate 0.35 s while the bubble swells +50% with a little wobble (P.bub.inf; render `bubInf`; net bg 2 ->
   remote `bubInf` true), then it is just gone with the sound. No particles. Arms: the jump-up pose all the way (`jumpFrame` wrapper sets c._bj 'up'). Others see it:
   net.js `bg` -> remote `bub`; local `bub` / `bubT` in render.js. Icon = his bubblegum-icon.png. schema.sql rows: RE-RUN.
+- Build i: NEW APP ICON (owner: "the character's new look, nothing worn, just the head, troll face, the landing
+  page's background"): art-source/icon_troll_blocky.py (replaces icon_troll_sunset.py's output): the game's blocky
+  peach head with the /troll face, cut to its 20 x 16 art pixels (art-source/icon/troll_head_blocky.png, rendered
+  with drawCharacter, joke 'troll', no clothes, character shadow off), on (build j, owner: "no dirt; the Night
+  weather's background, the very top, the moon at the side, stars") the top of the Night Machine sky: its gradient,
+  stars, assets/night/moon.png with its glow up right (in the adaptive icon a bit lower / inward so it shows). Writes the mipmaps (legacy, round, adaptive fg / bg) + www/assets/icon/icon512 / 192.
+  Native: shows after the next APK install.
+- Build i fix: "ReferenceError: playerName is not defined (player.js:59)" in the live app: bootflow.js bfPaintBar
+  runs every second from the start and asked isGM() before worlds.js (which declares playerName) had loaded (the
+  live site loads scripts slower). isGM() now catches that (false), and bfPaintBar asks only when maintenance is on.
 - Deleted (gone.js + schema gone list): Cloud Ride `ride_cloud` and Cloud Ring `cloud_ring` (its code in rides.js /
   wrist.js stays unused).
 
