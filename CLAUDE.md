@@ -5645,3 +5645,6 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 - (Nov 24 2026 x) farming.json: the Hose Valve's tree and splice removed (the item has been gone since build v; they
   only gave "skipped tree / splice" warnings). The "inline script violates the Content Security Policy" message seen
   with VS Code Live Server (:5500) is Live Server's own reload script, not the game's (index.html has none).
+- (Nov 24 2026 y) index.html CSP script-src also allows one hash: 'sha256-vvt4KWwuNr51XfE5m+hzeNEGhiOfZzG97ccfqGsPwvE='
+  = VS Code Live Server's injected reload script (owner tests on :5500). Only that exact script; still no other inline
+  scripts allowed. (If Live Server changes its script, the console shows the new hash: replace it.)

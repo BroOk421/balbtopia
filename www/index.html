@@ -9,9 +9,11 @@
     <title>Balbtopia</title>
     <!-- Security (Nov 9 2026): the page may only run its own scripts (no inline <script>, no scripts from other sites),
          and only talk to Supabase. If a player's chat or sign text ever slipped into the page as HTML, it still couldn't run. -->
+    <!-- (Nov 24 2026) the sha256 in script-src lets ONLY VS Code Live Server's own reload script run (testing on :5500);
+         no other inline script can -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'"
+      content="default-src 'self'; script-src 'self' 'sha256-vvt4KWwuNr51XfE5m+hzeNEGhiOfZzG97ccfqGsPwvE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'"
     />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#1c1033" />
