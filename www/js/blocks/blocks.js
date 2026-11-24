@@ -273,6 +273,9 @@ BLOCK[ITEMS.wood_block.block].edgeW = 1; // thinner outline on Wood Blocks too (
 // these old blocks get chip colours here too
 BLOCK[DOOR].fx = ['#a86c3c', '#6b4424', '#c98a52'];
 const isPlat = (x, y) => inW(x, y) && !!(BLOCK[fg[at(x, y)]] || {}).plat;
+// where a platform's top is (world px): the tile's top edge, or lower by the block's `platY` (owner, Nov 24 2026:
+// the Wooden Table, whose table top is drawn lower in its tile)
+const platTop = (x, y) => y * TS + ((inW(x, y) && (BLOCK[fg[at(x, y)]] || {}).platY) || 0);
 
 // ---------- pixel art helpers (16x16 cells, 2 px each, on a 32x32 canvas) ----------
 function cells(paint) {
@@ -706,12 +709,12 @@ const DECO = {
     P(7, 6, '#ffd23f');
   },
   wooden_table({ R }) {
-    R(0, 6, 16, 3, '#2a1a0e');
-    R(1, 6, 14, 2, '#a86c3c');
-    R(1, 6, 14, 1, '#d8a066');
-    for (const i of [2, 12]) {
-      R(i, 9, 2, 7, '#2a1a0e');
-      R(i, 9, 1, 7, '#8a5a32');
+    R(0, 0, 16, 3, '#2a1a0e');
+    R(1, 0, 14, 2, '#a86c3c');
+    R(1, 0, 14, 1, '#d8a066');
+    for (const i of [1, 12]) {
+      R(i, 3, 3, 13, '#2a1a0e');
+      R(i + 1, 3, 1, 12, '#8a5a32');
     }
   },
   toilet({ R, D }) {
@@ -1677,20 +1680,23 @@ const HD_DECO = {
     for (let k = 0; k < 4; k++) P(7 + k, 7 - k, '#e0a868');
   },
   // wooden table: thick top with grain, two turned legs
+  // (owner, Nov 24 2026) one tile high: its top (a platform you stand on, furniture.js) at the tile's top edge, the
+  // legs down to the floor and thicker (6 px)
   wooden_table(x, { P, R }) {
-    R(0, 11, 32, 7, '#2a1a0e');
-    hdWood(P, 1, 12, 30, 4, ['#a86c3c', '#8a5a32', '#c98a52']);
-    R(1, 12, 30, 1, '#e0b07a');
-    R(1, 16, 30, 1, '#6b4424');
-    for (const i of [3, 25]) {
-      R(i, 18, 4, 14, '#2a1a0e');
-      R(i + 1, 18, 2, 14, '#8a5a32');
-      R(i + 1, 18, 1, 14, '#a86c3c');
-      R(i, 23, 4, 2, '#2a1a0e');
-      R(i + 1, 23, 2, 1, '#c98a52');
+    R(0, 0, 32, 7, '#2a1a0e');
+    hdWood(P, 1, 1, 30, 4, ['#a86c3c', '#8a5a32', '#c98a52']);
+    R(1, 1, 30, 1, '#e0b07a');
+    R(1, 5, 30, 1, '#6b4424');
+    for (const i of [2, 24]) {
+      R(i, 7, 6, 25, '#2a1a0e');
+      R(i + 1, 7, 4, 24, '#8a5a32');
+      R(i + 1, 7, 2, 24, '#a86c3c');
+      R(i + 1, 7, 1, 24, '#c98a52');
+      R(i, 20, 6, 2, '#2a1a0e');
+      R(i + 1, 20, 4, 1, '#c98a52');
     }
-    R(7, 18, 18, 2, '#2a1a0e');
-    R(7, 18, 18, 1, '#6b4424');
+    R(8, 7, 16, 2, '#2a1a0e');
+    R(8, 7, 16, 1, '#6b4424');
   },
   // school desk: wooden top on a metal frame, a book and an apple on it
   school_desk(x, { P, R, E }) {

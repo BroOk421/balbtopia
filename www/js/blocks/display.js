@@ -11,6 +11,9 @@ const DISPLAY_BOX = 118,
   MANNEQUIN = 119;
 BLOCK[DISPLAY_BOX] = { id: 'display_box', name: 'Display Box', hits: 4, art: 'disp', fx: ['#bfe8ff', '#8a5a2b', '#ffffff'] };
 BLOCK[MANNEQUIN] = { id: 'mannequin', name: 'Mannequin', hits: 4, art: 'mann', solid: false, fx: ['#e8cfa6', '#8a5a2b', '#ffffff'] };
+// (owner, Nov 24 2026) the wrench on a Mannequin works like on a sign: write a text (signs.js editSign), and whoever
+// stands at it sees it over their head (the sign bubble). Dressing it is still a click with a wearable (useMannequin).
+BLOCK[MANNEQUIN].sign = true;
 ITEMS.display_box = {
   name: 'Display Box',
   kind: 'block',
@@ -401,6 +404,9 @@ function drawMannequinAt(cx, top, eq, tx = 0, ty = 0) {
 }
 // clicking a Mannequin (from act): with a wearable or a tool in hand it goes on; with the fist everything comes
 // off into the bag. Returns true when the click was used. Only players with access (like the wrench menu).
+// (owner, Nov 24 2026) the only way to dress a Mannequin now (no wrench pop-up): click it holding a wearable selected
+// on the hotbar (or a tool / weapon in the Hand slot); what it wore in that slot (the same item or another) comes back
+// to the bag. A click with the fist takes everything off.
 function useMannequin(x, y) {
   const i = at(x, y);
   if (!isMannT(fg[i]) || !hasAccess(playerName, i)) return false;
@@ -416,10 +422,12 @@ function useMannequin(x, y) {
       equipped.hand = null;
       hand = bareHand();
     } else if (!takeItem(id, 1)) return false;
+    // the last one went on the Mannequin: the selected slot is empty now (back to the bare hand)
+    if (!fromHand && hand === id && !inv.some((s) => s.id === id)) hand = bareHand();
     if (old && !addItem(old, 1)) {
       // no room for what it wore: undo
       if (fromHand) (equipped.hand = id), (hand = id);
-      else addItem(id, 1);
+      else addItem(id, 1), (hand = id);
       toast('Bag is full: no room for the ' + ITEMS[old].name);
       return true;
     }

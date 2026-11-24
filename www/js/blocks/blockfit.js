@@ -16,7 +16,7 @@ const FIT_BAR = 0.7, // share of the tile's width a row must cover to count as a
   FIT_DOWN_MAX = 0.25, // share of the tile a decoration may be moved down
   FIT_N = 64; // measuring size (picture px per tile)
 // platforms that are not a bar on top (whole-tile ones, bouncers, the climbable vines) and things that hang / float
-const FIT_KEEP = new Set(['staircase', 'bookcase', 'spring', 'bounce_mushroom', 'hanging_vines', 'steel_bridge', 'stage_block', 'hanging_guytrap', 'baby_mobile', 'disco_ball', 'clouds', 'air_conditioner', 'tank_lid', 'piano_note', 'bass_note', 'drum_note', 'bell_note', 'flute_note', 'big_old_sideways_arrow']);
+const FIT_KEEP = new Set(['staircase', 'bookcase', 'chain', 'zigzag_stairs', 'iron_lantern', 'spring', 'bounce_mushroom', 'hanging_vines', 'steel_bridge', 'stage_block', 'hanging_guytrap', 'baby_mobile', 'disco_ball', 'clouds', 'air_conditioner', 'tank_lid', 'piano_note', 'bass_note', 'drum_note', 'bell_note', 'flute_note', 'big_old_sideways_arrow']);
 const FIT = new Map(); // block id -> picture px (of FIT_N) to move: < 0 up, > 0 down
 let fitCv = null;
 function fitMeasure(prev, b, x, y) {
@@ -59,10 +59,71 @@ function fitMeasure(prev, b, x, y) {
   FIT.set(b.id, off);
   return off;
 }
+// (owner, Nov 24 2026: "the bottoms of those blocks must be flat on the floor too") some floor blocks' pictures start a
+// little under their tile's top (empty rows on top). A decoration standing on one is drawn that much lower, so its
+// bottom touches the floor as drawn. Measured once per floor kind + its open sides (the tile under drawn alone),
+// at most FLOOR_GAP_MAX of the tile.
+const FLOOR_GAP_MAX = 0.2,
+  FLOOR_GAP = new Map(); // 't:mask' -> picture px (of FIT_N) the floor's top is under the tile's top
+function floorGap(x, y) {
+  if (!inW(x, y + 1)) return 0;
+  const j = at(x, y + 1),
+    t = fg[j],
+    fb = BLOCK[t];
+  if (!t || !fb || fb.solid === false || fb.plat) return 0;
+  const key = t + ':' + (typeof maskOf === 'function' ? maskOf(x, y + 1) : 0) + ':' + (t === DIRT ? vari[j] & 3 : 0);
+  if (FLOOR_GAP.has(key)) return FLOOR_GAP.get(key);
+  fitCv ||= document.createElement('canvas');
+  fitCv.width = FIT_N;
+  fitCv.height = FIT_N;
+  const x2 = fitCv.getContext('2d'),
+    real = g,
+    nParts = parts.length,
+    nLive = typeof liveFx !== 'undefined' ? liveFx.length : 0;
+  let gap = 0;
+  g = x2;
+  try {
+    x2.clearRect(0, 0, FIT_N, FIT_N);
+    drawTileBlock(fb, t, j, x, y + 1, -x * FIT_N, -(y + 1) * FIT_N, FIT_N);
+    const d = x2.getImageData(0, 0, FIT_N, FIT_N).data;
+    // the first row that is mostly filled across the middle half of the tile
+    for (let r = 0; r < FIT_N * FLOOR_GAP_MAX; r++) {
+      let n = 0;
+      for (let i = FIT_N / 4; i < (FIT_N * 3) / 4; i++) if (d[(r * FIT_N + i) * 4 + 3] > 40) n++;
+      if (n >= FIT_N / 4) break;
+      gap = r + 1;
+    }
+    if (gap >= FIT_N * FLOOR_GAP_MAX) gap = 0; // not a floor with a flat top: leave it
+  } catch (e) {
+    gap = 0;
+  } finally {
+    g = real;
+    parts.length = Math.min(parts.length, nParts);
+    if (typeof liveFx !== 'undefined') liveFx.length = Math.min(liveFx.length, nLive);
+  }
+  FLOOR_GAP.set(key, gap);
+  return gap;
+}
 drawNewBlock = ((prev) =>
   function (b, x, y, px, py, T) {
-    if (!b || b.art !== 'deco' || FIT_KEEP.has(b.id) || !(b.plat || b.solid === false)) return prev(b, x, y, px, py, T);
-    const off = FIT.has(b.id) ? FIT.get(b.id) : fitMeasure(prev, b, x, y);
+    if (!b || b.art !== 'deco' || FIT_KEEP.has(b.id)) return prev(b, x, y, px, py, T);
+    const fit = b.plat || b.solid === false,
+      off = (fit ? (FIT.has(b.id) ? FIT.get(b.id) : fitMeasure(prev, b, x, y)) : 0) + (b.plat || b.hang ? 0 : floorGap(x, y));
+    // the Wooden Table stands from the tile's top (where you stand) to the floor: on a floor drawn lower it is
+    // stretched down that little bit, so its legs still touch it
+    if (b.id === 'wooden_table') {
+      const gp = floorGap(x, y);
+      if (!gp) return prev(b, x, y, px, py, T);
+      g.save();
+      g.translate(px, py);
+      g.scale(1, 1 + gp / FIT_N);
+      try {
+        return prev(b, x, y, 0, 0, T);
+      } finally {
+        g.restore();
+      }
+    }
     if (!off) return prev(b, x, y, px, py, T);
     return prev(b, x, y, px, Math.round(py + (off * T) / FIT_N), T);
   })(drawNewBlock);
+

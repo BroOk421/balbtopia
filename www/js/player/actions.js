@@ -13,7 +13,7 @@ function wrenchBlock(x, y) {
   const t = fg[at(x, y)];
   if (!t) return false;
   if (isDoorT(t)) return !isDoorTile(x, y);
-  return isLockT(t) || isALockT(t) || isSignT(t) || isVendT(t) || isDispT(t) || isMannT(t) || isGateT(t) || isTeapotT(t) || (typeof isBoardT === 'function' && isBoardT(t)) || (typeof isMailboxT === 'function' && isMailboxT(t)) || isPianoT(t);
+  return isLockT(t) || isALockT(t) || isSignT(t) || isVendT(t) || isDispT(t) || isGateT(t) || isTeapotT(t) || (typeof isBoardT === 'function' && isBoardT(t)) || (typeof isMailboxT === 'function' && isMailboxT(t)) || isPianoT(t);
 }
 // close enough to use the wrench on a block: WRENCH_REACH tiles round the tile you stand in
 function inWrenchReach(tx, ty) {
@@ -90,6 +90,33 @@ function overlapsPlayer(tx, ty) {
 }
 // one punch on the block of tile (x, y) = i (act() below, after its checks; also the Autumn Scythe's laser hopping to
 // the tiles next to it, autumnbeam.js): damage, and breaking it with its drops when the damage is enough
+// blocks a click makes DO something (owner, Nov 24 2026): the first click on one is only that, no crack
+const FN_DOUBLE_MS = 650,
+  fnTaps = new Map(); // tile -> time of the last "job only" click
+function isFnBlockT(t) {
+  return (
+    isWeatherT(t) ||
+    canStopAnim(t) || // Disco Ball, Torch, Boombox, Bathtub, Campfire, Floor Lamp, Drum Set, Dice, Lucky Color, Roulette
+    t === SPIKE_GATE_T ||
+    isStoreT(t) || // Chest, Stove
+    isJamT(t) ||
+    (typeof isATMT === 'function' && isATMT(t)) ||
+    (typeof isBaitBoxT === 'function' && isBaitBoxT(t)) ||
+    (typeof isFuelTankT === 'function' && isFuelTankT(t))
+  );
+}
+// true = this click on tile i only does the block's job (no damage)
+function fnFirstTap(i) {
+  if (!isFnBlockT(fg[i]) || dmg[i] > 0) return false;
+  const t = fnTaps.get(i);
+  if (t !== undefined && now - t < FN_DOUBLE_MS) {
+    fnTaps.delete(i);
+    return false; // the second click: it starts cracking
+  }
+  fnTaps.set(i, now);
+  if (fnTaps.size > 64) for (const [k, v] of fnTaps) if (now - v > FN_DOUBLE_MS) fnTaps.delete(k);
+  return true;
+}
 function hitBlockAt(x, y, i) {
   const b = BLOCK[fg[i]],
     need = hitsNeeded(b);
@@ -108,6 +135,10 @@ function hitBlockAt(x, y, i) {
     }
     return;
   }
+  // (owner, Nov 24 2026) a block with a job (ATM, Torch, Stove, Spike Gate, Dice, Roulette, Lucky Color Block...):
+  // ONE click only does its job, no crack; a second click right after (FN_DOUBLE_MS) starts cracking it. Once it
+  // has a crack, every punch cracks it more (until the crack heals).
+  const fnOnly = fnFirstTap(i);
   // a Weather Machine: every punch switches it off / on (punch it fast a few times to break it)
   if (isWeatherT(fg[i])) toggleWeather(i);
   // a Disco Ball: every punch stops / starts its animation (blocks.js)
@@ -118,6 +149,11 @@ function hitBlockAt(x, y, i) {
   if (isStoreT(fg[i])) toggleStore(i);
   // a Signal Jammer / Punch Blocker: every punch switches it off / on (shop.js)
   if (isJamT(fg[i])) toggleJam(i);
+  if (fnOnly) {
+    shake = Math.max(shake, 1);
+    Native.haptic('light');
+    return;
+  }
   dmg[i]++;
   dmgT[i] = now;
   shake = 2.5;
@@ -187,7 +223,7 @@ function act() {
     if (inW(t.x, t.y) && isDoorT(fg[at(t.x, t.y)]) && !isDoorTile(t.x, t.y)) return editDoor(t.x, t.y);
     if (inW(t.x, t.y) && isVendT(fg[at(t.x, t.y)])) return openVend(t.x, t.y);
     if (inW(t.x, t.y) && isDispT(fg[at(t.x, t.y)])) return openDisplay(t.x, t.y);
-    if (inW(t.x, t.y) && isMannT(fg[at(t.x, t.y)])) return openMannequin(t.x, t.y);
+    // (a Mannequin: the wrench edits its text like a sign's, isSignT above; dressing it is a click, useMannequin)
     if (inW(t.x, t.y) && isGateT(fg[at(t.x, t.y)])) return openGate(t.x, t.y);
     if (inW(t.x, t.y) && isTeapotT(fg[at(t.x, t.y)])) return openTeapot(t.x, t.y); // daily quest (quests.js)
     if (inW(t.x, t.y) && typeof isBoardT === 'function' && isBoardT(fg[at(t.x, t.y)])) return openBoard(at(t.x, t.y)); // suggestions (board.js)
@@ -286,7 +322,7 @@ function act() {
     }
     // a Display Box with an item, or a dressed Mannequin, can't be broken either
     if (showBusy(i)) {
-      toast(isDispT(fg[i]) ? 'Take the item out of the Display Box first (wrench it)' : 'Take the clothes off the Mannequin first (wrench it)');
+      toast(isDispT(fg[i]) ? 'Take the item out of the Display Box first (wrench it)' : 'Take the clothes off the Mannequin first (click it with your fist)');
       shake = Math.max(shake, 2);
       return;
     }
@@ -343,7 +379,6 @@ function act() {
       setLockCfg(null);
       updateWorldLabel();
       toast(worldName + ' is now yours!');
-      smoke(x, y, 10, 1.3);
     }
     fg[i] = it.block;
     // (bit WEATHER_OFF clear: a new Weather Machine is on; water stays under walk-through blocks, gates.js)
@@ -380,7 +415,7 @@ function placeFx(x, y, t, mine) {
     shake = Math.max(shake, 1.2);
     thunk = 1;
   }
-  smoke(x, y, 5, 0.7);
+  breakPuffs(x, y); // (owner, Nov 24 2026: the same smoke as breaking, was the old smoke)
   burst(x, y, t, 7);
   places.push({ x, y, t0: now });
 }

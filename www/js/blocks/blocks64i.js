@@ -393,7 +393,7 @@ useATM = ((prev) =>
     startPunch(x * TS + 16, y * TS + 16);
     // each drop on its own, spread around the tap, floating like any drop
     for (let k = 0; k < n; k++) spawnDrop('crude_oil', x * TS + 8 + Math.random() * 16, y * TS + 10 + Math.random() * 12, 1, 0.25, playerName);
-    smoke(x, y, 6, 1);
+    breakPuffs(x, y); // (owner, Nov 24 2026: the break smoke)
     Sfx.play('pickup');
     Native.haptic('medium');
     saveWorld();

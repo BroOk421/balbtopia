@@ -202,7 +202,8 @@ function updateRest(dt) {
     // on a chair / couch you turn the way it faces (right-facing couch: right, left-facing: left), and you keep
     // facing that way when you get up
     // (flipped, owner Oct 22 2026: a couch / chair turned left seats you facing right, and the other way round)
-    if (typeof faceLeftAt === 'function' && FACING.has(fg[at(tx, ty)])) P.face = faceLeftAt(at(tx, ty)) ? 1 : -1;
+    // (owner, Nov 24 2026: flipped back: a chair / couch turned left seats you facing LEFT)
+    if (typeof faceLeftAt === 'function' && FACING.has(fg[at(tx, ty)])) P.face = faceLeftAt(at(tx, ty)) ? -1 : 1;
   }
 }
 let takenToastAt = -1;
@@ -228,7 +229,7 @@ function restFromNet(rs) {
 // (Toilet) keep the player's own way
 function seatFace(r, own) {
   const i = at(r.tx, r.ty);
-  return typeof faceLeftAt === 'function' && FACING.has(fg[i]) ? (faceLeftAt(i) ? 1 : -1) : own;
+  return typeof faceLeftAt === 'function' && FACING.has(fg[i]) ? (faceLeftAt(i) ? -1 : 1) : own; // (Nov 24 2026: flipped)
 }
 const sittingNow = () => !!(P.rest && P.rest.k === 'sit');
 

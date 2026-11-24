@@ -1188,9 +1188,12 @@ function render() {
     if (inW(x, y)) {
       drawPlacePreview(x, y, ox, oy, T); // holding a block: see-through copy where it would go
       const ok = hand === 'wrench' && wrenchBlock(x, y) ? inWrenchReach(x, y) : inReach(x, y);
+      // (owner, Nov 24 2026) rounded corners and see-through (was a sharp, nearly solid white square)
       g.lineWidth = Z;
-      g.strokeStyle = ok ? 'rgba(255,255,255,.85)' : 'rgba(255,90,90,.6)';
-      g.strokeRect(ox + x * T + Z / 2, oy + y * T + Z / 2, T - Z, T - Z);
+      g.strokeStyle = ok ? 'rgba(255,255,255,.45)' : 'rgba(255,90,90,.4)';
+      g.beginPath();
+      g.roundRect(ox + x * T + Z / 2, oy + y * T + Z / 2, T - Z, T - Z, T * 0.2);
+      g.stroke();
     }
   }
 }

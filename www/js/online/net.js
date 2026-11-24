@@ -1039,7 +1039,7 @@ const Net = (() => {
   // after a big change everyone makes the same way (Clear World): don't send it tile by tile
   N.resnap = () => snapshot();
   // a gift or trade happened here: everyone else in the world sees the items fly
-  N.sendFly = (from, to, items) => othersHere() && send('fly', { from, to, items });
+  N.sendFly = (from, to, items, tr) => othersHere() && send('fly', tr ? { from, to, items, tr: 1 } : { from, to, items });
   // you punched another player: they get knocked back on their screen
   // a shot from a hand item (water from the Water Gun, an arrow from the Heartbow; handfx.js): others only see it fly
   // ex: extra fields for that kind of shot (remotefx.js: the Laser Gun's radiation sends the asteroid's id)

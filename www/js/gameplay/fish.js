@@ -569,8 +569,8 @@ function stepFishing() {
     Sfx.play('water', 0.6);
     Native.haptic('light');
   } else if (F.st === 'bite' && now - F.t0 >= BITE_MS) {
-    // (owner, Nov 23 2026) missed: the line comes back in, cast again
-    fishing = { ...F, st: 'back', t0: now, fromX: F.x, fromY: F.y };
+    // (owner, Nov 23 2026) missed: cast again. (Nov 24 2026: the line just disappears, the rod back to idle)
+    fishing = null;
     toast('It got away!');
   } else if ((F.st === 'back' && now - F.t0 >= BACK_MS) || (F.st === 'catch' && now - F.t0 >= CATCH_MS)) fishing = null;
 }
@@ -709,7 +709,8 @@ act = ((prev) =>
     const i = at(t.x, t.y),
       water = hasWater(i);
     // a block, tree, door, another player: the rod punches like before
-    if ((fg[i] && !(water && BLOCK[fg[i]].solid === false)) || trees.has(i) || isDoorTile(t.x, t.y) || Net.bodyAt(ptr.x, ptr.y)) return prev();
+    // (owner, Nov 24 2026) a background with no water on it: the rod punches it too (it couldn't be broken holding a rod)
+    if ((fg[i] && !(water && BLOCK[fg[i]].solid === false)) || (bg[i] && !water) || trees.has(i) || isDoorTile(t.x, t.y) || Net.bodyAt(ptr.x, ptr.y)) return prev();
     if (pressUsed === pressN) return; // the same press held down: one cast
     pressUsed = pressN;
     const pt = playerTile();

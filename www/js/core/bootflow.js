@@ -18,7 +18,7 @@
 // Server side: supabase/schema.sql app_status / gm_maintenance; by hand supabase/admin/maintenance.sql.
 // Loaded right after config.js.
 // ===== boot flow =====
-const BF_STEP_MS = 380, // each step shows at least this long (so it can be read)
+const BF_STEP_MS = 150, // each step shows at least this long (so it can be read; Nov 24 2026: was 380, loading was slow)
   BF_MAINT_POLL = 15, // s, maintenance panel: check again
   BF_GAME_POLL = 30, // s, in a world: check app_status
   BF_NET_MS = 7000; // ms, a server / update check gives up after this
@@ -121,17 +121,31 @@ addEventListener('DOMContentLoaded', () => {
   const U = bfUpdater();
   if (U && U.notifyAppReady) U.notifyAppReady().catch(() => {});
 });
-// true when the game is restarting into a new version (the flow stops there)
-async function bfCheckUpdate() {
+// (owner, Nov 24 2026: "the loading is very slow") the server status and the update manifest are asked for as soon
+// as the scripts are in (DOMContentLoaded), at the same time as the pictures load, instead of one after the other once
+// every picture is in; bootFlowRun then only waits for answers that are usually there already
+let bfPre = null; // { st: Promise<status>, man: Promise<manifest | null> }
+const bfManifest = () => {
+  const build = typeof WEB_BUILD === 'string' ? WEB_BUILD : 'dev',
+    base = typeof OTA_BASE === 'string' ? OTA_BASE : '';
+  if (!base || build === 'dev') return Promise.resolve(null);
+  return bfFetch(base + 'ota/manifest.json?t=' + Date.now()).catch(() => null);
+};
+addEventListener('DOMContentLoaded', () => {
+  try {
+    bfPre = { st: bfAppStatus(), man: bfManifest() };
+  } catch (e) {
+    bfPre = null;
+  }
+});
+// true when the game is restarting into a new version (the flow stops there). fresh: ask for the manifest again
+// (after a maintenance: the early answer may be from before the update)
+async function bfCheckUpdate(fresh) {
   const build = typeof WEB_BUILD === 'string' ? WEB_BUILD : 'dev',
     base = typeof OTA_BASE === 'string' ? OTA_BASE : '';
   if (!base || build === 'dev') return false;
-  let m;
-  try {
-    m = await bfFetch(base + 'ota/manifest.json?t=' + Date.now());
-  } catch (e) {
-    return false; // no connection / no site yet: play this version
-  }
+  const m = await (!fresh && bfPre ? bfPre.man : bfManifest());
+  if (!m) return false; // no connection / no site yet: play this version
   const mine = typeof WEB_TIME === 'number' ? WEB_TIME : 0;
   if (!m || !m.build || m.build === build || !(m.time > mine) || !Array.isArray(m.files)) return false;
   // (Nov 23 2026) the app opening the live site (LIVE_APP, capacitor server.url) is like a browser: no download
@@ -210,12 +224,13 @@ function bootFlowRun(go) {
   bfRunning = true;
   (async () => {
     try {
+      let waited = false;
       if (bfOnline()) {
-        let s = await bfStep('Checking server status', 74, bfAppStatus);
-        if (bfMaintActive(s)) s = await bfWaitMaint(s);
+        let s = await bfStep('Checking server status', 74, () => (bfPre ? bfPre.st : bfAppStatus()));
+        if (bfMaintActive(s)) (s = await bfWaitMaint(s)), (waited = true);
         bfLastStatus = s;
       }
-      if (await bfStep('Checking for updates', 82, bfCheckUpdate)) return; // restarting into the new version
+      if (await bfStep('Checking for updates', 82, () => bfCheckUpdate(waited))) return; // restarting into the new version
       await bfStep('Preparing items', 90);
     } catch (e) {
       console.error(e);

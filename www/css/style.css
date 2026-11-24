@@ -1811,44 +1811,61 @@ button:focus-visible {
   font-style: normal;
   color: #9be36b;
 }
+.tname span {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* (owner, Nov 24 2026) 4 square slots in one row: picture + amount only */
 .tslots {
   display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 5px;
-  min-height: 92px;
-  align-content: start;
 }
 .tcell {
-  display: grid;
-  grid-template-columns: 26px 1fr auto;
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 4px 7px;
+  justify-content: center;
+  padding: 0;
   border-radius: 4px;
   border: 2px solid var(--night);
   background: var(--plum);
-  color: var(--ink);
-  font-size: 12px;
-  text-align: left;
+  color: var(--muted);
+  font: 14px var(--pixel);
 }
-.tcell[data-k] {
+.tcell.tempty {
+  background: rgba(0, 0, 0, 0.18);
+  border-style: dashed;
+}
+.tcell[data-k],
+.tcell[data-add] {
   cursor: pointer;
 }
 .tcell[data-k]:hover {
   border-color: var(--danger);
 }
+.tcell[data-add]:hover {
+  border-color: var(--sun);
+  color: var(--sun);
+}
 .tcell img {
-  width: 26px;
-  height: 26px;
+  width: 62%;
+  height: 62%;
   image-rendering: pixelated;
 }
 .tcell b {
-  font: 9px var(--pixel);
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font: 8px var(--pixel);
   color: var(--sun);
+  text-shadow: 1px 1px 0 var(--night);
 }
-.tnone {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 6px 0;
+.tcell:disabled {
+  opacity: 1;
 }
 .trade .wstay {
   margin-top: auto;

@@ -111,68 +111,232 @@ setInterval(pcardTick, PCARD_MS);
 // fonts / pictures loading later can change the picture: draw it again once they are in
 addEventListener('load', () => setTimeout(() => (pcardKey = ''), 500));
 
-// ---- the chat: a button on the screen's edge, the chat as a full-height drawer over everything ----
-// (owner, Nov 11 2026, build g: "a button with 3 dots in a column on the side of the screen; click it and the chat
-// shows, floating over everything"; build h: "on the RIGHT side, the button joined to the chat, a bit narrower, full
-// height") `#chatBtn` is a tab on the RIGHT edge (middle of the height, red unread number from globalchat.js gUnread);
-// a click slides the chat open as a full-height drawer along the right edge (CHAT_FLOAT_W % of the screen width, at
-// least CHAT_MIN_W px) over every other window, and the tab moves with it, stuck to the drawer's left side.
-const CHAT_FLOAT_W = 26, // % of the screen's width
-  CHAT_MIN_W = 250, // px
-  CHAT_SLIDE = '.22s',
-  CHAT_EASE = 'cubic-bezier(.2,.8,.3,1)';
-const CHAT_BTN = document.createElement('button');
-CHAT_BTN.type = 'button';
-CHAT_BTN.id = 'chatBtn';
-CHAT_BTN.setAttribute('aria-label', 'Chat');
-CHAT_BTN.innerHTML = '<i></i><i></i><i></i><b class="gbadge" id="chatBtnN" hidden></b>';
-$('wrap').appendChild(CHAT_BTN);
-CHAT_BTN.onclick = () => (gOpenNow ? gShow(false) : chatOpen(true));
+// ---- the chat at the TOP (owner, Nov 24 2026: "the chat in the empty space at the top; instead of the three dots,
+// three horizontal lines; a chat icon at the top right: one whole input at the top, gone after Enter; drag the handle
+// down to see the chat") replaces the right-edge drawer (#chatBtn) of Nov 11 2026:
+//  - `.gchat` sits in the free space at the top between the profile card and the top-right buttons (gcLayout).
+//    Closed: the newest line (the old ticker bar, see-through) with a HANDLE under it (three lines, the unread number);
+//    drag the handle down and the chat panel (tabs, lines, mode + box) comes out as tall as you pull it; tap the
+//    handle (or the line) = open / close.
+//  - `#chatIcon` (top right, before the guide / news / Shop buttons): opens `#chatBar`, one whole-width input at the
+//    top of the screen; Enter sends (in the panel's mode; SYSTEM -> LOCAL) and it goes away (Esc / tapping away too).
+//    Enter on a keyboard (social.js openChat -> chatOpen) opens it as well.
+const GC_TAP = 6, // px: less movement than this on the handle = a tap
+  GC_MIN_H = 150, // px: the smallest open panel (its tabs fit); pulled less than this = closed
+  // (owner, Nov 24 2026: "limit the height when dragged down") at most this tall; a tap opens it at the most
+  GC_MAX_H = () => Math.max(GC_MIN_H, Math.round(Math.min(300, window.innerHeight * 0.5))),
+  GC_DEF_H = () => GC_MAX_H();
+let gcH = 0; // the panel's height while open (px)
+const GC_HANDLE = document.createElement('div');
+GC_HANDLE.id = 'gHandle';
+GC_HANDLE.className = 'ghandle';
+GC_HANDLE.setAttribute('role', 'button');
+GC_HANDLE.setAttribute('aria-label', 'Chat: drag down to open');
+GC_HANDLE.innerHTML = '<i></i><i></i><i></i><b class="gbadge" id="chatBtnN" hidden></b>';
+gEl.appendChild(GC_HANDLE);
+const CHAT_ICON = document.createElement('button');
+CHAT_ICON.type = 'button';
+CHAT_ICON.id = 'chatIcon';
+CHAT_ICON.className = 'newsbtn chaticon';
+CHAT_ICON.setAttribute('aria-label', 'Chat');
+CHAT_ICON.innerHTML =
+  '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4h13c.8 0 1.5.7 1.5 1.5v9c0 .8-.7 1.5-1.5 1.5H10l-4.5 3.6V16h0c-.8 0-1.5-.7-1.5-1.5z" fill="#fff"/><path d="M8 8.5h8M8 11.5h5" stroke="#1e3560" stroke-width="1.6" stroke-linecap="round"/></svg>';
 {
-  const W = 'max(' + CHAT_MIN_W + 'px,' + CHAT_FLOAT_W + 'vw)',
-    st = document.createElement('style');
+  const anchor = $('guideBtn') || $('newsBtn') || $('shopBtn');
+  if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(CHAT_ICON, anchor);
+}
+const CHAT_BAR = document.createElement('div');
+CHAT_BAR.id = 'chatBar';
+CHAT_BAR.className = 'chatbar';
+CHAT_BAR.hidden = true;
+CHAT_BAR.innerHTML = '<button type="button" class="cbmode" id="chatBarMode"></button><input id="chatBarIn" maxlength="' + GCHAT_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Say something" />';
+$('wrap').appendChild(CHAT_BAR);
+{
+  const st = document.createElement('style');
   st.textContent =
-    ':root{--chatW:min(' + W + ',calc(100vw - 40px))}' +
-    '#chatBtn{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:61;' +
-    'width:28px;height:62px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;' +
-    'background:rgba(10,21,48,.9);border:2px solid var(--line,#4a8fe8);border-right:0;border-radius:10px 0 0 10px;cursor:pointer}' +
-    '#chatBtn i{width:6px;height:6px;border-radius:50%;background:#e4f0ff;display:block}' +
-    // open: stuck to the drawer's left side, in the drawer's colour
-    // (owner: the tab must move together with the chat) opening: tab and drawer slide the same distance (the drawer's
-    // width) in the same CHAT_SLIDE time and curve; closing: both go at once
-    '#chatBtn.on{right:var(--chatW);transition:right ' + CHAT_SLIDE + ' ' + CHAT_EASE + ';background:rgba(22,48,95,.97);border-color:var(--glow,#8fd0ff)}#chatBtn.on i{background:#8fd0ff}' +
-    '#chatBtn .gbadge{position:absolute;top:-8px;left:-9px;min-width:18px;height:18px;box-sizing:border-box;padding:0 4px;border-radius:9px;' +
-    'background:var(--danger,#e8303e);color:#fff;font:8px/14px var(--pixel,monospace);text-align:center;border:2px solid var(--night,#0a1530)}' +
-    '#chatBtn .gbadge[hidden]{display:none}' +
-    'body.landing #chatBtn{display:none}' +
-    // the chat: a full-height drawer on the right (no bar)
-    '.gchat{position:absolute !important;left:auto !important;right:0 !important;top:0 !important;bottom:0 !important;transform:none;' +
-    'z-index:60 !important;width:var(--chatW) !important;display:flex;flex-direction:column}' +
-    '.gchat .gtick{display:none !important}' +
-    '.gchat:not(.open){display:none}' +
-    '.gchat.open .gpanel{flex:1;min-height:0;border-radius:0;border-right:0;' +
-    'padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));padding-right:calc(8px + env(safe-area-inset-right,0px));' +
-    'animation:gSlide ' + CHAT_SLIDE + ' ' + CHAT_EASE + '}' +
-    '.gchat .gbody{flex:1;min-height:0}' +
-    '.gchat .glist{height:auto !important;min-height:0}' +
-    '.gchat .gform{flex-wrap:wrap}.gchat .gform input{min-width:0;flex:1}' +
-    '@keyframes gSlide{from{transform:translateX(100%)}}';
+    // the panel in the top gap (left / right set by gcLayout)
+    '.gchat{left:var(--gcL,180px) !important;right:var(--gcR,260px) !important;width:auto !important;top:calc(8px + env(safe-area-inset-top,0px)) !important;z-index:60 !important;display:flex;flex-direction:column;align-items:stretch}' +
+    '.gchat .gtick{height:30px;opacity:.75;background:rgba(10,21,48,.55)}' +
+    '.gchat .gtick .gbadge{display:none}' +
+    '.gchat.open .gpanel{height:var(--gcH,300px);min-height:var(--gcMin,' + GC_MIN_H + 'px);overflow:hidden;animation:none}' +
+    '.gchat .gbody{flex:1;min-height:0}.gchat .glist{height:auto !important;flex:1;min-height:0}' +
+    // (owner, Nov 24 2026) no Send button (Enter sends, on a keyboard or the phone's); the mode button as big as the tabs
+    '.gchat .gform{flex-wrap:nowrap;align-items:center}.gchat .gform input{min-width:0;flex:1}#gSend{display:none !important}' +
+    '.gchat .gtabs{width:62px}.gchat .gtab{width:100%;box-sizing:border-box}' +
+    '.gchat .gmode{width:62px;flex:none}.gchat .gmodebtn{width:100%;box-sizing:border-box;height:auto !important;min-height:0 !important;padding:5px 4px !important;font-size:6px !important;text-align:left}' +
+    '.gchat .gmodes{min-width:62px}' +
+    // the handle: three lines stacked, see-through until used
+    '.ghandle{position:relative;align-self:center;width:58px;height:18px;margin-top:2px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;' +
+    'border:2px solid var(--line,#4a8fe8);border-top:0;border-radius:0 0 10px 10px;background:rgba(10,21,48,.9);cursor:grab;touch-action:none;opacity:.55;transition:opacity .15s}' +
+    '.ghandle:hover,.ghandle:active,.gchat.open .ghandle,.gchat.drag .ghandle{opacity:1}' +
+    '.ghandle i{width:20px;height:2px;border-radius:1px;background:#e4f0ff;display:block}' +
+    '.ghandle .gbadge{top:-4px;right:-12px;left:auto}' +
+    '.gchat.drag .gpanel{transition:none}' +
+    'body.landing .gchat,body.landing #chatIcon,body.landing #chatBar{display:none !important}' +
+    '.chaticon{position:relative;flex:none;width:38px;height:38px;box-sizing:border-box;display:grid;place-content:center;padding:0;border-radius:6px;cursor:pointer}' +
+    // the one-line input at the very top
+    '.chatbar{position:absolute;left:0;right:0;top:0;z-index:70;display:flex;gap:6px;align-items:center;box-sizing:border-box;' +
+    'padding:calc(6px + env(safe-area-inset-top,0px)) calc(8px + env(safe-area-inset-right,0px)) 6px calc(8px + env(safe-area-inset-left,0px));' +
+    'background:rgba(10,21,48,.94);border-bottom:2px solid var(--glow,#8fd0ff);box-shadow:0 4px 0 rgba(0,0,0,.3)}' +
+    '.chatbar[hidden]{display:none}' +
+    '.chatbar input{flex:1;min-width:0;height:36px;box-sizing:border-box;padding:0 10px;border-radius:6px;border:2px solid var(--line,#4a8fe8);background:#0a1530;color:var(--ink,#fff);font:14px var(--body,sans-serif)}' +
+    '.chatbar .cbmode{flex:none;height:36px;padding:0 10px;border-radius:6px;border:2px solid var(--night,#0a1530);background:var(--slot,#1e3560);color:var(--ink,#fff);font:8px var(--pixel,monospace);cursor:pointer}';
   document.head.appendChild(st);
 }
+// where the free space at the top is: right of the profile card, left of the leftmost top-right button
+function gcLayout() {
+  const pc = document.querySelector('.pcard'),
+    vw = window.innerWidth,
+    btns = ['chatIcon', 'shopBtn', 'burger'].map($).filter((e) => e && e.offsetParent), // (gold / Balb Coins sit in the profile card; the guide / news buttons are under it since Nov 24 2026, hudbtns.js)
+    L = pc && pc.offsetParent ? Math.round(pc.getBoundingClientRect().right + 8) : 10,
+    R = btns.length ? Math.round(vw - Math.min(...btns.map((e) => e.getBoundingClientRect().left)) + 8) : 10;
+  // too narrow: under the profile card, across the left of the screen
+  if (vw - L - R < 170) {
+    gEl.style.setProperty('--gcL', '10px');
+    gEl.style.setProperty('--gcR', Math.round(vw * 0.4) + 'px');
+    gEl.style.setProperty('top', (pc ? Math.round(pc.getBoundingClientRect().bottom + 6) : 60) + 'px', 'important');
+  } else {
+    gEl.style.setProperty('--gcL', L + 'px');
+    gEl.style.setProperty('--gcR', R + 'px');
+    gEl.style.removeProperty('top');
+  }
+}
+addEventListener('resize', gcLayout);
+setInterval(gcLayout, 1000);
+setTimeout(gcLayout, 50);
+// the smallest open panel that still fits its header, the 4 tabs and the box (measured: depends on the button size)
+function gcMinH() {
+  const P = $('gPanel'),
+    hd = P && P.querySelector('header'),
+    tb = $('gTabs'),
+    fm = P && P.querySelector('.gform');
+  if (!P || !tb || !gOpenNow) return GC_MIN_H;
+  const cs = getComputedStyle(P),
+    pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth),
+    gap = parseFloat(cs.rowGap) || 6;
+  const tabs = tb.children,
+    tabsH = tabs.length ? tabs[tabs.length - 1].offsetTop + tabs[tabs.length - 1].offsetHeight - tabs[0].offsetTop : 0; // (the buttons, not the stretched column)
+  return Math.ceil(pad + (hd ? hd.offsetHeight : 0) + tabsH + (fm ? fm.offsetHeight : 0) + gap * 2 + 8);
+}
+function gcSetH(h) {
+  const lo = gcMinH();
+  gEl.style.setProperty('--gcMin', lo + 'px');
+  gcH = Math.max(0, Math.min(Math.max(lo, GC_MAX_H()), h));
+  gEl.style.setProperty('--gcH', Math.max(lo, gcH) + 'px');
+}
+// the handle: drag down to open (as tall as pulled), up to close; a tap opens / closes
+{
+  let st = null;
+  GC_HANDLE.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    st = { y: e.clientY, h: gOpenNow ? gcH : 0, moved: false };
+    GC_HANDLE.setPointerCapture(e.pointerId);
+  });
+  GC_HANDLE.addEventListener('pointermove', (e) => {
+    if (!st) return;
+    const dy = e.clientY - st.y;
+    if (Math.abs(dy) > GC_TAP) st.moved = true;
+    if (!st.moved) return;
+    gEl.classList.add('drag');
+    gcSetH(st.h + dy);
+    if (gcH >= 10 && !gOpenNow) gShow(true);
+    if (gcH < 10 && gOpenNow) gShow(false);
+  });
+  const up = () => {
+    if (!st) return;
+    gEl.classList.remove('drag');
+    if (!st.moved) {
+      if (gOpenNow) gShow(false);
+      else {
+        gcSetH(gcH >= GC_MIN_H ? gcH : GC_DEF_H());
+        gShow(true);
+      }
+    } else if (gcH < Math.min(gcMinH(), GC_MAX_H()) * 0.7) gShow(false);
+    else gcSetH(gcH); // (snapped to at least the smallest that fits)
+    st = null;
+  };
+  GC_HANDLE.addEventListener('pointerup', up);
+  GC_HANDLE.addEventListener('pointercancel', up);
+}
+gcSetH(GC_DEF_H());
+// the newest line: a tap opens / closes the panel too
+$('gTick').onclick = () => {
+  if (gcH < GC_MIN_H) gcSetH(GC_DEF_H());
+  gShow(!gOpenNow);
+};
+// ---- the top input bar ----
+const CB_MODES = ['local', 'friend', 'shout'];
+function cbModeLabel() {
+  const m = chatMode === 'sys' ? 'local' : chatMode;
+  $('chatBarMode').textContent = (CHAT_MODES.find((x) => x[0] === m) || ['', 'LOCAL'])[1];
+  $('chatBarMode').className = 'cbmode gm-' + m;
+}
+function chatBarOpen(mode) {
+  if (mode) chatSetMode(mode);
+  if (chatMode === 'sys') chatSetMode('local');
+  if (chatTab === 'sys') (chatTab = 'all'), gRender(true); // (the SYSTEM tab is read-only: gSend would refuse)
+  cbModeLabel();
+  CHAT_BAR.hidden = false;
+  const inp = $('chatBarIn');
+  inp.placeholder = (typeof gPlaceholder === 'function' && gPlaceholder(chatMode)) || 'Say something';
+  setTimeout(() => inp.focus(), 30);
+}
+function chatBarClose() {
+  CHAT_BAR.hidden = true;
+  $('chatBarIn').blur();
+}
+CHAT_ICON.onclick = () => (CHAT_BAR.hidden ? chatBarOpen() : chatBarClose());
+$('chatBarMode').onmousedown = (e) => e.preventDefault(); // (keeps the box focused)
+$('chatBarMode').onclick = () => {
+  const k = CB_MODES.indexOf(chatMode);
+  chatSetMode(CB_MODES[(k + 1) % CB_MODES.length]);
+  cbModeLabel();
+  $('chatBarIn').placeholder = (typeof gPlaceholder === 'function' && gPlaceholder(chatMode)) || 'Say something';
+  $('chatBarIn').focus();
+};
+$('chatBarIn').addEventListener('keydown', (e) => {
+  e.stopPropagation(); // (the game's keys don't see what is typed)
+  if (e.key === 'Escape') return chatBarClose();
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const v = $('chatBarIn').value.trim();
+  $('chatBarIn').value = '';
+  chatBarClose();
+  if (!v) return;
+  $('gText').value = v; // sent the panel's way (gSend reads its box)
+  gSend(true);
+});
+$('chatBarIn').addEventListener('keyup', (e) => {
+  e.stopPropagation();
+  // (some phone keyboards only give Enter on key up)
+  if ((e.key === 'Enter' || e.keyCode === 13) && $('chatBarIn').value.trim()) {
+    const v = $('chatBarIn').value.trim();
+    $('chatBarIn').value = '';
+    chatBarClose();
+    $('gText').value = v;
+    gSend(true);
+  }
+});
+// the panel's box: the same Enter on key up (its keydown Enter already sends; then the box is empty and this does nothing)
+$('gText').addEventListener('keyup', (e) => {
+  if ((e.key === 'Enter' || e.keyCode === 13) && $('gText').value.trim()) gSend(true);
+});
+$('chatBarIn').addEventListener('blur', () => setTimeout(() => document.activeElement !== $('chatBarIn') && chatBarClose(), 150));
+// Enter on a keyboard / anything that opened the chat to type: the bar (the panel opens with its handle)
+chatOpen = ((prev) =>
+  function (open, mode) {
+    if (open === false) return prev(open, mode);
+    chatBarOpen(mode);
+  })(chatOpen);
+// the unread number on the handle
 setInterval(() => {
   const n = typeof gUnread === 'number' ? gUnread : 0,
     b = $('chatBtnN');
-  CHAT_BTN.classList.toggle('on', !!gOpenNow);
   if (b.hidden !== !n) b.hidden = !n;
   const t = n > 99 ? '99+' : String(n);
   if (n && b.textContent !== t) b.textContent = t;
 }, 120);
-// the tab moves the very moment the chat opens / closes (not on the next check of the timer above: it lagged)
-gShow = ((prev) =>
-  function (open) {
-    CHAT_BTN.classList.toggle('on', !!open);
-    return prev(open);
-  })(gShow);
 
 // ---- the game clock (owner, Nov 21 2026: "the day and the time at the top left in the profile, 24 hours, going with
 // the night and the morning"): daynight.js dnClock (06:00 at sunrise, about 19:00 at sunset, the week's day names);

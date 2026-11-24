@@ -112,7 +112,7 @@ let wrenchKeep = 'fist',
 // (owner, Nov 3 2026) the Hand slot is back: a tool / weapon is WORN in it like clothes (out of the bag, tap the worn
 // cell to unequip), so picking a block, a seed or an empty slot keeps it; an empty hand (`bareHand()`) is that weapon
 const shownHand = () =>
-  hand === 'fist'
+  hand === 'fist' || (ITEMS[hand] && ITEMS[hand].kind === 'clothing') // (a selected wearable isn't held: Nov 24 2026)
     ? bareHand()
     : hand !== 'wrench'
       ? hand
@@ -128,8 +128,23 @@ function selectHand(id, k) {
     savePlayer();
     return;
   }
-  // clothes go into their Wearing slot, tools / weapons into the Hand slot (owner, Nov 3 2026)
+  // tools / weapons go into the Hand slot (owner, Nov 3 2026). CLOTHES (owner, Nov 24 2026): tapping one on the
+  // hotbar only SELECTS it (highlighted, not worn): click a Mannequin with it to dress it (display.js useMannequin);
+  // you wear clothes from the bag. Selected, the hand stays empty (shownHand) and a click punches as with the fist.
   const sl = slotOf(id);
+  if (sl && sl !== 'hand' && ITEMS[id] && ITEMS[id].kind === 'clothing') {
+    if (k === undefined) k = hotbarList().indexOf(id);
+    if (hand === id) {
+      hand = bareHand();
+      hbSel = 0;
+    } else {
+      hand = id;
+      hbSel = k;
+    }
+    renderBars();
+    savePlayer();
+    return;
+  }
   if (sl) {
     wear(id);
     return;

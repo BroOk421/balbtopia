@@ -97,7 +97,7 @@ function useATM(x, y) {
   }
   // the breaking smoke puffs out of it (owner, Oct 25 2026); still no coloured squares or shake. The coins grow from
   // nothing to their size as they appear (drawGoldPile, coins.js)
-  smoke(x, y, 11, 1.6);
+  breakPuffs(x, y); // (owner, Nov 24 2026: the break smoke)
   Sfx.play('pickup');
   Native.haptic(L.k === 'Gold' ? 'heavy' : 'medium');
   saveWorld();

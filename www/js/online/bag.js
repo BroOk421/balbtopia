@@ -26,7 +26,11 @@ const Bag = (() => {
     lastT = 0,
     stashNote = 0,
     heldN = 0,
-    heldNote = -1e9;
+    heldNote = -1e9,
+    refusedNote = -1e9,
+    gm = false, // (Nov 24 2026) a GM: no server bag, but what the GM loses is told to the server (gmLost)
+    gmBase = new Map(),
+    gmBusy = false;
   const stash = new Map(); // given by the server, no room in the bag yet
   const skip = (id) => !id || id === 'gold' || id === 'fist' || id === 'wrench' || (typeof isKeyId === 'function' && isKeyId(id)) || !ITEMS[id];
   // what this game has: bag stacks + worn + stash
@@ -104,7 +108,16 @@ const Bag = (() => {
     }
     heldN = h;
     Bag.held = d.held || {};
-    if (d.refused && Object.keys(d.refused).length) console.warn('bag: the server refused', d.refused);
+    if (d.refused && Object.keys(d.refused).length) {
+      console.warn('bag: the server refused', d.refused);
+      // (Nov 24 2026) say so instead of the item silently going away
+      if (now - refusedNote > 8000) {
+        refusedNote = now;
+        const ids = Object.keys(d.refused),
+          nm = (id) => (ITEMS[id] ? ITEMS[id].name : id);
+        toast(nm(ids[0]) + (ids.length > 1 ? ' and ' + (ids.length - 1) + ' more' : '') + " couldn't go into your bag: the server has no record of it (Shop item)");
+      }
+    }
     if (changed) {
       renderBars();
       if (typeof savePlayer === 'function') savePlayer();
@@ -147,10 +160,42 @@ const Bag = (() => {
       }
     }
   }
+  // A GM (Nov 24 2026, owner: a player with access took a GM's items out of a Display Box / Mannequin and they never
+  // reached his bag): the GM's bag isn't kept on the server, so whatever the GM LOSES here (put in a Display Box /
+  // Mannequin / Vending Machine, placed, dropped...) is sent to bag_gm_lost every BAG_EVERY; its Shop-only items go
+  // into the server's pool, so the player who takes them gets them. Gains are not sent (GMs have no limits).
+  async function gmLost() {
+    if (!gm || gmBusy) return;
+    const snap = local(),
+      delta = {};
+    let n = 0;
+    for (const [id, q] of gmBase) {
+      const lost = q - (snap.get(id) || 0);
+      if (lost > 0 && n < 200) (delta[id] = lost), n++;
+    }
+    if (!n) return void (gmBase = snap);
+    gmBusy = true;
+    try {
+      await Wallet.rpc('bag_gm_lost', { p_delta: delta });
+      gmBase = snap;
+    } catch (e) {
+      // an older server without bag_gm_lost: stop trying
+      console.warn('bag: gm lost', e && e.message);
+      if (/function|does not exist|schema cache/i.test((e && e.message) || '')) gm = false;
+    } finally {
+      gmBusy = false;
+    }
+  }
   async function start() {
     on = false;
+    gm = false;
     base = new Map();
     stash.clear();
+    if (Wallet.on() && isGM()) {
+      gm = true;
+      gmBase = local();
+      return;
+    }
     if (!Wallet.on() || isGM()) return;
     try {
       const snap = local(),
@@ -184,7 +229,8 @@ const Bag = (() => {
     for (let k = 0; busy && k < 100; k++) await new Promise((r) => setTimeout(r, 50));
   };
   setInterval(() => on && now - lastT >= BAG_EVERY - 50 && sync(false), 500);
-  addEventListener('pagehide', () => on && sync(false));
+  setInterval(() => gm && gmLost(), BAG_EVERY);
+  addEventListener('pagehide', () => (on ? sync(false) : gm && gmLost()));
   return {
     on: () => on,
     start,

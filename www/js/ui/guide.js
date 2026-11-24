@@ -267,7 +267,9 @@ function gShowCard(box, id) {
 }
 
 // ---------- the tabs ----------
-function gRender() {
+// (Nov 24 2026: was gRender, the same name as the chat's (globalchat.js): this one, loaded later, replaced it and the
+// chat's list never drew)
+function guideRender() {
   for (const b of guideEl.querySelectorAll('.gtabs button')) b.setAttribute('aria-selected', b.dataset.t === GUIDE.tab ? 'true' : 'false');
   const body = $('guideBody');
   const t = GUIDE.tab;
@@ -400,12 +402,12 @@ guideEl.querySelector('.gtabs').onclick = (e) => {
   if (!b || b.dataset.t === GUIDE.tab) return;
   GUIDE.tab = b.dataset.t;
   GUIDE.q = '';
-  gRender();
+  guideRender();
 };
 function openGuide(tab) {
   if (tab) GUIDE.tab = tab;
   guideEl.hidden = false;
-  gRender();
+  guideRender();
 }
 function closeGuide() {
   if (gObs) gObs.disconnect();

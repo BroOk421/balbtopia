@@ -29,10 +29,11 @@ function editSign(x, y) {
     toast(worldOwner ? 'Only players who can build in ' + worldName + ' can write on this sign' : "You can't write on this sign");
     return;
   }
+  const mann = typeof isMannT === 'function' && isMannT(fg[i]); // (a Mannequin: the same, Nov 24 2026)
   const body = dialog(
-    'EDIT SIGN',
+    mann ? 'EDIT MANNEQUIN' : 'EDIT SIGN',
     `<label class="lfield" for="signText">What should it say?<textarea id="signText" maxlength="${SIGN_MAX}" rows="3" placeholder="Write something">${esc(signs.get(i) || '')}</textarea></label>
-     <p class="mnote">Anyone who stands on the sign can read it.</p>`,
+     <p class="mnote">${mann ? 'Anyone who stands at the Mannequin can read it. Dress it by clicking it with a wearable selected.' : 'Anyone who stands on the sign can read it.'}</p>`,
     [
       { label: 'Cancel', cls: 'ghost', run: () => {} },
       {
@@ -42,7 +43,7 @@ function editSign(x, y) {
           setSign(i, b.querySelector('#signText').value);
           Net.sendSign(i, signs.get(i) || '');
           saveWorld();
-          toast('Sign saved');
+          toast(mann ? 'Mannequin saved' : 'Sign saved');
         },
       },
     ],
@@ -342,12 +343,13 @@ function needsSetup(i) {
     const d = doorInfo(i);
     return !d.to && !d.at;
   }
-  if (isSignT(t)) return !signs.get(i);
-  if (isDispT(t)) return !displays.get(i);
+  // (a Mannequin is a sign too since Nov 24 2026: it is set up once it wears something)
   if (isMannT(t)) {
     const m = manns.get(i);
     return !m || !Object.values(m).some(Boolean);
   }
+  if (isSignT(t)) return !signs.get(i);
+  if (isDispT(t)) return !displays.get(i);
   if (isVendT(t)) {
     const v = vends.get(i);
     return isAdmin() && (!v || !v.id);

@@ -19,7 +19,7 @@
 //   sides open, and drawn instead.
 // - Bag / hotbar / shop icons of blocks: iconCanvas results for ITEMS of kind 'block'.
 // Loaded LAST before main.js (outermost drawTileBlock / iconCanvas wrapper).
-const SOFTSTROKE = { dark: 48, max: 80, mul: 0.72 },
+const SOFTSTROKE = { dark: 48, max: 80, mul: 0.72, edge: 100, edgeMax: 112 },
   SS_STILL = new WeakSet(), // pictures that never change after they are made
   SS_DONE = new WeakMap(), // picture -> Map(key -> softened canvas)
   SS_CTX = new WeakSet(); // contexts whose drawImage is wrapped
@@ -37,6 +37,10 @@ function ssSoften(d, W, H, cw, ch, open, opt = {}) {
     band = opt.band || 2,
     solid = opt.solid || 128,
     isDark = opt.dark ? (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b < opt.dark && Math.max(r, g, b) < opt.max : ssDark,
+    // (owner, Nov 24 2026: "the others with a stroke too") the OUTERMOST pixel (touching outside) also counts as
+    // stroke when it is only darkish (a dark grey / green / brown outline, lightness < SOFTSTROKE.edge): it takes the
+    // colour inside it, darker. Deeper pixels still need the black test, so dark details inside stay. Not with opt.dark.
+    isEdgeDark = opt.dark ? isDark : (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b < SOFTSTROKE.edge && Math.max(r, g, b) < SOFTSTROKE.edgeMax,
     mul = SOFTSTROKE.mul,
     N = cw * ch,
     dist = new Uint8Array(N),
@@ -50,6 +54,10 @@ function ssSoften(d, W, H, cw, ch, open, opt = {}) {
         dark = (i, j) => {
           const o = o4(i, j);
           return p[o + 3] >= solid && isDark(p[o], p[o + 1], p[o + 2]);
+        },
+        edgeDark = (i, j) => {
+          const o = o4(i, j);
+          return p[o + 3] >= solid && isEdgeDark(p[o], p[o + 1], p[o + 2]);
         };
       // a side of the cell is open when it was given, or when its border row is mostly dark (an outline drawn there;
       // a texture that only has a few dark specks at its border joins the next tile, so it is left alone)
@@ -86,7 +94,7 @@ function ssSoften(d, W, H, cw, ch, open, opt = {}) {
         qt = 0;
       for (let j = 0; j < ch; j++)
         for (let i = 0; i < cw; i++) {
-          if (!dark(i, j)) continue;
+          if (!dark(i, j) && !edgeDark(i, j)) continue;
           let edge = false;
           for (let dj = -1; dj <= 1 && !edge; dj++)
             for (let di = -1; di <= 1; di++)
@@ -327,3 +335,5 @@ if (typeof reaperScyPic === 'function')
       if (!IMG[REAPER_SCY.img] || !IMG[REAPER_SCY.img].complete) return pic;
       return ssScythe(pic, small ? SS_SCY.band : SS_SCY.band * 2, SS_SCY.noct);
     })(reaperScyPic);
+
+// (Nov 24 2026: the Daisy's grey / dark green outline is softened by the general edge rule in ssSoften: isEdgeDark)

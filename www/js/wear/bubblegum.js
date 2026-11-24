@@ -42,7 +42,9 @@ wearIcon = ((prev) =>
     return (WEAR_ICON[id] = c);
   })(wearIcon);
 
-const bubWorn = () => equipped.mouth === 'bubble_gum';
+// worn, OR (owner, Nov 24 2026) only selected on the hotbar (highlighted, ui.js selectHand: wearables aren't put on
+// from the hotbar any more) while you have one
+const bubWorn = () => equipped.mouth === 'bubble_gum' || (hand === 'bubble_gum' && inv.some((s) => s.id === 'bubble_gum'));
 function bubCan() {
   return bubWorn() && !P.bub && !P.dead && !P.rest && !inWater(P) && !(P.bubCd > now); // (on a ride too: owner)
 }

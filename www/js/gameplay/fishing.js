@@ -243,7 +243,7 @@ useATM = ((prev) =>
     atms.set(i, Date.now());
     startPunch(x * TS + 16, y * TS + 16);
     spawnDrop(id, x * TS + 16, y * TS + 12, 1, 0.25, playerName);
-    smoke(x, y, 6, 1.1);
+    breakPuffs(x, y); // (owner, Nov 24 2026: the break smoke)
     Sfx.play('pickup');
     Native.haptic('medium');
     saveWorld();

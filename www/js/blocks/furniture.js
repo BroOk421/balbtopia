@@ -340,19 +340,56 @@ function paintFoliage(m, v) {
 }
 // ---------- cached pictures ----------
 const FURN = {};
+// (owner, Nov 24 2026) the owner's own chair picture (assets/items/wooden_chair.png, 32 x 32, facing right; his edit of
+// paintChair's: new legs). paintChair is only used until it has loaded.
+A.wooden_chair = 'assets/items/wooden_chair.png';
 function chairPic(left) {
-  const k = 'chair' + (left ? 'L' : 'R');
+  const im = IMG.wooden_chair,
+    ok = im && im.width,
+    k = 'chair' + (ok ? 'P' : '') + (left ? 'L' : 'R');
   if (FURN[k]) return FURN[k];
-  const c = furnCanvas(paintChair);
+  let c;
+  if (ok) {
+    c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d');
+    x.drawImage(im, 0, 0);
+    // (owner, Nov 24 2026: "no stroke: the stroke is the colour next to it, darker") its dark outline takes the colour
+    // just inside it, darkened (softstroke.js ssSoften, 1 px deep, every side counts as outside)
+    if (typeof ssSoften === 'function')
+      try {
+        const d = x.getImageData(0, 0, 32, 32);
+        ssSoften(d, 32, 32, 32, 32, () => 15, { band: 1 });
+        x.putImageData(d, 0, 0);
+      } catch (e) {}
+  } else c = furnCanvas(paintChair);
   return (FURN[k] = left ? mirrorCanvas(c) : c);
 }
+// (owner, Nov 24 2026) the couch looked the other way: a couch placed facing left now LOOKS left (its picture is the
+// right-facing one mirrored the other way round from before); `look` = the way the picture shows
 function couchPic(m, left) {
+  left = !left;
   const k = 'couch' + m + (left ? 'L' : 'R');
   if (FURN[k]) return FURN[k];
   // drawn facing right; facing left it is mirrored, so its left / right neighbours swap
   const mm = left ? ((m & 1) << 1) | ((m & 2) >> 1) : m,
     c = furnCanvas((a) => paintCouch(a, mm));
   return (FURN[k] = left ? mirrorCanvas(c) : c);
+}
+// (owner, Nov 24 2026) the Wooden Platform = the owner's own pictures (assets/items/wooden_platform_*.png, 32 x 32, his
+// edit): f = which sides join another Wooden Platform (1 left, 2 right): 0 single (both ends rounded, also the icon),
+// 1 right end, 2 left end, 3 middle. Copied onto canvases (exact pixels); the old drawing until they have loaded.
+const WPLAT_PIC = ['single', 'right', 'left', 'middle'];
+WPLAT_PIC.forEach((n) => (A['wplat_' + n] = 'assets/items/wooden_platform_' + n + '.png'));
+function woodPlatPic(f) {
+  const im = IMG['wplat_' + WPLAT_PIC[f & 3]];
+  if (!im || !im.width) return null;
+  const k = 'wplat' + (f & 3);
+  if (FURN[k]) return FURN[k];
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  c.getContext('2d').drawImage(im, 0, 0);
+  return (FURN[k] = c);
 }
 // m: which sides join another Foliage (1 up, 2 right, 4 down, 8 left); v: leaf pattern 0-3
 function foliagePic(m, v = 0) {
@@ -361,13 +398,19 @@ function foliagePic(m, v = 0) {
 }
 // bag / shop icons
 SHOP_ICON.wooden_chair = () => chairPic(false);
-SHOP_ICON.couch = () => couchPic(0, false);
+SHOP_ICON.couch = () => couchPic(0, true); // (the right-facing picture)
 SHOP_ICON.foliage = () => foliagePic(0);
+SHOP_ICON.wooden_platform = () => woodPlatPic(0) || decoCanvas('wooden_platform', 0);
 
 drawNewBlock = ((prev) =>
   function (b, x, y, px, py, T) {
     const i = at(x, y);
     if (b.id === 'wooden_chair') return g.drawImage(chairPic(faceLeftAt(i)), px, py, T, T);
+    if (b.id === 'wooden_platform') {
+      const same = (xx) => xx >= 0 && xx < WW && fg[at(xx, y)] === fg[i],
+        pic = woodPlatPic((same(x - 1) ? 1 : 0) | (same(x + 1) ? 2 : 0));
+      if (pic) return g.drawImage(pic, px, py, T, T);
+    }
     if (b.id === 'couch') {
       const left = faceLeftAt(i),
         same = (xx) => inW(xx, y) && fg[at(xx, y)] === COUCH_T && faceLeftAt(at(xx, y)) === left;
@@ -385,4 +428,7 @@ drawNewBlock = ((prev) =>
 // Bookcase (owner, Oct 22 2026): its top works like a Wooden Platform / Staircase. Stand on it from above, jump up
 // through it from below, and plant seeds on top of it. You still walk past it.
 BLOCK[ITEMS.bookcase.block].plat = true;
+// Wooden Table (owner, Nov 24 2026): its top too (one tile high, the table top at the tile's top edge: blocks.js)
+BLOCK[ITEMS.wooden_table.block].plat = true;
+ITEMS.wooden_table.desc = ITEMS.wooden_table.desc.replace(/^A little wooden table\./, 'A little wooden table. Stand on top of it like a platform.');
 ITEMS.bookcase.desc = ITEMS.bookcase.desc.replace(/^Shelves full of colourful books\./, 'Shelves full of colourful books. Stand on top of it like a platform, or plant seeds there.');

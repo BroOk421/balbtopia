@@ -11,8 +11,11 @@
 // - A BITE: the rod's front bends down (drawn column by column, `rodBend`) and the CATCH BAR pops up over you: a fish
 //   swims left and right in a track, you move the green bar with the walk keys (left / right; you don't walk while it
 //   is up) to keep it on the fish; the progress bar under it fills while the fish is in the green and drains while it
-//   isn't. Full = caught (fish.js reel: bait, bag, records as before), empty = "It got away!" and the line comes back
-//   in (Nov 23 2026): click the water again to cast for the next one. Bigger fish move faster and turn more often (`MG`). Clicks do nothing while the bar is up.
+//   isn't. Full = caught (fish.js reel: bait, bag, records as before), empty = "It got away!" and the line just
+//   DISAPPEARS (Nov 24 2026; no reel-back), the rod back to idle: click the water again to cast for the next one.
+//   TUG OF WAR (Nov 24 2026): `mg.tug` eases to -1 while the fish is outside the green (the fish pulls: rod bent hard
+//   down and shaking, the arm dragged down, the bait dragged away / under with splashes) and to +1 while it is in it
+//   (you pull: the arm up and back, the rod less bent, the bait towards you). Bigger fish move faster and turn more often (`MG`). Clicks do nothing while the bar is up.
 // Loaded last before main.js (after fish.js, blockybody.js, shadow.js).
 // ===== held rod / knife, catch bar =====
 Object.assign(A, {
@@ -73,10 +76,47 @@ for (const id of Object.keys(HELD)) delete ARTS['hdtool:' + id]; // (made again 
 
 // ---------- drawing the held picture ----------
 // the rod's bend now (sprite px down at the tip): only your own rod, while something bites
+// (owner, Nov 24 2026: tug of war) with the catch bar up, `mg.tug` (-1 the fish wins .. +1 you win) decides it: the
+// fish pulling = bent hard down to the water, shaking fast; you pulling = bent less, a slow strain
+// You winning (owner, Nov 24 2026: "up, the fish pulls a little, pull hard again, then the character pulls suddenly;
+// the rod bends a lot, nearly breaking"): a repeating fight (`TUG_KEYS`, one round TUG_MS): yank up, the fish tugs back
+// a little, a hard pull, a small tug, a SUDDEN yank. up = how far the arm is pulled up (x TUG_ARM rad), bend = the
+// rod's bend (sprite px at the tip). Times are shares of the round; between two keys it eases (a sudden yank is short).
+const TUG_MS = 1250,
+  TUG_ARM = 0.72,
+  TUG_KEYS = [
+    [0, 0.45, 9],
+    [0.14, 1.0, 18], // yank up
+    [0.3, 0.7, 12], // the fish pulls back a little
+    [0.42, 0.66, 11],
+    [0.56, 1.05, 20], // a hard pull again
+    [0.7, 0.75, 14],
+    [0.8, 0.5, 10], // the fish tugs
+    [0.85, 1.25, 26], // SUDDEN yank: the rod bends like it will snap
+    [0.92, 1.05, 20],
+    [1, 0.45, 9],
+  ];
+function tugNow() {
+  const u = (now % TUG_MS) / TUG_MS;
+  for (let k = 1; k < TUG_KEYS.length; k++) {
+    const [t1, a1, b1] = TUG_KEYS[k],
+      [t0, a0, b0] = TUG_KEYS[k - 1];
+    if (u <= t1) {
+      const e = (u - t0) / (t1 - t0),
+        s = e * e * (3 - 2 * e);
+      return { up: a0 + (a1 - a0) * s, bend: b0 + (b1 - b0) * s, yank: k === 7 };
+    }
+  }
+  return { up: TUG_KEYS[0][1], bend: TUG_KEYS[0][2], yank: false };
+}
 function rodBend(c) {
   if (typeof fishing === 'undefined' || !fishing || fishing.st !== 'bite' || !isMeDrawn(c)) return 0;
   const mg = fishing.mg;
-  return 2.6 + 1.4 * Math.sin(now / 85) + (mg && !mg.on ? 1.2 : 0);
+  if (!mg) return 2.6 + 1.4 * Math.sin(now / 85);
+  const fish = Math.max(0, -mg.tug),
+    me = Math.max(0, mg.tug),
+    tn = tugNow();
+  return (2.4 + fish * 4.2 + Math.sin(now / 38) * (0.5 + fish * 1.3)) * (1 - me) + me * (tn.bend + Math.sin(now / 29) * 0.45);
 }
 blockyTool = ((prev) =>
   function (c, id, ang, top, sc, dy, s) {
@@ -94,8 +134,10 @@ blockyTool = ((prev) =>
     const B = h.tip ? rodBend(c) : 0;
     if (B) {
       // bent: each column of the front part drawn lower, more towards the tip
+      // (Nov 24 2026) a hard bend (the tug of war) also bends further down the rod, so it curves like it may snap
+      const L = Math.min(im.width - 4, h.bend * (1 + Math.min(1, Math.max(0, B - 5) / 15) * 0.5));
       for (let x = 0; x < im.width; x++) {
-        const u = Math.max(0, (h.bend - x) / h.bend);
+        const u = Math.max(0, (L - x) / L);
         g.drawImage(im, x, 0, 1, im.height, x, B * u * u, 1, im.height);
       }
     } else g.drawImage(im, 0, 0);
@@ -124,6 +166,16 @@ blockyTarget = ((prev) =>
   function (c, s, top, sc, dy) {
     const rod = c && isRod(c.hand) && isMeDrawn(c);
     if (rod && c.punch && c.punch.dur) return { back: 0, front: rodSwingAngle(c.punch), direct: true };
+    // tug of war (owner, Nov 24 2026): the fish winning drags the arm down towards the water, jerking; you winning
+    // pulls it up and back (the arm eases between the two: not `direct`)
+    if (rod && fishing && fishing.st === 'bite' && fishing.mg) {
+      const t = fishing.mg.tug,
+        fish = Math.max(0, -t),
+        me = Math.max(0, t);
+      // you winning: the fight round (tugNow); once fully yours it follows the round exactly (`direct`), so the sudden
+      // yank is sudden
+      return { back: 0, front: ROD_HOLD + fish * (0.42 + Math.sin(now / 33) * 0.07) - me * TUG_ARM * tugNow().up, direct: me > 0.92 };
+    }
     if (rod && typeof fishing !== 'undefined' && fishing && fishing.st !== 'back' && fishing.st !== 'catch' && !c.punch && !c.place)
       return { back: s.walking ? prev(c, s, top, sc, dy).back : 0, front: ROD_HOLD };
     return prev(c, s, top, sc, dy);
@@ -145,7 +197,7 @@ const MG = {
 const mgSize = (F) => (F.f && FISH_BY[F.f.id] ? FISH_BY[F.f.id].size : 0);
 function mgStart(F) {
   const z = mgSize(F);
-  F.mg = { fish: 0.5, base: 0.5, vf: 0, to: 0.5, next: now, bar: 0.5, vb: 0, prog: MG.start, last: now, on: false, z, w: MG.green[z] };
+  F.mg = { fish: 0.5, base: 0.5, vf: 0, to: 0.5, next: now, bar: 0.5, vb: 0, prog: MG.start, last: now, on: false, z, w: MG.green[z], tug: 0 };
 }
 const mgDir = () => (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
 function mgStep(F) {
@@ -171,6 +223,8 @@ function mgStep(F) {
   m.vb += (mgDir() * MG.barSpeed - m.vb) * Math.min(1, dt * 12);
   m.bar = Math.max(m.w / 2, Math.min(1 - m.w / 2, m.bar + m.vb * dt));
   m.on = Math.abs(m.fish - m.bar) <= m.w / 2;
+  // who is winning the tug of war, eased (-1 the fish, +1 you)
+  m.tug = (m.tug || 0) + ((m.on ? 1 : -1) - (m.tug || 0)) * Math.min(1, dt * 6);
   m.prog = Math.max(0, Math.min(1, m.prog + (m.on ? MG.fill : -MG.drain) * dt));
   if (m.prog >= 1) {
     F.mg = null;
@@ -178,10 +232,27 @@ function mgStep(F) {
   } else if (m.prog <= 0) {
     // (owner, Nov 23 2026: "when the fish isn't caught it should reset, not go on: click the water again to fish") the
     // line comes back in; cast again for the next one (the bait isn't used)
-    fishing = { ...F, mg: null, st: 'back', t0: now, fromX: F.x, fromY: F.y };
+    // (owner, Nov 24 2026) no line coming back: it just disappears and the rod is back to its normal idle
+    fishing = null;
     toast('It got away!');
   }
 }
+// the bait on the line during the tug of war: dragged away from you and down (jerking) while the fish wins, pulled
+// towards you and up while you win
+fishPos = ((prev) =>
+  function () {
+    const F = fishing,
+      p = prev();
+    if (!F || F.st !== 'bite' || !F.mg) return p;
+    const t = F.mg.tug,
+      fish = Math.max(0, -t),
+      me = Math.max(0, t),
+      away = F.x >= P.x + P.w / 2 ? 1 : -1;
+    if (fish > 0.3 && Math.random() < 0.08 * fish) parts.push({ x: p.x, y: F.y + 2, vx: (Math.random() - 0.5) * 50, vy: -40 - Math.random() * 50, life: 0.35, c: Math.random() < 0.5 ? '#dff6ff' : '#9fd8f0', s: 2 });
+    const tn = tugNow();
+    if (me > 0.9 && tn.yank && Math.random() < 0.3) parts.push({ x: p.x, y: F.y + 2, vx: -away * (30 + Math.random() * 40), vy: -50 - Math.random() * 50, life: 0.3, c: '#dff6ff', s: 2 }); // the yank splashes
+    return { x: p.x + away * (fish * (3 + Math.sin(now / 30) * 1.5) - me * (1.5 + tn.up * 3)), y: p.y + fish * (2.5 + Math.abs(Math.sin(now / 55)) * 2) - me * (1 + tn.up * 2.2) };
+  })(fishPos);
 stepFishing = ((prev) =>
   function () {
     const F = fishing;
@@ -224,7 +295,8 @@ step = ((prev) =>
 // less tall and wider; inside it a design like water with sea life") the track is a little sea: water getting darker
 // down, a sandy floor with seaweed swaying, coral, rocks, a starfish and a shell, bubbles rising, light glinting on
 // top; the fish you chase is one plain orange fish (`MG_FISH`), whatever is really on the line.
-const MG_BAR = { w: 104, h: 9, prog: 2 }; // bar px: track width / height, progress bar height
+const MG_BAR = { w: 104, h: 9, prog: 2 }, // bar px: track width / height, progress bar height
+  MG_PX = 1.5; // screen px per bar px at zoom 1 (Nov 24 2026: was 2)
 const MG_FISH = ['....KKKKKK.', 'KK.KOOOOEOK', 'KOKOOOOOOOK', 'KK.KLLLLLLK', '....KKKKKK.'], // facing right
   MG_FISH_COL = { K: '#1c1033', O: '#ff8a2a', L: '#ffd08a', E: '#14101c' };
 // the sea's still things: [x, kind, height] in bar px (s seaweed, c coral, r rock, t starfish, h shell)
@@ -292,12 +364,15 @@ function drawCatchBar(ox, oy) {
   const F = fishing,
     m = F && F.mg;
   if (!m) return;
-  const u = Math.max(2, Math.round(Z * 2)), // one bar pixel (2 screen px at zoom 1)
+  // (owner, Nov 24 2026: "a bit smaller", the green bar and the progress bar too) one bar pixel = MG_PX screen px at
+  // zoom 1 (was 2); it stays where it was over the head (u0)
+  const u0 = Math.max(2, Math.round(Z * 2)),
+    u = Math.max(1, Math.round(Z * MG_PX)),
     W = MG_BAR.w * u,
     H = MG_BAR.h * u,
     PH = MG_BAR.prog * u,
     cx = Math.round(ox + (P.x + P.w / 2) * Z),
-    y0 = Math.round(oy + (P.y + P.h - CHAR_H) * Z) - 24 * u,
+    y0 = Math.round(oy + (P.y + P.h - CHAR_H) * Z) - 24 * u0 + (MG_BAR.h + MG_BAR.prog) * (u0 - u),
     x0 = cx - W / 2,
     pop = Math.min(1, (now - F.t0) / 160); // grows in
   g.save();

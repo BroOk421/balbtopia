@@ -5266,6 +5266,28 @@ revoke execute on function public.bag_cap(text), public.bag_cls(text), public.ba
   public.bag_init(uuid), public.bag_of(uuid), public.bag_earn(uuid, text, bigint, boolean) from public, anon, authenticated;
 revoke execute on function public.bag_get(), public.bag_sync(jsonb), public.bag_lock_convert(text, boolean) from public, anon;
 grant execute on function public.bag_get(), public.bag_sync(jsonb), public.bag_lock_convert(text, boolean) to authenticated;
+-- (Nov 24 2026, owner) A GM's bag is not kept on the server (no limits), so what a GM PUTS INTO THE WORLD (a Display
+-- Box, a Mannequin, a Vending Machine, placed, dropped) never went into `bag_pool`: a player with access who took a
+-- Shop-only item of the GM's out of it had it refused and it vanished from his bag. The GM's game now sends what it
+-- lost here (online/bag.js, GM mode): the Shop-only ones go into the pool, so they can be picked up again.
+create or replace function public.bag_gm_lost(p_delta jsonb)
+returns void language plpgsql volatile security definer set search_path = public as $$
+declare k text; v jsonb; q bigint;
+begin
+  if not public.is_gm() then raise exception 'GM only' using errcode = '42501'; end if;
+  if jsonb_typeof(p_delta) <> 'object' then return; end if;
+  if (select count(*) from jsonb_object_keys(p_delta)) > 200 then raise exception 'Too many changes at once'; end if;
+  for k, v in select key, value from jsonb_each(p_delta) loop
+    if k !~ '^[a-z0-9_]{1,40}$' or k = 'gold' or k like 'wkey\_%' or jsonb_typeof(v) <> 'number' then continue; end if;
+    q := floor((v #>> '{}')::numeric);
+    if q <= 0 or q > 1000000 then continue; end if;
+    if public.is_tracked(k) then
+      insert into public.bag_pool (item, qty) values (k, q) on conflict (item) do update set qty = public.bag_pool.qty + excluded.qty;
+    end if;
+  end loop;
+end $$;
+revoke execute on function public.bag_gm_lost(jsonb) from public, anon;
+grant execute on function public.bag_gm_lost(jsonb) to authenticated;
 
 -- ---------- PRIVACY: who sees where you are ----------
 create table if not exists public.friends (
@@ -5423,6 +5445,11 @@ delete from public.bag_pool where item in ('pot_of_gold', 'pot_of_gold_seed', 'c
 insert into public.item_info (item, cls) values
   ('pot_of_gold', 'none'), ('pot_of_gold_seed', 'none'), ('coin_fountain', 'none'), ('coin_fountain_seed', 'none'),
   ('gold_vein', 'legendary'), ('gold_vein_seed', 'legendary')
+on conflict (item) do update set cls = excluded.cls;
+-- (Nov 24 2026, owner) Zigzag Stairs (block 468, blocks/zigzagstairs.js): a Common splice block.
+-- (and Chain, block 469, and Iron Lantern, block 470: Uncommon)
+insert into public.item_info (item, cls) values ('zigzag_stairs', 'common'), ('zigzag_stairs_seed', 'common'),
+  ('chain', 'uncommon'), ('chain_seed', 'uncommon'), ('iron_lantern', 'uncommon'), ('iron_lantern_seed', 'uncommon')
 on conflict (item) do update set cls = excluded.cls;
 
 -- =====================================================================================================

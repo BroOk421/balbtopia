@@ -5528,3 +5528,117 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
     bands (`bands: false`), BUBBLE_FONT = Rubik 400 (thin, not the pixel font), 4.4 px a zoom; CHAT_BG_ALPHA 0.88.
     The sign bubble (signs.js) uses the same.
   GAME_BUILD '2026-11-22 zh'.
+
+## Nov 24 2026 (owner)
+
+- Trade (social.js): at most `TRADE_MAX` 4 items a side (was 6; the server still allows 6). The window shows each side as
+  the player's NAME, then 4 square slots in a row (picture + amount only, no item names; an empty slot of yours = add),
+  then the Add button. When a trade is done the items fly with NO name label: they rise and CIRCLE round the giver's head
+  (`TFLY`, `drawTradeFlyer`), then get VACUUMED (pulled faster and faster, shrinking, a thin trail) into the taker.
+  `flyItems(..., trade)`; the `fly` broadcast carries `tr: 1` so watchers see the same.
+- Placing a block / background (actions.js `placeFx`, yours and others') uses the break smoke `breakPuffs` (was the old
+  `smoke`; the Gold Lock's extra smoke was removed). ATM, Bait Basket and Fuel Tank pay-outs use `breakPuffs` too.
+- Blocks with a job (actions.js `isFnBlockT`: Weather Machines, every `ANIM_TOGGLE` block = Disco Ball / Torch / Boombox /
+  Bathtub / Campfire / Floor Lamp / Drum Set / Dice / Lucky Color / Roulette, Spike Gate, Chest / Stove, Signal / Punch
+  Jammer, ATM, Bait Basket, Fuel Tank): ONE click only does its job, no crack (`fnFirstTap`); a second click within
+  `FN_DOUBLE_MS` 650 ms starts cracking; once cracked every punch cracks it (until it heals). Holding the punch still
+  breaks it (the 2nd repeat is 0.24 s later). remotefx.js mirrors it per player (`rFnTaps`) so others see no crack either.
+- (Nov 24 2026 b) Sitting on a Wooden Chair / Couch flipped back (rest.js sit + `seatFace`): a seat turned left
+  (`FACE_LEFT`) seats you facing LEFT, against its back. The Couch's picture is mirrored the other way (furniture.js
+  `couchPic` flips `left`): placed facing left it LOOKS left. Wooden Table: `plat = true` (stand on its top like a
+  platform); one tile high (owner: "ok na yung mataas isang tile"): the table top at the tile's top edge, legs to the
+  floor, 6 px thick (blocks.js, both sizes). (physics.js / blocks.js `platTop` also take a block `platY` = a platform top
+  lower in its tile; no block uses it now.)
+- (Nov 24 2026 d) The cursor box on the pointed tile (render.js) has rounded corners (`roundRect`, radius 0.2 tile) and
+  is see-through (white .45, out of reach red .4).
+- (Nov 24 2026 c) Fishing (rodknife.js): the fish getting away (catch bar progress empty, or a bite timing out in
+  fish.js) sets `fishing = null`: the line just disappears, no reel-back, the rod is back to idle. Tug of war while the
+  bar is up: `mg.tug` (eased, -1 fish winning / +1 you winning) drives `rodBend` (hard down + fast shake vs. less, slow
+  strain), the arm (`blockyTarget`: dragged down to the water vs. pulled up and back) and the bait (`fishPos` wrapper:
+  dragged away / under with splashes vs. towards you). Catching is unchanged.
+- (Nov 24 2026 e) blockfit.js `floorGap`: a decoration standing on a floor whose picture starts under its tile's top
+  (empty top rows, measured once per floor kind + open sides, at most `FLOOR_GAP_MAX` 0.2 tile) is drawn that much lower,
+  so its bottom touches the floor; the Wooden Table is stretched down instead (its top stays where you stand). Every
+  solid block tested had no such gap (Nov 24 2026), so today it changes nothing unless a floor picture has one.
+- (Nov 24 2026 f) Wooden Chair picture = the owner's own PNG (`assets/items/wooden_chair.png`, 32 x 32, facing right; his
+  edit of paintChair's with new legs; source copy in `art-source/furniture/wooden_chair.png`). furniture.js `chairPic`
+  draws it (mirrored for a left-facing chair); `paintChair` only until it has loaded. Seat height unchanged (SEATS 9).
+  Its dark outline is softened when the picture is made (softstroke.js `ssSoften`, band 1, all sides outside): the
+  stroke takes the colour just inside it, darker (owner: no black stroke).
+- (Nov 24 2026 g) Fishing, you winning the tug of war (rodknife.js `tugNow`, `TUG_KEYS`, one round `TUG_MS` 1.25 s):
+  yank up, the fish tugs back a little, a hard pull, a small tug, a SUDDEN yank; arm up `TUG_ARM` x key, the rod bent
+  hard (bend up to 26 px at the sudden yank; a big bend also curves further down the rod), the bait jerked towards you.
+  Fully winning, the arm follows the round exactly (`direct`). (An extra top row on the Wooden Platform was tried and
+  taken back: the owner is redrawing it.)
+- (Nov 24 2026 h) Wooden Platform pictures = the owner's own PNGs (`assets/items/wooden_platform_{single,left,right,middle}.png`,
+  32 x 32; sources in `art-source/furniture/`). furniture.js `woodPlatPic(f)` (f: 1 joined left, 2 joined right; 0 single,
+  1 right end, 2 left end, 3 middle), drawn from canvas copies; the old blocks.js drawing only until they have loaded.
+  Its top is row 0, so a fence on it touches it. Icon = single. (Owner's final version installed Nov 24 2026.)
+- (Nov 24 2026 i) The catch bar is smaller: one bar pixel = `MG_PX` 1.5 screen px at zoom 1 (was 2), so the track, the
+  green bar, the fish, the progress bar and the arrows all shrink together; it stays at the same height over the head (`u0`).
+- (Nov 24 2026 j) A player with access took a GM's items out of a Display Box / Mannequin and they vanished (owner):
+  the GM's bag is not on the server, so Shop-only items the GM put into the world never reached `bag_pool` and
+  bag_sync refused them. Now online/bag.js runs a GM mode (`gmLost`): every BAG_EVERY what the GM's bag LOST (put in a
+  Display Box / Mannequin / Vending Machine, placed, dropped, traded / gifted away too) goes to the new RPC
+  `bag_gm_lost` (schema.sql, also supabase/admin/2026-11-24_gm_pool.sql: RUN IT), which adds the Shop-only ones to the
+  pool. Items a GM put into a world BEFORE this aren't in the pool: take them out and put them back once. Refused items
+  now show a toast (was only a console warning).
+- (Nov 24 2026 k) Hotbar: tapping a CLOTHING item (not tools / weapons: those still go into the Hand slot) only SELECTS
+  it (`hand` = its id, highlighted), it is not worn; the character's hand stays empty (`shownHand` -> bareHand) and a
+  click punches like the fist. Tap it again = unselect. Clothes are worn from the bag. Mannequin: no wrench / pop-up any
+  more (`openMannequin` no longer reachable; not in `wrenchBlock`): click it holding a selected wearable to dress it
+  (display.js `useMannequin`): what it wore in that slot (the same item or another) goes back to the bag; the last one
+  used = back to the bare hand. A click with the fist takes everything off.
+- (Nov 24 2026 l) Bubble Gum works while only SELECTED on the hotbar too (bubblegum.js `bubWorn`: worn, or `hand` =
+  bubble_gum with one in the bag): click your character to blow.
+- (Nov 24 2026 m) Loading (owner: "very slow"): measured locally ~7-8 s to the log in page: ~4.5 s for the 199 script
+  files, ~1.6 s more for the pictures (620 in `A`, 1,256 files / 21.5 MB before the page), ~1.5 s of boot steps.
+  bootflow.js now asks app_status and the OTA manifest at DOMContentLoaded (`bfPre`), in parallel with the pictures,
+  and BF_STEP_MS is 150 (was 380). Tried, not done (owner to decide): one bundled script file (saved ~2 s locally),
+  loading in-world-only pictures after the log in page (needs the icon / picture caches cleared when they arrive),
+  lossless PNG recompression (only ~10% smaller).
+- (Nov 24 2026 n) New blocks (blocks/, loaded right after furniture.js in this order; recipes in data/farming.json
+  splices + trees, item_info rows in schema.sql): 468 Zigzag Stairs (zigzagstairs.js: the owner's picture
+  `assets/items/zigzag_stairs.png`, faces the way you place it like the chair (FACING), each of its 4 steps' tops is a
+  one-way platform (a `step` wrapper; see p below); Staircase + Wooden Platform),
+  469 Chain (chain.js: the owner's reference look, small: 7 x 11 px octagon rings and same-size edge-on links in
+  turn every 8 px (2 rings a tile), joined across an edge to a Chain or any block above / under it; alone = rounded;
+  Iron Bars + Black Block), 470 Iron Lantern (ironlantern.js: whole tile, flickering flame, a click switches it off /
+  on (ANIM_TOGGLE), lights the night (DN_LIGHTS); Torch + Iron Bars). chain.js `softCanvas` = a 32 px painter with NO
+  black stroke (owner: "the stroke is just the colour next to it, darker"). Recipes come from farming.json (its splices
+  replace SPLICE at load): a new splice item needs its tree + splice there. BLOCK NUMBERS: 377-509 are now all taken;
+  the next block needs a number past 509 (worlds.js fgBytes / fgx: check it can save it first).
+- (Nov 24 2026 o) Every block / decoration / block icon softened by softstroke.js: besides black strokes, the
+  OUTERMOST pixel touching outside also counts as stroke when it is only darkish (`isEdgeDark`: lightness <
+  SOFTSTROKE.edge 100, no channel over edgeMax 112): a dark grey / green / brown outline takes the colour inside it,
+  darker (owner: "the others with a stroke too"; the Daisy first). Deeper pixels still need the black test (dark
+  details stay); calls with opt.dark (scythes) are unchanged.
+- (Nov 24 2026 p) Zigzag Stairs: no walking up any more (owner: "so you can still walk through"): only landing on a
+  step top from above (or standing on it) holds you, like a Wooden Platform; walking into it goes straight through.
+- (Nov 24 2026 q) Mannequin wrench again, but like a SIGN (owner): `BLOCK[MANNEQUIN].sign = true`, so the wrench opens
+  signs.js editSign (title EDIT MANNEQUIN) and whoever stands at it sees the text in the sign bubble; its text is kept in
+  `signs` (goes with the block when broken). Dressing it is still a click with a selected wearable (useMannequin); the
+  old clothes pop-up (openMannequin) stays unused. needsSetup checks a Mannequin's clothes before the sign rule.
+- (Nov 24 2026 r) Holding a rod, a background with no water on it is punched / broken (fish.js act; it used to try to
+  cast there). The dock handle over the hotbar is three LINES stacked, see-through until used (css/dock.css).
+- (Nov 24 2026 s) THE CHAT moved to the TOP (hudcard.js, replaces the right-edge #chatBtn drawer): `.gchat` fills the
+  gap between the profile card and the top-right buttons (`gcLayout`); closed = the newest line + a handle (three lines,
+  unread number) — drag the handle down and the panel comes out as tall as pulled (`gcH`), tap = open / close.
+  `#chatIcon` (top right) opens `#chatBar`: one whole-width input at the top; Enter sends (via the panel's gText /
+  gSend, mode button cycles LOCAL / FRIEND / SHOUT) and it hides; Enter on a keyboard (chatOpen) opens it too.
+  FIXED: guide.js had its own `gRender` (same name as the chat's) and, loaded later, replaced it: the chat panel's list
+  never drew. Renamed `guideRender`. (Other same-name functions found, NOT changed: `splash` in gates.js / handfx.js,
+  `stoveCook` in dyes.js / moon.js — the later file's wins.)
+- (Nov 24 2026 t) Splash Wars on a touch screen (events/swstick.js, after rvb.js): while a round is played
+  (rvbPlaying) body.swplay swaps the left arrows for `#swStick` (drag left / right without lifting: holds the walk key
+  past SW_DEAD px) and hides Jump; back to normal after. body.rvbrun (any round phase) hides the closed chat strip and
+  the guide / news row (the round's scoreboard / team panels are there).
+- (Nov 24 2026 u) ui/hudbtns.js (after guide.js): guide + news buttons in `#hudLeft` under the profile card; the
+  top-right buttons drawn at HB_TOPR_ZOOM 0.82; the chat's fonts a size smaller; the Shop button is a white house icon
+  (no SHOP text); Settings -> Buttons: opacity / colour (Default or a swatch) / corners for SHOP, chat, guide, news and
+  menu (localStorage `balbtopia.hudbtn`, CSS vars --hbOp / --hbCol / --hbRad, body.hbcol).
+- (Nov 24 2026 v) Chat panel: no Send button (Enter sends, keydown + a keyup fallback for phone keyboards), the mode
+  button beside the box is the tabs' size (62 px wide); its height while open is kept between `gcMinH()` (measured: the
+  header + the 4 tab buttons + the box fit, nothing overlaps) and GC_MAX_H (min(300 px, half the screen)).
+- (Nov 24 2026 w) Chat panel: the box is as tall as the mode button (22 px, hudbtns.js), and there is no minimise
+  button (#gMin hidden): the handle closes it (drag up / tap).

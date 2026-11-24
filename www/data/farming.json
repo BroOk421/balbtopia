@@ -1425,6 +1425,15 @@
     },
     "tree_trunk": {
       "growSeconds": 120
+    },
+    "zigzag_stairs": {
+      "growSeconds": 180
+    },
+    "chain": {
+      "growSeconds": 240
+    },
+    "iron_lantern": {
+      "growSeconds": 240
     }
   },
   "splices": [
@@ -6161,6 +6170,33 @@
       "result": "tree_trunk",
       "source": "balbtopia",
       "note": "Tree Trunk = Wood Block + Hedge (Balbtopia recipe, Nov 22 2026 build s)"
+    },
+    {
+      "seeds": [
+        "staircase",
+        "wooden_platform"
+      ],
+      "result": "zigzag_stairs",
+      "source": "balbtopia",
+      "note": "Zigzag Stairs = Staircase + Wooden Platform (Balbtopia recipe, Nov 24 2026)"
+    },
+    {
+      "seeds": [
+        "black_block",
+        "iron_bars"
+      ],
+      "result": "chain",
+      "source": "balbtopia",
+      "note": "Chain = Iron Bars + Black Block (Balbtopia recipe, Nov 24 2026)"
+    },
+    {
+      "seeds": [
+        "iron_bars",
+        "torch"
+      ],
+      "result": "iron_lantern",
+      "source": "balbtopia",
+      "note": "Iron Lantern = Torch + Iron Bars (Balbtopia recipe, Nov 24 2026)"
     }
   ],
   "notInGameYet": [

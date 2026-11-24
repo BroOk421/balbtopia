@@ -24,8 +24,8 @@ function collide(axis, prevBottom) {
   for (let ty = y0; ty <= y1; ty++)
     for (let tx = x0; tx <= x1; tx++) {
       if (!solidAt(tx, ty)) {
-        if (axis === 'y' && P.vy > 0 && prevBottom <= ty * TS + 0.5 && isPlat(tx, ty)) {
-          P.y = ty * TS - P.h;
+        if (axis === 'y' && P.vy > 0 && isPlat(tx, ty) && prevBottom <= platTop(tx, ty) + 0.5 && P.y + P.h >= platTop(tx, ty)) {
+          P.y = platTop(tx, ty) - P.h;
           P.ground = true;
           P.vy = 0;
           return lava;
@@ -177,12 +177,26 @@ function step(dt) {
     const fy = Math.floor((P.y + P.h + 0.5) / TS),
       fx0 = Math.floor(P.x / TS),
       fx1 = Math.floor((P.x + P.w - 0.01) / TS);
-    const plat = P.y + P.h <= fy * TS + 0.5 && (isPlat(fx0, fy) || isPlat(fx1, fy));
+    const edgePlat = (x) => isPlat(x, fy) && platTop(x, fy) === fy * TS, // (a lower top, platY: below)
+      plat = P.y + P.h <= fy * TS + 0.5 && (edgePlat(fx0) || edgePlat(fx1));
     if (P.y + P.h > fy * TS - 1 && (solidAt(fx0, fy) || solidAt(fx1, fy) || plat)) {
       P.y = fy * TS - P.h;
       P.vy = 0;
       P.ground = true;
     }
+    // a platform whose top is lower in its tile (Wooden Table: platY): feet resting on it
+    if (!P.ground)
+      for (const fx of [fx0, fx1]) {
+        const ry = Math.floor((P.y + P.h - 0.5) / TS);
+        if (!isPlat(fx, ry) || !(BLOCK[fg[at(fx, ry)]] || {}).platY) continue;
+        const top = platTop(fx, ry);
+        if (P.y + P.h <= top + 0.5 && P.y + P.h > top - 1) {
+          P.y = top - P.h;
+          P.vy = 0;
+          P.ground = true;
+          break;
+        }
+      }
   }
   // touching lava from any side also counts
   const probe = [

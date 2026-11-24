@@ -82,20 +82,70 @@ const posOf = (who) => () =>
         return r ? { x: r.x + r.w / 2, y: r.y + r.h * 0.35 } : null;
       })();
 // from / to: 'me' or another player's id; items: [{ id, qty }]
-function flyItems(from, to, items, broadcast) {
+// trade = the trade look (owner, Nov 24 2026): no item names; the items first CIRCLE round the giver's head, then
+// get VACUUMED into whoever gets them (drawTradeFlyer)
+function flyItems(from, to, items, broadcast, trade) {
   const a = posOf(from),
     b = posOf(to);
   if (!a() || !b()) return; // they aren't in this world
-  items.forEach((x, k) => flyers.push({ id: x.id, qty: x.qty, from: a, to: b, t0: now + k * 160, dur: 900 }));
+  if (trade) {
+    const t0 = now;
+    items.forEach((x, k) => flyers.push({ id: x.id, qty: x.qty, from: a, to: b, t0, dur: TFLY.ms + k * TFLY.gap, trade: { k, n: items.length } }));
+  } else items.forEach((x, k) => flyers.push({ id: x.id, qty: x.qty, from: a, to: b, t0: now + k * 160, dur: 900 }));
   // let everyone else in the world see it too
-  if (broadcast && Net.me) Net.sendFly(from === 'me' ? Net.me.id : from, to === 'me' ? Net.me.id : to, items);
+  if (broadcast && Net.me) Net.sendFly(from === 'me' ? Net.me.id : from, to === 'me' ? Net.me.id : to, items, trade);
 }
+// the trade flight: rise (ms 0-rise), circle the giver's head (orbit turns), then a fast pull into the taker, shrinking
+const TFLY = { ms: 2100, gap: 90, rise: 0.14, orbit: 0.62, r: 17, turns: 1.6, head: 21 };
 // someone else's gift or trade (we're only watching)
 Net.onFly = (p) => {
   const me = Net.me && Net.me.id;
   if (!p || p.from === me || p.to === me) return;
-  flyItems(p.from, p.to, cleanOffer(p.items), false);
+  flyItems(p.from, p.to, cleanOffer(p.items), false, !!p.tr);
 };
+function drawTradeFlyer(f, u, a, b, ox, oy) {
+  const T2 = f.trade,
+    head = { x: a.x, y: a.y - TFLY.head }, // the circle's middle: over the giver's head
+    base = (T2.k / T2.n) * Math.PI * 2,
+    // each item ends its circle a bit later (dur is longer per item), so they are pulled in one after the other
+    endOrbit = (TFLY.ms * TFLY.orbit + T2.k * TFLY.gap) / f.dur,
+    ang = base + ((now - f.t0) / 1000) * Math.PI * 2 * (TFLY.turns / ((TFLY.ms * TFLY.orbit) / 1000));
+  let x, y, s, al = 1;
+  const rise = TFLY.rise,
+    onRing = (rr, dy) => ({ x: head.x + Math.cos(ang) * rr, y: head.y + Math.sin(ang) * rr * 0.45 + dy });
+  if (u < rise) {
+    // out of the giver, growing onto the ring
+    const e = u / rise,
+      q = onRing(TFLY.r * e, 0);
+    x = a.x + (q.x - a.x) * e;
+    y = a.y + (q.y - a.y) * e;
+    s = 11 * (0.3 + 0.7 * e);
+    al = e;
+  } else if (u < endOrbit) {
+    const q = onRing(TFLY.r, Math.sin(now / 160 + base) * 1.5);
+    x = q.x;
+    y = q.y;
+    s = 11 + Math.sin(ang) * 1.5; // a little bigger in front
+  } else {
+    // vacuumed: pulled faster and faster into the taker, spiralling smaller
+    const e = Math.min(1, (u - endOrbit) / (1 - endOrbit)),
+      ee = e * e * e,
+      q = onRing(TFLY.r * (1 - e), 0),
+      sw = Math.sin(e * Math.PI) * 10 * (1 - e);
+    x = q.x + (b.x - q.x) * ee + Math.cos(ang) * sw;
+    y = q.y + (b.y - q.y) * ee + Math.sin(ang) * sw * 0.5;
+    s = 11 * (1 - 0.85 * ee);
+    al = e > 0.9 ? (1 - e) / 0.1 : 1;
+    // a thin trail behind it while it is pulled
+    if (e > 0.05 && e < 0.95 && Math.random() < 0.5)
+      parts.push({ x, y, vx: (b.x - x) * 0.8, vy: (b.y - y) * 0.8, life: 0.18, c: Math.random() < 0.5 ? '#fff6c8' : '#bfe8ff', s: 1.5 });
+  }
+  g.save();
+  g.globalAlpha = Math.max(0, Math.min(1, al));
+  g.imageSmoothingEnabled = false;
+  g.drawImage(iconCanvas(f.id), ox + (x - s / 2) * Z, oy + (y - s / 2) * Z, s * Z, s * Z);
+  g.restore();
+}
 function drawFlyers(ox, oy) {
   for (let k = flyers.length - 1; k >= 0; k--) {
     const f = flyers[k],
@@ -105,13 +155,17 @@ function drawFlyers(ox, oy) {
       b = f.to();
     if (!a || !b || u >= 1) {
       if (b && u >= 1) {
-        const sp = f.spark || ['#fff6c8', '#ffd23f'],
-          many = f.spark ? 16 : 8;
+        const sp = f.spark || (f.trade ? ['#fff6c8', '#bfe8ff'] : ['#fff6c8', '#ffd23f']),
+          many = f.spark ? 16 : f.trade ? 5 : 8;
         for (let n = 0; n < many; n++)
           parts.push({ x: b.x, y: b.y, vx: (Math.random() - 0.5) * 140, vy: -60 - Math.random() * 120, life: 0.4, c: sp[n % sp.length], s: 2 });
         if (f.land) f.land();
       }
       flyers.splice(k, 1);
+      continue;
+    }
+    if (f.trade) {
+      drawTradeFlyer(f, u, a, b, ox, oy);
       continue;
     }
     const e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, // ease in-out
@@ -623,6 +677,7 @@ Net.onLobby('gift_no', (p) => giftBack(p.gid, p.full ? "Their bag is full. The g
 // each side gives its own items and takes the other's.
 let T = null,
   pendingTrade = null;
+const TRADE_MAX = 4; // (owner, Nov 24 2026: 4 items a side, was 6)
 Net.onLobby('trade_req', async (p) => {
   const name = String(p.fn || 'Player').slice(0, 16);
   if (T) return Net.lsend('trade_no', p.from, { busy: 1 });
@@ -643,7 +698,7 @@ Net.onLobby('trade_no', (p) => {
 });
 const cleanOffer = (items) =>
   (Array.isArray(items) ? items : [])
-    .slice(0, 6)
+    .slice(0, TRADE_MAX)
     .map((x) => ({ id: String(x.id), qty: Math.floor(Number(x.qty)) }))
     .filter((x) => tradable(x.id) && x.qty >= 1);
 Net.onLobby('trade_offer', (p) => {
@@ -676,17 +731,20 @@ function endTrade(msg) {
 const sigOf = (a, b) => JSON.stringify([a, b]);
 function renderTrade() {
   if (!T) return;
-  $('tradeWith').textContent = 'with ' + T.name;
+  $('tradeWith').textContent = '';
+  $('tMyName').textContent = playerName;
   $('tTheirName').textContent = T.name;
-  const slots = (list, mine) =>
-    list.length
-      ? list
-          .map(
-            (x, k) =>
-              `<button type="button" class="tcell" ${mine ? `data-k="${k}" title="Remove"` : 'disabled'}><img src="${iconCanvas(x.id).toDataURL()}" alt=""><span>${esc(itemName(x.id))}</span><b>${x.qty}</b></button>`,
-          )
-          .join('')
-      : '<p class="tnone">Nothing yet</p>';
+  // (owner, Nov 24 2026) 4 slots in a row, only the picture and how many (no names); an empty slot of yours adds
+  const slots = (list, mine) => {
+    let h = '';
+    for (let k = 0; k < TRADE_MAX; k++) {
+      const x = list[k];
+      if (x)
+        h += `<button type="button" class="tcell" ${mine ? `data-k="${k}"` : 'disabled'} title="${esc(itemName(x.id))}${mine ? ' (tap to remove)' : ''}" aria-label="${esc(x.qty + ' ' + itemName(x.id))}"><img src="${iconCanvas(x.id).toDataURL()}" alt=""><b>${x.qty > 999 ? fmtTradeQty(x.qty) : x.qty}</b></button>`;
+      else h += `<button type="button" class="tcell tempty" ${mine ? 'data-add="1" title="Add item"' : 'disabled'}>${mine ? '+' : ''}</button>`;
+    }
+    return h;
+  };
   $('tMine').innerHTML = slots(T.mine, true);
   $('tTheirs').innerHTML = slots(T.theirs, false);
   $('tMine')
@@ -699,11 +757,16 @@ function renderTrade() {
           offerChanged();
         }),
     );
+  $('tMine')
+    .querySelectorAll('[data-add]')
+    .forEach((b) => (b.onclick = () => $('tAdd').onclick()));
+  $('tAdd').disabled = T.mine.length >= TRADE_MAX || !!T.settling;
   $('tMyOk').hidden = !T.myOk;
   $('tTheirOk').hidden = !T.theirOk;
   $('tAccept').textContent = T.settling ? 'Finishing…' : T.myOk ? 'Waiting…' : 'Accept';
   $('tNote').textContent = T.myOk && !T.theirOk ? 'Waiting for ' + T.name + ' to accept.' : 'Add items, then both press Accept. Changing an offer un-accepts both.';
 }
+const fmtTradeQty = (n) => (n >= 1e6 ? +(n / 1e6).toFixed(1) + 'M' : +(n / 1e3).toFixed(1) + 'K');
 function offerChanged() {
   T.myOk = T.theirOk = false;
   Net.lsend('trade_offer', T.with, { items: T.mine });
@@ -711,7 +774,7 @@ function offerChanged() {
 }
 $('tAdd').onclick = () => {
   if (!T || T.settling) return;
-  if (T.mine.length >= 6) return toast('Up to 6 different items');
+  if (T.mine.length >= TRADE_MAX) return toast('Up to ' + TRADE_MAX + ' items in a trade');
   pickItem('Add to trade', (id, qty) => {
     const x = T.mine.find((m) => m.id === id),
       total = (x ? x.qty : 0) + qty;
@@ -778,8 +841,8 @@ function applyTrade(t, w) {
   if (srv) Bag.pull();
   if (w) Wallet.show(w);
   savePlayer();
-  flyItems('me', t.with, t.mine, true); // each side tells the world about its own items
-  flyItems(t.with, 'me', t.theirs, false);
+  flyItems('me', t.with, t.mine, true, true); // each side tells the world about its own items
+  flyItems(t.with, 'me', t.theirs, false, true);
   Native.haptic('medium');
   if (T === t) endTrade('Trade done with ' + t.name + '!');
   else toast('Trade done with ' + t.name + '!');

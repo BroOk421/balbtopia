@@ -14,6 +14,7 @@
 // The Water Gun never hurts blocks: its spray is the shot only. Loaded after asteroids.js, before main.js.
 // ===== remotefx =====
 const RFX_REACH = 7; // tiles: a hit further from the player than this is ignored (their position lags a little)
+const rFnTaps = new Map(); // (remote player id : tile) -> their last "job only" click
 const rCrack = new Map(); // tile -> { n (hits), t (last hit), need, ft (the block it is on) }
 // punches a block needs with hand item h (hitsNeeded, but for another player's tool)
 function rfxNeed(b, h) {
@@ -67,7 +68,19 @@ Net.onPunchFx = (r, p) => {
     const b = BLOCK[fg[i]],
       c = rCrack.get(i),
       need = rfxNeed(b, h);
-    const n = c && now - c.t <= healMs(need) ? c.n + 1 : 1;
+    const live = c && now - c.t <= healMs(need);
+    // (owner, Nov 24 2026) the first click on a block with a job only does the job: no crack (actions.js fnFirstTap)
+    if (!live && typeof isFnBlockT === 'function' && isFnBlockT(fg[i])) {
+      const k = r.id + ':' + i,
+        t = rFnTaps.get(k);
+      if (t === undefined || now - t >= FN_DOUBLE_MS) {
+        rFnTaps.set(k, now);
+        if (rFnTaps.size > 64) for (const [q, v] of rFnTaps) if (now - v > FN_DOUBLE_MS) rFnTaps.delete(q);
+        return;
+      }
+      rFnTaps.delete(k);
+    }
+    const n = live ? c.n + 1 : 1;
     rCrack.set(i, { n, t: now, need, ft: fg[i] });
     if (n < need) breakPuffs(x, y); // (the break itself gives 3: net.js)
   } else breakPuffs(x, y);

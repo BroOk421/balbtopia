@@ -39,6 +39,24 @@
   background: #fff;
   opacity: 0.9;
 }
+/* (owner, Nov 24 2026) three LINES stacked (like a menu icon) instead of the dots, and see-through until used */
+.dockhandle {
+  flex-direction: column;
+  gap: 3px;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.dockhandle:hover,
+.dockhandle:active,
+.dock.open .dockhandle,
+.dock.dragging .dockhandle {
+  opacity: 1;
+}
+.dockhandle i {
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+}
 .dock .hotbar {
   position: static !important;
   transform: none !important;
