@@ -14,12 +14,12 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+# (Nov 24 2026) Two jobs, both Pages actions on v5: upload-pages-artifact v3 + deploy-pages v4 (Node 20, now forced onto
+# Node 24) failed with "Found 0 artifact(s)", and deploy-pages run in the SAME job a fraction of a second after the
+# upload can also miss the fresh artifact. The deploy job starts only after the build job has finished uploading.
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - id: pages
@@ -33,10 +33,16 @@ jobs:
           OTA_BASE: ${{ vars.OTA_BASE || format('{0}/', steps.pages.outputs.base_url) }}
       - name: Update list for the phone app (www/ota/manifest.json)
         run: node scripts/make-ota.js
-      # (Nov 24 2026) v5: the current one (upload-artifact v7, Node 24). v3 sat on upload-artifact v4 (Node 20, deprecated)
-      # and a deploy failed with "No artifacts named github-pages were found"
       - uses: actions/upload-pages-artifact@v5
         with:
           path: www
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
