@@ -4,6 +4,12 @@
 // (it swells for a moment, then is gone with his pop sound) and you fall back down. Left / right still work while floating; going up you have the jump pose (arms
 // up: in the air the game draws the jump pictures, jump.js). A block over your head pops it early. Others see it
 // (net.js 'bg').
+// (owner, Nov 25 2026) - When it pops, his popped gum (bubblegumpop.aseprite -> assets/wear/bubble_gum/pop.png) stays
+//   stuck on the mouth while you fall, and is gone when you land (P.bubPop; others: net bg 3).
+// - Not unlimited: the Shop sells a pack of BUB_PACK (10) for the same 6,000; every bubble uses one (the bag's first,
+//   then the one worn). The last one gone = no more bubbles until you buy more.
+// - Click ANOTHER player with the gum selected on the hotbar (within BUB_GIVE_RANGE): it uses one of yours and THEY
+//   float up on a bubble (net.js 'bubgive' on the world channel; their game starts it, Net.onBub).
 const BUB = {
   rise: 6 * TS, // world px up from where it started
   v: 70, // world px a second going up
@@ -19,11 +25,15 @@ const BUB = {
   inflate: 0.35, // s: (owner: "it gets bigger before it pops, no square bits when it pops") at the top it hovers
   big: 0.5, // and swells this much more (wobbling), then it is simply gone with the pop sound
 };
-addWear({ id: 'bubble_gum', name: 'Bubble Gum', slot: 'mouth', shop: true, rarity: 'Rare', desc: 'Chewy blue bubble gum. Click your character to blow a huge bubble that floats you up six blocks, then POP!' });
-SHOP.push({ id: 'bubble_gum', gold: 6000, cat: 'wear' });
+const BUB_PACK = 10, // pieces in one Shop buy (schema.sql shop_prices ('bubble_gum', 10, ...))
+  BUB_GIVE_RANGE = 10 * TS; // world px: how far away another player can be blown up
+addWear({ id: 'bubble_gum', name: 'Bubble Gum', slot: 'mouth', shop: true, rarity: 'Rare', desc: 'Chewy blue bubble gum. Click your character to blow a huge bubble that floats you up six blocks, then POP! Select it and click another player to float them up instead. Each bubble uses one piece: the Shop sells them in packs of ' + BUB_PACK + '.' });
+SHOP.push({ id: 'bubble_gum', gold: 6000, qty: BUB_PACK, cat: 'wear' });
 const BUB_IMG = new Image(),
-  BUB_ICON = new Image();
+  BUB_ICON = new Image(),
+  BUB_POP_IMG = new Image();
 BUB_IMG.src = 'assets/wear/bubble_gum/bubble.png';
+BUB_POP_IMG.src = 'assets/wear/bubble_gum/pop.png';
 BUB_ICON.onload = () => {
   delete WEAR_ICON.bubble_gum;
   if (typeof ICON !== 'undefined') delete ICON.bubble_gum;
@@ -48,12 +58,29 @@ const bubWorn = () => equipped.mouth === 'bubble_gum' || (hand === 'bubble_gum' 
 function bubCan() {
   return bubWorn() && !P.bub && !P.dead && !P.rest && !inWater(P) && !(P.bubCd > now); // (on a ride too: owner)
 }
-function bubStart() {
+// pieces you have: the bag's + the one worn
+const bubLeft = () => inv.filter((s) => s.id === 'bubble_gum').reduce((n, s) => n + s.qty, 0) + (equipped.mouth === 'bubble_gum' ? 1 : 0);
+// one piece used: from the bag first, then the one worn
+function bubUse() {
+  if (inv.some((s) => s.id === 'bubble_gum')) takeItem('bubble_gum');
+  else if (equipped.mouth === 'bubble_gum') {
+    equipped.mouth = null;
+    renderBars();
+  } else return false;
+  const left = bubLeft();
+  toast(left ? 'Bubble Gum: ' + left + ' left' : 'That was your last Bubble Gum! Buy more in the Shop');
+  savePlayer();
+  return true;
+}
+function bubStart(free) {
+  if (!free && !bubUse()) return;
   P.bub = { t: 0, y0: P.y, stuck: 0 };
+  P.bubPop = null;
   Native.haptic('light');
 }
 function bubPop() {
   P.bub = null;
+  P.bubPop = { t: now }; // the popped gum on the mouth until you land
   P.bubCd = now + 400;
   if (P.vy < 0) P.vy = 0;
   Sfx.play('bubble_pop'); // (owner's sound)
@@ -72,13 +99,30 @@ act = ((prev) =>
         return;
       }
     }
+    // (owner, Nov 25 2026) the gum selected on the hotbar + a click on another player: they float up
+    if (hand === 'bubble_gum' && bubLeft() > 0 && typeof Net !== 'undefined' && Net.playerAt) {
+      const r = Net.playerAt(ptr.x, ptr.y);
+      if (r) {
+        if (r.dead || r.rest) return toast("Can't blow a bubble on " + r.name + ' now');
+        if (r.bub) return toast(r.name + ' is already floating');
+        if (Math.hypot(r.x - P.x, r.y - P.y) > BUB_GIVE_RANGE) return toast('Get closer to ' + r.name);
+        if (!Net.sendBub || !Net.sendBub(r.id)) return toast("Can't reach " + r.name + ' right now');
+        bubUse();
+        Sfx.play('bubble_pop', 0.4);
+        Native.haptic('light');
+        return toast('You blew a bubble on ' + r.name + '!');
+      }
+    }
     return prev();
   })(act);
 // the float: blown standing still, then straight up at BUB.v (normal steering left / right), popped at the top
 step = ((prev) =>
   function (dt) {
     const b = P.bub;
-    if (b && (P.dead || P.rest || inWater(P) || !bubWorn())) P.bub = null;
+    // (Nov 25 2026: once blown it keeps going even when that was your last piece, or another player gave it)
+    if (b && (P.dead || P.rest || inWater(P))) P.bub = null;
+    // the popped gum comes off when you land (or die / sit / swim)
+    if (P.bubPop && (P.dead || P.rest || inWater(P) || (P.ground && now - P.bubPop.t > 150))) P.bubPop = null;
     else if (b) {
       b.t += dt;
       if (b.inf !== undefined) {
@@ -119,6 +163,23 @@ addEventListener('DOMContentLoaded', () => {
     function (c, top, sc, dy = 0) {
       const r = prev(c, top, sc, dy);
       const key = c.id || 'n:' + (c.name || '');
+      if (!c.bub && c.bubPop && BUB_POP_IMG.complete && BUB_POP_IMG.naturalWidth) {
+        // (owner, Nov 25 2026) popped: his popped gum stuck on the mouth while falling (same 198 x 215 grid as the
+        // bubble); it springs in a little bigger for a moment
+        const k = sc * Z,
+          k2 = key + '#pop';
+        if (!BUB_SEEN.has(k2)) BUB_SEEN.set(k2, now);
+        const q = Math.min(1, (now - BUB_SEEN.get(k2)) / 120),
+          z = 1 + 0.35 * (1 - q),
+          X = (-FR.w / 2 - PXW_PAD + BUB.ax) * k,
+          Y = top + (dy + BUB.ay) * k;
+        g.save();
+        g.imageSmoothingEnabled = false;
+        g.translate(X, Y);
+        g.scale(z, z);
+        g.drawImage(BUB_POP_IMG, -BUB.ax * k, -BUB.ay * k, BUB_POP_IMG.width * k, BUB_POP_IMG.height * k);
+        g.restore();
+      } else BUB_SEEN.delete(key + '#pop');
       if (!c.bub) {
         // another player's bubble just popped: its sound, softer (ours plays in bubPop)
         if (BUB_SEEN.has(key) && c.id && !c.portrait) Sfx.play('bubble_pop', 0.5);
@@ -169,3 +230,12 @@ addEventListener('DOMContentLoaded', () => {
       return r;
     })(drawWorn);
 });
+
+// another player blew a bubble on you (net.js 'bubgive'): float up, if you can (no piece of yours is used)
+Net.onBub = (p) => {
+  if (!p || !Net.me || p.to !== Net.me.id) return;
+  const r = Net.remotes.get(p.from);
+  if (!r || P.bub || P.dead || P.rest || inWater(P) || doorTrip) return;
+  bubStart(true);
+  toast(r.name + ' blew a bubble on you!');
+};

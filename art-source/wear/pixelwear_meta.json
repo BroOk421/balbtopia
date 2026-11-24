@@ -584,5 +584,76 @@
    "idle"
   ],
   "top": 30
+ },
+ "gold_trim_jacket": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "crimson_trim_jacket": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "silver_trim_jacket": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "caveman_fur": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "messy_mop": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
+ },
+ "bare_chest": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "bare_legs": {
+  "cat": "pants",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "white_sando": {
+  "cat": "tshirt",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "navy_shorts": {
+  "cat": "pants",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit"
+  ]
  }
 }

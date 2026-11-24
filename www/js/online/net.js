@@ -521,6 +521,8 @@ const Net = (() => {
     } else onBuild(c, true);
     // a Gold Warp Pod claim by a player on its access list (vacuum.js; anyone here may send it, each game checks it)
     c.on('broadcast', { event: 'vacc' }, ({ payload }) => N.onVacc && N.onVacc(payload));
+    // (Nov 25 2026) a player blew a Bubble Gum bubble on another (bubblegum.js; only the one it is `to` floats)
+    c.on('broadcast', { event: 'bubgive' }, ({ payload }) => N.onBub && N.onBub(payload));
     c.on('broadcast', { event: 'p' }, ({ payload }) => onPos(payload))
       .on('broadcast', { event: 'punch' }, ({ payload }) => {
         const r = N.remotes.get(payload.id);
@@ -771,8 +773,9 @@ const Net = (() => {
       typing: !!p.ty,
       joke: p.jk === 1 ? 'wacky' : p.jk === 2 ? 'troll' : false,
       dance: !!p.dn, // /dance (jump.js)
-      bub: !!p.bg, // Bubble Gum bubble (bubblegum.js)
+      bub: p.bg === 1 || p.bg === 2, // Bubble Gum bubble (bubblegum.js)
       bubInf: p.bg === 2,
+      bubPop: p.bg === 3, // (Nov 25 2026) popped, falling with the gum on the mouth
       rvbCd: !!p.rc, // (events/rvb.js) still dead, counting down to come back
       emo,
       seen: now,
@@ -830,7 +833,7 @@ const Net = (() => {
       ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)
       jk: { wacky: 1, troll: 2 }[jokeOn()] || undefined, // /facejoke or /troll face (render.js)
       dn: P.dance ? 1 : undefined, // dancing (/dance, jump.js)
-      bg: P.bub ? (P.bub.inf !== undefined ? 2 : 1) : undefined, // floating on a Bubble Gum bubble, 2 = swelling to pop (bubblegum.js)
+      bg: P.bub ? (P.bub.inf !== undefined ? 2 : 1) : P.bubPop ? 3 : undefined, // floating on a Bubble Gum bubble, 2 = swelling to pop, 3 = popped, falling (bubblegum.js)
       em: typeof emoToNet === 'function' ? emoToNet() : undefined, // emote (/thumbsup, /love, /omg, /sleep: emotes.js)
     };
     if (!force && !othersHere() && now - beatT < SOLO_BEAT * 1000) return; // alone: heartbeat only
@@ -911,6 +914,12 @@ const Net = (() => {
   };
   N.sendVacc = (p) => {
     if (N.me) send('vacc', p);
+  };
+  // Bubble Gum on another player (bubblegum.js): true when it went out
+  N.sendBub = (to) => {
+    if (!N.me || !ch || !joined || !N.remotes.has(to)) return false;
+    send('bubgive', { to, from: N.me.id });
+    return true;
   };
   N.sendShow = (i, k, v) => {
     if (N.me && othersHere()) sendB('show', { i, k, v });

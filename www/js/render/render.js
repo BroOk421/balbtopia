@@ -1064,6 +1064,7 @@ function render() {
       bub: !!P.bub, // Bubble Gum floating (bubblegum.js)
       bubT: P.bub ? P.bub.t : 0,
       bubInf: P.bub && P.bub.inf !== undefined ? P.bub.inf : -1,
+      bubPop: !P.bub && !!P.bubPop, // the popped gum on the mouth until you land (Nov 25 2026)
     },
     ox,
     oy,

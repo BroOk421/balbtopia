@@ -31,7 +31,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
 | `blocks/` | blocks, treetrunk (Nov 22 2026 s, right after cyberblocks), blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
 | `wear/` | wear, clothes, tees, scarves, capes (back in Nov 22 2026 l, right after scarves), photo_wear, dyes, sets, spacesuit, wrist (rings only), prismtrail, scarfreaper, hatfit, musicset, pixelwear (Nov 22 2026: oldman, capes, baby, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, backfit deleted; afro, diaper, floaties, hairstyles, pirate, topless were unloaded leftovers, deleted) |
-| `items/` | reaperscythe, scythes (all scythes again since Nov 22 2026 j), weapons2 (Water Gun + the 6 scythes), autumnbeam (Autumn Scythe laser, loaded again in j), handfx (water shots), pets, pets_art, rides, megagun (build p, after asteroids.js), umbrella, glovepunch, harvfuel, rodknife (Nov 22 2026: weapons.js, autumnbeam.js deleted) |
+| `items/` | pxswords (Nov 25 2026, right after rodknife.js), reaperscythe, scythes (all scythes again since Nov 22 2026 j), weapons2 (Water Gun + the 6 scythes), autumnbeam (Autumn Scythe laser, loaded again in j), handfx (water shots), pets, pets_art, rides, megagun (build p, after asteroids.js), umbrella, glovepunch, harvfuel, rodknife (Nov 22 2026: weapons.js, autumnbeam.js deleted) |
 | `render/` | render, shadow, portrait, remotefx (+ wear/backfit.js loaded again right after softstroke.js since Nov 22 2026 l) |
 | `ui/` | guide (Nov 22 2026 za, right before core/gone.js), ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks, achievements (Nov 13 2026, right before main.js) (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
@@ -5686,3 +5686,38 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 - (Nov 24 2026 ze) Seated (chair / couch) every emote works: rest.js draws drawEmoFace / the /dance smile, the back
   sleeve while /omg, /nice or /dance moves the arms; emotes.js allows /sleep seated (not in bed); jump.js /dance
   seated = c._dance only (arms go round, no turning / breathing).
+- (Nov 25 2026 a) Owner's new.zip, all added (names / prices / rarity by Claude; schema.sql rows + supabase/admin/
+  2026-11-25_new_items_bubble_pack.sql: RUN IT once):
+  - Clothes (pixelwear.js, cut by pixelwear_cut.py; the new files call the shirt layer 'shirt', read as 'tshirt'):
+    Gold / Crimson / Silver Trim Jacket (shirt-1..3), Caveman Fur (shirt-4), Messy Mop hair (messy-hair).
+  - Swords, NEW items/pxswords.js (after rodknife.js), pictures by art-source/items/pxsword_cut.py (6 frames x 100 ms in a
+    row, assets/items/held_<id>.png): Silver Blade (sword), Prism Blade (sword-effect: colours cycle), Void Cleaver
+    (bigsword; owner: "change its name"): held by the raised BACK arm, the sword lying behind the head, drawn behind the
+    body (blockySleeves 'back'), back arm kept up (blockyTarget). Shop TOOLS. BREAKING (owner: "the weapon itself breaks
+    it, spinning"): the sword turns PXS_SPIN (2) times round the hand per punch on top of the arm's swing. The Cleaver
+    stays in ITS hand (owner: "facing right, the right hand; facing left, the left"): that (back) arm goes round once
+    a punch from hanging down (0) back to 0, exactly like the pickaxe's arm (blockySpin; owner: "from 0 to 0 like the
+    pickaxe, only the other hand"), the sword turning with the arm (no extra spin), all of it BEHIND the body (owner:
+    "when swinging it stays at the back"; `pxsCleaverHit`); between punches the arm eases back up. The other two
+    swords also spin PXS_SPIN round the hand.
+  - Bubble Gum (bubblegum.js): (1) when it pops, the owner's popped gum (bubblegumpop.aseprite 'bubble' layer ->
+    assets/wear/bubble_gum/pop.png, bubblegum_cut.py) sticks on the mouth while you fall, gone when you land
+    (P.bubPop; net bg 3; render.js passes bubPop). (2) Not unlimited: the Shop sells a pack of BUB_PACK 10 for 6,000
+    (shop_prices ('bubble_gum', 10)); every bubble uses one (`bubUse`: the bag's first, then the worn one), toast
+    "N left". A bubble already blown keeps going after the last piece. (3) Gum SELECTED on the hotbar + click another
+    player (Net.playerAt, within BUB_GIVE_RANGE 10 tiles, not dead / sitting / already floating): uses one of yours,
+    net.js `N.sendBub` -> broadcast 'bubgive' { to, from } on world:NAME -> `Net.onBub` in the target's game starts
+    their bubble (free for them, toast "X blew a bubble on you!").
+  - THE DEFAULT CHARACTER IS BARE (owner's default_look without sando / short layers, kept as
+    art-source/wear/pixel/bare/default_bare.aseprite; the old one as bare/default_dressed.aseprite). The body frames
+    were NOT re-cut (every clothing picture was cut against them): pixelwear.js paints hidden pieces over an EMPTY slot
+    instead: `bare_chest` (shirt slot empty) and `bare_legs` (pants slot empty, no dress), per skin tone, idle + sit
+    (`pxwBareFor`; not on the Mannequin or bag icons); one old shorts outline pixel outside the body is cut out first
+    (bare_legs/erase_idle.png by art-source/wear/bare_erase.py, PXW_ERASE). The old look is now 2 Common items, White
+    Sando and Navy Shorts (200 gold each; their pictures are empty: wearing one just stops the skin being painted).
+    Not done: his 1 px changes (sleeve tips a lighter pixel at row 29, a nose pixel gone) apply only through
+    bare_chest's sleeves; the face is unchanged.
+- (Nov 25 2026 a, owner: "the Gold Trim Jacket and the other new shirts lose the part at the neck when jumping") in the
+  air render.js draws the jump head (blockyAirFace: every row above BLOCKY_NECK_ROW) over the body, covering a collar
+  that reaches above the neck. pixelwear.js wraps blockyAirFace: the worn pixel shirt's rows above the neck are drawn
+  back over it (cached per skin / pose / shirt, PXW_AIR; the character from PXW_CHAR_NOW, set in its drawCharacter wrapper).

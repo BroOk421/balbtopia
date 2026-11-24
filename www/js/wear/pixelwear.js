@@ -11,7 +11,7 @@
 // - Names, prices and rarity picked by Claude. Shop WEAR tab; schema.sql shop_prices + keep list + item_info rows.
 // Loaded after oldman.js.
 // ===== pixel wear =====
-const PXW_SKINNED = new Set(['black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs', 'blank_face']);
+const PXW_SKINNED = new Set(['bare_chest', 'bare_legs', 'black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs', 'blank_face', 'gold_trim_jacket', 'crimson_trim_jacket', 'silver_trim_jacket', 'caveman_fur']);
 const PXW_LIST = [
   // t-shirts
   ['midnight_tee', 'Midnight Tee', 'shirt', 'Common', 800, 'A plain dark navy t-shirt.'],
@@ -105,10 +105,42 @@ const PXW_LIST = [
   // (owner, Nov 23 2026 c: rockstar.aseprite, afro.aseprite; names by Claude)
   ['rocker_mohawk', 'Rocker Mohawk', 'hair', 'Uncommon', 4000, 'A short spiky black mohawk. Ready to rock.'],
   ['fluffy_afro', 'Fluffy Afro', 'hair', 'Rare', 7000, 'A big, round, soft black afro.'],
+  // (owner, Nov 25 2026: new.zip shirt-1..4, messy-hair; names by Claude) three black jackets with a wide flared collar
+  // and coloured trim, a furry caveman top (bare skin shows: per skin tone, like all four) and a messy brown mop
+  ['gold_trim_jacket', 'Gold Trim Jacket', 'shirt', 'Rare', 6000, 'A black jacket with a wide flared collar, a gold zip and gold trim.'],
+  ['crimson_trim_jacket', 'Crimson Trim Jacket', 'shirt', 'Rare', 6000, 'A black jacket with a wide flared collar, a red zip and red trim.'],
+  ['silver_trim_jacket', 'Silver Trim Jacket', 'shirt', 'Rare', 6000, 'A black jacket with a wide flared collar, a silver zip and silver trim.'],
+  ['caveman_fur', 'Caveman Fur', 'shirt', 'Uncommon', 3000, 'A shaggy brown animal fur, tied on like a caveman. Ooga booga.'],
+  ['messy_mop', 'Messy Mop', 'hair', 'Rare', 5000, 'A big messy mop of brown hair that goes everywhere.'],
+  // (owner, Nov 25 2026: the default character has no sando and no shorts any more) the old default look as items:
+  // their pictures are empty (the body frames still have them), wearing one just stops the bare skin being painted there
+  ['white_sando', 'White Sando', 'shirt', 'Common', 200, 'A plain white sando, the classic.'],
+  ['navy_shorts', 'Navy Shorts', 'pants', 'Common', 200, 'Plain navy blue shorts, the classic.'],
 ];
+// ---------- the bare default character (owner, Nov 25 2026: "the default character has no sando and no pants: make
+// the blue shorts and the white sando wearables") ----------
+// The body frames (and every clothing picture cut against them) still have the sando and the navy shorts. With the
+// shirt slot EMPTY `bare_chest` is painted over the sando, with the pants slot empty (and no dress) `bare_legs` over
+// the shorts: the owner's bare body there (bare/default_bare.aseprite by pixelwear_cut.py, per skin tone), in every
+// pose outfitBody makes (standing, walking, jumping, sitting). Not items. Not on the Mannequin or the bag icons.
+const PXW_BARE = { shirt: 'bare_chest', pants: 'bare_legs' };
+// pixels of the old shorts outside the bare body, cut out of the frame first (art-source/wear/bare_erase.py)
+const PXW_ERASE = { 'bare_legs:idle': new Image() };
+PXW_ERASE['bare_legs:idle'].src = 'assets/wear/bare_legs/erase_idle.png';
+function pxwBareFor(key, eq) {
+  if (!eq || !key || key === 'icon' || key.startsWith('mann_')) return [];
+  const sh = WEAR_BY_ID[eq.shirt],
+    dress = sh && (sh.pat === 'dress' || sh.pat === 'pj' || sh.dress),
+    out = [];
+  if (!eq.pants && !dress) out.push(PXW_BARE.pants);
+  if (!eq.shirt) out.push(PXW_BARE.shirt);
+  return out;
+}
 // pictures taller than the frame at the top (pixelwear_meta.json "top": the afro's file has 5 more rows over the head)
 const PXW_TOP = { fluffy_afro: 30 };
 const PXW = {}; // id -> { slot, sk }
+PXW.bare_chest = { slot: 'shirt', sk: true, bare: true }; // (the bare skin pieces, PXW_BARE above: not items)
+PXW.bare_legs = { slot: 'pants', sk: true, bare: true };
 const PXW_PAD = 40; // the pictures have 40 px of room each side of the 118 px frame
 const PXW_IMG = {};
 // a piece's picture for a pose (null until it has loaded)
@@ -294,17 +326,48 @@ if (typeof MANN_IMG !== 'undefined')
       for (const [id] of PXW_LIST) pxwIconRetry(id);
     });
 // the skin of the character being drawn now (for skinned pieces over the head)
-let PXW_SKIN_NOW = 'porcelain';
+let PXW_SKIN_NOW = 'porcelain',
+  PXW_CHAR_NOW = null; // (and the character itself: blockyAirFace wrapper below)
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
-    const was = PXW_SKIN_NOW;
+    const was = PXW_SKIN_NOW,
+      wasC = PXW_CHAR_NOW;
     PXW_SKIN_NOW = (c && SKINS.includes(c.skin) && c.skin) || 'porcelain';
+    PXW_CHAR_NOW = c || null;
     try {
       return prev(c, ox, oy);
     } finally {
       PXW_SKIN_NOW = was;
+      PXW_CHAR_NOW = wasC;
     }
   })(drawCharacter);
+// (owner, Nov 25 2026: "the Gold Trim Jacket and the other new shirts lose the part at the neck when jumping") in the
+// air render.js draws the jump picture's whole head (the rows above BLOCKY_NECK_ROW) over the body, which covered a
+// shirt's collar reaching up past the neck (the jackets' flared collar): the worn pixel shirt's rows above the neck
+// are put back over that head picture
+const PXW_AIR = new Map();
+if (typeof blockyAirFace === 'function')
+  blockyAirFace = ((prev) =>
+    function (skin, bj) {
+      const face = prev(skin, bj),
+        id = PXW_CHAR_NOW && PXW_CHAR_NOW.equipped && PXW_CHAR_NOW.equipped.shirt;
+      if (!face || !PXW[id]) return face;
+      const pic = pxwImg(id, 'idle', skin);
+      if (!pic) return face;
+      const k = skin + '/' + bj + '/' + id;
+      if (PXW_AIR.has(k)) return PXW_AIR.get(k);
+      const c = document.createElement('canvas');
+      c.width = face.width;
+      c.height = face.height;
+      const x = c.getContext('2d'),
+        nk = typeof BLOCKY_NECK_ROW !== 'undefined' ? BLOCKY_NECK_ROW : 142;
+      x.imageSmoothingEnabled = false;
+      x.drawImage(face, 0, 0);
+      x.drawImage(pic, PXW_PAD, 0, FR.w, nk, 0, 0, FR.w, nk);
+      if (PXW_AIR.size > 200) PXW_AIR.clear();
+      PXW_AIR.set(k, c);
+      return c;
+    })(blockyAirFace);
 drawWearArt = ((prev) =>
   function (id, top, sc, dy, f, art) {
     const a = art || (WEAR_BY_ID[id] && WEAR_BY_ID[id].art);
@@ -327,7 +390,8 @@ function pxwSkin(key) {
 const PXW_DONE = new Map();
 outfitBody = ((prev) =>
   function (im, key, eq, bands) {
-    const ids = eq ? ['pants', 'feet', 'shirt'].map((s) => eq[s]).filter((id) => PXW[id]) : [];
+    // (Nov 25 2026) the bare skin pieces go first (under the shoes)
+    const ids = [...pxwBareFor(key, eq), ...(eq ? ['pants', 'feet', 'shirt'].map((s) => eq[s]).filter((id) => PXW[id]) : [])];
     if (!ids.length || !im || !im.width) return prev(im, key, eq, bands);
     const eq2 = Object.assign({}, eq);
     for (const s of ['shirt', 'pants', 'feet']) if (PXW[eq2[s]]) eq2[s] = null;
@@ -337,6 +401,7 @@ outfitBody = ((prev) =>
       k = key + '|' + ids.join('|') + '|' + (eq2.shirt || '') + '|' + (eq2.pants || '') + '|' + (eq2.feet || '');
     if (PXW_DONE.has(k)) return PXW_DONE.get(k);
     const pics = ids.map((id) => pxwImg(id, PXW[id].slot === 'feet' || pose === 'sit' ? pose : 'idle', skin));
+    // the bare legs: the shoes' rows are under them, so they go first; order is pants-bare, shirt-bare, then the rest
     if (pics.some((p) => !p)) return base; // still loading
     const c = document.createElement('canvas');
     c.width = base.width;
@@ -345,6 +410,14 @@ outfitBody = ((prev) =>
     x.imageSmoothingEnabled = false;
     x.drawImage(base, 0, 0);
     const dx = base.width > FR.w + 20 ? 0 : -PXW_PAD;
+    for (const id of ids) {
+      const er = PXW[id].bare && PXW_ERASE[id + ':' + (pose === 'sit' ? 'sit' : 'idle')];
+      if (er && er.complete && er.naturalWidth) {
+        x.globalCompositeOperation = 'destination-out';
+        x.drawImage(er, dx, 0);
+        x.globalCompositeOperation = 'source-over';
+      }
+    }
     for (const p of pics) x.drawImage(p, dx, 0);
     if (PXW_DONE.size > 300) PXW_DONE.clear();
     PXW_DONE.set(k, c);
@@ -352,7 +425,7 @@ outfitBody = ((prev) =>
   })(outfitBody);
 // the shirt's sleeve over a blocky sleeve (same crop and place as <skin>/sleeve_back|front.png)
 function pxwSleeve(c, name) {
-  const id = c && c.equipped && c.equipped.shirt;
+  const id = (c && c.equipped && c.equipped.shirt) || (c && c.equipped ? PXW_BARE.shirt : null);
   return PXW[id] ? pxwImg(id, name, c.skin) : null;
 }
 

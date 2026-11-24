@@ -88,6 +88,19 @@ ITEMS = {
     'blank/faceless.aseprite': 'blank_face',
     # (owner, Nov 23 2026 c) a short black rocker mohawk and a big afro
     'hair/rockstar.aseprite': 'rocker_mohawk', 'hair/afro.aseprite': 'fluffy_afro',
+    # (owner, Nov 25 2026: new.zip) three jackets with a flared collar and a furry caveman top: their layer is 'shirt'
+    # (read as 'tshirt'), the sleeves are the bare arms; and a messy brown mop of hair
+    'tshirt/shirt-1.aseprite': 'gold_trim_jacket', 'tshirt/shirt-2.aseprite': 'crimson_trim_jacket',
+    'tshirt/shirt-3.aseprite': 'silver_trim_jacket', 'tshirt/shirt-4.aseprite': 'caveman_fur',
+    'hair/messy-hair.aseprite': 'messy_mop',
+    # (owner, Nov 25 2026: "the default character has no sando and no shorts: make the blue shorts and the white sando
+    # wearables") bare/default_bare.aseprite = his default_look without them. The body frames stay as they were (with
+    # them): pixelwear.js paints these two hidden pieces over an EMPTY shirt / pants slot instead (per skin tone):
+    #   bare_chest = his bare body where the sando was (+ his sleeves, one lighter pixel each), bare_legs = where the
+    #   shorts were. The sando / shorts as items (bare/default_dressed.aseprite = the old default_look): their pictures
+    #   are empty (they ARE the body frame), only the icon and the sitting shorts are drawn.
+    'bare/default_bare.aseprite#topless': 'bare_chest', 'bare/default_bare.aseprite#bareshorts': 'bare_legs',
+    'bare/default_dressed.aseprite#sando': 'white_sando', 'bare/default_dressed.aseprite#shorts': 'navy_shorts',
 }
 BODY_LAYERS = {'sleeve left', 'shape', 'short', 'sando', 'sleeve right', 'mouth', 'nose', 'eyes', 'eyebrows'}
 
@@ -328,6 +341,8 @@ for f, iid in ITEMS.items():
     else:
         frames, L = read_frames(SRC + f)
         cels = align(dict(frames[0]), f)
+        if 'tshirt' not in cels and 'shirt' in cels and f.startswith('tshirt/'):
+            cels['tshirt'] = cels['shirt']  # (Nov 25 2026 files name the layer 'shirt')
     cat = f.split('/')[0]
     if part == 'robe':  # the robe as a shirt: costume + the mask layer's lines under the head
         cat = 'tshirt'
@@ -361,6 +376,17 @@ for f, iid in ITEMS.items():
         hole = hole | (near & dark)
         hole_rgba = np.zeros_like(cels['mask'])
         hole_rgba[hole] = 255
+    elif part == 'sando':
+        cat = 'tshirt'
+        cels['tshirt'] = cels['sando']
+    elif part == 'shorts':
+        cat = 'pants'
+        cels['pants'] = cels['short']
+    elif part == 'bareshorts':  # the bare body where the default shorts were
+        cat = 'pants'
+        t = cels['shape'].copy()
+        t[look['short'][..., 3] == 0] = 0
+        cels['pants'] = t
     elif part == 'topless':  # bare chest: the file's body (with the abs) where the sando was; all of it skin
         cat = 'tshirt'
         t = cels['shape'].copy()
@@ -430,6 +456,10 @@ for f, iid in ITEMS.items():
             m = legs & (sh[..., :3] == c).all(axis=2)
             ps[m] = (*pc[min(len(pc) - 1, round(i * (len(pc) - 1) / max(1, len(sc) - 1)))], 255)
         poses['sit'] = (ps, np.zeros(ps.shape[:2], bool))
+        if part == 'bareshorts':
+            ps = np.zeros_like(sh)
+            ps[legs] = sit['shape'][legs]
+            poses['sit'] = (ps, is_skin(ps))
         icon = cels['pants'].copy()
     elif cat == 'shoes':
         s_, ssk = piece(cels['shoes'], body)
