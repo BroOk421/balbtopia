@@ -5642,3 +5642,6 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   header + the 4 tab buttons + the box fit, nothing overlaps) and GC_MAX_H (min(300 px, half the screen)).
 - (Nov 24 2026 w) Chat panel: the box is as tall as the mode button (22 px, hudbtns.js), and there is no minimise
   button (#gMin hidden): the handle closes it (drag up / tap).
+- (Nov 24 2026 x) farming.json: the Hose Valve's tree and splice removed (the item has been gone since build v; they
+  only gave "skipped tree / splice" warnings). The "inline script violates the Content Security Policy" message seen
+  with VS Code Live Server (:5500) is Live Server's own reload script, not the game's (index.html has none).

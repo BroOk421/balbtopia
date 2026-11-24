@@ -33,7 +33,9 @@ jobs:
           OTA_BASE: ${{ vars.OTA_BASE || format('{0}/', steps.pages.outputs.base_url) }}
       - name: Update list for the phone app (www/ota/manifest.json)
         run: node scripts/make-ota.js
-      - uses: actions/upload-pages-artifact@v3
+      # (Nov 24 2026) v5: the current one (upload-artifact v7, Node 24). v3 sat on upload-artifact v4 (Node 20, deprecated)
+      # and a deploy failed with "No artifacts named github-pages were found"
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: www
       - id: deployment
