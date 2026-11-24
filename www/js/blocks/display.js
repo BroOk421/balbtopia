@@ -375,17 +375,19 @@ function drawMannequins(ox, oy, T) {
       px = ox + tx * T,
       py = oy + ty * T;
     if (px < -T * 2 || py < -T * 2 || px > cv.width + T || py > cv.height + T) continue;
-    drawMannequinAt(px + T / 2, py + T - CHAR_H * Z - T * 0.06, manns.get(i) || {}, tx, ty);
+    drawMannequinAt(px + T / 2, py + T - CHAR_H * Z - T * 0.06, manns.get(i) || {}, tx, ty, typeof faceLeftAt === 'function' && faceLeftAt(i) ? -1 : 1);
   }
 }
 // cx: the middle; top: where the sprite's top goes (screen pixels)
-function drawMannequinAt(cx, top, eq, tx = 0, ty = 0) {
+// face: 1 = facing right (the picture), -1 = flipped (placed facing left: bit FACE_LEFT, furniture.js FACING)
+function drawMannequinAt(cx, top, eq, tx = 0, ty = 0, face = 1) {
   const body = mannBody(eq);
   if (!body) return;
   const sc = CHAR_H / FR.h,
-    c = { equipped: eq, skin: MANN_SKIN, face: 1, ground: true, dead: false, x: tx * TS + (TS - P.w) / 2, y: ty * TS + TS - P.h, w: P.w, h: P.h };
+    c = { equipped: eq, skin: MANN_SKIN, face, ground: true, dead: false, x: tx * TS + (TS - P.w) / 2, y: ty * TS + TS - P.h, w: P.w, h: P.h };
   g.save();
   g.translate(Math.round(cx), 0);
+  g.scale(face, 1);
   g.imageSmoothingEnabled = true;
   drawBehind(c, top, sc, 0);
   mannSleeve(c, 'sleeve_back', top, sc); // (owner, Nov 21 2026: with hands, like the character)

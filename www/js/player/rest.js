@@ -368,12 +368,23 @@ function drawResting(c, ox, oy) {
     g.translate(Math.round(cx), 0);
     g.scale(face, 1);
     drawBehind(c, top, sc, 0);
+    // (owner, Nov 24 2026: emotes and /dance work seated, "only the hands") the back sleeve too while /omg or /dance
+    // moves it (it is hidden behind the body otherwise, not in sit_noarm.png)
+    const armsUp = typeof blockySleeves === 'function' && !(c.punch || c.place) && (c._dance || ((c.emo === 'omg' || c.emo === 'nice') && typeof emoElapsed === 'function' && emoElapsed(c) >= 0));
+    if (armsUp) blockySleeves(pc, 'back', top, sc, 0, { wf: 0, walking: false, punching: false, bj: null, cx: Math.round(cx), ox, oy, tool: held });
     if (body) g.drawImage(body, (-FR.w / 2 - SIT_PAD) * k, top, body.width * k, body.height * k);
     // the head on the sitting picture is the standing head, so the angry face fits it the same way
     if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k); // (Blank Face wins over every face: Nov 23 2026)
     else if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
     else if (angry) g.drawImage(angryFace(c.skin), (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
     else drawTalk(c, top, sc, 0, MOUTH_Y); // the standing head, so the standing mouth line
+    // the emote faces (/nice, /love, /omg, /cry, /sleep) and the /dance smile, like standing (render.js)
+    if (blankFaceOn(c)) {
+    } else if (c.emo && typeof drawEmoFace === 'function') drawEmoFace(c, top, sc, 0);
+    else if (c._dance && typeof blockyImg === 'function') {
+      const nf = blockyImg(c.skin, 'expr_nice') || blockyImg('porcelain', 'expr_nice');
+      if (nf) g.drawImage(nf, (-FR.w / 2) * k, top, FR.w * k, FR.h * k);
+    }
     drawWorn(c, top, sc, 0);
     // the front sleeve (not in sit_noarm.png) with what its hand holds: the same sleeve, shoulder and angles as
     // standing; after the worn things, so a raised weapon is in front of a hood / hat / hair (like render.js)
@@ -382,7 +393,7 @@ function drawResting(c, ox, oy) {
     drawAuraFront(c, top, sc, 0);
     if (!swinging && !bOwn) drawSitTool(c, body, 'sit_' + c.skin + '_' + fr + '|' + [eq.shirt, eq.pants, eq.feet].join('|'), top, k); // the held weapon / tool
     tagX = cx;
-    tagY = top + NAME_TOP * sc * Z; // same height as standing, whatever is worn (render.js)
+    tagY = top + nameRow(c) * sc * Z; // same height as standing (nametop.js)
   } else {
     // (owner, Nov 20 2026, his picture of the old look: "use the bed like this", then "the head goes OVER the bed") in
     // bed: the bed first, then only the HEAD over it (the body cut off at the chin, which is on the blanket's line

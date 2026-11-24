@@ -47,7 +47,8 @@ const puffs = [],
   floats = [];
 // how many bag slots are open at this level
 // (a GM's bag has room for every item in the game, see gmFillBag)
-const bagSize = () => (isGM() ? Math.max(BAG_MAX, inv.length + 40) : Math.min(BAG_MAX, BAG_FREE + BAG_STEP * Math.max(0, level - BAG_LEVEL + 1)));
+// (owner, Nov 24 2026) extra slots are BOUGHT in the Shop now (ui/bagslots.js bagSlotsBought), no more by level
+const bagSize = () => (isGM() ? Math.max(BAG_MAX, inv.length + 40) : Math.min(BAG_MAX, BAG_FREE + (typeof bagSlotsBought === 'function' ? bagSlotsBought() : 0)));
 // the level that opens bag slot i (0-based)
 const slotLevel = (i) => BAG_LEVEL + Math.floor((i - BAG_FREE) / BAG_STEP);
 // online with the new server (Net.secure): the server's GM list (table gms) decides; offline / old servers: GM_USERS
@@ -79,7 +80,7 @@ function addItem(id, n = 1) {
     inv.filter((s) => s.id === id).reduce((r, s) => r + Math.max(0, MAXSTACK - s.qty), 0) +
     Math.max(0, bagSize() - bagCount()) * MAXSTACK; // (stacks on the hotbar don't take bag slots)
   if (n > room) {
-    toast(bagSize() < BAG_MAX ? 'Bag is full. Level up to open more slots' : 'Bag is full');
+    toast(bagSize() < BAG_MAX ? 'Bag is full. Buy more slots in the Shop' : 'Bag is full');
     return false;
   }
   for (const s of inv) {

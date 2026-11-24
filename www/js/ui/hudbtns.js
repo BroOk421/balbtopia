@@ -127,3 +127,61 @@ if ($('shopBtn')) {
   st.textContent = '#shopBtn{width:38px;padding:0;display:grid;place-content:center}#shopBtn svg{display:block;filter:drop-shadow(0 1px 0 rgba(0,0,0,.35))}';
   document.head.appendChild(st);
 }
+// (owner, Nov 24 2026) "the pop-ups are too big on Android (the log in, the world list); in the profile at the top left
+// put the day and the time under it, side by side; the guide and news buttons one over the other":
+//  - the profile card wraps: the day + time are a row under the head / level / gold (a thin line over them);
+//  - #hudLeft is a column;
+//  - on a short (phone, landscape) screen the log in window and the world list are drawn smaller (HB_POP_ZOOM).
+const HB_POP_ZOOM = 0.78,
+  HB_LOGIN_ZOOM = 0.64, // (the log in window is the tallest)
+  HB_WIN_ZOOM = 0.82;
+{
+  const st = document.createElement('style');
+  st.textContent =
+    '.pcard{flex-wrap:wrap;height:auto !important;row-gap:3px;max-width:max-content}' +
+    '.pcard .pctime{flex-direction:row;flex-basis:100%;order:9;justify-content:space-between;align-items:center;gap:8px;' +
+    'padding:3px 0 0 2px !important;margin:0 !important;border-left:0 !important;border-top:1px solid rgba(74,143,232,.55)}' +
+    '.pcard .pctime b{font-size:8px !important}' +
+    '#hudLeft{flex-direction:column}' +
+    // (owner: "shrink the width more") narrower log in window and world list everywhere
+    '.start .win{width:min(88vw,400px) !important}#worlds{width:min(88vw,360px) !important}' +
+    // (owner, Nov 24 2026: "smaller text and buttons in the pop-ups") every other window (menu, shop, dialogs, trade,
+    // item info, lock...) smaller on a short screen too (the bag drawer #inv is not a pop-up)
+    '@media (max-height: 520px){.win:not(#inv):not(#worlds){zoom:' + HB_WIN_ZOOM + '}}' +
+    '@media (max-height: 520px){#start > .win{zoom:' + HB_LOGIN_ZOOM + '}#worlds{zoom:' + HB_POP_ZOOM + '}}';
+  document.head.appendChild(st);
+}
+
+// (owner, Nov 24 2026) the profile card without the empty space on its right; the chat's MODE list (SYSTEM / SHOUT /
+// LOCAL / FRIEND, from the mode button) in a ROW, each button the chat buttons' size and in its own colour (like the
+// mode button: SYSTEM gold, SHOUT blue, LOCAL plain, FRIEND green); while it is open the rest goes dark (#gModesShade,
+// tap it to close); picking one closes it (globalchat.js).
+{
+  const st = document.createElement('style');
+  st.textContent =
+    // (a grid, not a wrapping flex: a wrapping flex box is as wide as if everything were on one line)
+    '.pcard{display:grid !important;grid-template-columns:auto auto;align-items:center;padding-right:6px !important;column-gap:5px !important;row-gap:3px !important}' +
+    '.pcard .pcrow{gap:6px !important}.pcard .pcinfo{min-width:0 !important}.pcard .pctime{grid-column:1 / -1}' +
+    '.pcard .pctime{justify-content:flex-start !important;gap:10px !important}' +
+    '.gchat .gmode{z-index:3}' +
+    '.gchat .gmodes{flex-direction:row !important;gap:4px;padding:4px;min-width:0 !important;width:max-content;z-index:3}' +
+    '#gModes button{width:62px;height:22px !important;min-height:0 !important;box-sizing:border-box;padding:0 4px !important;font:6px var(--pixel,monospace) !important;text-align:center;border-radius:4px;border:2px solid var(--night,#0a1530)}' +
+    '#gModes .gm-sys,#gModeBtn.gm-sys{background:#6a5410 !important;color:#ffe9a0 !important}' +
+    '#gModes .gm-shout,#gModeBtn.gm-shout{background:#1e4f86 !important;color:#cfe7ff !important}' +
+    '#gModes .gm-local,#gModeBtn.gm-local{background:#1e3560 !important;color:#e4f0ff !important}' +
+    '#gModes .gm-friend,#gModeBtn.gm-friend{background:#1f6b38 !important;color:#c8f7d4 !important}' +
+    '#gModesShade{position:fixed;inset:0;z-index:2;background:rgba(0,0,0,.45);animation:gShade .15s}#gModesShade[hidden]{display:none}' +
+    '@keyframes gShade{from{opacity:0}}';
+  document.head.appendChild(st);
+  const shade = document.createElement('div');
+  shade.id = 'gModesShade';
+  shade.hidden = true;
+  const form = document.querySelector('#gPanel .gform');
+  if (form) form.appendChild(shade);
+  shade.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    $('gModes').hidden = true;
+  });
+  // the shade follows the list (opened / closed by globalchat.js)
+  new MutationObserver(() => (shade.hidden = $('gModes').hidden)).observe($('gModes'), { attributes: true, attributeFilter: ['hidden'] });
+}

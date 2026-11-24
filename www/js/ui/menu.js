@@ -15,7 +15,7 @@ function addXP(n) {
   while (xp >= xpNeed(level)) {
     xp -= xpNeed(level);
     level++;
-    const opened = level >= BAG_LEVEL && level < BAG_LEVEL + (BAG_MAX - BAG_FREE) / BAG_STEP;
+    const opened = false; // (Nov 24 2026: bag slots are bought in the Shop now, ui/bagslots.js)
     const rw = typeof LEVEL_REWARDS !== 'undefined' && LEVEL_REWARDS.find((r) => r.lv === level);
     toast('Level up! You are now level ' + level + (opened ? ' · +' + BAG_STEP + ' bag slots' : '') + (rw ? ' · Reward ready in your Profile!' : ''));
     if (!$('inv').hidden) renderInv();

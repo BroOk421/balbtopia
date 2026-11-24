@@ -405,7 +405,7 @@ function buy(s) {
     if (s.peso || buying) return;
     const n = s.qty || 1;
     if (shortOf(s)) return goTopUp(s); // not enough gold / Balb Coins: to the TOP UP tab (economy.js)
-    if (!roomFor(s.id, n)) return toast(bagSize() < BAG_MAX ? 'Bag is full. Level up to open more slots' : 'Bag is full');
+    if (!roomFor(s.id, n)) return toast(bagSize() < BAG_MAX ? 'Bag is full. Buy more slots in the Shop' : 'Bag is full');
     buying = true;
     Wallet.buy(s.id, n).then((err) => {
       buying = false;

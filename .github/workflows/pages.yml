@@ -31,6 +31,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           OTA_BASE: ${{ vars.OTA_BASE || format('{0}/', steps.pages.outputs.base_url) }}
+      # (Nov 24 2026) every script / stylesheet in index.html gets ?v=<build>: the app's WebView never mixes old cached
+      # files with a new index.html (scripts/stamp-build.js; must run before make-ota.js)
+      - name: Stamp index.html with the build
+        run: node scripts/stamp-build.js
       - name: Update list for the phone app (www/ota/manifest.json)
         run: node scripts/make-ota.js
       - uses: actions/upload-pages-artifact@v5

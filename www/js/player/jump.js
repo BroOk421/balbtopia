@@ -70,7 +70,7 @@ function drawJumping(c, ox, oy, f) {
   drawJumpTool(c, f);
   g.restore();
   g.imageSmoothingEnabled = false;
-  const headTop = top + (NAME_TOP + hdy) * sc * Z;
+  const headTop = top + (nameRow(c) + hdy) * sc * Z;
   const tagW = drawNameTag(c.name, cx, headTop - 4 * Z, c.flag);
   if (c.say) drawBubble(c.say.text, cx, headTop - 11 * Z, Math.min(1, c.say.t * 2));
   return { cx, headTop, tagW, bald: top + (4 + hdy) * sc * Z };
@@ -265,6 +265,16 @@ drawCharacter = ((prev) =>
         g.restore();
         c._dance = false;
         c.face = face0;
+      }
+    } else if (sitting && st.dance && !c.portrait) {
+      // (owner, Nov 24 2026: "the dance too, but only the hands") seated: the arms go round and the /nice smile shows
+      // (rest.js), no turning, no breathing
+      const d = danceShift(st);
+      c._dance = { u: d.u, dir: d.dir };
+      try {
+        res = prev(c, ox, oy);
+      } finally {
+        c._dance = false;
       }
     } else res = f >= 0 ? drawJumping(c, ox, oy, f) : prev(c, ox, oy);
     return res;

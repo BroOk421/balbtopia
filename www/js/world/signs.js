@@ -294,6 +294,8 @@ function wrapText(text, maxW) {
   }
   return lines.slice(0, 6);
 }
+const SIGN_LIFT = 6,
+  MANN_LIFT = 5;
 function drawSignBubble(ox, oy) {
   if (P.dead) return;
   let i = signUnderPlayer(),
@@ -309,7 +311,11 @@ function drawSignBubble(ox, oy) {
   const x = i % WW,
     y = (i / WW) | 0,
     cx = ox + (x * TS + TS / 2) * Z,
-    tipY = oy + (y * TS - 2) * Z,
+    // (owner, Nov 24 2026: "a bit higher, the Mannequin's and the signs'") a sign's bubble SIGN_LIFT px over the tile;
+    // a Mannequin's over the head (or hair / hat) of the figure on it, which stands taller than its tile (display.js)
+    tipY = isMannT(fg[i])
+      ? oy + ((y + 1) * TS - CHAR_H - TS * 0.06 + (nameRow({ equipped: manns.get(i) || {}, skin: MANN_SKIN }) * CHAR_H) / FR.h - MANN_LIFT) * Z
+      : oy + (y * TS - SIGN_LIFT) * Z,
     U = Math.max(Z, 2.4 * gfxDpr()); // never smaller than readable, even zoomed out
   // (owner, Nov 22 2026) like the chat bubble (render.js bagBox: build j, the blue ALL button's look), white text, a bit smaller letters
   // (3.4, was 4), less padding, NO arrow under it

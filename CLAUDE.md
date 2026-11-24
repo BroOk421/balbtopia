@@ -5648,3 +5648,41 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 - (Nov 24 2026 y) index.html CSP script-src also allows one hash: 'sha256-vvt4KWwuNr51XfE5m+hzeNEGhiOfZzG97ccfqGsPwvE='
   = VS Code Live Server's injected reload script (owner tests on :5500). Only that exact script; still no other inline
   scripts allowed. (If Live Server changes its script, the console shows the new hash: replace it.)
+- (Nov 24 2026 z) The phone app (LIVE_APP: opens the Pages site) went blank after the day's big update; most likely
+  its WebView mixed cached OLD scripts with the new index.html. scripts/stamp-build.js (Pages workflow, after
+  make-config, before make-ota) adds ?v=<WEB_BUILD> to every local <script src> / stylesheet in the deployed
+  index.html, so a new build never loads old cached files. Local testing unchanged.
+- (Nov 24 2026 za) hudbtns.js: the profile card wraps, the DAY + time are a row under it; #hudLeft (guide / news) is a
+  column; on a short screen (max-height 520 px) the log in window is drawn at HB_LOGIN_ZOOM 0.64 and the world list at
+  HB_POP_ZOOM 0.78; both narrower everywhere (log in min(88vw, 400px), world list min(88vw, 360px)).
+- (Nov 24 2026 zb) Chat panel glides open / shut (`gcOpen` / `gcClose`, GC_ANIM 200 ms, height + fade; class `anim`
+  lifts the min-height while gliding); pulled up past its smallest it follows the finger, and letting go glides it shut.
+- (Nov 24 2026 zc) hudbtns.js: the profile card is a GRID (a wrapping flex box was as wide as its one-line content),
+  so no empty space; every window but the bag drawer / world list is drawn at HB_WIN_ZOOM 0.82 on a short screen; the
+  chat's mode list is a ROW of chat-sized buttons (62 x 22) in their own colours (SYSTEM gold, SHOUT blue, LOCAL navy,
+  FRIEND green; ids `#gModes .gm-*` / `#gModeBtn.gm-*` beat blue.css's `#gModes button`), with `#gModesShade`
+  darkening the rest while it is open (tap = close; picking one closes it).
+- (Nov 24 2026 zd) BAG SLOTS ARE BOUGHT, no more level unlocks: ui/bagslots.js (after economy.js; wraps `buy`,
+  `signInOnline`, `playerData` / `applyPlayer`). Shop WORLD tab, first card: "Extra Bag Slot" (`bag_slot`, never in
+  the bag) opens 1 slot at once; price 2000 + 500 x slots bought (BSLOT_BASE / BSLOT_STEP), up to BAG_MAX (56 buys over
+  BAG_FREE 74). player.js bagSize = BAG_FREE + bagSlotsBought(); slots a level had opened before (2 a level from 10)
+  count as bought once (bslotLegacy, and the server's first my_bag_slots). Online the server keeps the count and takes
+  the gold: schema.sql bag_slots table, my_bag_slots(), buy_bag_slot() (returns gold/held/bc/slots; GM free); the same
+  numbers on both sides. Offline: save field `bagSlots`. Locked bag cells say "Shop" and open the Shop on that card
+  (`bslotOpenShop`); "bag is full" toasts point to the Shop; menu.js no "+2 bag slots" level toast.
+  Run supabase/admin/2026-11-24_bag_slots.sql once.
+- (Nov 24 2026 zd) Chat strip: GC_GAP 50 px from the profile card and from the top-right buttons (8 px when the
+  screen is too narrow for that), hudcard.js gcLayout.
+- (Nov 24 2026 zd) Name tag height follows the head: render/nametop.js `nameRow(c)` = the highest solid row of the
+  bald head (per skin) or of the hair / hat / face / ear items drawn alone through drawWorn (so hatfit's hat lift
+  counts), cached per outfit; render.js, gates.js, jump.js, rest.js use it instead of NAME_TOP (now only the fallback
+  while the body picture loads). Bald: the tag is just over the head, with the same 4 world px gap as over hair.
+- (Nov 24 2026 ze) Wooden Table joins its neighbours: furniture.js `tablePic(f)` (f: 1 joined left, 2 right; softCanvas,
+  no black lines) is one long top + apron, legs only at the ends; the band across the legs is gone (blocks.js too).
+- (Nov 24 2026 ze) Bubbles: a sign's SIGN_LIFT 6 px over its tile (was 2); a Mannequin's over the figure's head / hair
+  (nameRow) + MANN_LIFT 5 (signs.js drawSignBubble).
+- (Nov 24 2026 ze) Mannequin faces the way you face when placing it: MANNEQUIN in FACING (furniture.js), bit FACE_LEFT
+  -> drawMannequinAt(..., face) flips it.
+- (Nov 24 2026 ze) Seated (chair / couch) every emote works: rest.js draws drawEmoFace / the /dance smile, the back
+  sleeve while /omg, /nice or /dance moves the arms; emotes.js allows /sleep seated (not in bed); jump.js /dance
+  seated = c._dance only (arms go round, no turning / breathing).

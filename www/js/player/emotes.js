@@ -37,7 +37,8 @@ function emoteCommand(cmd) {
   if (P.dead) return true;
   // /sleep again wakes you up
   if (cmd === 'sleep' && P.emo && P.emo.k === 'sleep') return (P.emo = null), true;
-  if (EMO_STILL[cmd] && (P.rest || !P.ground)) {
+  // (owner, Nov 24 2026) every emote works sitting on a chair / couch too (the face and the hands; rest.js); not in bed
+  if (EMO_STILL[cmd] && ((P.rest && P.rest.k !== 'sit') || (!P.ground && !P.rest))) {
     toast('Stand on the ground to /' + cmd);
     return true;
   }
@@ -57,7 +58,7 @@ stepFx = ((prev) =>
     prev(dt);
     if (P.emo) {
       const k = P.emo.k;
-      if (now - P.emo.t >= EMO_MS[k] || P.dead || (EMO_STILL[k] && (P.walkT > 0 || !P.ground || P.punch || P.place || P.rest))) P.emo = null;
+      if (now - P.emo.t >= EMO_MS[k] || P.dead || (EMO_STILL[k] && (P.walkT > 0 || (!P.ground && !P.rest) || P.punch || P.place || (P.rest && P.rest.k !== 'sit')))) P.emo = null;
     }
     // floating hearts (/love)
     for (let i = EMO_HEARTS.length - 1; i >= 0; i--) {

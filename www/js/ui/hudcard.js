@@ -127,6 +127,37 @@ const GC_TAP = 6, // px: less movement than this on the handle = a tap
   GC_MAX_H = () => Math.max(GC_MIN_H, Math.round(Math.min(300, window.innerHeight * 0.5))),
   GC_DEF_H = () => GC_MAX_H();
 let gcH = 0; // the panel's height while open (px)
+const GC_ANIM = 200; // ms: the panel gliding open / shut
+let gcAnimT = 0;
+// glide the panel shut (from what it shows now to nothing), then close it
+function gcClose() {
+  if (!gOpenNow) return;
+  clearTimeout(gcAnimT);
+  const P = $('gPanel'),
+    from = P ? P.getBoundingClientRect().height : gcH;
+  gEl.classList.add('anim');
+  gEl.style.setProperty('--gcH', from + 'px');
+  void (P && P.offsetHeight); // (start the glide from there)
+  gEl.classList.add('closing');
+  gEl.style.setProperty('--gcH', '0px');
+  gcAnimT = setTimeout(() => {
+    gShow(false);
+    gEl.classList.remove('anim', 'closing');
+    gcSetH(Math.max(gcH, GC_DEF_H()));
+  }, GC_ANIM);
+}
+// open it gliding down to height h
+function gcOpen(h) {
+  clearTimeout(gcAnimT);
+  gEl.classList.remove('closing');
+  gEl.classList.add('anim');
+  gEl.style.setProperty('--gcH', '0px');
+  gShow(true);
+  const P = $('gPanel');
+  void (P && P.offsetHeight);
+  gcSetH(h);
+  gcAnimT = setTimeout(() => gEl.classList.remove('anim'), GC_ANIM);
+}
 const GC_HANDLE = document.createElement('div');
 GC_HANDLE.id = 'gHandle';
 GC_HANDLE.className = 'ghandle';
@@ -172,6 +203,9 @@ $('wrap').appendChild(CHAT_BAR);
     '.ghandle i{width:20px;height:2px;border-radius:1px;background:#e4f0ff;display:block}' +
     '.ghandle .gbadge{top:-4px;right:-12px;left:auto}' +
     '.gchat.drag .gpanel{transition:none}' +
+    // (owner, Nov 24 2026: "closing the chat must be smooth") opening / closing glide (not while dragging)
+    '.gchat .gpanel{transition:height ' + GC_ANIM + 'ms cubic-bezier(.2,.8,.3,1),opacity ' + GC_ANIM + 'ms}' +
+    '.gchat.anim .gpanel{min-height:0 !important}.gchat.closing .gpanel{opacity:0}' +
     'body.landing .gchat,body.landing #chatIcon,body.landing #chatBar{display:none !important}' +
     '.chaticon{position:relative;flex:none;width:38px;height:38px;box-sizing:border-box;display:grid;place-content:center;padding:0;border-radius:6px;cursor:pointer}' +
     // the one-line input at the very top
@@ -183,13 +217,20 @@ $('wrap').appendChild(CHAT_BAR);
     '.chatbar .cbmode{flex:none;height:36px;padding:0 10px;border-radius:6px;border:2px solid var(--night,#0a1530);background:var(--slot,#1e3560);color:var(--ink,#fff);font:8px var(--pixel,monospace);cursor:pointer}';
   document.head.appendChild(st);
 }
+const GC_GAP = 50;
 // where the free space at the top is: right of the profile card, left of the leftmost top-right button
 function gcLayout() {
   const pc = document.querySelector('.pcard'),
     vw = window.innerWidth,
     btns = ['chatIcon', 'shopBtn', 'burger'].map($).filter((e) => e && e.offsetParent), // (gold / Balb Coins sit in the profile card; the guide / news buttons are under it since Nov 24 2026, hudbtns.js)
-    L = pc && pc.offsetParent ? Math.round(pc.getBoundingClientRect().right + 8) : 10,
-    R = btns.length ? Math.round(vw - Math.min(...btns.map((e) => e.getBoundingClientRect().left)) + 8) : 10;
+    pcR = pc && pc.offsetParent ? pc.getBoundingClientRect().right : 0,
+    btL = btns.length ? Math.min(...btns.map((e) => e.getBoundingClientRect().left)) : vw;
+  // (owner, Nov 24 2026: "not so wide, ~50px from its neighbours left and right"): GC_GAP each side; a small screen
+  // that can't spare it gets 8 px
+  let gap = GC_GAP;
+  if (btL - pcR - gap * 2 < 170) gap = 8;
+  const L = pc && pc.offsetParent ? Math.round(pcR + gap) : 10,
+    R = btns.length ? Math.round(vw - btL + gap) : 10;
   // too narrow: under the profile card, across the left of the screen
   if (vw - L - R < 170) {
     gEl.style.setProperty('--gcL', '10px');
@@ -241,18 +282,17 @@ function gcSetH(h) {
     gEl.classList.add('drag');
     gcSetH(st.h + dy);
     if (gcH >= 10 && !gOpenNow) gShow(true);
-    if (gcH < 10 && gOpenNow) gShow(false);
+    // (pulled up: it shrinks with the finger; letting go glides it shut, gcClose)
+    gEl.classList.toggle('anim', gOpenNow && gcH < gcMinH()); // below its smallest: follow the finger anyway
+    if (gOpenNow && gcH < gcMinH()) gEl.style.setProperty('--gcH', Math.max(0, gcH) + 'px');
   });
   const up = () => {
     if (!st) return;
     gEl.classList.remove('drag');
     if (!st.moved) {
-      if (gOpenNow) gShow(false);
-      else {
-        gcSetH(gcH >= GC_MIN_H ? gcH : GC_DEF_H());
-        gShow(true);
-      }
-    } else if (gcH < Math.min(gcMinH(), GC_MAX_H()) * 0.7) gShow(false);
+      if (gOpenNow) gcClose();
+      else gcOpen(gcH >= GC_MIN_H ? gcH : GC_DEF_H());
+    } else if (gcH < Math.min(gcMinH(), GC_MAX_H()) * 0.7) gcClose();
     else gcSetH(gcH); // (snapped to at least the smallest that fits)
     st = null;
   };
@@ -261,10 +301,7 @@ function gcSetH(h) {
 }
 gcSetH(GC_DEF_H());
 // the newest line: a tap opens / closes the panel too
-$('gTick').onclick = () => {
-  if (gcH < GC_MIN_H) gcSetH(GC_DEF_H());
-  gShow(!gOpenNow);
-};
+$('gTick').onclick = () => (gOpenNow ? gcClose() : gcOpen(gcH >= GC_MIN_H ? gcH : GC_DEF_H()));
 // ---- the top input bar ----
 const CB_MODES = ['local', 'friend', 'shout'];
 function cbModeLabel() {

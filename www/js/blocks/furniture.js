@@ -35,6 +35,8 @@ for (const [id, col, grow] of [['couch', ['#c0444a', '#641a22', '#e06a6a'], 200]
 }
 SEATS.couch = 10; // the cushion top (cell of 16)
 const FACING = new Set([COUCH_T, ITEMS.wooden_chair.block]);
+// (owner, Nov 24 2026) the Mannequin faces the way you face when you place it, like the chair (display.js)
+FACING.add(MANNEQUIN);
 const faceLeftAt = (i) => FACING.has(fg[i]) && !!(vari[i] & FACE_LEFT);
 
 // ---------- 1 px painter with polygons and an automatic outline ----------
@@ -396,6 +398,40 @@ function foliagePic(m, v = 0) {
   const k = 'fol' + m + ':' + v;
   return (FURN[k] ||= paintFoliage(m, v));
 }
+// Wooden Table (owner, Nov 24 2026: "tables side by side join up; take the line off the legs"): f = which sides join
+// another Wooden Table (1 left, 2 right). The top runs on across a joined side with no edge, the apron under it too,
+// and a leg is only drawn on a side that ends, so a row of tables is one long table with legs at its two ends. No
+// black lines: softCanvas gives every edge the colour beside it, darker (chain.js).
+function tablePic(f) {
+  const k = 'tbl' + (f & 3);
+  if (FURN[k]) return FURN[k];
+  const jl = f & 1,
+    jr = f & 2;
+  return (FURN[k] = softCanvas(({ px }) => {
+    const R = (x, y, w, h, c) => {
+      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) px(i, j, c);
+    };
+    const x0 = jl ? 0 : 1,
+      x1 = jr ? 31 : 30;
+    hdWood(px, x0, 1, x1 - x0 + 1, 4, ['#a86c3c', '#8a5a32', '#c98a52']);
+    R(x0, 1, x1 - x0 + 1, 1, '#e0b07a');
+    R(x0, 5, x1 - x0 + 1, 1, '#6b4424');
+    // the apron under the top, between the legs (on to the edge where it joins)
+    const a0 = jl ? 0 : 8,
+      a1 = jr ? 31 : 23;
+    R(a0, 6, a1 - a0 + 1, 2, '#5a3a20');
+    R(a0, 6, a1 - a0 + 1, 1, '#6b4424');
+    // the legs: plain, no band across them
+    const leg = (i) => {
+      R(i, 6, 4, 26, '#8a5a32');
+      R(i, 6, 2, 26, '#a86c3c');
+      R(i, 6, 1, 26, '#c98a52');
+    };
+    if (!jl) leg(3);
+    if (!jr) leg(25);
+  }));
+}
+SHOP_ICON.wooden_table = () => tablePic(0);
 // bag / shop icons
 SHOP_ICON.wooden_chair = () => chairPic(false);
 SHOP_ICON.couch = () => couchPic(0, true); // (the right-facing picture)
@@ -410,6 +446,10 @@ drawNewBlock = ((prev) =>
       const same = (xx) => xx >= 0 && xx < WW && fg[at(xx, y)] === fg[i],
         pic = woodPlatPic((same(x - 1) ? 1 : 0) | (same(x + 1) ? 2 : 0));
       if (pic) return g.drawImage(pic, px, py, T, T);
+    }
+    if (b.id === 'wooden_table') {
+      const same = (xx) => inW(xx, y) && fg[at(xx, y)] === fg[i];
+      return g.drawImage(tablePic((same(x - 1) ? 1 : 0) | (same(x + 1) ? 2 : 0)), px, py, T, T);
     }
     if (b.id === 'couch') {
       const left = faceLeftAt(i),

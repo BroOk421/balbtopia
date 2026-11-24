@@ -562,13 +562,14 @@ function renderInvNow() {
     b.className = 'cell' + (s ? ' has' : '') + (s && i === sel ? ' sel' : '') + (p >= open && !bagPick ? ' locked' : '') + (s && bagPick && !bagPick.ok(s.id) ? ' nopick' : '');
     b.id = s ? 'slot' + i : 'cellE' + p;
     if (p >= open && !bagPick) {
-      // locked: opens at a higher level
-      b.innerHTML = `<span class="lk"></span><span class="lv">Lv ${slotLevel(p + (heldS ? 1 : 0))}</span>`;
-      b.setAttribute('aria-label', 'Locked slot, opens at level ' + slotLevel(p + (heldS ? 1 : 0)));
+      // locked: buy it in the Shop (ui/bagslots.js; owner, Nov 24 2026: no more level unlocks)
+      b.innerHTML = '<span class="lk"></span><span class="lv">Shop</span>';
+      b.setAttribute('aria-label', 'Locked slot: buy more slots in the Shop');
       b.tabIndex = -1;
       b.onclick = (e) => {
         e.stopPropagation();
-        toast('This slot opens at level ' + slotLevel(p + (heldS ? 1 : 0)) + ' (you are level ' + level + ')');
+        if (typeof bslotOpenShop === 'function') bslotOpenShop();
+        else toast('Buy more bag slots in the Shop');
       };
     } else if (s) {
       const it = ITEMS[s.id];

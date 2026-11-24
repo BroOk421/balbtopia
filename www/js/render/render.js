@@ -700,7 +700,7 @@ function drawCharacter(c, ox, oy) {
   g.imageSmoothingEnabled = false;
   // name tag: always at the same height above the body, whatever is worn (owner, Oct 24 2026: the height it had
   // with the Cat Ear Hoodie; hair / hats no longer push it up). The flag (flags.js) sits at its left.
-  const headTop = top + NAME_TOP * sc * Z;
+  const headTop = top + nameRow(c) * sc * Z; // (nametop.js: just over the head, or over the hair / hat worn)
   const tagW = drawNameTag(c.name, cx, headTop - 4 * Z, c.flag);
   if (c.say) drawBubble(c.say.text, cx, headTop - 11 * Z, Math.min(1, c.say.t * 2));
   return { cx, headTop, tagW, bald: top + 4 * sc * Z }; // bald: the top of the bare head (no hair / hat)
@@ -1854,6 +1854,7 @@ function drawBubble(text, x, y, a) {
   g.textBaseline = 'alphabetic';
   g.globalAlpha = 1;
 }
+// (Nov 24 2026: only the fallback now, while the body picture loads; nametop.js nameRow decides the row)
 // body px from the top of the body picture where every name tag sits (render.js, rest.js), 4 world px above it.
 // (owner, Nov 22 2026 build j: "the name is too far from the character, bring it down": was -26, the old hood height;
 // now just over the tallest worn thing: the spiky hairs reach body row 4, a hat lifted onto them about -14)

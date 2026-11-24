@@ -301,7 +301,7 @@ function drawSwimming(c, ox, oy) {
   g.restore();
   g.imageSmoothingEnabled = false;
   const tagX = cx + c.face * headDx,
-    headTop = top + (NAME_TOP + hy) * sc * Z;
+    headTop = top + (nameRow(c) + hy) * sc * Z;
   const tagW = drawNameTag(c.name, tagX, headTop - 4 * Z, c.flag);
   if (c.say) drawBubble(c.say.text, tagX, headTop - 11 * Z, Math.min(1, c.say.t * 2));
   return { cx: tagX, headTop, tagW, bald: top + (4 + hy) * sc * Z };
