@@ -96,7 +96,7 @@ function bslotDone(n) {
   if (typeof renderBars === 'function') renderBars();
   if (typeof renderInv === 'function' && $('inv') && !$('inv').hidden) renderInv();
   if (typeof updateGold === 'function') updateGold(true);
-  closeShop();
+  shopBought(); // (Nov 25 2026 c: the Shop stays open after buying)
   Native.haptic('medium');
   toast('+1 bag slot! Your bag has ' + bagSize() + ' slots' + (bagSlotsBought() < BSLOT_MAX ? '. The next one costs ' + bslotPrice().toLocaleString() + ' gold' : ''));
 }

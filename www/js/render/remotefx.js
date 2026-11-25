@@ -81,7 +81,7 @@ Net.onPunchFx = (r, p) => {
       rFnTaps.delete(k);
     }
     const n = live ? c.n + 1 : 1;
-    rCrack.set(i, { n, t: now, need, ft: fg[i] });
+    rCrack.set(i, { n, t: now, need, ft: fg[i], tool: h, t1: n === 1 ? now : c ? c.t1 : now }); // (tool, t1: vcbreak.js)
     if (n < need) breakPuffs(x, y); // (the break itself gives 3: net.js)
   } else breakPuffs(x, y);
   // the tool's sparks (or a scythe's flame / leaves, thrown off their own blade)
@@ -104,7 +104,7 @@ drawSetupBadges = ((prev) =>
         continue;
       }
       if (dmg[i]) continue;
-      drawCrack(ox + (i % WW) * T, oy + Math.floor(i / WW) * T, T, c.n / c.need);
+      drawCrack(ox + (i % WW) * T, oy + Math.floor(i / WW) * T, T, c.n / c.need, i, c.n, c.need, c);
     }
     drawRemoteRads(ox, oy, T);
     return r;

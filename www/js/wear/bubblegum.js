@@ -27,8 +27,9 @@ const BUB = {
 };
 const BUB_PACK = 10, // pieces in one Shop buy (schema.sql shop_prices ('bubble_gum', 10, ...))
   BUB_GIVE_RANGE = 10 * TS; // world px: how far away another player can be blown up
-addWear({ id: 'bubble_gum', name: 'Bubble Gum', slot: 'mouth', shop: true, rarity: 'Rare', desc: 'Chewy blue bubble gum. Click your character to blow a huge bubble that floats you up six blocks, then POP! Select it and click another player to float them up instead. Each bubble uses one piece: the Shop sells them in packs of ' + BUB_PACK + '.' });
-SHOP.push({ id: 'bubble_gum', gold: 6000, qty: BUB_PACK, cat: 'wear' });
+// (owner, Nov 25 2026) no longer in the Shop: it grows from a seed now (Bubble Gum = Bubble Wrap + Amber Glass; a ripe
+// tree gives 1-3, events/autumnseeds.js). BUB_PACK is only the old Shop pack size.
+addWear({ id: 'bubble_gum', name: 'Bubble Gum', slot: 'mouth', rarity: 'Rare', desc: 'Chewy blue bubble gum. Click your character to blow a huge bubble that floats you up six blocks, then POP! Select it and click another player to float them up instead. Each bubble uses one piece. Grows from a seed: Bubble Gum = Bubble Wrap + Amber Glass (a ripe tree gives 1 to 3).' });
 const BUB_IMG = new Image(),
   BUB_ICON = new Image(),
   BUB_POP_IMG = new Image();

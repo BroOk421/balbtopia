@@ -319,7 +319,7 @@ function respawn() {
   P.vx = P.vy = 0;
   P.spawnT = SPAWN_FADE;
   P.face = 1;
-  smoke(sx, sy, 10, 1.2);
+  // (owner, Nov 25 2026) no smoke at the door any more: you are just there again (fading in)
 }
 // stride frames a second for a walking speed (px/s): WALK_FPS at the normal 160 px/s, in step with the speed, so
 // faster shoes move the feet faster too (12 frames make one full two-step stride)

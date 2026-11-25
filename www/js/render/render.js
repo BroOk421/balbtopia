@@ -424,10 +424,13 @@ function ghostSprite(skin) {
   c.height = FR.h;
   const x = c.getContext('2d');
   x.drawImage(IMG['skin_' + skin + '_closed'], 0, 0);
-  x.drawImage(weakFace(skin), 0, 0);
+  // (owner, Nov 25 2026) the soul flying up has the SAME face as the dead body (X eyes, frown: expr_dead), only the face
+  const dfc = typeof blockyImg === 'function' ? blockyImg(skin, 'expr_dead') || blockyImg('porcelain', 'expr_dead') : null;
+  x.drawImage(dfc || weakFace(skin), 0, 0, c.width, c.height);
   x.globalCompositeOperation = 'source-atop';
   x.fillStyle = 'rgba(235,245,255,.5)';
   x.fillRect(0, 0, c.width, c.height);
+  if (!dfc) return c; // the dead face isn't loaded yet: not kept, made again next time
   return (GHOST[skin] = c);
 }
 // one angel wing, pointing up and out to the right (mirrored for the left one)
@@ -443,6 +446,9 @@ const WING_ART = [
   'KWWBBKK.....',
   '.KKKK.......',
 ];
+// where the ghost's wings join the back: x from the middle and y from the feet as parts of the frame, `up` = how much
+// of the wing rises above that point (the rest hangs below it)
+const WING_ROOT = { x: 0.07, y: 0.4, up: 0.6 };
 let WINGC;
 function wingSprite() {
   if (WINGC) return WINGC;
@@ -461,11 +467,15 @@ function wingSprite() {
   );
   return (WINGC = c);
 }
+const LOVE_HIDES = new Set(['shifty_eyes', 'bold_eyeliner']); // eye pieces hidden during /love
 // face items, hair and hats on a body drawn at (0, top) facing right, after the transform is set
 function drawWorn(c, top, sc, dy = 0) {
   const eq = c.equipped || {};
   // face items (glasses, fire eyes...) always stay on top, also over a /facejoke or /troll face
-  if (eq.face) drawWearArt(eq.face, top, sc, dy);
+  // (owner, Nov 25 2026 n: "with the Shifty Eyes on, /love must show only the heart eyes") eye pieces (not glasses)
+  // step aside while the heart eyes are up
+  const loveEyes = c.emo === 'love' && emoElapsedSafe(c) && LOVE_HIDES.has(eq.face);
+  if (eq.face && !loveEyes) drawWearArt(eq.face, top, sc, dy);
   // mustache / beard, mouth, necklace, earring (their own slots since Oct 27 2026)
   for (const s of ['neck', 'stache', 'mouth', 'ear']) if (eq[s] && WEAR_BY_ID[eq[s]]) drawWearArt(eq[s], top, sc, dy);
   const hid = eq.hair;
@@ -519,14 +529,17 @@ function drawDead(c, ox, oy) {
     g.translate(gx, gy);
     g.globalAlpha = ga * 0.9;
     // wings at the shoulders, flapping
+    // (owner, Nov 25 2026 c: "the wings sat too high, put them right on the shoulders, behind") the wing root is on the
+    // back at the shoulder line (WING_ROOT: frame row ~127 of 215 = the blocky shoulder) and close to the body, the wing
+    // flapping round that point, so it no longer reaches up past the head
     const flap = Math.sin(now / 65),
       ws = 13 * Z;
     g.imageSmoothingEnabled = false;
     for (const side of [-1, 1]) {
       g.save();
-      g.translate(side * W * 0.16 * gs, -H * gs * 0.5);
+      g.translate(side * W * WING_ROOT.x * gs, -H * gs * WING_ROOT.y);
       g.scale(side, 0.7 + 0.3 * flap);
-      g.drawImage(wingSprite(), 0, -ws * 0.85, ws, ws * 0.85);
+      g.drawImage(wingSprite(), 0, -ws * 0.85 * WING_ROOT.up, ws, ws * 0.85);
       g.restore();
     }
     g.imageSmoothingEnabled = true;
@@ -628,6 +641,11 @@ function drawCharacter(c, ox, oy) {
     top = Math.round(oy + (c.y + c.h - CHAR_H + FOOT_SINK + bob * CHAR_S) * Z);
   const eq = c.equipped || {},
     dy = punching ? 0 : bodyDy,
+    // (owner, Nov 25 2026 c: "the hair looks like it jumps when walking") the blocky walking frames keep the head still
+    // (their head top is on the same row in all 12 frames) and the body is drawn at `top` with no bob, but the hair,
+    // hats, face pictures and back items were moved by WALK_BOB (dy) every frame, so they bounced on a still head.
+    // Everything on the head now stays with it while walking (the sleeves still get dy)
+    wornDy = walking && !punching && !dw ? 0 : dy,
     tool = heldTool(c.hand);
   // with a tool the arm just swings it (drawn after the body); bare hands stretch out (drawn first)
   // (a pickaxe on the blocky body is held and swung by its front sleeve: blockybody.js blockyOwnsTool)
@@ -641,7 +659,7 @@ function drawCharacter(c, ox, oy) {
   if (c.spawnT > 0) g.globalAlpha *= 1 - c.spawnT / SPAWN_FADE;
   g.imageSmoothingEnabled = true;
   // back items and the back of long hair sit behind the body
-  drawBehind(c, top, sc, dy);
+  drawBehind(c, top, sc, wornDy);
   // the blocky body's sleeves (blockybody.js): the back one behind the body
   const bsl = typeof blockySleeves === 'function' ? { wf, walking: walking && !air, punching, bj: bj ? c._bj : null, cx, ox, oy, tool: tool && c.hand !== 'wrench' ? c.hand : heldTool(eq.hand) ? eq.hand : null } : null;
   const bOwn = !!(bsl && bsl.tool && blockyOwnsTool(bsl.tool)); // held by the blocky front sleeve: no old arm poses
@@ -659,7 +677,7 @@ function drawCharacter(c, ox, oy) {
   // bed"): the body stays put, only the head (the rows above the neck) sinks SLEEP_HEAD_DROP body px, nodding slowly;
   // the face, hair and hats go down with it (hdy)
   const sleepDrop = c.emo === 'sleep' && emoElapsedSafe(c) && !walking && !punching && !bj && !c.rest && !c._swim && !c.rideBase ? SLEEP_HEAD_DROP + Math.sin(now / 900) * SLEEP_NOD : 0,
-    hdy = dy + sleepDrop,
+    hdy = wornDy + sleepDrop,
     bodyPic = gunArm ? gunArm.body : emoArms ? emoArms.body : outfitBody(body, frameKey, eq);
   if (sleepDrop) {
     const nk = typeof BLOCKY_NECK_ROW !== 'undefined' ? BLOCKY_NECK_ROW : 142,
@@ -670,7 +688,7 @@ function drawCharacter(c, ox, oy) {
   if (blankFaceOn(c)) g.drawImage(blankFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // (Blank Face wins over every face: Nov 23 2026)
   else if (c.joke) g.drawImage(jokeFace(c.skin, c.joke), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else if (angry) g.drawImage(angryFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
-  else if (c._swim && typeof swimFace === 'function' && swimFace(c.skin)) g.drawImage(swimFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // in water: only the face changes (owner, Nov 20 2026)
+  else if (c._swim && !c._ring && typeof swimFace === 'function' && swimFace(c.skin)) g.drawImage(swimFace(c.skin), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z); // in water: only the face changes (owner, Nov 20 2026)
   // (an emote face shows in the air too: the walking frame's own face under it, not the jump face; owner Nov 21 2026)
   else if (air && !(c.emo && emoElapsedSafe(c) && c.emo !== 'love') && blockyAirFace(c.skin, c._bj)) g.drawImage(blockyAirFace(c.skin, c._bj), (-FR.w * sc * Z) / 2, top + hdy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
   else drawTalk(c, top, sc, hdy, MOUTH_Y);
@@ -930,6 +948,9 @@ function render() {
   if (weatherNow === 'rain') drawRain();
   else if (weatherNow === 'desert') drawSand();
   else if (weatherNow === 'fall' && typeof drawFall === 'function') drawFall(); // falling leaves (autumn.js)
+  // (owner, Nov 25 2026 e: "it's autumn now, so there should be leaves in the background like the Fall Machine's")
+  // the autumn season with no Weather Machine on (day / night): the same falling leaves (render/seasonnature.js)
+  else if (typeof drawFall === 'function' && typeof seasonByDate === 'function' && typeof dnOn === 'function' && dnOn() && seasonByDate() === 'fall') drawFall();
   const sx = (Math.random() - 0.5) * shake,
     sy = (Math.random() - 0.5) * shake;
   const ox = Math.round(-cam.x * Z + sx),
@@ -983,7 +1004,7 @@ function render() {
         if (dmg[i]) {
           if (now - dmgT[i] > healMs(hitsNeeded(b))) {
             dmg[i] = 0;
-          } else drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b));
+          } else drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b), i, dmg[i], hitsNeeded(b));
         }
       }
   } finally {
@@ -1132,7 +1153,7 @@ function render() {
         b = BLOCK[fg[i]];
       if (!b || b.id !== 'guard_glass') continue;
       drawNewBlock(b, x, y, ox + x * T, oy + y * T, T);
-      if (dmg[i]) drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b));
+      if (dmg[i]) drawCrack(ox + x * T, oy + y * T, T, dmg[i] / hitsNeeded(b), i, dmg[i], hitsNeeded(b));
     }
   drawWater(ox, oy, T); // gates.js: water in front of the world and players
   if (typeof drawDayNightLight === 'function') drawDayNightLight(ox, oy); // daynight.js: the night's darkness + lights
@@ -1378,7 +1399,8 @@ function crackPic(r) {
   const f = Math.max(0.14, Math.min(1, r * 1.15));
   return crackPics()[Math.min(CRACK_STEPS - 1, Math.max(0, Math.ceil(f * CRACK_STEPS) - 1))];
 }
-function drawCrack(px, py, T, r) {
+// (i, n, need: the tile, its hits and the hits it takes: items/vcbreak.js draws the Void Cleaver's own marks)
+function drawCrack(px, py, T, r, i, n, need) {
   const sm = g.imageSmoothingEnabled;
   g.imageSmoothingEnabled = false;
   g.drawImage(crackPic(r), px, py, T, T);

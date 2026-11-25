@@ -139,7 +139,9 @@ drawWorn = ((prev) =>
         else drawWearArt(w.eq.hat, top, sc, dy);
       }
     }
-    if (face && WEAR_BY_ID[face]) drawWearArt(face, top, sc, dy);
+    // (owner, Nov 25 2026 n) /love: eye pieces (Shifty Eyes, eyeliner) step aside, only the heart eyes show (render.js LOVE_HIDES)
+    const loveEyes = c.emo === 'love' && emoElapsedSafe(c) && LOVE_HIDES.has(face);
+    if (face && WEAR_BY_ID[face] && !loveEyes) drawWearArt(face, top, sc, dy);
   })(drawWorn);
 drawBehind = ((prev) =>
   function (c, top, sc, dy) {

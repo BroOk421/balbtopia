@@ -367,7 +367,7 @@ function itemSet(S) {
         for (const [id, n] of S.get) addItem(id, n);
         updateGold(true);
         savePlayer();
-        closeShop();
+        shopBought(); // (Nov 25 2026 c: the Shop stays open after buying)
         Native.haptic('medium');
         toast((isGM() ? 'GM: got the ' : 'Bought the ') + S.name + '! It is in your bag');
       };

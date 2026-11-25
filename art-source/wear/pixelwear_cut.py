@@ -74,6 +74,9 @@ ITEMS = {
     'stache/messy.aseprite': 'grandpa_beard', 'stache/full-bigote.aseprite': 'lumberjack_beard',
     # eyeliner (Eyes slot): no layer of its own, his 'eyes' layer is redrawn with dark rims: the pixels that differ
     'eye/eyeliner.aseprite': 'bold_eyeliner',
+    # (owner, Nov 25 2026: eye-1.aseprite, "an eye wearable") 7 frames of 100 ms, the eyes glancing round: frame 0 is
+    # idle.png, frames 1-6 idle_f1..idle_f6.png (pixelwear.js PXW_ANIM plays them)
+    'eye/eye-1.aseprite': 'shifty_eyes',
     # hairs ('hair' layer). Hime Cut = girl-long-hair.aseprite (owner's fixed file, Nov 23 2026; replaced girlhair.aseprite,
     # 3 px different), and the flipped bob came only as a PNG (girl-hair.png, kept as flip-bob.png): a .png is the whole figure, the hair = what differs
     # from the bare body
@@ -523,6 +526,15 @@ for f, iid in ITEMS.items():
         a, ask = piece(cels[lname], tall_under(cels[lname], body))
         poses['idle'] = (a, ask)
         icon = cels[lname].copy()
+        if cat == 'eye' and len(frames) > 1:  # an animated eye piece: every frame its own picture
+            # (owner, Nov 25 2026 n: "a black rectangle stroke, there shouldn't be one") the WHOLE eyes layer every frame,
+            # not only what differs from the body: a part-picture's soft edges (the game draws smoothed) let the body's
+            # own pupil show through as a dark outline. His frames all have the body's eye shape, so it covers it.
+            full = lambda e: (e.copy(), is_skin(e))
+            poses['idle'] = full(cels[lname])
+            for k in range(1, len(frames)):
+                ck = align(dict(frames[k]), f)
+                poses['idle_f%d' % k] = full(ck[lname])
     if part == 'hoodie':
         for nm, a in (('hood_idle', cels['mask']), ('hood_nohair', nohair_hood), ('hood_hole', hole_rgba)):
             save_pose(d, nm, fit(a), np.zeros((FH, FW + 2 * PAD), bool), False)

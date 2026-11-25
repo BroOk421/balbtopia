@@ -5,6 +5,7 @@
 # holds it (items/pxswords.js PXS.at), in his file's own direction (he faces left; the game mirrors it like rodknife.js).
 #   sword.aseprite         -> silver_blade      (front hand; only 'sword' is visible)
 #   sword-effect.aseprite  -> prism_blade       (front hand; 'effects' + 'sword' + 'another aura': the colours cycle)
+#   autumn-stick.aseprite  -> autumn_stick  (front hand, 1 frame; Nov 25 2026 c)
 #   bigsword.aseprite      -> void_cleaver  (BACK hand raised straight up, the sword lying behind the head, under
 #                                                the body, with its blue glow and sparks)
 # Run:  python3 art-source/items/pxsword_cut.py <project root>
@@ -66,7 +67,17 @@ def over(dst, src, alpha):
 
 
 ITEMS = [('sword.aseprite', 'silver_blade', 'front'), ('sword-effect.aseprite', 'prism_blade', 'front'),
-         ('bigsword.aseprite', 'void_cleaver', 'back')]
+         ('bigsword.aseprite', 'void_cleaver', 'back'),
+         ('autumn-stick.aseprite', 'autumn_stick', 'front'),  # (Nov 25 2026 c: one frame; an Autumn Chest prize)
+         # (Nov 25 2026 p) boomerang (thrown spinning like the stick), bow (its arrow is the row on top: cut apart
+         # below), pamalo and bigsword-1 (held up behind the head like the Void Cleaver)
+         ('boomerang.aseprite', 'wooden_boomerang', 'front'), ('bow.aseprite', 'hunter_bow', 'front'),
+         ('pamalo.aseprite', 'pamalo', 'back'), ('bigsword-1.aseprite', 'obsidian_cleaver', 'back')]
+# rows of his canvas that belong to the item (the rest is something else: the bow file's arrow, rows 0-9)
+ROWS = {'hunter_bow': (10, None)}
+# extra pictures cut out of a file: (file, layer, rows, out name) - the Hunter's Bow's arrow (items/bow.js shoots it)
+EXTRA = [('bow.aseprite', 'boomerang', (0, 10), 'bow_arrow')]
+CORE = {'void_cleaver': ('effect-blade',)}  # (Nov 25 2026 l: only the effect-blade glows)
 for f, iid, arm in ITEMS:
     frames, L = read(HERE + f)
     pics = []
@@ -75,6 +86,11 @@ for f, iid, arm in ITEMS:
         for name, vis, op in L:
             if vis and name not in BODY and name in cels:
                 a = over(a, cels[name], op / 255)
+        if iid in ROWS:
+            r0, r1 = ROWS[iid]
+            a[:r0] = 0
+            if r1 is not None:
+                a[r1:] = 0
         pics.append(np.clip(np.round(a), 0, 255).astype(np.uint8))
     ys, xs = np.where(np.any([p[..., 3] > 0 for p in pics], axis=0))
     x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
@@ -84,9 +100,28 @@ for f, iid, arm in ITEMS:
         strip[:, k * w:(k + 1) * w] = p[y0:y1, x0:x1]
     strip[strip[..., 3] == 0] = 0
     Image.fromarray(strip).save(OUT + 'held_' + iid + '.png')
+    # (Nov 25 2026 k) the sword alone (no 'effects' sparks), same box: items/vcbreak.js puts its neon rim round THIS
+    if iid in CORE:
+        core = np.zeros_like(strip)
+        for k, cels in enumerate(frames):
+            a = np.zeros(cels['shape'].shape, float)
+            for name, vis, op in L:
+                if vis and name in CORE[iid] and name in cels:
+                    a = over(a, cels[name], op / 255)
+            core[:, k * w:(k + 1) * w] = np.clip(np.round(a), 0, 255).astype(np.uint8)[y0:y1, x0:x1]
+        core[core[..., 3] == 0] = 0
+        Image.fromarray(core).save(OUT + 'held_' + iid + '_core.png')
     # the shoulder in his file: the bare body's left column + 14.83 (front) / 3.83 (back), its top row + 16.5
     # (the game's BLOCKY.front [29, 145] / back [95, 145] in the 118 x 215 frame, his body drawn mirrored at x6)
     sy, sx = np.where(frames[0]['shape'][..., 3] > 0)
     shx = sx.min() + (14.83 if arm == 'front' else 3.83)
     shy = sy.min() + 16.5
     print(iid, arm, 'frames', len(pics), 'size', w, h, 'at', round(x0 - shx, 2), round(y0 - shy, 2))
+for f, layer, (r0, r1), name in EXTRA:
+    frames, L = read(HERE + f)
+    a = np.clip(np.round(frames[0][layer]), 0, 255).astype(np.uint8)[r0:r1]
+    ys, xs = np.where(a[..., 3] > 0)
+    a = a[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    a[a[..., 3] == 0] = 0
+    Image.fromarray(a).save(OUT + name + '.png')
+    print(name, a.shape[1], a.shape[0])

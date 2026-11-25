@@ -5367,3 +5367,93 @@ body.noblur .wload {
   padding-right: 6px;
   overscroll-behavior: contain;
 }
+
+/* ---------- (owner, Nov 25 2026) Shop / Menu: the same height on every tab, and the tab column as tall as the window ----------
+   "the buttons in the shop, settings, menus as tall as the shop; a bit bigger to fit that height; even with few
+   items (AUTUMN) the shop must not shrink". The card list is always 2 rows tall; a tab without sub-tabs keeps an
+   empty (invisible) sub-tab row (winsize.js); the menu window is at least the shop's height (--shopH, winsize.js). */
+#shop .slist {
+  /* (short phone screens: no taller than what fits in the window's 84vh; the rest scrolls, as before) */
+  height: min(calc(var(--scard-h) * 2 + 8px), calc(84vh - 100px));
+  max-height: none;
+}
+#shop .ssub.ph {
+  visibility: hidden;
+}
+#menu.win {
+  --scard-h: 146px;
+  box-sizing: border-box;
+  min-height: min(84vh, var(--shopH, calc(var(--scard-h) * 2 + 104px)));
+}
+#shop.win {
+  box-sizing: border-box;
+  min-height: min(84vh, var(--shopH, 0px));
+}
+#shop #shopTabs,
+#menu .tabs {
+  top: -5px;
+  bottom: -5px;
+  transform: none;
+  justify-content: stretch;
+  gap: 6px;
+  padding: 7px;
+}
+#shop #shopTabs button,
+#menu .tabs button {
+  flex: 1 1 0;
+  min-height: 0;
+  font-size: 10px;
+  padding: 4px 16px;
+  white-space: nowrap;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #shop #shopTabs,
+  #menu .tabs {
+    top: -4px;
+    bottom: -4px;
+    gap: 4px;
+    padding: 4px;
+  }
+  #shop #shopTabs button,
+  #menu .tabs button {
+    font-size: 8px;
+    padding: 2px 10px;
+  }
+}
+
+/* (Nov 25 2026 c) Shop pop-up: the Quantity row (ui/shop.js shopItem) */
+.sqrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0 6px;
+}
+.sqrow .sqlbl {
+  font: 9px var(--pixel);
+  color: var(--muted);
+  margin-right: 4px;
+}
+.sqrow .btn {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  font: 12px var(--pixel);
+}
+.sqrow .sqin {
+  width: 64px;
+  height: 30px;
+  box-sizing: border-box;
+  text-align: center;
+  font: 11px var(--pixel);
+  color: var(--ink);
+  background: var(--slot);
+  border: 2px solid var(--night);
+  border-radius: 4px;
+  -moz-appearance: textfield;
+}
+.sqrow .sqin::-webkit-outer-spin-button,
+.sqrow .sqin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

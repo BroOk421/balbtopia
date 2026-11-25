@@ -257,7 +257,7 @@ function toDoor(msg) {
   P.vx = P.vy = 0;
   P.spawnT = SPAWN_FADE;
   P.face = 1;
-  smoke(door.x, door.y, 10, 1.2);
+  // (owner, Nov 25 2026) no smoke at the main door: just there, fading in
   shake = Math.max(shake, 3);
   Native.haptic('medium');
   if (msg) toast(msg);

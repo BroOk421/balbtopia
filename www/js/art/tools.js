@@ -156,35 +156,7 @@ const HDT_ART = {
       for (let k = 0; k < 6; k++) set(11 + k, 19 - k, '#9a7808');
       set(29, 2, '#5a5a66');
     }),
-  just_one_boxing_glove: () =>
-    hdtSprite((set) => {
-      const [m, l, d] = TOOLS.just_one_boxing_glove.head;
-      // white cuff with a lace line (the part the hand holds)
-      hdtSeg(set, [4, 28], [11, 21], 3.4, (t, s) => (s < -0.3 ? '#ffffff' : s > 0.5 ? '#b8b8c4' : Math.floor(t * 8) % 2 ? '#d8d8e0' : '#f2f2f2'));
-      // the fist: a big round shape, lit from the top left
-      hdtDisc(set, 19, 13, 9, (dx, dy) => {
-        const lit = -dx * 0.6 - dy * 0.8;
-        return lit > 0.55 ? l : lit < -0.5 ? d : m;
-      });
-      // knuckle seam: a curve across the front of the fist
-      for (let k = 0; k <= 10; k++) {
-        const a = -0.2 + (k / 10) * 1.9,
-          x = Math.round(19 + Math.cos(a) * 6.2),
-          y = Math.round(13 - Math.sin(a) * 6.2);
-        set(x, y, d);
-      }
-      // thumb wrapped over the lower left, with its own dark edge
-      hdtDisc(set, 12, 17, 4.2, (dx, dy) => {
-        const r = Math.hypot(dx, dy);
-        return r > 0.78 && dx + dy > -0.2 ? d : -dx - dy > 0.5 ? l : m;
-      });
-      set(11, 15, '#ffd0c8');
-      // shine
-      set(15, 7, '#ffffff');
-      set(16, 6, '#ffffff');
-      set(17, 6, '#ffd0c8');
-      set(15, 8, '#ffd0c8');
-    }),
+  // (just_one_boxing_glove: the owner's own picture since Nov 25 2026 c, items/glovepunch.js)
 };
 // the Wrench isn't in TOOLS; the rest go through toolSprite (pickaxes and the shovel keep their own drawings)
 function toolSprite(id) {

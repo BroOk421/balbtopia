@@ -1431,6 +1431,27 @@
     },
     "iron_lantern": {
       "growSeconds": 240
+    },
+    "autumn_leaf_block": {
+      "growSeconds": 600
+    },
+    "maple_plank_block": {
+      "growSeconds": 600
+    },
+    "autumn_leaf_wall": {
+      "growSeconds": 600
+    },
+    "bubble_gum": {
+      "growSeconds": 600
+    },
+    "wooden_boomerang": {
+      "growSeconds": 360
+    },
+    "hunter_bow": {
+      "growSeconds": 360
+    },
+    "pamalo": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -6185,6 +6206,69 @@
       "result": "iron_lantern",
       "source": "balbtopia",
       "note": "Iron Lantern = Torch + Iron Bars (Balbtopia recipe, Nov 24 2026)"
+    },
+    {
+      "seeds": [
+        "leaf_block",
+        "red_block"
+      ],
+      "result": "autumn_leaf_block",
+      "source": "balbtopia",
+      "note": "Autumn Leaf Block = Leaf Block + Red Block (Balbtopia recipe, Nov 25 2026)"
+    },
+    {
+      "seeds": [
+        "orange_block",
+        "wood_block"
+      ],
+      "result": "maple_plank_block",
+      "source": "balbtopia",
+      "note": "Maple Plank Block = Wood Block + Orange Block (Balbtopia recipe, Nov 25 2026)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "wooden_background"
+      ],
+      "result": "autumn_leaf_wall",
+      "source": "balbtopia",
+      "note": "Autumn Leaf Wall = Wooden Background + Red Block (Balbtopia recipe, Nov 25 2026)"
+    },
+    {
+      "seeds": [
+        "amber_glass",
+        "bubble_wrap"
+      ],
+      "result": "bubble_gum",
+      "source": "balbtopia",
+      "note": "Bubble Gum = Bubble Wrap + Amber Glass (Balbtopia recipe, Nov 25 2026)"
+    },
+    {
+      "seeds": [
+        "red_block",
+        "wood_block"
+      ],
+      "result": "wooden_boomerang",
+      "source": "balbtopia",
+      "note": "Wooden Boomerang = Red Block + Wood Block (Nov 25 2026 q, pxswords.js PXS_SEED)"
+    },
+    {
+      "seeds": [
+        "death_spikes",
+        "wooden_platform"
+      ],
+      "result": "hunter_bow",
+      "source": "balbtopia",
+      "note": "Hunter's Bow = Death Spikes + Wooden Platform (Nov 25 2026 q, pxswords.js PXS_SEED)"
+    },
+    {
+      "seeds": [
+        "rock",
+        "wood_block"
+      ],
+      "result": "pamalo",
+      "source": "balbtopia",
+      "note": "Pamalo = Rock + Wood Block (Nov 25 2026 q, pxswords.js PXS_SEED)"
     }
   ],
   "notInGameYet": [

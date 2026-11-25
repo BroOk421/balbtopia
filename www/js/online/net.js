@@ -566,7 +566,7 @@ const Net = (() => {
       .on('broadcast', { event: 'chat' }, ({ payload }) => payload && !cJoined && N.onChat && N.onChat(payload))
       .on('broadcast', { event: 'die' }, ({ payload }) => {
         const r = payload && N.remotes.get(payload.id);
-        if (r) r.dead = { t: 0 };
+        if (r && !r.dead) (r.dead = { t: 0 }), (r.diedAt = 1);
       })
       .on('broadcast', { event: 'fly' }, ({ payload }) => N.onFly && N.onFly(payload))
       .on('broadcast', { event: 'kick' }, ({ payload }) => payload && onKickMsg(payload))
@@ -740,7 +740,13 @@ const Net = (() => {
       N.remotes.set(p.id, r);
       toast(realName + ' joined');
     }
-    if (Math.hypot(p.x - r.x, p.y - r.y) > TS * 4) {
+    // (owner, Nov 25 2026: others must see the whole death animation) they died: the body / ghost stays where they
+    // fell until the animation is over (N.tick), even when their next position is already the door. The die message
+    // missed (or we came in meanwhile)? `dd` in the position starts it too
+    if (p.dd && !r.dead && !r.diedAt) r.dead = { t: 0 };
+    if (!p.dd) r.diedAt = 0;
+    else if (r.dead) r.diedAt = 1;
+    if (!r.dead && Math.hypot(p.x - r.x, p.y - r.y) > TS * 4) {
       r.x = p.x;
       r.y = p.y;
     }
@@ -828,6 +834,7 @@ const Net = (() => {
       wr: hand === 'wrench' ? 1 : undefined, // the Wrench is selected (the little mark over the head, liven.js)
       fl: myFlag || undefined, // the player's flag (flags.js)
       hu: P.hitT > 0 ? 1 : 0, // (no blinking for lava burns, owner Nov 1 2026)
+      dd: P.dead ? 1 : undefined, // dead (the death animation: others start it from this if the die message was missed)
       rc: P.dead && P.rvbCd > 0 ? 1 : undefined, // dead in a Splash Wars match, counting 3 2 1 (events/rvb.js): stay gone
       rs: P.rest ? [P.rest.k, P.rest.tx, P.rest.ty] : 0, // sitting / sleeping
       ty: typeof chatTyping === 'function' && chatTyping() ? 1 : 0, // the chat is open: the little bubble shows (liven.js)

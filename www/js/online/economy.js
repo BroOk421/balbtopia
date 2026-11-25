@@ -79,6 +79,23 @@ const Wallet = (() => {
       return e.message;
     }
   }
+  // (Nov 25 2026 c) `count` of the same Shop entry: one server call (shop_buy_n); an old server without it gets
+  // shop_buy `count` times. Returns null, an error message, or { err, got } when it stopped part way.
+  async function buyN(id, qty, count) {
+    if (!(count > 1)) return buy(id, qty);
+    await flush();
+    try {
+      show(await rpc('shop_buy_n', { p_item: id, p_qty: qty, p_count: count }));
+      return null;
+    } catch (e) {
+      if (!/shop_buy_n|schema cache|does not exist/i.test(e.message)) return e.message;
+    }
+    for (let k = 0; k < count; k++) {
+      const err = await buy(id, qty);
+      if (err) return k ? { err, got: k } : err;
+    }
+    return null;
+  }
   async function tradeGold(withId, give, get) {
     if (!on() || (!give && !get)) return;
     await flush();
@@ -100,7 +117,7 @@ const Wallet = (() => {
   addEventListener('pagehide', flush);
   document.addEventListener('visibilitychange', () => document.hidden && flush());
   Net.onLobby('gold_done', () => load());
-  return { on, load, earn, flush, buy, tradeGold, giveItem, show, rpc };
+  return { on, load, earn, flush, buy, buyN, tradeGold, giveItem, show, rpc };
 })();
 
 // ---------- Balb Coins (owner, Oct 2026) ----------

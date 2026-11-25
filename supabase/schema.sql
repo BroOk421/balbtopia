@@ -1120,9 +1120,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('ride_truck', 1, 80000, true, 0),
   ('ride_car', 1, 70000, true, 0),
   ('ride_harvester', 1, 75000, true, 0),
-  ('ride_leaf', 1, 90000, true, 0), -- Leaf Glider (Nov 4 2026)
-  ('ride_leaf_green', 1, 90000, true, 0), -- Green / Yellow Leaf Glider (Nov 9 2026; Autumn event only, see shop_buy)
-  ('ride_leaf_yellow', 1, 90000, true, 0),
+  -- (Nov 25 2026 c) the three Leaf Gliders are no longer sold: very rare Autumn Chest prizes (autumn.js)
   ('ride_carpet', 1, 95000, true, 0), -- Sultan's Flying Carpet (Nov 8 2026)
   ('autumn_chest', 1, 10000, true, 0), -- Autumn event chest (autumn.js; sold Nov 4 - Dec 4 2026 only, see shop_buy)
   -- girls' clothes (clothes.js) and styled hair (hairstyles.js), Oct 31 2026
@@ -1191,6 +1189,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('grandpa_beard', 1, 5000, true, 0),
   ('lumberjack_beard', 1, 5000, true, 0),
   ('bold_eyeliner', 1, 2000, true, 0),
+  ('shifty_eyes', 1, 5000, true, 0), -- (Nov 25 2026 i) wear/pixelwear.js
   ('brown_neat_cut', 1, 3000, true, 0),
   ('black_neat_cut', 1, 3000, true, 0),
   ('red_neat_cut', 1, 3500, true, 0),
@@ -1207,7 +1206,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('blank_face', 1, 6000, true, 0),
   ('rocker_mohawk', 1, 4000, true, 0),
   ('fluffy_afro', 1, 7000, true, 0),
-  ('bubble_gum', 10, 6000, true, 0), -- (Nov 25 2026) a pack of 10: each bubble uses one
+  -- (Nov 25 2026 b) bubble_gum is no longer sold: it grows from a seed (events/autumnseeds.js)
   ('gold_trim_jacket', 1, 6000, true, 0), -- pixelwear.js (Nov 25 2026)
   ('crimson_trim_jacket', 1, 6000, true, 0),
   ('silver_trim_jacket', 1, 6000, true, 0),
@@ -1218,6 +1217,8 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('silver_blade', 1, 8000, true, 0), -- pxswords.js (Nov 25 2026)
   ('prism_blade', 1, 25000, true, 0),
   ('void_cleaver', 1, 60000, true, 0),
+  ('obsidian_cleaver', 1, 30000, true, 0), -- (Nov 25 2026 p) pxswords.js (q: the boomerang, bow and pamalo grow from seeds)
+  ('red_balloon', 1, 3000, true, 0), -- (Nov 25 2026 c) items/balloon.js
   ('piano', 1, 3000, true, 0),
   ('genie_teapot', 1, 1000, true, 0),
   ('microphone', 1, 20000, true, 0), -- globalchat.js: one Global Chat broadcast each (20,000 since Nov 13 2026)
@@ -1294,7 +1295,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_jade_dragon', 1, 100000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('royal_silk_scarf', 1), ('prism_ring', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_leaf', 1), ('ride_leaf_green', 1), ('ride_leaf_yellow', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('midnight_tee', 1), ('brown_tee', 1), ('gray_tee', 1), ('green_tee', 1), ('orange_tee', 1), ('pink_tee', 1), ('red_tee', 1), ('smiley_tee', 1), ('black_button_polo', 1), ('white_button_polo', 1), ('charcoal_open_shirt', 1), ('white_open_shirt', 1), ('red_open_shirt', 1), ('black_kung_fu_shirt', 1), ('white_kung_fu_shirt', 1), ('black_shorts', 1), ('blue_shorts', 1), ('lime_shorts', 1), ('orange_shorts', 1), ('red_shorts', 1), ('white_shorts', 1), ('black_sneakers', 1), ('charcoal_sneakers', 1), ('retro_sneakers', 1), ('black_flip_flops', 1), ('gray_flip_flops', 1), ('green_flip_flops', 1), ('orange_flip_flops', 1), ('red_flip_flops', 1), ('black_shades', 1), ('green_shades', 1), ('yellow_shades', 1), ('burst_fade', 1), ('wild_fade', 1), ('wild_side_part', 1), ('red_wild_fade', 1), ('red_side_part', 1), ('bob_cut', 1), ('good_boy_cut', 1), ('silver_wild_fade', 1), ('golden_bob_cut', 1), ('cloud_sole_sneakers', 1), ('shadow_hood', 1), ('shadow_robe', 1), ('gray_hoodie', 1), ('black_silk_scarf', 1), ('crimson_silk_scarf', 1), ('trucker_cap', 1), ('black_beanie', 1), ('frog_hood', 1), ('six_pack_abs', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('handlebar_mustache', 1), ('gentleman_mustache', 1), ('button_mustache', 1), ('silver_walrus_mustache', 1), ('grandpa_beard', 1), ('lumberjack_beard', 1), ('bold_eyeliner', 1), ('brown_neat_cut', 1), ('black_neat_cut', 1), ('red_neat_cut', 1), ('black_wolf_cut', 1), ('messy_wolf_cut', 1), ('red_wolf_cut', 1), ('emo_fringe', 1), ('hime_cut', 1), ('flipped_bob', 1), ('cherry_space_buns', 1), ('professor_tufts', 1), ('frost_spikes', 1), ('onyx_shades', 1), ('blank_face', 1), ('rocker_mohawk', 1), ('fluffy_afro', 1), ('bubble_gum', 10), ('gold_trim_jacket', 1), ('crimson_trim_jacket', 1), ('silver_trim_jacket', 1), ('caveman_fur', 1), ('messy_mop', 1), ('white_sando', 1), ('navy_shorts', 1), ('silver_blade', 1), ('prism_blade', 1), ('void_cleaver', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_astronaut', 1), ('starter_pack', 1), ('set_music', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('golden_wings', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('royal_silk_scarf', 1), ('prism_ring', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('midnight_tee', 1), ('brown_tee', 1), ('gray_tee', 1), ('green_tee', 1), ('orange_tee', 1), ('pink_tee', 1), ('red_tee', 1), ('smiley_tee', 1), ('black_button_polo', 1), ('white_button_polo', 1), ('charcoal_open_shirt', 1), ('white_open_shirt', 1), ('red_open_shirt', 1), ('black_kung_fu_shirt', 1), ('white_kung_fu_shirt', 1), ('black_shorts', 1), ('blue_shorts', 1), ('lime_shorts', 1), ('orange_shorts', 1), ('red_shorts', 1), ('white_shorts', 1), ('black_sneakers', 1), ('charcoal_sneakers', 1), ('retro_sneakers', 1), ('black_flip_flops', 1), ('gray_flip_flops', 1), ('green_flip_flops', 1), ('orange_flip_flops', 1), ('red_flip_flops', 1), ('black_shades', 1), ('green_shades', 1), ('yellow_shades', 1), ('burst_fade', 1), ('wild_fade', 1), ('wild_side_part', 1), ('red_wild_fade', 1), ('red_side_part', 1), ('bob_cut', 1), ('good_boy_cut', 1), ('silver_wild_fade', 1), ('golden_bob_cut', 1), ('cloud_sole_sneakers', 1), ('shadow_hood', 1), ('shadow_robe', 1), ('gray_hoodie', 1), ('black_silk_scarf', 1), ('crimson_silk_scarf', 1), ('trucker_cap', 1), ('black_beanie', 1), ('frog_hood', 1), ('six_pack_abs', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('handlebar_mustache', 1), ('gentleman_mustache', 1), ('button_mustache', 1), ('silver_walrus_mustache', 1), ('grandpa_beard', 1), ('lumberjack_beard', 1), ('bold_eyeliner', 1), ('shifty_eyes', 1), ('brown_neat_cut', 1), ('black_neat_cut', 1), ('red_neat_cut', 1), ('black_wolf_cut', 1), ('messy_wolf_cut', 1), ('red_wolf_cut', 1), ('emo_fringe', 1), ('hime_cut', 1), ('flipped_bob', 1), ('cherry_space_buns', 1), ('professor_tufts', 1), ('frost_spikes', 1), ('onyx_shades', 1), ('blank_face', 1), ('rocker_mohawk', 1), ('fluffy_afro', 1), ('gold_trim_jacket', 1), ('crimson_trim_jacket', 1), ('silver_trim_jacket', 1), ('caveman_fur', 1), ('messy_mop', 1), ('white_sando', 1), ('navy_shorts', 1), ('silver_blade', 1), ('prism_blade', 1), ('void_cleaver', 1), ('obsidian_cleaver', 1), ('red_balloon', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_astronaut', 1), ('starter_pack', 1), ('set_music', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('golden_wings', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
@@ -5251,6 +5252,44 @@ begin
   return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'bag', public.bag_cls(p_item) <> 'none');
 end $$;
 
+-- (Nov 25 2026 c, owner: "a quantity in the Shop's buy pop-up") buy p_count of the same Shop entry in ONE go: the price
+-- times p_count taken at once, p_qty x p_count given. 1 to 99 at a time. (ui/shop.js; an old server without it: the game
+-- calls shop_buy p_count times instead.)
+create or replace function public.shop_buy_n(p_item text, p_qty integer, p_count integer)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare pr public.shop_prices; w public.wallets; gm boolean := public.is_gm(); n integer := coalesce(p_count, 1); tot bigint;
+begin
+  if public.is_banned() then raise exception 'This account is banned' using errcode = '42501'; end if;
+  if n < 1 or n > 99 then raise exception 'Buy 1 to 99 at a time' using errcode = 'P0001'; end if;
+  select * into pr from public.shop_prices where item = p_item and qty = p_qty;
+  if not found then raise exception 'That isn''t sold in the Shop' using errcode = 'P0001'; end if;
+  if p_item in ('autumn_chest') and not gm
+     and not (now() >= timestamptz '2026-11-04 00:00:00+08' and now() < timestamptz '2026-12-05 00:00:00+08') then
+    raise exception 'The Autumn event is over' using errcode = 'P0001';
+  end if;
+  perform public.my_wallet();
+  select * into w from public.wallets where id = auth.uid() for update;
+  if not gm then
+    if pr.bc > 0 then
+      tot := pr.bc::bigint * n;
+      if w.bc < tot then raise exception 'Not enough Balb Coins' using errcode = 'P0001'; end if;
+      update public.wallets set bc = bc - tot where id = auth.uid() returning * into w;
+    else
+      tot := pr.gold::bigint * n;
+      if w.gold < tot then raise exception 'Not enough gold' using errcode = 'P0001'; end if;
+      update public.wallets set gold = gold - tot where id = auth.uid() returning * into w;
+    end if;
+  end if;
+  if pr.tracked then perform public.add_owned(auth.uid(), p_item, p_qty::bigint * n); end if;
+  if public.bag_cls(p_item) <> 'none' then
+    perform public.bag_init(auth.uid());
+    perform public.bag_add(auth.uid(), p_item, p_qty::bigint * n);
+  end if;
+  return jsonb_build_object('gold', w.gold, 'held', w.held, 'bc', w.bc, 'bag', public.bag_cls(p_item) <> 'none');
+end $$;
+revoke execute on function public.shop_buy_n(text, integer, integer) from public, anon;
+grant execute on function public.shop_buy_n(text, integer, integer) to authenticated;
+
 create or replace function public.claim_level_reward(p_lv integer)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare w public.wallets; have integer; it text;
@@ -5471,6 +5510,18 @@ on conflict (item) do update set cls = excluded.cls;
 insert into public.item_info (item, cls) values ('zigzag_stairs', 'common'), ('zigzag_stairs_seed', 'common'),
   ('chain', 'uncommon'), ('chain_seed', 'uncommon'), ('iron_lantern', 'uncommon'), ('iron_lantern_seed', 'uncommon')
 on conflict (item) do update set cls = excluded.cls;
+-- (Nov 25 2026 b, owner) the autumn blocks, the Autumn Leaf Wall and Bubble Gum grow from seeds (events/autumnseeds.js)
+insert into public.item_info (item, cls) values
+  ('autumn_leaf_block', 'rare'), ('autumn_leaf_block_seed', 'rare'), ('maple_plank_block', 'rare'), ('maple_plank_block_seed', 'rare'),
+  ('autumn_leaf_wall', 'uncommon'), ('autumn_leaf_wall_seed', 'uncommon'), ('bubble_gum', 'rare'), ('bubble_gum_seed', 'rare')
+on conflict (item) do update set cls = excluded.cls;
+-- (Nov 25 2026 c) Red Balloon (Shop TOOLS, items/balloon.js), Autumn Stick (a rare Autumn Chest prize, items/pxswords.js)
+insert into public.item_info (item, cls) values ('red_balloon', 'uncommon'), ('autumn_stick', 'legendary')
+on conflict (item) do update set cls = excluded.cls;
+-- (Nov 25 2026 i) Shifty Eyes (pixelwear.js), the four Swim Floats (salbabida.js)
+insert into public.item_info (item, cls) values ('shifty_eyes', 'rare'), ('blue_swim_float', 'uncommon'),
+  ('green_swim_float', 'uncommon'), ('chicken_swim_float', 'rare'), ('monster_swim_float', 'rare')
+on conflict (item) do update set cls = excluded.cls;
 
 -- =====================================================================================================
 -- (Nov 22 2026, owner) "remove the wearables made in code, keep only the rings; the raptor too; the code-made weapon
@@ -5604,3 +5655,23 @@ begin
 end $$;
 revoke execute on function public.my_bag_slots(), public.buy_bag_slot() from public, anon;
 grant execute on function public.my_bag_slots(), public.buy_bag_slot() to authenticated;
+
+-- =====================================================================================================
+-- (Nov 25 2026 m, owner: "the swim floats: Splash Wars prizes, out of the shop") Safe to run more than once.
+-- Out of the Shop (shop_prices; also dropped from the keep-list above), into the Ticket Exchange (excl = only here, so
+-- they still count as tracked / Shop-only items: is_tracked).
+delete from public.shop_prices where item in ('blue_swim_float', 'green_swim_float', 'chicken_swim_float', 'monster_swim_float');
+insert into public.spw_shop (item, tickets, excl, qty) values
+  ('blue_swim_float', 500, true, 1), ('green_swim_float', 500, true, 1),
+  ('chicken_swim_float', 1000, true, 1), ('monster_swim_float', 1000, true, 1)
+on conflict (item) do update set tickets = excluded.tickets, excl = excluded.excl, qty = excluded.qty;
+
+-- =====================================================================================================
+-- (Nov 25 2026 p) Wooden Boomerang, Hunter's Bow, Pamalo, Obsidian Cleaver (Shop, tools; rows in shop_prices above).
+-- Safe to run more than once.
+insert into public.item_info (item, cls) values
+  ('wooden_boomerang', 'epic'), ('hunter_bow', 'epic'), ('pamalo', 'rare'), ('obsidian_cleaver', 'epic')
+on conflict (item) do update set cls = excluded.cls;
+
+-- (Nov 25 2026 q, owner: "the bow, pamalo and boomerang seedable, not in the mall") out of the Shop (rows of build p).
+delete from public.shop_prices where item in ('wooden_boomerang', 'hunter_bow', 'pamalo');

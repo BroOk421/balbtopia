@@ -72,7 +72,7 @@ ITEMS.autumn_chest = {
   kind: 'block',
   block: AUTUMN_CHEST_T,
   rarity: 'Epic',
-  desc: 'An autumn event chest. Place it and break it: ONE random autumn prize floats out (Autumn Wings, Fall Machine, Autumn Scythe, gold, Leaf Headband, leaf clothes, Autumn Boots, autumn blocks or walls; the rare ones are hard to get). Sold only during the Autumn event (until Dec 4).',
+  desc: 'An autumn event chest. Place it and break it: ONE random autumn prize floats out (autumn blocks or walls, 1,000 - 2,000 gold, or, very rarely, the Autumn Wings, a Leaf Glider, the Autumn Stick, the Fall Machine or the Autumn Scythe). Sold only during the Autumn event (until Dec 4).',
 };
 // Autumn Leaf Block: leaves heaped on leaves, a few maple leaves on top
 function paintAutumnLeaves(a) {
@@ -272,6 +272,8 @@ function drawFallLeaf(n, k) {
 }
 const FALL_LEAVES = [];
 const FALL_COUNT = 30; // (owner, Nov 5 2026: 70 was too many)
+// (owner, Nov 25 2026 e: "make the leaves smaller", the Fall Machine's and the autumn season's) x their old size
+const FALL_LEAF_SCALE = 0.55;
 for (let i = 0; i < FALL_COUNT; i++)
   FALL_LEAVES.push({ x: Math.random(), y: Math.random(), d: 0.35 + Math.random() * 0.65, ph: Math.random() * 6.28, n: fallLeafN(), spin: (Math.random() - 0.5) * 2 });
 let fallLast = 0;
@@ -293,7 +295,7 @@ function drawFall() {
     }
     const sx = (((f.x * W - cam.x * Z) % W) + W) % W,
       sy = (((f.y * H - cam.y * Z) % H) + H) % H,
-      k = (0.9 + f.d * 1.6) * u,
+      k = (0.9 + f.d * 1.6) * u * FALL_LEAF_SCALE,
       sw = Math.sin(now / 700 + f.ph);
     g.globalAlpha = 0.55 + f.d * 0.45;
     g.setTransform(1, 0, 0, 1, Math.round(sx), Math.round(sy));
@@ -622,11 +624,19 @@ ITEMS.autumn_wings = { name: 'Autumn Wings', kind: 'clothing', slot: 'back', des
 // [prize, chance %, how many]; gold: [min, max] gold as coins. ONE prize per chest, for GMs too (owner: "one item only;
 // the rare ones hard to get, the common and uncommon ones the most often"). Rarest first: the weather machine, gold,
 // then the common blocks and wall (the clothes and the hat were deleted Nov 19 2026; the wings and the scythe Nov 22).
+// (owner, Nov 25 2026: "the rare ones, the scythe, the wings and the weather, must be VERY rare") they were 0.5 / 1 / 2;
+// now about 1 chest in 700, 500 and 350 (together under 0.7%). Getting one plays the rare show (events/rareprize.js).
+// (owner, Nov 25 2026 c) the three Leaf Gliders are in the chest now too, as rare as the others (out of the Shop), and
+// the gold is 1,000 - 2,000 (was 5,000 - 10,000).
 const AUTUMN_LOOT = [
-  ['autumn_wings', 0.5, 1], // Legendary (back in build zh)
-  ['fall_weather_machine', 1, 1], // Legendary
-  ['autumn_scythe', 2, 1], // Legendary (back in build j, Nov 22 2026)
-  ['gold', 3, [5000, 10000]],
+  ['autumn_wings', 0.1, 1], // Legendary (back in build zh)
+  ['ride_leaf', 0.1, 1], // Legendary (Leaf Gliders: Shop until Nov 25 2026 c)
+  ['ride_leaf_green', 0.1, 1],
+  ['ride_leaf_yellow', 0.1, 1],
+  ['autumn_stick', 0.1, 1], // Legendary (Nov 25 2026 c: his autumn-stick.aseprite; items/pxswords.js + autumnstick.js)
+  ['fall_weather_machine', 0.15, 1], // Legendary
+  ['autumn_scythe', 0.2, 1], // Legendary (back in build j, Nov 22 2026)
+  ['gold', 3, [1000, 2000]],
   ['autumn_leaf_block', 18, 10], // Uncommon
   ['maple_plank_block', 18, 10], // Uncommon
   ['autumn_leaf_wall', 31, 10], // Common
@@ -647,18 +657,17 @@ function openChest(i, x, y) {
     spawnDrop(id, x * TS + 16, y * TS + 16, n);
     toast('Autumn Chest: ' + (n > 1 ? n + ' ' : '') + ITEMS[id].name + '!');
   }
-  // a burst of falling leaves where it was
-  for (let k = 0; k < 14; k++)
-    parts.push({ x: x * TS + 16, y: y * TS + 16, vx: (Math.random() - 0.5) * 160, vy: -60 - Math.random() * 140, life: 0.7 + Math.random() * 0.4, c: ['#d8301a', '#e87a1a', '#ffd04a'][k % 3], s: 3 });
+  // (owner, Nov 25 2026 c: "only smoke") no more burst of little square leaves: the break smoke (actions.js
+  // breakPuffs) is all that shows
   saveWorld();
 }
 
-// ---------- the Shop: an AUTUMN tab during the event (the chest and the Leaf Glider) ----------
+// ---------- the Shop: an AUTUMN tab during the event (the chest) ----------
 SHOP.push({ id: 'autumn_chest', gold: 10000, cat: 'autumn', event: true });
-// (owner, Nov 9 2026: the Green and Yellow Leaf Gliders too)
+// (owner, Nov 9 2026: the Green and Yellow Leaf Gliders too) (Nov 25 2026 c: out of the Shop, they come from the chest)
 const AUTUMN_RIDES = ['ride_leaf', 'ride_leaf_green', 'ride_leaf_yellow'];
-for (const s of SHOP) if (AUTUMN_RIDES.includes(s.id)) Object.assign(s, { cat: 'autumn', event: true });
-for (const id of AUTUMN_RIDES) if (RIDE_BY_ID[id]) ITEMS[id].desc += ' Sold only during the Autumn event (until Dec 4).';
+for (let k = SHOP.length - 1; k >= 0; k--) if (AUTUMN_RIDES.includes(SHOP[k].id)) SHOP.splice(k, 1);
+for (const id of AUTUMN_RIDES) if (RIDE_BY_ID[id]) ITEMS[id].desc += ' A very rare prize from the Autumn Chest.';
 const AUTUMN_TAB = { id: 'autumn', label: 'AUTUMN' };
 renderShop = ((prev) =>
   function (...a) {

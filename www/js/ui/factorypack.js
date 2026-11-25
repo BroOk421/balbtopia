@@ -67,21 +67,18 @@ function posterCharacter(k) {
   out.width = W;
   out.height = H;
   if (W > cv.width || H > cv.height) return out;
+  // drawn on its own canvas (Nov 25 2026: drawing on the screen's corner and putting it back could blink)
   const saveZ = Z,
-    back = g.getImageData(0, 0, W, H);
-  g.save();
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.clearRect(0, 0, W, H);
+    saveG = g;
+  g = out.getContext('2d');
   Z = k;
   try {
     drawCharacter(who, W / 2 - (P.w / 2) * k, H - P.h * k - 2 * k);
-    out.getContext('2d').drawImage(cv, 0, 0, W, H, 0, 0, W, H);
   } catch (e) {
     console.warn('factorypack.js: poster character', e);
   } finally {
     Z = saveZ;
-    g.putImageData(back, 0, 0);
-    g.restore();
+    g = saveG;
   }
   // trim the empty edges, so it can be drawn big
   const d = out.getContext('2d').getImageData(0, 0, W, H).data;

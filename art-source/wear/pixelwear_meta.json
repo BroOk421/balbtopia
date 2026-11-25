@@ -655,5 +655,18 @@
    "idle",
    "sit"
   ]
+ },
+ "shifty_eyes": {
+  "cat": "eye",
+  "sk": false,
+  "poses": [
+   "idle",
+   "idle_f1",
+   "idle_f2",
+   "idle_f3",
+   "idle_f4",
+   "idle_f5",
+   "idle_f6"
+  ]
  }
 }

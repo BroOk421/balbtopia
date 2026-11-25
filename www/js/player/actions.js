@@ -86,7 +86,14 @@ function gotHit(p) {
   Native.haptic('medium');
 }
 function overlapsPlayer(tx, ty) {
-  return P.x < tx * TS + TS && P.x + P.w > tx * TS && P.y < ty * TS + TS && P.y + P.h > ty * TS;
+  if (P.x < tx * TS + TS && P.x + P.w > tx * TS && P.y < ty * TS + TS && P.y + P.h > ty * TS) return true;
+  // (owner, Nov 25 2026) another player standing on the tile: no block can go there either (a ghost doesn't count)
+  if (typeof Net === 'undefined' || !Net.remotes) return false;
+  for (const r of Net.remotes.values()) {
+    if (!r || r.dead || !(r.w > 0)) continue;
+    if (r.x < tx * TS + TS && r.x + r.w > tx * TS && r.y < ty * TS + TS && r.y + r.h > ty * TS) return true;
+  }
+  return false;
 }
 // one punch on the block of tile (x, y) = i (act() below, after its checks; also the Autumn Scythe's laser hopping to
 // the tiles next to it, autumnbeam.js): damage, and breaking it with its drops when the damage is enough
@@ -407,6 +414,7 @@ function act() {
 }
 // placing a block: the arm pops out to it (see startPlace), with dust, chips and a quick flash
 // (mine = you placed it: also does the pose and buzzes; other players' blocks only get the effects)
+const BURST_OFF = true; // (Nov 25 2026 m) burst() draws nothing
 const places = []; // { x, y, t0 } flashes drawn by render.js
 function placeFx(x, y, t, mine) {
   if (mine) {
@@ -416,10 +424,12 @@ function placeFx(x, y, t, mine) {
     thunk = 1;
   }
   breakPuffs(x, y); // (owner, Nov 24 2026: the same smoke as breaking, was the old smoke)
-  burst(x, y, t, 7);
+  // (owner, Nov 25 2026 m: "remove the square particles") no chips any more: the smoke only
   places.push({ x, y, t0: now });
 }
 function burst(x, y, t, n) {
+  // (owner, Nov 25 2026 m: "the falling square particles: remove them from everything") no squares anywhere
+  if (BURST_OFF) return;
   const col = Array.isArray(t)
     ? t
     : BLOCK[t] && BLOCK[t].fx

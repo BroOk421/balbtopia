@@ -99,7 +99,7 @@ buy = ((prev) =>
         for (const p of pieces) addItem(p, 1);
         updateGold(true);
         savePlayer();
-        closeShop();
+        shopBought(); // (Nov 25 2026 c: the Shop stays open after buying)
         Native.haptic('medium');
         toast((isGM() ? 'GM: got the ' : 'Bought the ') + st.name + '! ' + pieces.length + ' pieces are in your bag');
       };

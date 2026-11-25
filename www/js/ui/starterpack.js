@@ -112,7 +112,7 @@ buy = ((prev) =>
       for (const id of ids) addItem(id, 1);
       updateGold(true);
       savePlayer();
-      closeShop();
+      shopBought(); // (Nov 25 2026 c: the Shop stays open after buying)
       Native.haptic('medium');
       starterReveal(ids);
     };

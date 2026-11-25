@@ -2,8 +2,9 @@
 // players see them (`em` in the position message, net.js: 1 thumbsup, 2 love, 3 omg, 4 sleep, 5 cry).
 // - /nice (was /thumbsup; Nov 20 2026: the owner's nice face, the front arm up to 9 o'clock and back). Old note: the arm that holds the weapon / tool (the back arm, wear.js armParts) goes up with the weapon in its
 //   hand, pumps twice and comes down. Bare-handed, the fist shows a thumb sticking up.
-// - /love: both eyes turn into hearts that beat (a double pulse like a heartbeat), and little hearts float up from
-//   the head, spinning as they rise.
+// - /love (owner, Nov 25 2026: expressions/heart-eye.aseprite): HIS heart-eyes face with his mouth (expr_love.png,
+//   art-source/character/expr_love_cut.py); the old drawn beating hearts and grin are gone. Little hearts still float up
+//   from the head, spinning as they rise, now one of HIS eye hearts, small (assets/fx/love_heart.png).
 // - /omg (owner, Nov 21 2026): his omg face picture (expr_omg.png: big round eyes, an "o" mouth); both blocky sleeves
 //   go up beside the head and tremble (blockyTarget at the end). The old drawn face and cut-off arms are gone.
 // - /cry (owner, Nov 21 2026): his crying face, 11 frames (expr_cry_00..10.png): sad eyes, tears rolling down.
@@ -370,27 +371,55 @@ function emoThumb(skinName, B, turn, a) {
 }
 
 // ---------- faces (render.js drawCharacter, over the face, under glasses / hair / hats) ----------
-// a heart (canvas path) round (cx, cy), w = its half width
-function emoHeartPath(x, cx, cy, w) {
-  x.beginPath();
-  x.moveTo(cx, cy + w * 0.95);
-  x.bezierCurveTo(cx - w * 0.35, cy + w * 0.6, cx - w * 1.05, cy + w * 0.15, cx - w, cy - w * 0.35);
-  x.bezierCurveTo(cx - w * 0.95, cy - w * 0.98, cx - w * 0.15, cy - w * 1.02, cx, cy - w * 0.42);
-  x.bezierCurveTo(cx + w * 0.15, cy - w * 1.02, cx + w * 0.95, cy - w * 0.98, cx + w, cy - w * 0.35);
-  x.bezierCurveTo(cx + w * 1.05, cy + w * 0.15, cx + w * 0.35, cy + w * 0.6, cx, cy + w * 0.95);
-  x.closePath();
-}
 // heartbeat: two quick pulses, then a rest (0..1)
 function emoBeat(t) {
   const u = (t % 850) / 850,
     p = (a, w) => Math.max(0, 1 - Math.abs(u - a) / w);
   return Math.max(p(0.08, 0.08), p(0.3, 0.08) * 0.75);
 }
-// the eye spots on the body picture (3/4 face turned right: the far eye narrower)
-const EMO_EYES = [
-  { cx: 55, cy: 68, sx: 1, box: [36, 53, 36, 31] },
-  { cx: 93, cy: 68, sx: 0.78, box: [81, 53, 22, 31] },
-];
+// his two heart eyes (frame-size picture, love_expr_cut.py) and their boxes [x, y, w, h], found once it has loaded
+const LOVE_EYES = new Image();
+LOVE_EYES.src = 'assets/fx/love_eyes.png';
+let LOVE_BOX = null;
+function loveEyeBoxes() {
+  if (LOVE_BOX) return LOVE_BOX;
+  const im = LOVE_EYES;
+  if (!im.complete || !im.naturalWidth) return null;
+  const c = document.createElement('canvas');
+  c.width = im.naturalWidth;
+  c.height = im.naturalHeight;
+  const x = c.getContext('2d');
+  x.drawImage(im, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height).data,
+    col = [],
+    rows = [];
+  for (let i = 0; i < c.width; i++) {
+    let on = false;
+    for (let j = 0; j < c.height; j++) if (d[(j * c.width + i) * 4 + 3] > 0) on = true;
+    col.push(on);
+  }
+  // runs of columns with pixels = one heart each
+  const runs = [];
+  for (let i = 0; i < col.length; i++) if (col[i] && (i === 0 || !col[i - 1])) runs.push([i, i]);
+  else if (col[i]) runs[runs.length - 1][1] = i;
+  if (runs.length === 1) {
+    const [a, b] = runs[0],
+      mid = Math.floor((a + b + 1) / 2);
+    runs.splice(0, 1, [a, mid - 1], [mid, b]);
+  }
+  LOVE_BOX = runs.map(([a, b]) => {
+    let y0 = c.height,
+      y1 = 0;
+    for (let i = a; i <= b; i++)
+      for (let j = 0; j < c.height; j++)
+        if (d[(j * c.width + i) * 4 + 3] > 0) {
+          y0 = Math.min(y0, j);
+          y1 = Math.max(y1, j);
+        }
+    return [a, y0, b - a + 1, y1 - y0 + 1];
+  });
+  return LOVE_BOX;
+}
 function drawEmoFace(c, top, sc, dy) {
   const k = c.emo,
     el = emoElapsed(c);
@@ -403,13 +432,37 @@ function drawEmoFace(c, top, sc, dy) {
   }
   // /omg (owner, Nov 21 2026): his omg face (expressions/omg.png: big round eyes, an "o" mouth), the old drawn one gone
   // /cry (owner, Nov 21 2026): his crying face, frame by frame
+  // (owner, Nov 25 2026) /love: his face (the mouth; skin where the eyebrows were), then each of his heart eyes
+  // PUMPING round its own middle (love_eyes.png, `emoBeat`: two quick beats and a rest)
+  if (k === 'love') {
+    const im = typeof blockyImg === 'function' ? blockyImg(c.skin, 'expr_love') || blockyImg('porcelain', 'expr_love') : null,
+      X = (-FR.w * sc * Z) / 2,
+      Y = top + dy * sc * Z,
+      u = sc * Z;
+    if (im) g.drawImage(im, X, Y, FR.w * u, FR.h * u);
+    const hb = loveEyeBoxes();
+    if (hb) {
+      const pop = Math.min(1, el / 200),
+        b = (0.6 + 0.4 * pop) * (1 + emoBeat(el) * 0.22);
+      g.save();
+      g.imageSmoothingEnabled = false;
+      for (const [x0, y0, w, h] of hb) {
+        const cx = X + (x0 + w / 2) * u,
+          cy = Y + (y0 + h / 2) * u,
+          k2 = Math.max(1, b);
+        g.drawImage(LOVE_EYES, x0, y0, w, h, cx - (w / 2) * u * k2, cy - (h / 2) * u * k2, w * u * k2, h * u * k2);
+      }
+      g.restore();
+    }
+    return;
+  }
   if (k === 'omg' || k === 'cry') {
     const n = k === 'omg' ? 'expr_omg' : 'expr_cry_' + String(cryFrame(el)).padStart(2, '0'),
       im = typeof blockyImg === 'function' ? blockyImg(c.skin, n) || blockyImg('porcelain', n) : null;
     if (im) g.drawImage(im, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
     return;
   }
-  if (k !== 'love' && k !== 'sleep') return;
+  if (k !== 'sleep') return;
   const [face, ink, mouth] = FACE_COLOR[c.skin] || FACE_COLOR.tan,
     x = g;
   x.save();
@@ -419,85 +472,7 @@ function drawEmoFace(c, top, sc, dy) {
   x.imageSmoothingEnabled = true;
   x.lineJoin = 'round';
   x.lineCap = 'round';
-  if (k === 'love') {
-    // hearts pop in over the eyes, then beat
-    const pop = emoBack(Math.min(1, el / 240)),
-      beat = 1 + emoBeat(el) * 0.22;
-    for (const e of EMO_EYES) {
-      x.fillStyle = face;
-      x.fillRect(...e.box);
-      x.save();
-      x.translate(e.cx, e.cy);
-      x.scale(e.sx * pop * beat, pop * beat);
-      emoHeartPath(x, 0, 0, 15);
-      x.fillStyle = '#ff2d55';
-      x.fill();
-      x.lineWidth = 3.4;
-      x.strokeStyle = '#3a0a16';
-      x.stroke();
-      // a darker lower half and a shine
-      x.save();
-      emoHeartPath(x, 0, 0, 15);
-      x.clip();
-      x.fillStyle = '#d0123c';
-      x.beginPath();
-      x.ellipse(4, 12, 15, 9, -0.4, 0, Math.PI * 2);
-      x.fill();
-      x.restore();
-      x.fillStyle = '#ffffff';
-      x.beginPath();
-      x.ellipse(-7, -6, 3.6, 2.6, -0.6, 0, Math.PI * 2);
-      x.fill();
-      x.beginPath();
-      x.arc(-2.5, -9, 1.3, 0, Math.PI * 2);
-      x.fill();
-      x.restore();
-    }
-    // a big open grin with the teeth showing (owner: like the 😁 face)
-    x.fillStyle = face;
-    x.fillRect(64, 88, 26, 11);
-    const grin = () => {
-      x.beginPath();
-      x.moveTo(62, 89);
-      x.quadraticCurveTo(76, 86, 90, 88);
-      x.quadraticCurveTo(88, 103, 76, 104);
-      x.quadraticCurveTo(63, 103, 62, 89);
-      x.closePath();
-    };
-    grin();
-    x.fillStyle = '#3a1410';
-    x.fill();
-    x.save();
-    grin();
-    x.clip();
-    x.fillStyle = '#e8546a'; // tongue
-    x.beginPath();
-    x.ellipse(76, 104, 9, 5, 0, 0, Math.PI * 2);
-    x.fill();
-    x.fillStyle = '#ffffff'; // top teeth
-    x.fillRect(60, 86, 32, 7.5);
-    x.fillStyle = '#f2ece6'; // bottom teeth
-    x.fillRect(66, 99.5, 20, 4);
-    x.strokeStyle = '#c9bfb8'; // gaps between the teeth
-    x.lineWidth = 1;
-    x.beginPath();
-    for (const tx of [69, 74, 79, 84]) {
-      x.moveTo(tx, 87);
-      x.lineTo(tx, 93);
-    }
-    x.stroke();
-    x.restore();
-    grin();
-    x.lineWidth = 2.6;
-    x.strokeStyle = '#3a0a10';
-    x.stroke();
-    // rosy cheeks
-    x.fillStyle = 'rgba(255,90,120,.35)';
-    x.beginPath();
-    x.ellipse(46, 86, 7, 3.5, 0, 0, Math.PI * 2);
-    x.ellipse(99, 86, 4.5, 3.2, 0, 0, Math.PI * 2);
-    x.fill();
-  } else if (k === 'sleep') {
+  if (k === 'sleep') {
     x.restore();
     // (owner, Nov 20 2026) his sleeping face (expressions.zip: eyes shut, a little round mouth)
     const im = typeof blockyImg === 'function' ? blockyImg(c.skin, 'expr_sleep') || blockyImg('porcelain', 'expr_sleep') : null;
@@ -565,36 +540,27 @@ function emoZzz(hx, headTop, face) {
   }
   g.restore();
 }
-// a little pixel heart (1 cell = one heart pixel), outlined
-const EMO_HEART_PX = ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'];
+// (owner, Nov 25 2026) the floating hearts: one of HIS eye hearts (love_heart.png), small
+const EMO_HEART_IMG = new Image();
+EMO_HEART_IMG.src = 'assets/fx/love_heart.png';
 drawLiveFx = ((prev) =>
   function () {
-    if (EMO_HEARTS.length) {
+    const im = EMO_HEART_IMG;
+    if (EMO_HEARTS.length && im.complete && im.naturalWidth) {
       const ox = -cam.x * Z,
         oy = -cam.y * Z;
       g.save();
       g.imageSmoothingEnabled = false;
       for (const h of EMO_HEARTS) {
-        const q = Math.max(1, Z * (h.big ? 0.75 : 0.55)),
+        const q = Z * (h.big ? 0.6 : 0.42), // one of his pixels (his eye heart is 7 x 7)
           f = h.t < 0.18 ? h.t / 0.18 : Math.min(1, (h.life - h.t) / 0.5),
           grow = h.t < 0.18 ? 0.5 + (h.t / 0.18) * 0.5 : 1;
         g.save();
         g.translate(ox + h.x * Z, oy + h.y * Z);
         g.rotate(h.rot);
-        g.scale(grow, grow);
+        g.scale(grow * q, grow * q);
         g.globalAlpha = Math.max(0, f);
-        const x0 = -3.5 * q,
-          y0 = -3 * q;
-        for (const [col, d] of [['#3a0a16', 1], [h.col, 0]])
-          for (let j = 0; j < EMO_HEART_PX.length; j++)
-            for (let i = 0; i < 7; i++) {
-              if (EMO_HEART_PX[j][i] !== '#') continue;
-              g.fillStyle = col;
-              if (d) g.fillRect(x0 + (i - 1) * q, y0 + (j - 1) * q, 3 * q, 3 * q);
-              else g.fillRect(x0 + i * q, y0 + j * q, q, q);
-            }
-        g.fillStyle = '#ffffff';
-        g.fillRect(x0 + q, y0 + q, q, q);
+        g.drawImage(im, -im.naturalWidth / 2, -im.naturalHeight / 2);
         g.restore();
       }
       g.restore();

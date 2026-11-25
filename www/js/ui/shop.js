@@ -379,71 +379,135 @@ function renderShop() {
   });
 }
 // the pop-up: name, picture, description and price, then Buy or Cancel
+// (owner, Nov 25 2026 c) a QUANTITY row (- [n] +, typed too, 1 to SHOP_QTY_MAX or what you can pay for) for ordinary
+// Shop things (`shopQtyOk`: not packs of pieces / sets, bag slots, real-money things or clothes); the price shown is
+// for all of them. After Buy or Cancel only this pop-up closes: the Shop stays open (`shopBought`).
+const SHOP_QTY_MAX = 99;
+let shopCnt = 1; // how many the Buy button asked for (read by buy())
+const SHOP_QTY_SKIP = new Set(['bag_slot', 'starter_pack', 'rvb_pack']);
+function shopQtyOk(s) {
+  const it = ITEMS[s.id];
+  if (!it || s.peso || !onSale(s) || SHOP_QTY_SKIP.has(s.id)) return false;
+  if (typeof SET_BY_ID !== 'undefined' && SET_BY_ID[s.id]) return false;
+  if (typeof FISH_SET !== 'undefined' && FISH_SET.id === s.id) return false;
+  if (typeof RVB_ID !== 'undefined' && RVB_ID === s.id) return false;
+  if (typeof STARTER_ID !== 'undefined' && STARTER_ID === s.id) return false;
+  return it.kind !== 'set' && it.kind !== 'clothing';
+}
+// how many you can pay for (a GM: the most)
+const shopQtyCap = (s) => (isGM() || !costOf(s) ? SHOP_QTY_MAX : Math.max(1, Math.min(SHOP_QTY_MAX, Math.floor((s.bc ? P.bc : P.gold) / costOf(s)))));
 function shopItem(s) {
+  const qtyRow = shopQtyOk(s)
+    ? `<div class="sqrow"><span class="sqlbl">Quantity</span><button type="button" class="btn ghost sqm" aria-label="One less">-</button><input class="sqin" type="number" inputmode="numeric" min="1" max="${SHOP_QTY_MAX}" value="1" aria-label="Quantity" /><button type="button" class="btn ghost sqp" aria-label="One more">+</button></div>`
+    : '';
   const body = dialog(
     shopTitle(s),
     `<div class="sdet"><div class="spic big"></div><p>${esc(shopDesc(s))}</p>
+      ${qtyRow}
       <div class="sprice">${priceHtml(s)}</div>
       ${!onSale(s) ? '<p class="snote">Paying with real money is coming soon.</p>' : isGM() ? '<p class="snote">You are a GM: everything in the Shop is free.</p>' : s.bc ? `<p class="snote">You have ${P.bc.toLocaleString()} Balb Coin${P.bc === 1 ? '' : 's'}.</p>` : `<p class="snote">You have ${P.gold.toLocaleString()} gold.</p>`}</div>`,
     !onSale(s)
       ? [{ label: 'Close', run: () => {} }]
       : [
           { label: 'Cancel', cls: 'ghost', run: () => {} },
-          { label: 'Buy', run: () => buy(s) },
+          {
+            label: 'Buy',
+            run: (b) => {
+              // (the Shop's buy() is wrapped by files that pass on only `s`: the count goes through `shopCnt`)
+              shopCnt = shopQtyOk(s) ? shopQtyOf(b) : 1;
+              try {
+                return buy(s);
+              } finally {
+                shopCnt = 1;
+              }
+            },
+          },
         ],
   );
   body.querySelector('.spic').appendChild(shopPic(s.id));
   paintCoins(body);
+  if (!qtyRow) return;
+  const inp = body.querySelector('.sqin'),
+    price = body.querySelector('.sprice'),
+    set = (n) => {
+      n = Math.max(1, Math.min(shopQtyCap(s), Math.floor(Number(n)) || 1));
+      inp.value = n;
+      price.innerHTML = priceHtml({ ...s, gold: s.gold * n, bc: s.bc ? s.bc * n : s.bc });
+      paintCoins(body);
+    };
+  body.querySelector('.sqm').onclick = () => set(+inp.value - 1);
+  body.querySelector('.sqp').onclick = () => set(+inp.value + 1);
+  inp.onchange = () => set(inp.value);
+  inp.oninput = () => inp.value !== '' && set(inp.value);
+}
+const shopQtyOf = (body) => {
+  const inp = body && body.querySelector('.sqin');
+  return inp ? Math.max(1, Math.min(SHOP_QTY_MAX, Math.floor(Number(inp.value)) || 1)) : 1;
+};
+// bought: the Shop stays open, its gold and cards brought up to date (the list keeps its scroll)
+function shopBought() {
+  if ($('shop').hidden) return;
+  const l = $('shopList'),
+    top = l ? l.scrollTop : 0;
+  renderShop();
+  if (l) l.scrollTop = top;
 }
 const priceOf = (s) => (isGM() ? 0 : s.gold);
 let buying = false;
-function buy(s) {
-  const it = ITEMS[s.id];
+function buy(s, count = shopCnt) {
+  const it = ITEMS[s.id],
+    cnt = Math.max(1, Math.min(SHOP_QTY_MAX, Math.floor(count) || 1)),
+    many = (n) => (n > 1 ? n.toLocaleString() + ' ' + it.name + 's' : it.name),
+    allOf = { ...s, gold: s.gold * cnt, bc: s.bc ? s.bc * cnt : s.bc }; // the price of all of them
   // online with the new server: the server takes the gold (its own price; a GM pays nothing), then the item is
   // given (economy.js). Checked for bag room first, so gold is never taken for nothing.
   if (Wallet.on()) {
     if (s.peso || buying) return;
-    const n = s.qty || 1;
-    if (shortOf(s)) return goTopUp(s); // not enough gold / Balb Coins: to the TOP UP tab (economy.js)
+    const n = (s.qty || 1) * cnt;
+    if (shortOf(allOf)) return goTopUp(allOf); // not enough gold / Balb Coins: to the TOP UP tab (economy.js)
     if (!roomFor(s.id, n)) return toast(bagSize() < BAG_MAX ? 'Bag is full. Buy more slots in the Shop' : 'Bag is full');
     buying = true;
-    Wallet.buy(s.id, n).then((err) => {
+    Wallet.buyN(s.id, s.qty || 1, cnt).then((res) => {
       buying = false;
+      const err = res && typeof res === 'object' ? res.err : res,
+        got = res && typeof res === 'object' ? (s.qty || 1) * res.got : err ? 0 : n; // (an old server stopped part way)
+      if (got) {
+        // (build m) with the server bag the server put it there (a pack's pieces still come the old way)
+        if ((typeof Bag !== 'undefined' && Bag.on()) && ITEMS[s.id] && ITEMS[s.id].kind !== 'set') Bag.pull();
+        else addItem(s.id, got);
+        updateGold(true);
+        savePlayer();
+        shopBought();
+        Native.haptic('medium');
+        toast((isGM() ? 'GM: got ' : 'Bought ') + many(got) + (isGM() ? ' for free' : '!'));
+      }
       if (err) {
         Wallet.load(); // show the server's gold again
-        if (/not enough (gold|balb)/i.test(err)) return goTopUp(s);
+        if (/not enough (gold|balb)/i.test(err)) return goTopUp(allOf);
         return toast(err);
       }
-      // (build m) with the server bag the server put it there (a pack's pieces still come the old way)
-      if ((typeof Bag !== 'undefined' && Bag.on()) && ITEMS[s.id] && ITEMS[s.id].kind !== 'set') Bag.pull();
-      else addItem(s.id, n);
-      updateGold(true);
-      savePlayer();
-      closeShop();
-      Native.haptic('medium');
-      toast((isGM() ? 'GM: got ' : 'Bought ') + (n > 1 ? n.toLocaleString() + ' ' + it.name + 's' : it.name) + (isGM() ? ' for free' : '!'));
     });
     return;
   }
   if (isGM()) {
-    const n = s.qty || 1;
+    const n = (s.qty || 1) * cnt;
     if (!addItem(s.id, n)) return;
     savePlayer();
-    closeShop();
+    shopBought();
     Native.haptic('medium');
-    return toast('GM: got ' + (n > 1 ? n.toLocaleString() + ' ' + it.name + 's' : it.name) + ' for free');
+    return toast('GM: got ' + many(n) + ' for free');
   }
   if (s.peso) return;
-  if (shortOf(s)) return goTopUp(s);
-  const n = s.qty || 1; // packs (e.g. 10 Piano Notes) give that many
+  if (shortOf(allOf)) return goTopUp(allOf);
+  const n = (s.qty || 1) * cnt; // packs (e.g. 10 Piano Notes) give that many
   if (!addItem(s.id, n)) return;
-  if (s.bc) P.bc -= s.bc;
-  else P.gold -= s.gold;
+  if (s.bc) P.bc -= s.bc * cnt;
+  else P.gold -= s.gold * cnt;
   updateGold(true);
   savePlayer();
-  closeShop(); // done buying: back to the game
+  shopBought(); // (Nov 25 2026 c: the Shop stays open)
   Native.haptic('medium');
-  toast('Bought ' + (n > 1 ? n + ' ' + it.name + 's' : it.name) + '!');
+  toast('Bought ' + many(n) + '!');
 }
 $('shopBtn').onclick = () => ($('shop').hidden ? openShop() : closeShop());
 $('shopx').onclick = closeShop;

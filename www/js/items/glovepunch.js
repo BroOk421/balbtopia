@@ -7,117 +7,135 @@
 //   hand; a separate glove effect flies from the hand to the spot, starting small and growing (GLOVE_FLY_SIZE), then
 //   fades there (owner: "small growing bigger; it shouldn't leave the hand; remove the wind lines"). Others see it
 //   from their 'punch'. A glove punch on a player pushes him twice as hard, like the Tsunami Blaster (punchPlayer).
+// (owner, Nov 25 2026 g: "remove the old one, use mine exactly where it is in the aseprite; that glove is what flies to
+// the tile") REPLACED: the glove is drawn on the blocky FRONT hand exactly where his boxing-gloves.aseprite has it
+// (`GLOVE_AT`: its top-left from the front shoulder, his pixels, like pxswords.js `at`; over the front sleeve, turning
+// with it), and a punch throws a COPY of that glove from the hand to the tile, growing then fading (`GLOVE_FLY`); the
+// glove stays on the hand. The old arm-with-glove drawing (drawArmWithTool / swingTurn / drawToolSwing wrappers) is gone.
 // Loaded after megagun.js.
 // ===== boxing glove =====
 const GLOVE_ID = 'just_one_boxing_glove';
-// (owner's picture "Bald_Pixel_Boxer_Sprite": the glove ON the back hand at the hip, round red fist, white cuff on
-// top, a shine at its top left, the thumb's line on the front) the worn glove, drawn here as pixel art: GLOVE_W x
-// GLOVE_H cells of GLOVE_CELL body-picture px, the cuff up (towards the wrist), the fist down, the thumb on the front
-const GLOVE_W = 14,
-  GLOVE_H = 17,
-  GLOVE_CELL = 3.1, // (owner: "make the glove bigger when idle") // body-picture px a cell (the glove ~ a third of the head wide, like his picture)
-  GLOVE_HAND = [7, 7.5]; // the cell that sits on the hand point
-const GLOVE_PIC = (() => {
-  const W = GLOVE_W,
-    H = GLOVE_H,
-    cell = new Array(W * H).fill(null),
-    put = (x, y, c) => x >= 0 && y >= 0 && x < W && y < H && (cell[y * W + x] = c);
-  // the fist: a round red shape, lit from the top left
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const dx = (x + 0.5 - 7) / 6.3,
-        dy = (y + 0.5 - 10.2) / 5.9;
-      if (dx * dx + dy * dy > 1) continue;
-      const lit = -dx * 0.55 - dy * 0.8;
-      put(x, y, lit > 0.45 ? '#ff3b30' : lit < -0.55 ? '#a30d12' : '#e3141b');
-    }
-  // the cuff: a white band on top, grey at its bottom, a red tag at the front
-  for (let y = 1; y <= 4; y++) for (let x = 3; x <= 10; x++) put(x, y, y === 4 ? '#b9b9c4' : y === 1 ? '#ffffff' : '#ececf2');
-  put(10, 2, '#e3141b'), put(10, 3, '#c0101a');
-  // the shine
-  put(3, 7, '#ffffff'), put(3, 8, '#ffffff'), put(4, 7, '#ffd0cc');
-  // the thumb: a dark curve on the front, low
-  for (const [x, y] of [[10, 9], [9, 10], [9, 11], [10, 12], [11, 12]]) put(x, y, '#5a0408');
+// (Nov 25 2026 c, owner: "I replaced the boxing glove, remove your drawing") the glove is HIS picture now
+// (boxing-gloves.aseprite -> assets/items/boxing_glove.png, art-source/items/glove_cut.py): cuff on top, fist down, as
+// on his back hand; mirrored here (his file faces left, this space faces right). GLOVE_CELL = body-picture px a pixel
+// of his (the body pictures are his pixels x 6), GLOVE_HAND = his pixel that sits on the hand point (the sleeve's end).
+const GLOVE_CELL = 6,
+  GLOVE_HAND = [4, 6],
+  GLOVE_AT = [-3.83, 1.5]; // (glove_cut.py / pxsword_cut.py's front shoulder: his glove's top-left from it)
+const GLOVE_IMG = new Image();
+let GLOVE_PIC = document.createElement('canvas'); // (empty until his picture is loaded)
+GLOVE_IMG.onload = () => {
   const c = document.createElement('canvas');
-  c.width = W + 2;
-  c.height = H + 2;
+  c.width = GLOVE_IMG.naturalWidth;
+  c.height = GLOVE_IMG.naturalHeight;
+  const x = c.getContext('2d');
+  x.translate(c.width, 0);
+  x.scale(-1, 1);
+  x.drawImage(GLOVE_IMG, 0, 0);
+  GLOVE_PIC = c;
+  delete ARTS['hdtool:' + GLOVE_ID]; // the bag / Shop icon made again with it
+  if (typeof ICON !== 'undefined') delete ICON[GLOVE_ID];
+  if (typeof renderInv === 'function' && typeof inWorld !== 'undefined' && inWorld) renderInv();
+};
+GLOVE_IMG.src = 'assets/items/boxing_glove.png';
+// the icon: his glove, big in the middle (was a drawn glove in art/tools.js)
+HDT_ART[GLOVE_ID] = () => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const p = GLOVE_PIC;
+  if (!p.width) return c;
   const x = c.getContext('2d'),
-    on = (i, j) => i >= 0 && j >= 0 && i < W && j < H && cell[j * W + i];
-  for (let j = -1; j <= H; j++)
-    for (let i = -1; i <= W; i++)
-      if (on(i, j)) {
-        x.fillStyle = cell[j * W + i];
-        x.fillRect(i + 1, j + 1, 1, 1);
-      } else if (on(i - 1, j) || on(i + 1, j) || on(i, j - 1) || on(i, j + 1)) {
-        x.fillStyle = '#120808';
-        x.fillRect(i + 1, j + 1, 1, 1);
-      }
+    k = Math.floor(28 / Math.max(p.width, p.height));
+  x.imageSmoothingEnabled = false;
+  x.drawImage(p, Math.round((32 - p.width * k) / 2), Math.round((32 - p.height * k) / 2), p.width * k, p.height * k);
   return c;
-})();
+};
 NO_V_SWING.add(GLOVE_ID);
-const GLOVE_FLY_SIZE = [1, 1.9], // the thrown glove: x the worn size, at the start (= the idle glove, owner) and at its biggest
-  GLOVE_FLY_OUT = 0.55; // part of the punch it takes to reach the spot (then it fades out there, still growing)
-// the glove picture at (x, y) in the current space, its fist pointing along (dirX, dirY), scaled, see-through a
-function gloveDraw(x, y, dirX, dirY, sc, a) {
+BLOCKY_TOOL_SKIP.delete(GLOVE_ID); // the blocky front sleeve holds it now
+const GLOVE_FLY = { ms: 380, grow: [1, 1.9], fadeFrom: 0.55, max: 20 };
+// on the front hand, as in his file (the same transform pxswords.js pxsDraw uses for the front swords), drawn AFTER the
+// front sleeve: in his file the glove is the top layer, over the sleeve
+function gloveOnHand(ang, top, sc, dy) {
+  const im = GLOVE_IMG;
+  if (!im.complete || !im.naturalWidth) return;
+  const k = sc * Z,
+    p = BLOCKY.px * k;
   g.save();
-  g.globalAlpha *= a;
-  g.translate(x, y);
-  g.rotate(Math.atan2(dirY, dirX) - Math.PI / 2); // (the picture's fist points down = +y)
-  g.scale(sc, sc);
+  g.translate((BLOCKY.front[0] - FR.w / 2) * k, top + (BLOCKY.front[1] + dy) * k);
+  g.rotate(ang);
+  g.translate(0, BLOCKY_HAND[1] * p);
+  g.scale(-p, p); // his file faces left: mirrored, 1 unit = 1 of his pixels
+  g.translate(GLOVE_AT[0], -(BLOCKY_HAND[1] - GLOVE_AT[1]));
   g.imageSmoothingEnabled = false;
-  g.drawImage(GLOVE_PIC, -(GLOVE_HAND[0] + 1) * GLOVE_CELL, -(GLOVE_HAND[1] + 1) * GLOVE_CELL, GLOVE_PIC.width * GLOVE_CELL, GLOVE_PIC.height * GLOVE_CELL);
+  g.drawImage(im, 0, 0);
   g.restore();
 }
-let gloveFly = null; // { c, spot } while drawToolSwing draws a glove punch (spot: the target on this canvas, px)
-swingTurn = ((prev) =>
-  function (c, ...rest) {
-    if (!c || !c.punch || c.hand !== GLOVE_ID) return prev(c, ...rest);
-    const c2 = Object.create(c);
-    c2.punch = { ...c.punch, t: 0.45 * PUNCH_TIME }; // the arm pointing right at it (no swing)
-    return prev(c2, ...rest);
-  })(swingTurn);
-drawToolSwing = ((prev) =>
-  function (c, cx, top, sc, ox, oy) {
-    if (!c || !c.punch || c.hand !== GLOVE_ID) return prev(c, cx, top, sc, ox, oy);
-    gloveFly = { c, spot: gunScreenPt(ox + c.punch.x * Z, oy + c.punch.y * Z) };
-    try {
-      return prev(c, cx, top, sc, ox, oy);
-    } finally {
-      gloveFly = null;
+blockyTool = ((prev) =>
+  function (c, id, ...a) {
+    if (id !== GLOVE_ID) return prev(c, id, ...a); // (the glove: drawn after the sleeve, below)
+  })(blockyTool);
+blockySleeves = ((prev) =>
+  function (c, which, top, sc, dy, s) {
+    const r = prev(c, which, top, sc, dy, s);
+    if (which === 'front' && s && s.tool === GLOVE_ID) gloveOnHand(blockyAngles(c, s, top, sc, dy).front, top, sc, dy);
+    return r;
+  })(blockySleeves);
+// the thrown glove: from the hand to the spot hit (yours and others')
+const gloveThrows = [];
+const gloveFrom = (c) => ({ x: c.x + c.w / 2 + (c.face || 1) * 5, y: c.y + c.h * 0.8 });
+const gloveHeld = (h, eq) => h === GLOVE_ID || ((!h || h === 'fist' || h === 'wrench') && !!eq && eq.hand === GLOVE_ID);
+function gloveThrow(c, x1, y1) {
+  if (gloveThrows.length >= GLOVE_FLY.max) gloveThrows.shift();
+  const f = gloveFrom(c);
+  gloveThrows.push({ x0: f.x, y0: f.y, x1, y1, face: c.face || 1, t0: now });
+}
+startPunch = ((prev) =>
+  function (wx, wy) {
+    const r = prev(wx, wy);
+    if (gloveHeld(hand, equipped) && !P.dead) gloveThrow(P, wx, wy);
+    return r;
+  })(startPunch);
+const gloveSeen = new WeakSet();
+stepToolFx = ((prev) =>
+  function (dt) {
+    prev(dt);
+    if (typeof Net === 'undefined' || !Net.remotes) return;
+    for (const r of Net.remotes.values()) {
+      const p = r.punch;
+      if (!p || r.dead || gloveSeen.has(p)) continue;
+      gloveSeen.add(p);
+      if (gloveHeld(r.hand, r.equipped || r.eq)) gloveThrow(r, p.x, p.y);
     }
-  })(drawToolSwing);
-drawArmWithTool = ((prev) =>
-  function (id, arm, hand, turn, toolTurn = TOOL_TURN, lift = 0) {
-    if (id !== GLOVE_ID) return prev(id, arm, hand, turn, toolTurn, lift);
-    const s = toolSprite(id),
-      px = SHOULDER[0] - FR.w / 2,
-      py = SHOULDER[1],
-      hx = hand[0] - FR.w / 2,
-      hy = hand[1] - lift * (FR.h / CHAR_H);
+  })(stepToolFx);
+drawWater = ((prev) =>
+  function (ox, oy, T) {
+    prev(ox, oy, T);
+    const im = GLOVE_IMG;
+    if (!gloveThrows.length || !im.complete || !im.naturalWidth) return;
+    const k = BLOCKY.px * (CHAR_H / FR.h) * Z; // one of his pixels on the screen, as on the hand
     g.save();
-    g.translate(px, py);
-    g.rotate(turn);
-    g.translate(-px, -py);
-    g.imageSmoothingEnabled = true;
-    if (arm) g.drawImage(arm, -FR.w / 2, 0);
-    // where the glove is: on the hand, or flying to the spot and back
-    // the glove stays ON the hand (upright in the arm's own space: with the arm pointing at the spot, its fist points
-    // there too); a punch throws a separate glove effect that starts small and grows on its way to the spot
-    gloveDraw(hx, hy, 0, 1, 1, 1);
-    const fly = gloveFly && toolTurn !== TOOL_TURN ? gloveFly : null;
-    if (fly) {
-      const q = g.getTransform().inverse().transformPoint(fly.spot),
-        dx = q.x - hx,
-        dy = q.y - hy,
-        d = Math.hypot(dx, dy) || 1,
-        u = Math.min(1, (fly.c.punch.t || 0) / PUNCH_TIME),
-        go = Math.min(1, u / GLOVE_FLY_OUT),
-        e = 1 - (1 - go) * (1 - go), // out fast, easing in at the spot
-        a = u < GLOVE_FLY_OUT ? 1 : Math.max(0, 1 - (u - GLOVE_FLY_OUT) / (1 - GLOVE_FLY_OUT)); // then it fades
-      if (a > 0.02) gloveDraw(hx + dx * e, hy + dy * e, dx / d, dy / d, GLOVE_FLY_SIZE[0] + (GLOVE_FLY_SIZE[1] - GLOVE_FLY_SIZE[0]) * Math.min(1, u / 0.75), a);
+    g.imageSmoothingEnabled = false;
+    for (let n = gloveThrows.length - 1; n >= 0; n--) {
+      const t = gloveThrows[n],
+        u = (now - t.t0) / GLOVE_FLY.ms;
+      if (u >= 1 || u < 0) {
+        gloveThrows.splice(n, 1);
+        continue;
+      }
+      const e = 1 - (1 - Math.min(1, u / GLOVE_FLY.fadeFrom)) ** 2, // out fast, slowing at the tile
+        x = t.x0 + (t.x1 - t.x0) * e,
+        y = t.y0 + (t.y1 - t.y0) * e,
+        sz = GLOVE_FLY.grow[0] + (GLOVE_FLY.grow[1] - GLOVE_FLY.grow[0]) * Math.min(1, u / 0.75),
+        ang = Math.atan2(t.y1 - t.y0, t.x1 - t.x0);
+      g.globalAlpha = u < GLOVE_FLY.fadeFrom ? 1 : 1 - (u - GLOVE_FLY.fadeFrom) / (1 - GLOVE_FLY.fadeFrom);
+      g.setTransform(1, 0, 0, 1, Math.round(ox + x * Z), Math.round(oy + y * Z));
+      // the fist leading: his glove's fist is at its bottom, so it is turned to point along the throw
+      g.rotate(ang - Math.PI / 2);
+      g.scale(-(t.face === 1 ? 1 : -1) * k * sz, k * sz);
+      g.drawImage(im, -im.naturalWidth / 2, -im.naturalHeight / 2);
     }
     g.restore();
-  })(drawArmWithTool);
+  })(drawWater);
 // (owner: "the impact on another player stronger, like the Tsunami Blaster") a glove punch on a player pushes twice
 // as hard (Net.hit d = +-2; actions.js gotHit takes |d| 2 from up to 6 tiles; net.js shows the bigger shove)
 punchPlayer = ((prev) =>

@@ -87,6 +87,8 @@ const PXW_LIST = [
   ['grandpa_beard', 'Grandpa Beard', 'stache', 'Rare', 5000, 'A fluffy white beard and mustache, full of wisdom.'],
   ['lumberjack_beard', 'Lumberjack Beard', 'stache', 'Rare', 5000, 'A full thick brown beard from ear to ear.'],
   ['bold_eyeliner', 'Bold Eyeliner', 'face', 'Uncommon', 2000, 'Sharp dark eyeliner round both eyes.'],
+  // (owner, Nov 25 2026: eye-1.aseprite) his animated eyes: 7 frames of 100 ms, glancing round (PXW_ANIM); name / price by Claude
+  ['shifty_eyes', 'Shifty Eyes', 'face', 'Rare', 5000, 'Eyes that never sit still: they glance left and right and narrow, over and over.'],
   ['brown_neat_cut', 'Brown Neat Cut', 'hair', 'Uncommon', 3000, 'Short, tidy brown hair with straight bangs.'],
   ['black_neat_cut', 'Black Neat Cut', 'hair', 'Uncommon', 3000, 'Short, tidy black hair with straight bangs.'],
   ['red_neat_cut', 'Red Neat Cut', 'hair', 'Uncommon', 3500, 'Short, tidy red hair with straight bangs.'],
@@ -206,6 +208,18 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
       x.imageSmoothingEnabled = false;
       x.drawImage(im, -PXW_PAD, -(PXW_TOP[id] || 0));
     };
+}
+// (Nov 25 2026) animated eye pieces: frame f of ANIM_N (wear.js wearArt) = idle.png (0) or idle_f<f>.png
+const PXW_ANIM = { shifty_eyes: [100, 7] };
+for (const [id, [ms, n]] of Object.entries(PXW_ANIM)) {
+  ANIM_N[id] = [ms, n];
+  WEAR_ART[id] = ({ x, f }) => {
+    const im = pxwImg(id, f ? 'idle_f' + f : 'idle');
+    if (!im) return;
+    x.imageSmoothingEnabled = false;
+    x.drawImage(im, -PXW_PAD, -(PXW_TOP[id] || 0));
+  };
+  for (let f = 1; f < n; f++) pxwImg(id, 'idle_f' + f);
 }
 // shades: start loading now (their WEAR_ART canvas is made again when the picture arrives: pxwImg)
 for (const [id, , slot] of PXW_LIST) if (PXW_ART_SLOTS.includes(slot)) pxwImg(id, 'idle');

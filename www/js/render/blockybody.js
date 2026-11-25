@@ -33,7 +33,7 @@ function blockyImg(skin, name) {
   return im.complete && im.naturalWidth ? im : null;
 }
 // start loading every skin's pictures at once, so the first jump / punch already has them
-for (const s of typeof SKINS !== 'undefined' ? SKINS : ['porcelain']) for (const n of ['sleeve_back', 'sleeve_front', 'blocky_jump_up', 'blocky_jump_down', 'angry_face', 'swim_face', 'sit_look', 'sit_noarm', 'expr_dead', 'expr_nice', 'expr_sleep', 'expr_troll', 'expr_omg', 'talk_o', ...Array.from({ length: 11 }, (_, i) => 'expr_cry_' + String(i).padStart(2, '0'))]) blockyImg(s, n);
+for (const s of typeof SKINS !== 'undefined' ? SKINS : ['porcelain']) for (const n of ['sleeve_back', 'sleeve_front', 'blocky_jump_up', 'blocky_jump_down', 'angry_face', 'swim_face', 'sit_look', 'sit_noarm', 'expr_dead', 'expr_nice', 'expr_sleep', 'expr_troll', 'expr_omg', 'expr_love', 'talk_o', ...Array.from({ length: 11 }, (_, i) => 'expr_cry_' + String(i).padStart(2, '0'))]) blockyImg(s, n);
 // in the air (owner, Nov 21 2026: the feet go up and down like walking): render.js draws the walking frame and puts
 // the jump picture's whole HEAD over it (blocky_jump_up / _down rows above the neck), so the jump face stays whole
 // (only the changed pixels broke the eyes: owner, same day)

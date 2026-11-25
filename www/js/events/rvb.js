@@ -56,7 +56,7 @@ const RVB_ID = 'set_rvb',
 // ===== the event (build f) =====
 const SPW_NAME = 'SPLASH WARS', // (owner: "change its name") was "Red vs Blue"; the teams are still RED and BLUE
   SPW_WORLD = 'SPLASHWARS',
-  SPW_V = 'SPW:6', // the SPLASHWARS lobby world's template version (worldRV; 2-4 = build p, the Ticket Exchange booth)
+  SPW_V = 'SPW:7', // (7 = Nov 25 2026 m: the swim floats on the shelves) the SPLASHWARS lobby world's template version (worldRV; 2-4 = build p, the Ticket Exchange booth)
   // (build g) the SERVER makes the matches (schema.sql SPLASH WARS); these must match its spw_len()
   SPW_FILL = 30000, // fewer than 20 registered: a match is made once the first in line has waited this long
   SPW_PREP = 10000, // in the match world's team rooms with the team list
@@ -1960,6 +1960,12 @@ const SPW_SHOP_OFF = {
   water_bucket: 50,
   sand: 10,
   beach_umbrella: 5,
+  // (owner, Nov 25 2026 m: "the swim floats as Splash Wars prizes, out of the shop"; prices by Claude, like his old
+  // "swim rings 500 each")
+  blue_swim_float: 500,
+  green_swim_float: 500,
+  chicken_swim_float: 1000,
+  monster_swim_float: 1000,
 };
 // how many one exchange gives (1 if not listed); the server's list comes in spw_status `shop_qty`
 const SPW_QTY_OFF = { water_bucket: 20, sand: 30, beach_umbrella: 20 };

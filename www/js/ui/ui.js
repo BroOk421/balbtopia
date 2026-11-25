@@ -1028,24 +1028,22 @@ function charPortrait(c, raw) {
     portrait: true, // always standing (never the swimming pose)
     blink,
   };
+  // (owner, Nov 25 2026: with the menu open, bits of the character / blocks blinked on the left of the screen)
+  // drawn on its OWN canvas now, not on the screen's top-left corner put back afterwards
   const saveZ = Z,
-    back = g.getImageData(0, 0, W, H);
-  g.save();
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.clearRect(0, 0, W, H);
+    saveG = g,
+    out = document.createElement('canvas');
+  out.width = W;
+  out.height = H;
+  g = out.getContext('2d');
   Z = k;
   try {
     // feet at the bottom of the box, body in the middle
     drawCharacter(who, W / 2 - (P.w / 2) * k, H - P.h * k - 2 * k);
   } finally {
     Z = saveZ;
+    g = saveG;
   }
-  const out = document.createElement('canvas');
-  out.width = W;
-  out.height = H;
-  out.getContext('2d').drawImage(cv, 0, 0, W, H, 0, 0, W, H);
-  g.putImageData(back, 0, 0);
-  g.restore();
   if (raw) return out; // the whole box, not trimmed (portrait.js draws it every frame)
   // trim the empty edges
   const d = out.getContext('2d').getImageData(0, 0, W, H).data;

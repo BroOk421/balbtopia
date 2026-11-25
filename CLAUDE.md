@@ -26,14 +26,14 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | `core/` | errors, assets, config, bootflow (Nov 23 2026: loading steps / maintenance / in-game update / the scene, right after config.js), gfx (Nov 23 2026: Graphics settings), ambient (Nov 22 2026 y: birds / wind, right after ui/landinglinks.js), native, input, sound, camzoom, bgtick, keepalive-worker (a Worker file, not a script tag), gone (Nov 22 2026: deleted items, right before main.js), main |
 | `online/` | net, online-config (made by `npm run config`), auth, loginguard, economy, bag (build m, loaded before main.js), gmwatch, subscriber, rename, social, globalchat, keys |
 | `world/` | world, worlds, worldfix, ground, lobby, lock, alocks, weather, daynight (right after weather), clouds (right after daynight: the desert clouds, fixed in the world, drifting left), signs |
-| `events/` | autumn, moon, moonevent, moonroids, moonstay, asteroids, rvb, spwai (TEMP test, build p) |
+| `events/` | autumn, autumnseeds + rareprize (Nov 25 2026 b, right after wear/bubblegum.js), moon, moonevent, moonroids, moonstay, asteroids, rvb, spwai (TEMP test, build p) |
 | `player/` | player, physics, actions, jump, groundhold, levels, afk, rest, emotes |
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
-| `blocks/` | blocks, treetrunk (Nov 22 2026 s, right after cyberblocks), blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
-| `wear/` | wear, clothes, tees, scarves, capes (back in Nov 22 2026 l, right after scarves), photo_wear, dyes, sets, spacesuit, wrist (rings only), prismtrail, scarfreaper, hatfit, musicset, pixelwear (Nov 22 2026: oldman, capes, baby, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, backfit deleted; afro, diaper, floaties, hairstyles, pirate, topless were unloaded leftovers, deleted) |
-| `items/` | pxswords (Nov 25 2026, right after rodknife.js), reaperscythe, scythes (all scythes again since Nov 22 2026 j), weapons2 (Water Gun + the 6 scythes), autumnbeam (Autumn Scythe laser, loaded again in j), handfx (water shots), pets, pets_art, rides, megagun (build p, after asteroids.js), umbrella, glovepunch, harvfuel, rodknife (Nov 22 2026: weapons.js, autumnbeam.js deleted) |
-| `render/` | render, shadow, portrait, remotefx (+ wear/backfit.js loaded again right after softstroke.js since Nov 22 2026 l) |
-| `ui/` | guide (Nov 22 2026 za, right before core/gone.js), ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks, achievements (Nov 13 2026, right before main.js) (chatbar.js removed Nov 10 2026) |
+| `blocks/` | seasonbush (Nov 25 2026 d, right after events/rareprize.js), blocks, treetrunk (Nov 22 2026 s, right after cyberblocks), blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
+| `wear/` | salbabida (Nov 25 2026 i, right after pixelwear.js), wear, clothes, tees, scarves, capes (back in Nov 22 2026 l, right after scarves), photo_wear, dyes, sets, spacesuit, wrist (rings only), prismtrail, scarfreaper, hatfit, musicset, pixelwear (Nov 22 2026: oldman, capes, baby, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, backfit deleted; afro, diaper, floaties, hairstyles, pirate, topless were unloaded leftovers, deleted) |
+| `items/` | pxswords (Nov 25 2026, right after rodknife.js), autumnstick + balloon (Nov 25 2026 d, right after pxswords.js), reaperscythe, scythes (all scythes again since Nov 22 2026 j), weapons2 (Water Gun + the 6 scythes), autumnbeam (Autumn Scythe laser, loaded again in j), handfx (water shots), pets, pets_art, rides, megagun (build p, after asteroids.js), umbrella, glovepunch, harvfuel, rodknife (Nov 22 2026: weapons.js, autumnbeam.js deleted) |
+| `render/` | render, shadow, portrait, remotefx, seasonnature (Nov 25 2026 e, right after softstroke.js) (+ wear/backfit.js loaded again right after softstroke.js since Nov 22 2026 l) |
+| `ui/` | guide (Nov 22 2026 za, right before core/gone.js), winsize (Nov 25 2026 b, right after shopstyle.js), ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks, achievements (Nov 13 2026, right before main.js) (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
 | `vendor/` | supabase.js |
 
@@ -5721,3 +5721,174 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   air render.js draws the jump head (blockyAirFace: every row above BLOCKY_NECK_ROW) over the body, covering a collar
   that reaches above the neck. pixelwear.js wraps blockyAirFace: the worn pixel shirt's rows above the neck are drawn
   back over it (cached per skin / pose / shirt, PXW_AIR; the character from PXW_CHAR_NOW, set in its drawCharacter wrapper).
+- (Nov 25 2026 b, owner) Build '2026-11-25 b':
+  - Menu open = things BLINKING on the left of the screen (wings, a piece of the world): charPortrait (ui.js) drew the
+    Profile picture on the screen canvas's top-left corner every 70 ms and put the pixels back. It now draws on its own
+    canvas (swaps the global `g` for a moment); musicpack.js / factorypack.js posters the same way. Never draw a
+    character "on the corner of the screen and put it back" again.
+  - Placing a solid block on a tile where ANOTHER player stands is refused too (actions.js `overlapsPlayer` also checks
+    `Net.remotes`, ghosts don't count; render.js place preview and shop.js use the same function).
+  - Respawn / toDoor at the main door (Menu -> Spawn, death, owner's Spawn): no smoke any more, only the fade-in.
+  - Others see the WHOLE death animation: net.js onPos no longer snaps a dead remote to its new spot (the door) until
+    its death animation is over; the position message has `dd` (dead), which starts the animation if the 'die' message
+    was missed (`r.diedAt` stops it starting twice).
+  - The soul flying up has the dead body's face (expr_dead: X eyes, frown) instead of the weak face (render.js ghostSprite).
+  - Shop / Menu one height (css/style.css end + ui/winsize.js): the card list is always two rows (or what fits in 84vh),
+    a shop tab without sub-tabs (AUTUMN, PETS, PACKS) keeps an invisible sub-tab row (`.ssub.ph`), the shop's height is
+    --shopH and every Menu tab is at least that tall; the tab columns (#shopTabs, #menu .tabs) are as tall as the
+    window, buttons stretched to fill it with bigger text (10 px, 8 px on short landscape screens).
+  - events/autumnseeds.js: Autumn Leaf Block (= Leaf Block + Red Block, Rare), Maple Plank Block (= Wood Block + Orange
+    Block, Rare), Autumn Leaf Wall (= Wooden Background + Red Block, Uncommon) and Bubble Gum (= Bubble Wrap + Amber
+    Glass, Rare) grow from seeds (SPLICE here + data/farming.json trees / splices); breaking the blocks / wall rolls
+    breakDrop like any grown block; their ripe trees give 1-3 (`SEEDED_FRUIT`, plant / splice wrappers). Bubble Gum is
+    out of the Shop (bubblegum.js; schema.sql shop_prices row + keep-list entry removed, item_info rows for the 4 items
+    and seeds added: RE-RUN schema.sql).
+  - Autumn Chest rare prizes much rarer (AUTUMN_LOOT: wings 0.1, Fall Machine 0.15, scythe 0.2). Getting one plays
+    events/rareprize.js (build c changed it, see below): 3 white blinks like the weather flash, the prize rises out of the chest in a big bubble
+    (owner's bubble.aseprite -> assets/fx/rare_bubble.png by art-source/fx/rare_bubble_cut.py, his layers with their
+    opacity, WITHOUT 'Layer 4' = the ring / stroke), gold glow behind it, it pops at RARE_FX.pop (the drop is hidden and
+    can't be picked up until then: `d.outT` in the future), lots of small bubbles and pixel stars (no outline) rise
+    and wobble; everything has a drop shadow. Only on the opener's screen. Drawn from a drawWeatherFlash wrapper.
+  - Splash Wars stick (swstick.js) moves every way: up past SW_UP 20 px = jump (P.buf on the push, ArrowUp held),
+    down = ArrowDown; left / right as before.
+- (Nov 25 2026 c, owner) Build '2026-11-25 c':
+  - Autumn Chest: the three Leaf Gliders (ride_leaf / _green / _yellow, 0.1 each) are very rare prizes now and OUT of the
+    Shop (autumn.js removes them from SHOP; schema.sql shop_prices rows + keep-list entries removed). Gold prize
+    1,000 - 2,000 (was 5,000 - 10,000; owner picked "1,000-2,000"). Breaking the chest: only the break smoke (the burst of
+    little square leaves is gone).
+  - rareprize.js: the prize no longer floats up in a big bubble (and isn't hidden): only the bubbles and stars rise out
+    of the chest. Blinks `RARE_FX.blinks` [start, ms, strength]: two quick (170 ms) then one slow (1,100 ms). The Leaf
+    Gliders are in RARE_PRIZES.
+  - Walking: the hair / hats / face pictures / back items bounced on a still head (the blocky walk frames keep the head
+    on one row, the body is drawn with no bob, but those got WALK_BOB's dy). render.js `wornDy` = 0 while walking
+    (drawBehind, the faces, drawWorn); the sleeves still use dy.
+  - The soul's wings sit on the back at the shoulders (render.js WING_ROOT { x, y, up }), not up by the head.
+  - Void Cleaver: no `sparkle` (no rising "+" sparks while held or on hits).
+  - Shop pop-up: a Quantity row (- [n] +, 1..SHOP_QTY_MAX 99, capped by what you can pay) for ordinary things
+    (`shopQtyOk`: not sets / packs of pieces, bag slots, real-money things, clothes); the price shown is for all of
+    them. The count goes to buy() through `shopCnt` (the buy wrappers pass on only `s`). Online: economy.js
+    `Wallet.buyN` -> new schema.sql `shop_buy_n(item, qty, count)` (one call; an old server: shop_buy count times).
+    After buying (shop.js, sets.js, starterpack.js, fish.js, bagslots.js, concert.js) the Shop STAYS OPEN
+    (`shopBought()`: re-render, keeps the list's scroll); only the pop-up closes. RE-RUN schema.sql.
+- (Nov 25 2026 d, owner) Build '2026-11-25 d':
+  - blocks/seasonbush.js: Hedge / Rose Hedge / Foliage follow the season (`bushSeason()`: Snow machine -> 'snow', Fall
+    machine -> 'fall', else the Autumn event dates -> 'fall', WINTER_FROM..WINTER_TO (Dec 5 2026 - Mar 1 2027) ->
+    'snow'). 'fall' repaints the green pixels in orange / red / gold soft patches (`seasonFall`, `bushBlob`) and every
+    0.35-0.8 s a petal (autumn.js autLeafPart) leaves a hedge / foliage on the screen drifting right and down (max 14).
+    'snow' adds a snow cap on top sides with nothing above and a few flakes (`seasonSnow`). Bag / Shop icons stay green.
+  - items/balloon.js: Red Balloon (`red_balloon`, Shop TOOLS 3,000; owner's balloon.aseprite in art-source/items/pixel,
+    cut by art-source/items/balloon_cut.py -> assets/items/balloon.png). A pendulum on a string from the front hand
+    (the hand's spot noted in a blockyTool wrapper that draws nothing; the balloon drawn BEHIND the character with the
+    hand from the frame before): standing it floats over the hand swaying / bobbing, moving it swings back up to
+    `BAL.trail` rad. State per character (`balKey`: yours on P, render.js makes a new object for you every frame).
+  - Autumn Stick (`autumn_stick`, owner's autumn-stick.aseprite in art-source/items/held, cut by pxsword_cut.py):
+    pxswords.js entry with `frames: 1`, `noShop`, `noSpin`; a 0.1 Autumn Chest prize (rare show too). items/autumnstick.js:
+    every punch with it throws a copy from the hand to the spot hit, turning counter-clockwise and fading; the stick
+    stays in the hand (yours and others').
+  - schema.sql: red_balloon shop_prices row + keep list; item_info red_balloon / autumn_stick. RE-RUN schema.sql.
+  - (his bubble.aseprite sent again: the same file as before, nothing changed.)
+- (Nov 25 2026 e, owner) render/seasonnature.js: the nature blocks follow the season like the hedges (bushSeason):
+  NATURE_IDS (grass, daisy, rose, poppy, bushes, sunflower, vines, leaf / moss / bamboo blocks, potted plants, palm /
+  banana / bonsai trees, mushrooms...) + Dirt's grassy top. A drawTileBlock wrapper (outside softstroke's) swaps every
+  STILL picture they draw for a season copy (`natPic`, kept per picture): 'fall' = seasonFall on the green pixels,
+  'snow' = `natSnow` (snow on the top of each leafy column when the tile above is empty, a few flakes). Pictures with
+  under 4% green are left alone. Animated / repainted pictures are not swapped (the round Bush stays green in snow).
+  The mountains (daynight.js, no machine): drawAlpine 'sunny' -> the season's look ('fall' / 'snow') by the calendar
+  (`seasonByDate`); sunrise / sunset / night unchanged.
+- (Nov 25 2026 f, owner) Build '2026-11-25 f':
+  - Red Balloon: the string's end no longer lags off the hand when moving: the hand is kept RELATIVE to the body
+    (`st.rel`) and moved with the body to this frame before the balloon is drawn behind the character.
+  - Autumn Stick throw: counter-clockwise facing left, clockwise facing right.
+  - Falling leaves: smaller (autumn.js FALL_LEAF_SCALE 0.55, the Fall Machine's too), and they fall in the background in
+    the autumn SEASON as well when no Weather Machine is on (render.js, `seasonByDate() === 'fall'` + dnOn).
+  - Boxing Glove: his boxing-gloves.aseprite (art-source/items/pixel) -> assets/items/boxing_glove.png
+    (art-source/items/glove_cut.py); glovepunch.js draws HIS picture (mirrored; GLOVE_CELL 6 body px a pixel,
+    GLOVE_HAND [4, 6]) worn and flying; the drawn glove (GLOVE_PIC painter, art/tools.js icon) removed; icon = his glove.
+  - Void Cleaver: his new bigsword.aseprite (16 frames of 100 ms) re-cut by pxsword_cut.py; PXS.void_cleaver
+    `frames: 16`, at [-5.83, -14.5]; a back sword's grip = -at.x.
+- (Nov 25 2026 g, owner) Void Cleaver: his bigsword.aseprite again, now with an 'effect-blade' layer (opacity 220)
+  and one 'effects' layer (the file before had TWO layers both named 'effects': pxsword_cut.py keys cels by layer name,
+  so one was lost). Re-cut: every frame now has the blade glow + the sparks. Same box (38 x 14), same `at`.
+- (Nov 25 2026 h, owner) Boxing Glove placed exactly as in his boxing-gloves.aseprite: out of BLOCKY_TOOL_SKIP, drawn on
+  the blocky FRONT hand (`gloveOnHand`, pxsDraw's transform, GLOVE_AT [-3.83, 1.5] from the front shoulder) AFTER the
+  front sleeve (his top layer); the old drawArmWithTool / swingTurn / drawToolSwing glove wrappers and gloveDraw removed.
+  A punch throws a copy of his glove from the hand to the tile (`gloveThrows`, GLOVE_FLY: fist first, growing 1 -> 1.9,
+  fading), drawn from drawWater; yours (startPunch) and others' (their punches). punchPlayer's double push kept.
+- (Nov 25 2026 i, owner) Build '2026-11-25 i':
+  - items/vcbreak.js: a block hit with the Void Cleaver shows his claw marks (void-cleaver-break-effect.aseprite ->
+    assets/items/void_cleaver_break.png, art-source/items/vcbreak_cut.py) instead of the crack: hit 1 plays frames 1-3
+    (100 ms), then frame 4 / 5; a tougher block: the hits after the first split over 4 then 5 (`vcbFrame`: 1-3, 4, 4,
+    5, 5 for 6 hits). drawCrack now gets (px, py, T, r, i, n, need[, remote crack]); remotefx.js rCrack keeps the
+    hand id (`tool`) and the first hit's time (`t1`). Yours: hitBlockAt wrapper (`VCB_MINE`).
+  - /love = his heart-eye.aseprite (art-source/character/expressions; expr_love_cut.py): <skin>/expr_love.png = his
+    mouth + his eyebrows raised 1 px, the hearts taken out; assets/fx/love_eyes.png = the two hearts, drawn each
+    PUMPING round its middle (`emoBeat`, `loveEyeBoxes`); the floating hearts = one of his eye hearts, small
+    (assets/fx/love_heart.png). The old drawn hearts / grin / heart helpers removed.
+  - Shifty Eyes (`shifty_eyes`, Eyes slot, Shop 5,000; his eye-1.aseprite in art-source/wear/pixel/eye): 7 frames of
+    100 ms. pixelwear_cut.py cuts an animated 'eye' file into idle.png + idle_f1..6.png; pixelwear.js PXW_ANIM ->
+    ANIM_N (wear.js wearArt frame).
+  - wear/salbabida.js: a new FLOAT slot (side column) and 4 Swim Floats (blue / green 4,000, chicken / monster 8,000;
+    his *-salbabida.aseprite in art-source/wear/pixel/salbabida, art-source/wear/salbabida_cut.py -> assets/wear/<id>/
+    ring.png + icon.png). The ring is drawn over the body under the front arm (blockySleeves wrapper). In water
+    (`ringFloating`: water at FLOAT.ring of the height) you float: held with the ring on the surface (step wrapper),
+    counted as standing (walk / jump off); upright (jumpFrame `_bj` null), arms circling only while moving
+    (`c._swim` = moving), normal face (render.js `!c._ring`). (The older pants-slot cow / duck rings are unchanged.)
+  - schema.sql: shop_prices + keep list + item_info for shifty_eyes and the 4 floats. RE-RUN schema.sql.
+- (Nov 25 2026 j, owner) Void Cleaver (items/vcbreak.js): no break smoke on its hits / breaks (breakPuffs wrapper:
+  `vcbHitting` during your hitBlockAt, your / others' punch on that tile, or a recent rCrack with its tool); a neon rim
+  round the sword in the hand (`neonSheet`: 1 px bright #c8b8ff + 1 px soft #7a4cff, 2 px bigger each side; drawn
+  under it in a pxsDraw wrapper, pulsing VCB_NEON.pulseMs); the same rim round the claw marks flares on every hit and
+  fades out over VCB_NEON.markMs (VCB_MINE .t / rCrack .t = the last hit).
+- (Nov 25 2026 k, owner) Void Cleaver: the neon rim goes round the SWORD only (pxsword_cut.py also writes
+  held_void_cleaver_core.png = layers 'sword' + 'effect-blade', same box; vcbreak.js VCB_CORE_IMG), not the sparks.
+  Claw marks: the hit before the breaking one always shows frame 5 (`vcbFrame`: a 3-hit block's 2nd hit plays 4 then
+  5). Wings (backfit.js BF_WING_LIFT, frame px up from the shoulder line): every pair 6, Tiny Vampire and all
+  (glowing) Crystal Wings 14, Tiny Devil Wings 0 (owner: fine as they are).
+
+## 2026-11-25 l — new Void Cleaver art + blade-only glow
+- art-source/items/held/bigsword.aseprite replaced with the owner's new file; re-cut (38x17, at [-5.83, -16.5], 16 frames).
+- pxsword_cut.py CORE = effect-blade only → held_void_cleaver_core.png is just the effect-blade.
+- pxswords.js: back-sword grip is now `[-at.x, -5.5 - at.y]` (keeps the same hand point when `at` changes).
+- vcbreak.js: the sword neon is now a GLOW (VCB_GLOW: soft 3 px halo fading out, under the sword, pulsing) + the blade brightened with 'lighter' on top. Break-mark neon unchanged.
+
+## 2026-11-25 m
+- Void Cleaver back to the earlier art (bigsword.aseprite = the 12:16 upload; 38x14, at [-5.83, -14.5]). The neon STROKE
+  (rim) is round the effect-blade layer only (CORE in pxsword_cut.py). neonSheet's glow mode stays unused.
+- vcbreak.js: the hits are smokeless, the BREAKING click puffs (yours: SFX_BREAK sets vcbBreakAt the same frame; remote:
+  rCrack n >= need). Tested: a 6-hit block = 0,0,0,0,0 puffs then 3 on the break.
+- actions.js: burst() is off everywhere (BURST_OFF) and placeFx has no chips: placing = the smoke only.
+- Swim floats: out of the Shop, into the Splash Wars Ticket Exchange (blue/green 500, chicken/monster 1000 tickets,
+  excl). SPW_V 'SPW:7' rebuilds the lobby booth shelves. schema.sql: new block at the end (re-run).
+
+## 2026-11-25 n
+- Shifty Eyes: pixelwear_cut.py writes the WHOLE eyes layer for every frame of an animated eye piece (idle.png too, it was
+  empty), not the diff against the body: the smoothed diff's soft edges let the body's own pupil show as a dark
+  rectangle outline. All his frames have the body's eye shape, so it covers it exactly.
+- /love hides eye pieces (render.js LOVE_HIDES: shifty_eyes, bold_eyeliner); the check is in photo_wear.js's drawWorn
+  wrapper (it draws the face slot LAST) and render.js drawWorn. Glasses still show.
+
+## 2026-11-25 o
+- Void Cleaver smoke ONLY when the thing breaks, for every punch: vcbreak.js wraps `act` (and Net.onPunchFx for other
+  players) so the whole punch is smokeless (vcbHitting), and a puff goes through only if what was hit is gone
+  (vcbBroken: block damage >= its hits, background cleared, tree taken; punchTree wrapper marks the tree tile).
+  Build m's break-SOUND trick is gone: a background hit plays that sound too, so its hits puffed. Tested: block 0x5 then
+  3 on the break; background 0 then 3.
+
+## 2026-11-25 p — Boomerang, Bow, Pamalo, Obsidian Cleaver (names / prices by Claude)
+- art-source/items/held: boomerang.aseprite, bow.aseprite, pamalo.aseprite, bigsword-1.aseprite; pxsword_cut.py cuts
+  held_wooden_boomerang / held_hunter_bow (ROWS: only rows 10+, the top rows are the arrow) / held_pamalo /
+  held_obsidian_cleaver, and EXTRA bow_arrow.png (the bow file's top rows).
+- pxswords.js PXS: wooden_boomerang (Epic 15k, noSpin), hunter_bow (Epic 20k, noSpin), pamalo (Rare 9k, back),
+  obsidian_cleaver (Epic 30k, back). All in the Shop (TOOLS); schema.sql shop_prices + keep-list + item_info.
+- autumnstick.js: THROWN table (autumn_stick, wooden_boomerang): every punch throws a spinning copy that fades.
+- items/bow.js (new, after autumnstick.js): inReach is 5 tiles with the bow (like the water guns); every punch shoots
+  the arrow from the hand to the spot (BOW.speed 900 px/s), it fades in the block (stayMs). Remote players too.
+
+## 2026-11-25 q
+- Hunter's Bow: no swing. bow.js wraps blockyTarget: the front arm (with the bow, which points ALONG the arm in his
+  picture) points at the spot: at the punch while shooting, and for you also at the pointer while just holding it.
+  Angle = atan2 - PI/2, clamped to [-PI, 0] (straight up .. straight down).
+- Wooden Boomerang, Hunter's Bow, Pamalo grow from seeds, not sold (PXS `seed`/`noShop`, PXS_SEED in pxswords.js +
+  data/farming.json): Boomerang = Red Block + Wood Block, Bow = Death Spikes + Wooden Platform, Pamalo = Rock + Wood
+  Block (tree 360 s, seed chance 0.3, as weapons.js). Obsidian Cleaver stays in the Shop. schema.sql: their
+  shop_prices rows removed (+ a delete at the end).
