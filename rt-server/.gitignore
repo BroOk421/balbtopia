@@ -1,4 +1,7 @@
-config.json
+# kept out of git. Windows can hide the extension, so a file saved as "config.json"
+# may really be config.json.json, and cloudflared.exe may be cloudflared.exe.exe.
+# These patterns catch both.
+config.json*
+!config.example.json
 node_modules/
-cloudflared.exe
-cloudflared
+cloudflared*
