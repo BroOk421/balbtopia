@@ -668,5 +668,90 @@
    "idle_f5",
    "idle_f6"
   ]
+ },
+ "banana_suit": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 30
+ },
+ "orange_suit": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 30
+ },
+ "jester_hat": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "side": 18,
+  "top": 30
+ },
+ "spartan_helmet": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "side": 42,
+  "top": 90
+ },
+ "golden_spartan_helmet": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "side": 42,
+  "top": 90
+ },
+ "warrior_helmet": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 90
+ },
+ "warrior_abs": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "warrior_loincloth": {
+  "cat": "pants",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "warrior_sandals": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "smiling_mask": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle"
+  ]
  }
 }

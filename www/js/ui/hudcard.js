@@ -399,3 +399,15 @@ setInterval(() => {
   tick();
   setInterval(tick, 500);
 }
+// (owner, Nov 26 2026: "on the landing / log in page the profile shows top left: don't show it") the card only once
+// the landing page is gone (#start hidden: in a world)
+setInterval(() => {
+  const st = $('start'),
+    off = !!st && !st.hidden;
+  if (PCARD.hidden !== off) PCARD.hidden = off;
+}, 200);
+{
+  const st = document.createElement('style');
+  st.textContent = '.pcard[hidden]{display:none !important}';
+  document.head.appendChild(st);
+}

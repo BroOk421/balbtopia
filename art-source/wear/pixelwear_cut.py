@@ -104,6 +104,15 @@ ITEMS = {
     #   are empty (they ARE the body frame), only the icon and the sitting shorts are drawn.
     'bare/default_bare.aseprite#topless': 'bare_chest', 'bare/default_bare.aseprite#bareshorts': 'bare_legs',
     'bare/default_dressed.aseprite#sando': 'white_sando', 'bare/default_dressed.aseprite#shorts': 'navy_shorts',
+    # (owner, Nov 26 2026: banana / orange / clown / spartan / gold-spartan / mask / warrior .aseprite; names by Claude)
+    # head pieces drawn over the head ('hat' = the last visible non-body layer: banana / orange 'mask2' - their hidden
+    # 'mask' is not used -, clown 'hat', the spartans 'helmet', mask 'mask'); some reach past the body's 32 columns
+    # (WIDE). The warrior's four layers are four items: helmet, armor (abs: a bare-chest shirt), pants, boots (sandals).
+    'hat/banana.aseprite': 'banana_suit', 'hat/orange.aseprite': 'orange_suit', 'hat/clown.aseprite': 'jester_hat',
+    'hat/spartan.aseprite': 'spartan_helmet', 'hat/gold-spartan.aseprite': 'golden_spartan_helmet',
+    'hat/mask.aseprite': 'smiling_mask',
+    'set/warrior.aseprite#helmet': 'warrior_helmet', 'set/warrior.aseprite#armor': 'warrior_abs',
+    'set/warrior.aseprite#pants': 'warrior_loincloth', 'set/warrior.aseprite#boots': 'warrior_sandals',
 }
 BODY_LAYERS = {'sleeve left', 'shape', 'short', 'sando', 'sleeve right', 'mouth', 'nose', 'eyes', 'eyebrows'}
 
@@ -161,7 +170,20 @@ def lay(cels, name):
 S, FW, FH, PAD = 6, 118, 215, 40
 
 
-def fit(spr):
+def fit(spr, side=(0, 0)):
+    """side: (left, right) sprite columns past the body's 32 (the picture is that much wider each side, kept even)"""
+    if side != (0, 0):
+        # the picture gets sw = max(side) sprite columns more on BOTH sides (so it stays centred on the body: pixelwear.js
+        # draws it sw * 6 px further left); mirrored like the rest, so the file's right-hand columns end up on the left
+        L_, R_ = side
+        sw = max(side)
+        H0, W0 = spr.shape[:2]
+        extra = max(0, H0 - 35)
+        big = np.array(Image.fromarray(spr).resize((W0 * S, H0 * S), Image.NEAREST))[:, ::-1]
+        out = np.zeros((FH + extra * S, FW + 2 * PAD + 2 * sw * S, 4), np.uint8)
+        X_OFF, Y_OFF = (FW - 32 * S) // 2 + PAD + sw * S - R_ * S, 214 - H0 * S + extra * S
+        out[Y_OFF:Y_OFF + big.shape[0], X_OFF:X_OFF + big.shape[1]] = big
+        return out
     H0, W0 = spr.shape[:2]
     # (Nov 23 2026: the afro's file is 5 rows taller, the body 5 rows lower) rows over the normal 35 make the picture
     # that much taller at the top (pixelwear.js PXW_TOP draws it that much higher)
@@ -176,10 +198,10 @@ def fit(spr):
     return out
 
 
-def fitm(m):
+def fitm(m, side=(0, 0)):
     a = np.zeros(m.shape + (4,), np.uint8)
     a[m] = 255
-    return fit(a)[..., 3] > 0
+    return fit(a, side)[..., 3] > 0
 
 
 # ---- the bare body (porcelain) the pieces are drawn on ----
@@ -292,27 +314,46 @@ def shift(a, dx, dy):
     return o
 
 
+SIDE_MAX = 11  # columns past the body each side a head piece may have (pixelwear.js draws them in its 110 px art pad)
+HAT_OPEN = {'banana_suit': 'inside', 'orange_suit': 'inside', 'spartan_helmet': 'inside', 'golden_spartan_helmet': 'inside', 'warrior_helmet': 'inside', 'jester_hat': 'below'}
+HAT_EXTRA = {'spartan_helmet': ['sleeve left']}  # head pieces partly drawn on another layer (see the hat branch)
+SIDE = [(0, 0)]  # this item's (left, right) extra columns
+WIDE = {}  # the last aligned file's layers with those side columns ('_side': (left, right))
+
+
 def align(cels, name):
     """(owner, Nov 20 2026: in the scarf files he moved the BODY 4 px left) every layer is moved by how far the file's
     'shape' (the bare body) is from the default body's, so each piece sits on the game's character as in his file"""
+    WIDE.clear()
     if 'shape' not in cels:
         return cels
     S, D = cels['shape'][..., 3] > 0, look['shape'][..., 3] > 0
+    H0, W0 = D.shape
     if S.shape != D.shape:
         # (Nov 23 2026) a bigger canvas (the afro / bubble gum files are 40 x 40): find where the default 32 x 35 body
         # sits in it, keep that many columns and everything from the top down to the body's bottom (the rows above
         # the normal top stay: room for tall hair, fit() makes the picture taller)
-        H0, W0 = D.shape
         _, oy, ox = max((np.sum(S[y:y + H0, x:x + W0] & D) - np.sum(S[y:y + H0, x:x + W0] ^ D), y, x)
                         for y in range(S.shape[0] - H0 + 1) for x in range(S.shape[1] - W0 + 1))
-        for k, v in cels.items():
-            lost = v[:, :ox, 3].any() or v[:, ox + W0:, 3].any() or v[oy + H0:, :, 3].any()
+        # (Nov 26 2026) then the fine shift as below, and the layers cut ONCE from the file at the final place (the
+        # spartans' body was found 3 columns off: shifting after cutting lost their plume / sleeve)
+        P = SIDE_MAX + 12
+        padded = {k: np.pad(v, ((P, P), (P, P), (0, 0))) for k, v in cels.items()}
+        S2 = cels['shape'][oy:oy + H0, ox:ox + W0, 3] > 0
+        _, dx, dy = max(((np.sum(shift(S2, dx, dy) & D) - np.sum(shift(S2, dx, dy) ^ D), dx, dy) for dy in range(-8, 9) for dx in range(-10, 11)))
+        ox, oy = ox - dx, oy - dy
+        X, Y = ox + P, oy + P
+        for k, v in padded.items():
+            lost = v[:, :X, 3].any() or v[:, X + W0:, 3].any() or v[Y + H0:, :, 3].any()
             if lost:
                 print('  ', name, k, 'has pixels outside the body\'s 32 columns / under its feet: cut off')
-        cels = {k: v[:oy + H0, ox:ox + W0] for k, v in cels.items()}
-        S = cels['shape'][..., 3] > 0
-        S = S[S.shape[0] - H0:]
-        print('  ', name, 'canvas', 'body at', ox, oy, '->', oy, 'rows above the normal top')
+        # (Nov 26 2026: helmet plumes, a jester hat stick out past the body's 32 columns) up to SIDE_MAX columns each
+        # side are kept too, in WIDE (for the pieces drawn over the head: their picture gets that much wider)
+        top = max(0, oy)  # rows above the body kept (the file's own)
+        WIDE.update({k: v[Y - top:Y + H0, X - SIDE_MAX:X + W0 + SIDE_MAX] for k, v in padded.items()})
+        WIDE['_side'] = (SIDE_MAX, SIDE_MAX)
+        print('  ', name, 'canvas', 'body at', ox, oy, '->', top, 'rows above the normal top')
+        return {k: v[Y - top:Y + H0, X:X + W0] for k, v in padded.items()}
     best = max(((np.sum(shift(S, dx, dy) & D) - np.sum(shift(S, dx, dy) ^ D), dx, dy) for dy in range(-8, 9) for dx in range(-10, 11)))
     _, dx, dy = best
     if dx or dy:
@@ -334,6 +375,7 @@ for f, iid in ITEMS.items():
     if ONLY and iid not in ONLY:
         continue
     f, part = (f.split('#') + [None])[:2]
+    SIDE[0] = (0, 0)
     if f.endswith('.png'):  # a whole figure as a PNG: the piece is what differs from the bare body
         im = np.array(Image.open(SRC + f).convert('RGBA'))
         hp = im.copy()
@@ -395,11 +437,23 @@ for f, iid in ITEMS.items():
         t = cels['shape'].copy()
         t[look['sando'][..., 3] == 0] = 0
         cels['tshirt'] = t
+    elif part == 'armor':  # (Nov 26 2026: warrior.aseprite, owner: "the armor is abs, topless") a shirt: bare chest + it
+        cat = 'tshirt'
+        cels['tshirt'] = cels['armor']
+    elif part == 'boots':  # (warrior.aseprite: sandals)
+        cat = 'shoes'
+        cels['shoes'] = cels['boots']
+    elif part == 'pants':
+        cat = 'pants'
+    elif part == 'helmet':
+        cat = 'hat'
     elif part == 'hood':  # the hood: the mask layer above the shoulders, drawn like a hat
         cat = 'hat'
         m = cels['mask'].copy()
         m[HOOD_ROWS:] = 0
         cels['hood'] = m
+    if cat in ('tshirt', 'pants', 'shoes'):  # (a taller file: these only use the body's own 35 rows)
+        cels = {k: v[-35:] for k, v in cels.items()}
     d = OUT + iid
     os.makedirs(d, exist_ok=True)
     for old in os.listdir(d):
@@ -439,7 +493,7 @@ for f, iid in ITEMS.items():
         for nm in ('sleeve left', 'tshirt', 'sleeve right') + (('mask',) if part == 'hoodie' else ()):  # (from cels: the robe's 'tshirt' is made above; a hoodie's hood too)
             m = cels[nm][..., 3] > 0
             icon[m] = cels[nm][m]
-        if part != 'topless':  # (topless: the icon IS the bare chest)
+        if part not in ('topless', 'armor'):  # (topless / the warrior's armor: the icon IS the bare chest)
             icon[is_skin(icon)] = 0
     elif cat == 'pants':
         pa = cels['pants'].copy()
@@ -523,9 +577,38 @@ for f, iid in ITEMS.items():
                  else next(n for n, v in reversed(L) if v and n not in BODY_LAYERS and n in cels) if cat == 'hat' else 'Scarf' if cat == 'scarf'
                  else next(n for n, v in L if v and n.startswith('Cap') and n in cels) if cat == 'cap'
                  else next(n for n, v in L if v and n.startswith('hair') and n in cels))
+        if iid in HAT_EXTRA and lname in WIDE:
+            # (Nov 26 2026: spartan.aseprite has its red crest on the 'sleeve left' layer) what those layers have that the
+            # bare body's same layer doesn't is part of the piece too
+            Hh = WIDE[lname].shape[0]
+            for ln in HAT_EXTRA[iid]:
+                lw = np.zeros_like(WIDE[ln])
+                lw[Hh - 35:, SIDE_MAX:SIDE_MAX + 32] = look[ln]
+                ext = WIDE[ln].copy()
+                ext[lw[..., 3] > 0] = 0
+                m = ext[..., 3] > 0
+                WIDE[lname] = WIDE[lname].copy()
+                WIDE[lname][m] = ext[m]
+            cels[lname] = WIDE[lname][:, SIDE_MAX:SIDE_MAX + 32]
         a, ask = piece(cels[lname], tall_under(cels[lname], body))
         poses['idle'] = (a, ask)
         icon = cels[lname].copy()
+        # (Nov 26 2026) a head piece reaching past the body's 32 columns (a helmet's plume, a jester hat): the wider
+        # layer (WIDE), with the bare body under it padded by those columns
+        if cat == 'hat' and lname in WIDE and WIDE['_side'] != (0, 0):
+            Lx, Rx = WIDE['_side']
+            wl = WIDE[lname]
+            if wl[:, :Lx, 3].any() or wl[:, wl.shape[1] - Rx:, 3].any():
+                cols = np.where(wl[..., 3].any(axis=0))[0]
+                l_, r_ = max(0, Lx - cols.min()), max(0, cols.max() - (Lx + 31))
+                wl = wl[:, Lx - l_:Lx + 32 + r_]
+                ub = tall_under(wl[:, l_:l_ + 32], body)
+                ub = np.concatenate([np.zeros((ub.shape[0], l_, 4), np.uint8), ub, np.zeros((ub.shape[0], r_, 4), np.uint8)], axis=1)
+                a, ask = piece(wl, ub)
+                poses['idle'] = (a, ask)
+                icon = wl.copy()
+                SIDE[0] = (int(l_), int(r_))
+                print('  ', iid, 'reaches past the body:', l_, 'left,', r_, 'right')
         if cat == 'eye' and len(frames) > 1:  # an animated eye piece: every frame its own picture
             # (owner, Nov 25 2026 n: "a black rectangle stroke, there shouldn't be one") the WHOLE eyes layer every frame,
             # not only what differs from the body: a part-picture's soft edges (the game draws smoothed) let the body's
@@ -550,6 +633,27 @@ for f, iid in ITEMS.items():
         hr = np.zeros(cm.shape + (4,), np.uint8)
         hr[hole] = 255
         save_pose(d, 'hair_hole', fit(hr), np.zeros((FH, FW + 2 * PAD), bool), False)
+    if iid in HAT_OPEN:
+        # (owner, Nov 26 2026: "the hair shows only in the open parts, round the face, with these hats") hair_hole.png:
+        # where the worn hair may show (pixelwear.js PXW_CAP_HAIR cuts the hair to it, then the hat goes over):
+        # 'inside' = in each row, between the piece's left and right edge where it has no pixel (the face opening of
+        # the suits / helmets); 'below' = under the piece (the jester hat: the hair round the face under its band)
+        hm = cels[lname][-35:][..., 3] > 0
+        hole = np.zeros_like(hm)
+        if HAT_OPEN[iid] == 'inside':
+            for y in range(hm.shape[0]):
+                xs = np.where(hm[y])[0]
+                if len(xs) >= 2:
+                    hole[y, xs.min():xs.max() + 1] = True
+            hole &= ~hm
+        else:
+            ys, xs = np.where(hm)
+            for x in range(hm.shape[1]):
+                col = np.where(hm[:, x])[0]
+                hole[(col.max() + 1 if len(col) else ys.max() + 1):, x] = True
+        hr = np.zeros(hm.shape + (4,), np.uint8)
+        hr[hole] = 255
+        save_pose(d, 'hair_hole', fit(hr), np.zeros((FH, FW + 2 * PAD), bool), False)
     if iid == 'royal_silk_scarf':
         # a soft green glow round the scarf (pixelwear.js draws it under the scarf, pulsing), at frame resolution
         from PIL import ImageFilter
@@ -560,11 +664,14 @@ for f, iid in ITEMS.items():
         gl[..., 3] = np.clip(a * 1.6 * 255, 0, 255).astype(np.uint8)
         Image.fromarray(gl).save(d + '/glow.png')
     skinned = skinned or any(m.any() for _, m in poses.values())
+    side = SIDE[0]
     for nm, (a, m) in poses.items():
-        save_pose(d, nm, fit(a), fitm(m), skinned)
+        save_pose(d, nm, fit(a, side) if a.shape[1] != 32 else fit(a), fitm(m, side) if a.shape[1] != 32 else fitm(m), skinned)
     ys, xs = np.where(icon[..., 3] > 0)
     Image.fromarray(icon[ys.min():ys.max() + 1, xs.min():xs.max() + 1][:, ::-1]).save(d + '/icon.png')
     meta[iid] = {'cat': cat, 'sk': skinned, 'poses': sorted(poses)}
+    if side != (0, 0):
+        meta[iid]['side'] = int(max(side)) * S  # picture px more on each side (pixelwear.js PXW_SIDE)
     top = max(a.shape[0] for a, _ in poses.values()) - 35
     if top > 0:
         meta[iid]['top'] = top * S  # picture px above the normal top (pixelwear.js PXW_TOP)

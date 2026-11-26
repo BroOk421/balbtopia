@@ -11,7 +11,7 @@
 // - Names, prices and rarity picked by Claude. Shop WEAR tab; schema.sql shop_prices + keep list + item_info rows.
 // Loaded after oldman.js.
 // ===== pixel wear =====
-const PXW_SKINNED = new Set(['bare_chest', 'bare_legs', 'black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs', 'blank_face', 'gold_trim_jacket', 'crimson_trim_jacket', 'silver_trim_jacket', 'caveman_fur']);
+const PXW_SKINNED = new Set(['bare_chest', 'bare_legs', 'black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs', 'blank_face', 'gold_trim_jacket', 'crimson_trim_jacket', 'silver_trim_jacket', 'caveman_fur', 'warrior_abs', 'warrior_loincloth']);
 const PXW_LIST = [
   // t-shirts
   ['midnight_tee', 'Midnight Tee', 'shirt', 'Common', 800, 'A plain dark navy t-shirt.'],
@@ -118,6 +118,19 @@ const PXW_LIST = [
   // their pictures are empty (the body frames still have them), wearing one just stops the bare skin being painted there
   ['white_sando', 'White Sando', 'shirt', 'Common', 200, 'A plain white sando, the classic.'],
   ['navy_shorts', 'Navy Shorts', 'pants', 'Common', 200, 'Plain navy blue shorts, the classic.'],
+  // (owner, Nov 26 2026: banana / orange / clown / spartan / gold-spartan / mask / warrior .aseprite; names, prices by
+  // Claude) two fruit suits round the head, a jester hat, two spartan helmets with a red plume, a smiling mask, and the
+  // warrior's four pieces (helmet, abs armour = bare chest, loincloth, sandals)
+  ['banana_suit', 'Banana Suit', 'hat', 'Rare', 6000, 'A whole banana to wear, your face peeking out of the peel.', { hideHair: true }],
+  ['orange_suit', 'Orange Suit', 'hat', 'Rare', 6000, 'A juicy orange slice to wear, your face peeking out.', { hideHair: true }],
+  ['jester_hat', 'Jester Hat', 'hat', 'Rare', 5000, 'A blue, green and red jester hat with jingly gold tips.', { hideHair: true }],
+  ['spartan_helmet', 'Spartan Helmet', 'hat', 'Epic', 9000, 'A steel spartan helmet with a red crest. This is Balbtopia!', { hideHair: true }],
+  ['golden_spartan_helmet', 'Golden Spartan Helmet', 'hat', 'Epic', 15000, 'A shining gold spartan helmet with a red crest.', { hideHair: true }],
+  ['smiling_mask', 'Smiling Mask', 'face', 'Rare', 5000, 'A pale mask with a thin red smile. Creepy.'],
+  ['warrior_helmet', 'Warrior Helmet', 'hat', 'Rare', 6000, 'A plain steel warrior helmet.', { hideHair: true }],
+  ['warrior_abs', 'Warrior Abs', 'shirt', 'Rare', 5000, 'No armour needed: a battle-hard bare chest.'],
+  ['warrior_loincloth', 'Warrior Loincloth', 'pants', 'Uncommon', 3000, 'A red warrior loincloth with a brown belt.'],
+  ['warrior_sandals', 'Warrior Sandals', 'feet', 'Uncommon', 2500, 'Brown strapped warrior sandals.'],
 ];
 // ---------- the bare default character (owner, Nov 25 2026: "the default character has no sando and no pants: make
 // the blue shorts and the white sando wearables") ----------
@@ -134,12 +147,19 @@ function pxwBareFor(key, eq) {
   const sh = WEAR_BY_ID[eq.shirt],
     dress = sh && (sh.pat === 'dress' || sh.pat === 'pj' || sh.dress),
     out = [];
-  if (!eq.pants && !dress) out.push(PXW_BARE.pants);
-  if (!eq.shirt) out.push(PXW_BARE.shirt);
+  if ((!eq.pants && !dress) || PXW_BARE_UNDER[eq.pants] === 'pants') out.push(PXW_BARE.pants);
+  if (!eq.shirt || PXW_BARE_UNDER[eq.shirt] === 'shirt') out.push(PXW_BARE.shirt);
   return out;
 }
+// (owner, Nov 26 2026: "the Warrior Abs has white at the side; in my file there isn't") pieces that are mostly bare
+// skin: the bare body is painted under them too (so the old white sando / navy shorts of the body frames can't peek
+// out in any pose), then the piece over it
+const PXW_PANTS_OVER = new Set(['warrior_loincloth']);
+const PXW_BARE_UNDER = { warrior_abs: 'shirt', six_pack_abs: 'shirt', caveman_fur: 'shirt', warrior_loincloth: 'pants' };
 // pictures taller than the frame at the top (pixelwear_meta.json "top": the afro's file has 5 more rows over the head)
-const PXW_TOP = { fluffy_afro: 30 };
+const PXW_TOP = { fluffy_afro: 30, banana_suit: 30, orange_suit: 30, jester_hat: 30, spartan_helmet: 90, golden_spartan_helmet: 90, warrior_helmet: 90 };
+// (Nov 26 2026) pictures wider than the usual 40 px each side (pixelwear_meta.json "side": a plume, a jester hat)
+const PXW_SIDE = { jester_hat: 18, golden_spartan_helmet: 42, spartan_helmet: 42 };
 const PXW = {}; // id -> { slot, sk }
 PXW.bare_chest = { slot: 'shirt', sk: true, bare: true }; // (the bare skin pieces, PXW_BARE above: not items)
 PXW.bare_legs = { slot: 'pants', sk: true, bare: true };
@@ -206,7 +226,7 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
       const im = pxwImg(id, 'idle', PXW[id].sk ? SKINS[f] || 'porcelain' : undefined);
       if (!im) return;
       x.imageSmoothingEnabled = false;
-      x.drawImage(im, -PXW_PAD, -(PXW_TOP[id] || 0));
+      x.drawImage(im, -PXW_PAD - (PXW_SIDE[id] || 0), -(PXW_TOP[id] || 0));
     };
 }
 // (Nov 25 2026) animated eye pieces: frame f of ANIM_N (wear.js wearArt) = idle.png (0) or idle_f<f>.png
@@ -405,7 +425,10 @@ const PXW_DONE = new Map();
 outfitBody = ((prev) =>
   function (im, key, eq, bands) {
     // (Nov 25 2026) the bare skin pieces go first (under the shoes)
-    const ids = [...pxwBareFor(key, eq), ...(eq ? ['pants', 'feet', 'shirt'].map((s) => eq[s]).filter((id) => PXW[id]) : [])];
+    // (owner, Nov 26 2026: "the pants overlap the abs") a low-cut piece like the Warrior Abs reaches one row into the
+    // waist; pants in PXW_PANTS_OVER go after the shirt so their waistband shows, as in the .aseprite
+    const order = eq && PXW_PANTS_OVER.has(eq.pants) ? ['feet', 'shirt', 'pants'] : ['pants', 'feet', 'shirt'];
+    const ids = [...pxwBareFor(key, eq), ...(eq ? order.map((s) => eq[s]).filter((id) => PXW[id]) : [])];
     if (!ids.length || !im || !im.width) return prev(im, key, eq, bands);
     const eq2 = Object.assign({}, eq);
     for (const s of ['shirt', 'pants', 'feet']) if (PXW[eq2[s]]) eq2[s] = null;
@@ -454,7 +477,8 @@ const PXW_HOOD = new Set(['gray_hoodie']);
 // cut to hair_hole.png (under the cap) and the cap drawn over it; `hideHair` keeps hatfit.js from lifting it
 // (the Trucker Cap was tried this way and put back to a normal hat on the hair: owner, "it looked bad"; the set is
 // kept for a later hat that needs it; its hat then needs a hair_hole.png, pixelwear_cut.py `CAP_HAIR_HOLE`)
-const PXW_CAP_HAIR = new Set();
+// (owner, Nov 26 2026: "the hair only in the open parts round the face") the fruit suits, the helmets, the jester hat
+const PXW_CAP_HAIR = new Set(['banana_suit', 'orange_suit', 'spartan_helmet', 'golden_spartan_helmet', 'warrior_helmet', 'jester_hat']);
 for (const id of PXW_CAP_HAIR) pxwImg(id, 'hair_hole');
 // (owner, Nov 22 2026: "with the bonnet only the hair UNDER it shows, the curve at the bottom; remove the bits at the
 // sides") hats that sit on the hair as usual (lifted by hatfit.js's hairLift) but show the worn hair ONLY in a strip

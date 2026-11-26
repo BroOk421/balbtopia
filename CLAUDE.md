@@ -5999,3 +5999,30 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   The claimer reports total (gm_event_result after spPlace), the games in the world report how many were still lying
   there at the end (lowest kept); gm_event_results(id) sums the worlds. schema.sql: gm_event_done.total_n / left_n.
 - Duration: 30 sec / 1 / 3 / 5 min buttons + min and sec boxes (10 s to 60 min); spMins says "1 minute 30 seconds".
+
+## 2026-11-26 m — new wearables, no profile card on the landing page
+- hudcard.js: .pcard hidden while #start (landing / log in) shows.
+- art-source/wear/pixel/hat/{banana,orange,clown,spartan,gold-spartan,mask}.aseprite, set/warrior.aseprite (helmet,
+  armor, pants, boots layers) -> pixelwear.js PXW_LIST: banana_suit, orange_suit, jester_hat, spartan_helmet,
+  golden_spartan_helmet (hats), smiling_mask (face), warrior_helmet / warrior_abs (shirt, bare chest, per skin) /
+  warrior_loincloth (pants, per skin) / warrior_sandals (feet). Shop; schema.sql shop_prices + keep-list + item_info.
+- pixelwear_cut.py: align() on a bigger canvas now finds the body, fine-shifts, and cuts ONCE from the padded file;
+  WIDE keeps SIDE_MAX (11) columns each side: a head piece reaching past the body's 32 columns gets a wider picture
+  (meta "side", pixelwear.js PXW_SIDE, drawn that much further left inside the 110 px art pad). HAT_EXTRA: spartan's
+  crest is on its 'sleeve left' layer. Parts '#helmet/#armor/#pants/#boots'. Taller files: shirt / pants / shoes use
+  the bottom 35 rows. PXW_TOP for the taller ones (30 / 90).
+- Hair with these hats (owner: "only in the open parts round the face"): HAT_OPEN -> hair_hole.png ('inside' = the
+  face opening of the suits / helmets, 'below' = under the jester hat) and PXW_CAP_HAIR (the hair cut to it, the hat
+  over it; hideHair still stops hatfit's lift and the long-hair back).
+- (He also sent a gold-warrior.png preview but no gold-warrior .aseprite.)
+
+## 2026-11-26 n
+- gold-spartan.aseprite replaced by the owner's update; golden_spartan_helmet re-cut (same size / side / top).
+
+### Build 2026-11-26 o: Warrior Abs / Loincloth match the .aseprite
+- Owner said the Warrior Abs had white at its side, and the pants overlapped the abs.
+- Cause: the body frames still hold the default white sando and navy shorts. Some poses showed them past the pieces.
+- Fix in pixelwear.js:
+  - `PXW_BARE_UNDER` (warrior_abs, six_pack_abs, caveman_fur → bare_chest; warrior_loincloth → bare_legs) paints the bare body under those items too.
+  - `PXW_PANTS_OVER` (warrior_loincloth) draws the pants after the shirt. The abs reach one row into the waist, so the loincloth's belt now shows as in the file.
+- No schema change.
