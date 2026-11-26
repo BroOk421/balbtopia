@@ -183,6 +183,7 @@ async function getKey() {
     return toast(e.message);
   }
   ensureKey(id);
+  Net.keyMoved(true); // (Nov 26 2026) the lock loses its green key, for everyone here
   if (!inv.some((s) => s.id === id) && !addItem(id, 1)) return toast('Bag is full: the key comes back when you log in again');
   savePlayer();
   toast('You have the key of ' + worldName);
@@ -203,6 +204,7 @@ async function useKey() {
   }
   takeN(id, have(id));
   savePlayer();
+  Net.keyMoved(false); // the key is back in the lock (used, or put back)
   if (res && res.r === 'owner') {
     worldOwner = playerName;
     setLockCfg({ desc: lockCfg.desc, open: false, access: [] });

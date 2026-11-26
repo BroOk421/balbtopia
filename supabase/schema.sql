@@ -1033,6 +1033,16 @@ begin
   return 'ok';
 end $$;
 
+-- (owner, Nov 26 2026: "the lock shows a green key while the key hasn't been taken") is this world's key out of its
+-- lock (taken, held or dropped, and still working)? Everyone in the world draws the lock with or without the key.
+create or replace function public.world_key_out(p_world text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.world_keys k join public.worlds w on w.name = k.world
+    where k.world = p_world and w.owner is not null and lower(w.owner) = lower(k.owner_name));
+$$;
+grant execute on function public.world_key_out(text) to anon, authenticated;
+
 grant execute on function public.world_banned(text), public.my_world_ban(text), public.ban_from_world(text, uuid, integer),
   public.unban_from_world(text, text), public.world_ban_list(text), public.send_chat(text, text) to authenticated;
 grant execute on function public.whoami(), public.my_name(), public.am_i_gm(), public.am_i_banned(), public.gm_ban(text, boolean, text),
@@ -5871,6 +5881,39 @@ begin
 end $$;
 revoke execute on function public.post_gm_event(text[], jsonb, text, integer) from public, anon;
 grant execute on function public.post_gm_event(text[], jsonb, text, integer) to authenticated;
+-- (owner, Nov 26 2026: "the announcement and the special event banner come late") a ping on the 'global' topic (every
+-- game listens there, only the server sends) when the GM posts one: the games look at once instead of at their next
+-- 30 s poll. Never fails the post (no realtime: the poll still finds it).
+create or replace function public.gm_ping()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  perform realtime.send(jsonb_build_object('t', extract(epoch from now())), 'gmping', 'global', true);
+exception when others then null;
+end $$;
+revoke execute on function public.gm_ping() from public, anon, authenticated;
+create or replace function public.post_banner(p_body text, p_at timestamptz)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare b text; nid bigint;
+begin
+  if not public.is_gm() then raise exception 'Only the GM can make announcements' using errcode = '42501'; end if;
+  b := left(btrim(regexp_replace(coalesce(p_body, ''), '[[:cntrl:]]', ' ', 'g')), 200);
+  if b = '' then raise exception 'Write the announcement first' using errcode = 'P0001'; end if;
+  if p_at is not null and p_at > now() + interval '60 days' then raise exception 'That is too far away' using errcode = 'P0001'; end if;
+  insert into public.gm_banners (body, show_at, by_name) values (b, greatest(coalesce(p_at, now()), now()), public.my_name()) returning id into nid;
+  delete from public.gm_banners where show_at < now() - interval '7 days';
+  perform public.gm_ping();
+  return nid;
+end $$;
+create or replace function public.post_gm_event(p_worlds text[], p_items jsonb, p_body text, p_dur integer)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare nid bigint;
+begin
+  if coalesce(p_dur, 0) < 10 or p_dur > 3600 then raise exception 'The time must be 10 seconds to 60 minutes' using errcode = 'P0001'; end if;
+  nid := public.post_gm_event(p_worlds, p_items, p_body);
+  update public.gm_events set dur_s = p_dur where id = nid;
+  perform public.gm_ping();
+  return nid;
+end $$;
 -- (Nov 26 2026 l, owner: "after the time, a banner with how many were got, out of how many") how many were put in
 -- each world and how many were still lying there at the end (the games in the world say so; the lowest is kept)
 alter table public.gm_event_done add column if not exists total_n integer;

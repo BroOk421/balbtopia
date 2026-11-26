@@ -80,9 +80,12 @@ Net.onPunchFx = (r, p) => {
       }
       rFnTaps.delete(k);
     }
-    const n = live ? c.n + 1 : 1;
-    rCrack.set(i, { n, t: now, need, ft: fg[i], tool: h, t1: n === 1 ? now : c ? c.t1 : now }); // (tool, t1: vcbreak.js)
-    if (n < need) breakPuffs(x, y); // (the break itself gives 3: net.js)
+    // (Nov 26 2026) their game says how far the block is broken on their screen (n of nd hits): the same crack here
+    const sent = Number.isFinite(p.n) && Number.isFinite(p.nd) && p.n > 0 && p.nd > 0 && p.nd < 1e4,
+      n = sent ? p.n : live ? c.n + 1 : 1,
+      needN = sent ? p.nd : need;
+    rCrack.set(i, { n, t: now, need: needN, ft: fg[i], tool: h, t1: n === 1 || !c ? now : c.t1 }); // (tool, t1: vcbreak.js)
+    if (n < needN) breakPuffs(x, y); // (the break itself gives 3: net.js)
   } else breakPuffs(x, y);
   // the tool's sparks (or a scythe's flame / leaves, thrown off their own blade)
   fxWho = r;

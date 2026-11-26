@@ -1094,6 +1094,22 @@ function aquaGlass(c, X, Y, W, H, u, edge) {
 }
 // fish swimming: one state per fish (key tile:slot:id), moving round its whole tank
 const SWIM = new Map();
+const FISH_SEG = 2.5; // s: the shortest stretch of a fish's path (a bigger tank = longer stretches)
+// a steady random number source for a text seed (the same numbers on every device)
+function fishRng(seed) {
+  let h = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+}
+
 function drawAquariums(ox, oy, T) {
   const vx0 = Math.max(0, Math.floor((-ox / Z) / TS) - 1),
     vy0 = Math.max(0, Math.floor((-oy / Z) / TS) - 1),
@@ -1138,11 +1154,14 @@ function drawAquariums(ox, oy, T) {
           sz = Math.max(6, Math.min(fishLen(f.id), asp <= 1 ? Math.min(tankW, tankH / asp) : Math.min(tankH, tankW * asp))),
           key = f.i + ':' + f.k + ':' + f.id;
         alive.add(key);
-        let s = SWIM.get(key);
-        // a spot to swim to: a random tile of the tank, kept far enough from the ends of its row (and column) that a
-        // big fish stays inside the glass when it can (a tank smaller than the fish: the middle of the run)
-        const pick = () => {
-          const j = group[Math.floor(Math.random() * group.length)],
+        // (owner, Nov 26 2026: "leaving and coming back, the fish are back at the lid; other players see them
+        // elsewhere") a fish's path comes from the CLOCK, not from where it was last drawn: spot n of its path is picked
+        // with a random number seeded by (fish, n), and it takes one stretch (seg s) to swim from spot n-1 to spot n.
+        // Everyone (whose device clock is right) sees the same fish in the same place, and coming back finds it where it
+        // swam to.
+        const pick = (n) => {
+          const rnd = fishRng(key + '#' + n),
+            j = group[Math.floor(rnd() * group.length)],
             jx = j % WW,
             jy = (j / WW) | 0;
           let x0 = jx,
@@ -1155,32 +1174,27 @@ function drawAquariums(ox, oy, T) {
           while (y1 < WH - 1 && set.has(at(jx, y1 + 1))) y1++;
           const hw = (asp <= 1 ? sz : sz / asp) / 2,
             hh = Math.max(4, (asp <= 1 ? sz * asp : sz) / 2),
-            fit = (a, b, h) => (b - a < 2 * h ? (a + b) / 2 : a + h + Math.random() * (b - a - 2 * h)),
+            fit = (a, b, h) => (b - a < 2 * h ? (a + b) / 2 : a + h + rnd() * (b - a - 2 * h)),
             rowW = (x1 + 1 - x0) * TS,
-            x = rowW < 2 * hw ? ((x0 + x1 + 1) * TS) / 2 : Math.max(x0 * TS + hw, Math.min((x1 + 1) * TS - hw, jx * TS + Math.random() * TS));
-          return { x, y: fit(y0 * TS + 4, (y1 + 1) * TS - 4, hh) };
+            x = rowW < 2 * hw ? ((x0 + x1 + 1) * TS) / 2 : Math.max(x0 * TS + hw, Math.min((x1 + 1) * TS - hw, jx * TS + rnd() * TS));
+          return { x, y: fit(y0 * TS + 4, (y1 + 1) * TS - 4, hh), rest: rnd() * 1.2 };
         };
-        if (!s) {
-          const p = { x: ((f.i % WW) + 0.5) * TS, y: (((f.i / WW) | 0) + 0.5) * TS };
-          s = { ...p, t: pick(), dir: Math.random() < 0.5 ? -1 : 1, rest: 0 };
-          SWIM.set(key, s);
-        }
-        // a target outside this tank (tiles changed): pick again
-        if (!set.has(at(Math.floor(s.t.x / TS), Math.floor(s.t.y / TS)))) s.t = pick();
+        // one stretch: long enough to cross the tank at the fish's speed, plus its rest
         const speed = [16, 12, 9, 6][FISH_BY[f.id].size],
-          dx = s.t.x - s.x,
-          dy = s.t.y - s.y,
-          d = Math.hypot(dx, dy);
-        if (s.rest > 0) s.rest -= dt;
-        else if (d < 1) {
-          s.t = pick();
-          s.rest = Math.random() * 1.2;
-        } else {
-          const k = Math.min(1, (speed * dt) / d);
-          s.x += dx * k;
-          s.y += dy * k;
-          if (Math.abs(dx) > 0.5) s.dir = dx > 0 ? 1 : -1;
-        }
+          seg = FISH_SEG + (Math.hypot(gx1 - gx0 + 1, gy1 - gy0 + 1) * TS) / speed / 2,
+          tt = Date.now() / 1000 / seg + fishRng(key)() * 97,
+          n = Math.floor(tt),
+          a0 = pick(n - 1),
+          a1 = pick(n),
+          restF = Math.min(0.5, a1.rest / seg), // the start of the stretch: still (resting at the last spot)
+          u = Math.max(0, (tt - n - restF) / (1 - restF)),
+          e = u * u * (3 - 2 * u), // slow away, slow in
+          ddx = a1.x - a0.x;
+        let s = SWIM.get(key);
+        if (!s) SWIM.set(key, (s = { dir: fishRng(key + 'd')() < 0.5 ? -1 : 1 }));
+        s.x = a0.x + ddx * e;
+        s.y = a0.y + (a1.y - a0.y) * e;
+        if (Math.abs(ddx) > 0.5) s.dir = ddx > 0 ? 1 : -1;
         const w = sz * Z,
           bob = Math.sin(now / 400 + f.k * 2) * 0.8 * Z;
         g.save();

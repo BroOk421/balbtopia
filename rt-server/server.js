@@ -61,8 +61,24 @@ async function sbFetch(p, token, body) {
   if (!r.ok) throw new Error((data && (data.message || data.msg)) || 'HTTP ' + r.status);
   return data;
 }
-const whoIs = (token) => sbFetch('/auth/v1/user', token);
-const rtCheck = (token, topic) => sbFetch('/rest/v1/rpc/rt_check', token, { p_topic: topic });
+// (owner, Nov 26 2026: "other characters show up late") every login and every topic join used to wait for a trip to
+// Supabase. The answers are kept for a short while (CACHE_MS), so re-joining a world, or a second topic of the same
+// world, answers at once. A ban still takes effect within CACHE_MS.
+const CACHE_MS = { who: 5 * 60000, check: 60000 };
+const cache = new Map(); // key -> { v, at }
+async function cached(key, ms, get) {
+  const c = cache.get(key);
+  if (c && Date.now() - c.at < ms) return c.v;
+  const v = await get();
+  cache.set(key, { v, at: Date.now() });
+  return v;
+}
+setInterval(() => {
+  const t = Date.now();
+  for (const [k, c] of cache) if (t - c.at > CACHE_MS.who) cache.delete(k);
+}, 60000);
+const whoIs = (token) => cached('u:' + token, CACHE_MS.who, () => sbFetch('/auth/v1/user', token));
+const rtCheck = (token, topic) => cached('c:' + token + ':' + topic, CACHE_MS.check, () => sbFetch('/rest/v1/rpc/rt_check', token, { p_topic: topic }));
 
 // ---------- topics ----------
 const topics = new Map(); // topic -> Map(conn -> { send })
@@ -209,8 +225,10 @@ function startQuickTunnel() {
   console.log('Starting the Cloudflare quick tunnel...');
   let cf;
   try {
-    const local = path.join(__dirname, process.platform === 'win32' ? 'cloudflared.exe' : 'cloudflared');
-    const exe = CFG.cloudflared && CFG.cloudflared !== 'cloudflared' ? CFG.cloudflared : fs.existsSync(local) ? local : 'cloudflared';
+    // (Nov 26 2026) Windows hides extensions, so a download saved as "cloudflared.exe" can really be cloudflared.exe.exe
+    const names = process.platform === 'win32' ? ['cloudflared.exe', 'cloudflared.exe.exe'] : ['cloudflared'];
+    const local = names.map((n) => path.join(__dirname, n)).find((f) => fs.existsSync(f));
+    const exe = CFG.cloudflared && CFG.cloudflared !== 'cloudflared' ? CFG.cloudflared : local || 'cloudflared';
     cf = spawn(exe, ['tunnel', '--no-autoupdate', '--url', 'http://localhost:' + PORT]);
   } catch (e) {
     return console.error('! Could not start cloudflared: ' + e.message);

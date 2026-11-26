@@ -917,7 +917,7 @@ function drawLeafRider(c, ox, oy, r) {
   g.restore();
   drawLeafTrail(c, ox, oy, trail, alpha, true); // and the ones over it
   drawLeafOrbit(c, ox, oy, fy, alpha, true, face); // the near half, over rider and leaf
-  rideArmsNow(); // the arm with the weapon, over the leaf
+  rideArmsNow(oy); // the arm with the weapon, over the leaf
   if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
   return res;
 }
@@ -1196,7 +1196,7 @@ function drawCloudRider(c, ox, oy, r) {
     delete c.rideBase;
   }
   drawCloudPuffs(ox, oy, puffs, alpha, false);
-  rideArmsNow(); // the arm with the weapon, over the clouds
+  rideArmsNow(oy); // the arm with the weapon, over the clouds
   if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
   return res;
 }
@@ -1287,7 +1287,7 @@ function drawCarpetRider(c, ox, oy, r) {
     delete c.realGround;
     delete c.rideBase;
   }
-  rideArmsNow(); // the arm with the weapon
+  rideArmsNow(oy); // the arm with the weapon
   if (typeof drawPetOf === 'function') drawPetOf(c, ox, oy, 'small');
   return res;
 }
@@ -1435,13 +1435,13 @@ drawCharacter = function (c, ox, oy) {
     delete c.rideBase;
   }
   // the arm holding the tool / weapon, whole, over the ride
-  for (const fn of rideArms.splice(0)) fn();
+  runRideArms();
   // (owner: the scythe's slash vanished while riding) scythes.js notes its slash while shadowBusy is set and only draws
   // it when an un-busy drawCharacter returns; while riding every inner draw is busy, so draw the noted slashes here
   if (typeof scyFxLater !== 'undefined')
     while (scyFxLater.length) {
-      const [fx, cc, x, y, id] = scyFxLater.shift();
-      fx(cc, x, y, id);
+      const [fx, cc, x, , id] = scyFxLater.shift();
+      fx(cc, x, oy, id); // (the screen's oy, not the lifted rider's: the slash reaches the clicked spot)
     }
   // the lightning in front of the body, uncut
   for (const fn of rideFront.splice(0)) fn();
@@ -1478,13 +1478,25 @@ function rideStanding(c, ox, oy) {
     if (busy !== null) shadowBusy = busy;
   }
 }
-function rideArmsNow() {
-  for (const fn of rideArms.splice(0)) fn();
+// the noted arms, drawn now; while they run RIDE_ARMING is set, so a scythe slash made inside one is noted
+// (blockybody.js) and drawn after them with the screen's own coordinates
+let RIDE_ARMING = false;
+function runRideArms() {
+  RIDE_ARMING = true;
+  try {
+    for (const fn of rideArms.splice(0)) fn();
+  } finally {
+    RIDE_ARMING = false;
+  }
+}
+// oy0: the screen's oy before the rider was lifted, so the slash still flies to the very spot that was clicked
+function rideArmsNow(oy0) {
+  runRideArms();
   // scythes.js notes its slash while shadowBusy is set: draw it now
   if (typeof scyFxLater !== 'undefined')
     while (scyFxLater.length) {
       const [fx, cc, x, y, id] = scyFxLater.shift();
-      fx(cc, x, y, id);
+      fx(cc, x, oy0 === undefined ? y : oy0, id);
     }
 }
 // ---------- the two passes ----------

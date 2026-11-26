@@ -246,7 +246,10 @@ function blockyTool(c, id, ang, top, sc, dy, s) {
   g.restore();
   // the scythes' crescent slash (scythes.js drew it from drawToolSwing, which isn't used for these any more)
   if (c.punch && c.hand === id && typeof isScythe === 'function' && isScythe(id) && typeof scySlash === 'function' && !(typeof RIDE_PASS !== 'undefined' && RIDE_PASS === 1)) {
-    if (typeof shadowBusy !== 'undefined' && shadowBusy) scyFxLater.push([scySlash, { x: c.x, y: c.y, w: c.w, h: c.h, face: c.face, punch: c.punch }, s.ox, s.oy, id]);
+    // (owner, Nov 26 2026: "on a ride the effects are buggy") on a ride this runs later, inside the noted arm with the
+    // arm's own turned / moved canvas (rides.js RIDE_ARMING): the slash then landed far off. It is noted too, and
+    // rides.js draws the noted slashes right after the arms, on the plain screen
+    if ((typeof shadowBusy !== 'undefined' && shadowBusy) || (typeof RIDE_ARMING !== 'undefined' && RIDE_ARMING)) scyFxLater.push([scySlash, { x: c.x, y: c.y, w: c.w, h: c.h, face: c.face, punch: c.punch }, s.ox, s.oy, id]);
     else scySlash(c, s.ox, s.oy, id);
   }
 }

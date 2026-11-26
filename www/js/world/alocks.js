@@ -698,69 +698,15 @@ drawSetupBadges = function (ox, oy, T) {
   _alockBadges(ox, oy, T);
 };
 
-// the lock itself: a padlock standing on its own (no box like the Gold Lock), Red small and round-shouldered,
-// Blue bigger with a riveted band. 1 px art on 32 x 32.
+// the lock itself (owner, Nov 26 2026: "the blue and red lock too"): the same tile-sized padlock as the Gold Lock
+// (misc.js paintPadlock), in red or blue, with the same steel shackle
 function alockSprite(kind) {
-  const C = ALOCK_COL[kind],
-    big = kind === "blue_lock";
-  return hdCanvas((x, { P, R, E, RR }) => {
-    const bx = big ? 5 : 7,
-      bw = big ? 22 : 18,
-      by = big ? 14 : 15,
-      bh = big ? 15 : 13;
-    // shackle: steel arc, lit on the left
-    const cx = 16,
-      cy = by,
-      ro = big ? 8 : 6.5,
-      ri = big ? 4.6 : 3.6;
-    for (let j = cy - Math.ceil(ro) - 1; j < cy + 2; j++)
-      for (let i = cx - Math.ceil(ro) - 1; i <= cx + Math.ceil(ro); i++) {
-        const dx = i + 0.5 - cx,
-          dy = Math.min(0, j + 0.5 - cy),
-          dd = Math.hypot(dx, dy);
-        if (dd > ro + 0.9 || dd < ri - 0.9) continue;
-        const edge = dd > ro || dd < ri;
-        P(
-          i,
-          j,
-          edge
-            ? "#16141c"
-            : dx < -1.5
-              ? "#f2f4f8"
-              : dx > 2
-                ? "#7c8294"
-                : "#c4c8d4",
-        );
-      }
-    // body
-    RR(bx, by, bw, bh, 3, C.K);
-    RR(bx + 1, by + 1, bw - 2, bh - 2, 2, C.B);
-    R(bx + 2, by + 1, bw - 4, 1, C.L); // lit top edge
-    R(bx + 1, by + 3, 1, bh - 6, C.L); // lit left side
-    R(bx + bw - 3, by + 3, 2, bh - 5, C.b); // shaded right side
-    R(bx + 3, by + bh - 3, bw - 5, 2, C.b); // shaded bottom
-    for (let k = 0; k < 3; k++) P(bx + 3 + k, by + 4 - k + 1, C.W); // shine
-    if (big) {
-      // riveted band across the middle
-      R(bx + 1, by + 6, bw - 2, 3, C.b);
-      R(bx + 1, by + 6, bw - 2, 1, C.L);
-      for (const i of [bx + 3, bx + bw - 4]) {
-        P(i, by + 7, C.W);
-        P(i + 1, by + 7, C.K);
-      }
-    }
-    // keyhole
-    const kx = 16,
-      ky = by + (big ? 8 : 6);
-    E(kx, ky, 1.8, 1.8, C.K);
-    R(kx - 1, ky + 1, 2, 3, C.K);
-    P(kx - 1, ky - 1, C.b);
-  });
+  const C = ALOCK_COL[kind];
+  return paintPadlock({ K: C.K, G: "#c9c9d6", Y: C.B, W: C.L, O: C.b });
 }
-SHOP_ICON.red_lock = () => alockSprite("red_lock");
-SHOP_ICON.blue_lock = () => alockSprite("blue_lock");
-HD_LOCKS.red_lock = alockSprite("red_lock");
-HD_LOCKS.blue_lock = alockSprite("blue_lock");
+// (Nov 26 2026) the owner's pictures (misc.js lockSprite); alockSprite only stands in until they have loaded
+SHOP_ICON.red_lock = () => lockSprite("red_lock");
+SHOP_ICON.blue_lock = () => lockSprite("blue_lock");
 
 // ---------- saved with the world ----------
 const _alockWorldData = worldData;

@@ -165,6 +165,33 @@ if (typeof Net !== 'undefined' && Net.takeDrop)
       if (id !== null) spMine.set(id, (spMine.get(id) || 0) + 1);
       return prev.call(this, u, ...a);
     })(Net.takeDrop);
+// (owner, Nov 26 2026: "in the GM's world too the floating event items must be takeable; only the GM can't") an
+// event item doesn't wait like other drops in a locked world: anyone takes it at once, wherever it lies; only a GM
+// (who gave them out) never does
+canTakeDrop = ((prev) =>
+  function (d) {
+    if (d && spEvId(d.uid) !== null && worldName !== LOBBY_WORLD) return !(typeof isGM === 'function' && isGM());
+    return prev(d);
+  })(canTakeDrop);
+dropHint = ((prev) =>
+  function (d) {
+    if (d && spEvId(d.uid) !== null && typeof isGM === 'function' && isGM()) {
+      if (now - (dropHint.spT || -1e9) < 2500) return;
+      dropHint.spT = now;
+      return toast('Special event items are for the players: a GM can\'t take them');
+    }
+    return prev(d);
+  })(dropHint);
+// (owner, Nov 26 2026: "the announcement and the special event banner come late") the server pings every game on the
+// 'global' topic when the GM posts one (schema.sql post_banner / post_gm_event): look at once instead of at the next
+// poll (up to 30 s later)
+if (typeof Net !== 'undefined')
+  Net.onGmPing = () => {
+    if (typeof annsPoll === 'function') annsPoll();
+    spPollBanner();
+    spDone.clear();
+    spPollWorld();
+  };
 // the time is up: a few seconds later (so the games in the worlds have said what's left) the result banner, once
 const SP_RESULT_MS = 6000;
 async function spResults() {

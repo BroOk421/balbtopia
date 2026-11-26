@@ -220,6 +220,7 @@ const Net = (() => {
       await dropChannel(ch);
       await dropChannel(bch);
       ch = bch = null;
+      await N.dropGmPing();
       if (typeof RT !== 'undefined') RT.reset(); // (Nov 26 2026) the lobby too, on the own server
       await sb.auth.signOut();
     } catch (e) {}
@@ -464,6 +465,21 @@ const Net = (() => {
     } catch (e) {}
     checkingV = false;
   }
+  // (owner, Nov 26 2026) is this world's World Key out of its lock? The lock is drawn with a green key in it while it
+  // isn't (misc.js lockSprite keyIn). Asked on joining and whenever someone says the lock changed ('lockv').
+  N.keyOut = false;
+  async function checkKeyOut(name) {
+    if (!N.secure || name !== joinedName) return;
+    try {
+      const { data, error } = await sb.rpc('world_key_out', { p_world: name });
+      if (!error && name === joinedName) N.keyOut = !!data;
+    } catch (e) {}
+  }
+  // our own game took the key out / put it back (keys.js): draw it at once and tell the others here to ask
+  N.keyMoved = (out) => {
+    N.keyOut = !!out;
+    if (ch && joined) ch.send({ type: 'broadcast', event: 'lockv', payload: {} });
+  };
   // the lock changed on the server outside a world save (a World Key was used, keys.js): note the new version,
   // tell everyone here to check the server (world:, where anyone may send; they never trust the message itself)
   // and move to the new build topic
@@ -486,11 +502,14 @@ const Net = (() => {
       })
       .on('broadcast', { event: 'sync' }, ({ payload }) => onSync(payload));
   }
-  let worldSeq = 0;
+  let worldSeq = 0,
+    helloP = null; // the early world_hello of the world being joined (joinWorld), awaited in openWorld
   N.joinWorld = (name) => {
+    N.keyOut = false;
     N.remotes.clear();
     realNames.clear();
     pendingPos.clear();
+    retryTries.clear();
     snapshot();
     if (!sb || !N.me) return;
     const seq = ++worldSeq,
@@ -503,6 +522,9 @@ const Net = (() => {
     clearTimeout(syncTimer);
     joinChat(''); // leave the old world's chat:NAME
     if (own) worldHello(''); // in our own lobby: the server forgets which world we were in (nobody can use our name there)
+    // (owner, Nov 26 2026: "other characters show up late") the hello goes out NOW, while the channel is still being
+    // joined, instead of after it: by the time our first position goes out the server already knows we are here
+    helloP = own ? null : worldHello(name);
     dropChannel(old).then(() => {
       if (seq !== worldSeq) return;
       if (own) {
@@ -520,8 +542,8 @@ const Net = (() => {
       joinChat(name);
       // a Vending Machine sale from a visitor (only a paid-for sale is taken from here)
       c.on('broadcast', { event: 'vend' }, ({ payload }) => N.onVend && N.onVend(payload, false));
-      // someone changed the lock outside a save (World Key): check the server
-      c.on('broadcast', { event: 'lockv' }, () => checkLockV(name));
+      // someone changed the lock outside a save (World Key): check the server (and whether its key is out)
+      c.on('broadcast', { event: 'lockv' }, () => (checkLockV(name), checkKeyOut(name)));
     } else onBuild(c, true);
     // a Gold Warp Pod claim by a player on its access list (vacuum.js; anyone here may send it, each game checks it)
     c.on('broadcast', { event: 'vacc' }, ({ payload }) => N.onVacc && N.onVacc(payload));
@@ -603,7 +625,8 @@ const Net = (() => {
           joined = true;
           c.track({ name: playerName, skin });
           // tell the server we are here first, so the others can check our name (world_names) when we show up
-          worldHello(name).then(() => {
+          checkKeyOut(name);
+          (helloP || worldHello(name)).then(() => {
             if (c !== ch || seq !== worldSeq) return;
             send('sync_req', { from: N.me.id });
             sendPos(true);
@@ -661,8 +684,11 @@ const Net = (() => {
   // ignored (asked again after NAME_RETRY). Old server without these functions: the name in the message, as before.
   const realNames = new Map(), // id -> { n: name | null (not in this world), at }
     pendingPos = new Map(), // id -> newest position message while their name is being asked
-    nameAsk = new Set();
+    nameAsk = new Set(),
+    retryTries = new Map(); // id -> how many "not here" answers in a row (NAME_RETRY_FAST)
+  // (Nov 26 2026) "not here" is usually someone whose hello is still on its way: ask again soon at first
   const NAME_RETRY = 3000, // "not here": ask again after this (they may have just come in)
+    NAME_RETRY_FAST = [400, 800, 1500], // the first tries after a "not here"
     NAME_RECHECK = 60000, // a known name is checked again this often (they may have left, their id kept being used)
     HELLO_EVERY = 20000; // ms between our own hellos, wherever we are (the server forgets us after 75 s)
   let namesOn = true,
@@ -678,7 +704,7 @@ const Net = (() => {
   }
   function askName(id) {
     nameAsk.add(id);
-    if (!nameTimer) nameTimer = setTimeout(fetchNames, 250);
+    if (!nameTimer) nameTimer = setTimeout(fetchNames, 60);
   }
   async function fetchNames() {
     nameTimer = null;
@@ -706,7 +732,8 @@ const Net = (() => {
     const got = new Map((res.data || []).map((row) => [row.id, row.name]));
     for (const id of ids) {
       const n = got.get(id) || null;
-      realNames.set(id, { n, at: now });
+      realNames.set(id, { n, at: now, tries: n ? 0 : retryTries.get(id) || 0 });
+      retryTries.delete(id);
       const r = N.remotes.get(id);
       if (r && n) r.name = n;
       else if (r && !n) N.remotes.delete(id); // the server says they aren't here: someone was using their id
@@ -720,7 +747,8 @@ const Net = (() => {
     if (!checkNames()) return String(p.n || 'Player').slice(0, 16);
     if (!isUuid(p.id)) return null;
     const k = realNames.get(p.id);
-    if (!k || (!k.n && now - k.at > NAME_RETRY)) {
+    if (!k || (!k.n && now - k.at > (NAME_RETRY_FAST[k.tries || 0] || NAME_RETRY))) {
+      if (k && !k.n) retryTries.set(p.id, (k.tries || 0) + 1);
       if (k) realNames.delete(p.id);
       askName(p.id);
       return undefined;
@@ -801,6 +829,8 @@ const Net = (() => {
   // standing still with others here: the same position goes out again only this often (ms). Was 1500; others drop a
   // player after 8 s with no message (N.tick), so 3 s still leaves room for a lost one (owner, Nov 13 2026)
   const IDLE_BEAT = 3000;
+  // others drop a player heard nothing from for this long (N.tick); IDLE_BEAT keeps an alt-tabbed player well inside
+  const REMOTE_DROP_MS = 15000;
   // how often built / broken tiles are gathered into one 'tiles' message (s). Was 0.1; 0.25 joins more changes per
   // message when breaking fast, others see them a little later (owner, Nov 13 2026)
   const TILES_EVERY = 0.25;
@@ -856,12 +886,33 @@ const Net = (() => {
   }
   // (owner, Nov 13 2026) at most one punch / place animation every PUNCH_NET_MS: held-down tools (the Water Gun fires
   // every 0.09 s and punches each time) sent one per action; others only see the arm move, so a few a second is plenty
-  const PUNCH_NET_MS = 240;
+  // (owner, Nov 26 2026: "other players don't see the cracks when someone breaks") was 240 ms: a punch takes 220 ms
+  // (PUNCH_TIME), so every other hit wasn't sent and their crack stayed half grown. 180 lets every punch through (the
+  // Water Gun still sends only every other shot). Each punch on a block also carries how far it is broken on OUR
+  // screen (n of nd hits, read after the hit is counted), so others draw the same crack even if one went missing.
+  const PUNCH_NET_MS = 180;
   let punchSentAt = 0;
   N.sendPunch = (x, y, kind) => {
     if (!N.me || !othersHere() || now - punchSentAt < PUNCH_NET_MS) return;
     punchSentAt = now;
-    send('punch', { id: N.me.id, x: Math.round(x), y: Math.round(y), k: kind || undefined });
+    const m = { id: N.me.id, x: Math.round(x), y: Math.round(y), k: kind || undefined };
+    if (kind) return void send('punch', m);
+    // (the hit itself is counted right after startPunch, in act: read it once this click is done)
+    queueMicrotask(() => {
+      try {
+        const tx = Math.floor(x / TS),
+          ty = Math.floor(y / TS);
+        if (inW(tx, ty)) {
+          const i = at(tx, ty),
+            b = fg[i] && BLOCK[fg[i]];
+          if (b && dmg[i] > 0 && b.hits !== Infinity) {
+            m.n = dmg[i];
+            m.nd = hitsNeeded(b);
+          }
+        }
+      } catch (e) {}
+      send('punch', m);
+    });
   };
   // floating drops: everyone in the world sees the same ones
   // (owner, Nov 13 2026) alone in the world: drops, takes, coin merges, deaths, block 'show' / signs / songs and
@@ -1237,7 +1288,9 @@ const Net = (() => {
   N.tick = (dt) => {
     if (!N.online || !inWorld) return;
     for (const [id, r] of N.remotes) {
-      if (now - r.seen > 8000) {
+      // (Nov 26 2026) was 8 s. Someone really leaving goes at once (presence leave); this is only for someone whose
+      // messages stopped (a hiccup in the tunnel, a reconnect, a tab Chrome slowed down), so they get more room
+      if (now - r.seen > REMOTE_DROP_MS) {
         N.remotes.delete(id);
         continue;
       }
@@ -1474,7 +1527,29 @@ const Net = (() => {
     });
     return true;
   };
+  // (owner, Nov 26 2026: "the announcement / special event banner come late") the server pings the 'global' topic
+  // (players can only listen there) when the GM posts a banner or a special event (schema.sql gm_ping): the games look
+  // at once (N.onGmPing, specialevent.js) instead of at their next poll
+  let gping = null;
+  function joinGmPing() {
+    if (gping || !N.me || !privRT || !N.secure) return;
+    const c = sb.channel('global', chOpts(false));
+    gping = c;
+    c.on('broadcast', { event: 'gmping' }, () => N.onGmPing && N.onGmPing());
+    c.subscribe((status) => {
+      if (gping === c && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')) {
+        gping = null;
+        dropChannel(c);
+      }
+    });
+  }
+  N.dropGmPing = () => {
+    const c = gping;
+    gping = null;
+    return c ? dropChannel(c) : Promise.resolve();
+  };
   function joinInbox() {
+    joinGmPing();
     if (inbox || !useInbox() || !N.me) return;
     const c = sb.channel('inbox:' + N.me.id, chOpts(false));
     inbox = c;

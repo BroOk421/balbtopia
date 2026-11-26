@@ -6031,3 +6031,67 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   - Gradle cache via setup-java `cache: gradle`.
   - An init script (~/.gradle/init.d/mirror.gradle) puts Google's Maven Central mirror first for every project and buildscript.
   - assembleDebug gets up to 3 tries, 60s apart.
+
+### Build 2026-11-26 p: other players show up sooner
+- Owner said other characters show up late. They were only shown after world_names confirmed them, and that waited on several Supabase trips.
+- net.js:
+  - The world_hello goes out at the START of joinWorld (`helloP`), not after SUBSCRIBED.
+  - A "not here" answer is asked again after 400 / 800 / 1500 ms (`NAME_RETRY_FAST`, counted in `retryTries`) before the old 3 s.
+  - Name asks are batched for 60 ms instead of 250.
+- rt-server/server.js:
+  - whoIs answers are cached for 5 min and rt_check answers for 60 s (`CACHE_MS`), so logins and re-joins don't wait on Supabase. A ban still takes effect within 60 s.
+  - cloudflared is also found as cloudflared.exe.exe.
+- Restart start.bat to use the new server.js. No schema change.
+
+### Build 2026-11-26 q: alt-tabbed players stay
+- Owner asked that an alt-tabbed player not vanish, only when AFK for a long time.
+- Checked: bgtick.js already keeps the game ticking when the loop stalls. With rAF stopped, Net.tick still ran 4 times a second, so the position heartbeat keeps going. AFK logout (5 min) is still the only way out.
+- net.js: others now drop a silent player after `REMOTE_DROP_MS` 15 s instead of 8 s, to give room for tunnel hiccups and reconnects. A real leave still removes them at once via presence leave.
+- Phones: Android pauses the app itself in the background, so this can't hold there.
+
+### Build 2026-11-26 r: realtime fallback option B, locks without the box
+- rt.js (owner picked option B):
+  - `giveUpMs` went from 20 s to 120 s, so a server restart fits. Retries are 1/2/4/8/15 s.
+  - While on Supabase, `tryBack` checks every `backMs` (60 s) whether the own server is up again. If it is, every stand-in moves back with `Chan.toRT()`, and net.js gets SUBSCRIBED again.
+  - The old Supabase channel's status callbacks are ignored once it isn't `this.sc`.
+  - Tested with test/rt/back.js: server killed → Supabase → restarted → back on the own server.
+- misc.js lockSprite (Gold / Crystal / Shadow Lock), at the owner's request:
+  - The dark box is gone and the padlock fills the tile.
+  - The body is 30 px wide. The shackle is a squared arch: 4 px legs, flat top bar, rounded corners.
+  - Red and Blue area locks are unchanged.
+- Build s: the owner asked for a bigger lock with less metal. The body is now 30x23 (from y 8), and the shackle is 14 wide with 3 px legs and bar (y 1–12). The keyhole is bigger too.
+- Build t: the owner asked for a thicker shackle with its ends out to the left and right. It is now 24 wide (x 4–27) with 4 px legs and bar.
+  - The drawing moved into `paintPadlock(C)` (misc.js), with C = K / G / Y / W / O.
+  - The owner then asked for the blue and red locks too: alocks.js `alockSprite` now uses the same padlock in ALOCK_COL colours (Y=B, W=L, O=b, steel shackle).
+- Build u: fixed "ReferenceError: helloP is not defined". It was declared with const in joinWorld but used in openWorld's subscribe callback. It is now a shared `let helloP` beside worldSeq.
+  - node --check misses this kind of bug. Check by concatenating the scripts in index.html order and running eslint no-undef (/home/claude/lint).
+
+### Build 2026-11-26 v: shared fish paths, the green key in the lock
+- fish.js drawAquariums: the owner said fish jumped back to the lid on leaving and returning, and other players saw them elsewhere.
+  - A fish's path now comes from `Date.now()`. Spot n is `pick(n)`, seeded by `fishRng(key + '#' + n)` (key = tile:slot:id). One stretch takes `seg` s (FISH_SEG 2.5 + tank diagonal / speed / 2) with an eased move after a seeded rest.
+  - Tested: two browsers gave the same positions, and clearing SWIM ("leaving") gave the same positions again.
+- World Key shown in the lock: the owner asked that the lock show a green key until the key is taken.
+  - schema.sql adds `world_key_out(p_world)` (anon + authenticated). **Re-run schema.sql.**
+  - net.js keeps `N.keyOut`. It is asked on SUBSCRIBED and on every 'lockv' broadcast (checkKeyOut), and reset on joinWorld.
+  - keys.js calls `Net.keyMoved(true/false)` after get/use, which also broadcasts lockv.
+  - lockSprite(kind, keyIn) is cached as kind + ':key'. render.js and lock.js pass `!Net.keyOut`.
+  - The owner found my green-key drawing ugly and will draw it himself. I sent him the 5 lock PNGs (32x32, no key). When his picture comes, replace the `if (key)` part of paintPadlock with it.
+- Build w: the owner said other players' cracks weren't seen.
+  - `PUNCH_NET_MS` 240 dropped every other punch (PUNCH_TIME is 220 ms), so remote cracks stayed about half grown. It is now 180.
+  - A block punch now carries `n` (dmg after the hit, read in a microtask after act) and `nd` (hitsNeeded). remotefx.js uses them for rCrack, so the crack matches the hitter's even if a message is lost.
+- Build x: the locks are now the owner's own PNGs, in www/assets/locks/ as gold/crystal/shadow/red/blue_lock.png plus *_key.png.
+  - They are registered in `A` as lockpng_* (misc.js LOCK_PNG) and drawn by lockSprite.
+  - Red / Blue area locks always use their _key picture, since they have no World Key.
+  - Until the pictures load, the drawn padlock (paintPadlock / alockSprite) stands in and isn't cached. The alocks.js HD_LOCKS preset is gone, and SHOP_ICON uses lockSprite.
+
+### Build 2026-11-26 y: scythe slash on rides, live GM banners, special-event pickups
+- Owner said scythe effects were wrong on a ride.
+  - Cause: blockybody.js blockyTool drew the slash right away when run from a noted ride arm (rides.js rideLater), which still has the arm's turned canvas (transform e=640), so the slash landed far off.
+  - Fix: `RIDE_ARMING` (rides.js runRideArms) makes blockyTool note it in scyFxLater. rideArmsNow(oy0) and the seated path draw the noted slashes with the un-lifted oy, so they reach the clicked spot.
+  - Tested: the same screen spot with and without the carpet.
+- Owner said announcement / special-event banners came late (30 s poll).
+  - schema.sql adds `gm_ping()` (realtime.send 'gmping' on 'global', errors ignored), called by post_banner and the 4-arg post_gm_event. **Re-run schema.sql.**
+  - net.js joinGmPing listens on 'global' (joined with the inbox) and calls `Net.onGmPing`, which specialevent.js sets to annsPoll + spPollBanner + spPollWorld.
+- Owner said vacuumed event items never reached players. Item Warp Pods were sucking up event drops of their item.
+  - vacuum.js `vacEvent` (uid ev*) is skipped by pods.
+  - specialevent.js canTakeDrop: event drops can be taken at once by anyone in any world (the locked-world wait doesn't apply). A GM can never take them (dropHint says so).

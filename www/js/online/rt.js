@@ -10,7 +10,11 @@
 // Everyone uses the server when it is up (all find the same address), so players don't split between the two.
 // Loaded after online-config.js, before net.js (which calls RT.init(sb)).
 // ===== own realtime =====
-const RT_CFG = { connectMs: 5000, retryMs: [1000, 2000, 4000, 8000], giveUpMs: 20000 };
+// (owner, Nov 26 2026, option B: "if I restart, everyone suddenly lands on Supabase") giveUpMs was 20 s, and once on
+// Supabase a player stayed there for the whole session. Now a lost server gets 2 minutes (a restart fits), and
+// whoever is on Supabase (gave up, or the server was down at login) checks every backMs whether the own server is up
+// again and moves back onto it by itself.
+const RT_CFG = { connectMs: 5000, retryMs: [1000, 2000, 4000, 8000, 15000], giveUpMs: 120000, backMs: 60000 };
 const RT = (() => {
   let sb = null,
     mode = '', // '' not decided, 'rt' own server, 'sb' Supabase
@@ -106,6 +110,7 @@ const RT = (() => {
     if (Date.now() - lostAt > RT_CFG.giveUpMs) {
       console.warn('Own realtime server gone: using Supabase Realtime');
       mode = 'sb';
+      lostAt = tries = 0;
       for (const c of [...live]) if (c.on_ === 'rt') c.toSupabase();
       return;
     }
@@ -120,6 +125,28 @@ const RT = (() => {
       } else lost();
     }, wait);
   }
+  // on Supabase: every backMs, is the own server up again? Then everything moves back onto it
+  let backBusy = false;
+  async function tryBack() {
+    if (mode !== 'sb' || backBusy || !sb || !live.size) return;
+    backBusy = true;
+    try {
+      const url = await address();
+      if (url && mode === 'sb' && (await connect(url))) {
+        console.log('Own realtime server is back: moving onto it');
+        mode = 'rt';
+        ready = Promise.resolve(true);
+        lostAt = tries = 0;
+        for (const c of [...live]) if (c.on_ === 'sb') c.toRT();
+      }
+    } catch (e) {
+    } finally {
+      backBusy = false;
+    }
+  }
+  (function backLoop() {
+    setTimeout(() => (tryBack(), backLoop()), RT_CFG.backMs);
+  })();
   function onMsg(raw) {
     let m;
     try {
@@ -201,7 +228,18 @@ const RT = (() => {
       this.on_ = 'sb';
       const sc = (this.sc = sb.channel(this.topic, this.opts));
       for (const [type, filter, cb] of this.hs) sc.on(type, filter, cb);
-      sc.subscribe((s, err) => this.status(s, err));
+      // (only while this is still the channel in use: one left behind by toRT says CLOSED, which isn't news to net.js)
+      sc.subscribe((s, err) => this.sc === sc && this.status(s, err));
+    }
+    // back from Supabase onto the own server (tryBack); net.js gets SUBSCRIBED again, as after any rejoin
+    toRT() {
+      if (this.on_ !== 'sb' || !ws) return;
+      const old = this.sc;
+      this.sc = null;
+      this.on_ = 'rt';
+      addTopic(this);
+      this.joinRT();
+      if (old) Promise.resolve().then(() => sb.removeChannel(old)).catch(() => {});
     }
     got(m) {
       if (m.t === 'joined') {

@@ -1237,7 +1237,7 @@ function blockLayers() {
 }
 // one block's picture on its tile (the main block pass, and the place preview below)
 function drawTileBlock(b, t, i, x, y, ox, oy, T) {
-  if (b.art === 'lock') g.drawImage(lockSprite(b.id), ox + x * T, oy + y * T, T, T);
+  if (b.art === 'lock') g.drawImage(lockSprite(b.id, !(typeof Net !== 'undefined' && Net.keyOut)), ox + x * T, oy + y * T, T, T);
   else if (b.art === 'grass') {
     // short grass tuft on the bottom of the tile (walk-through decoration)
     g.drawImage(grassTuft(), ox + x * T, oy + y * T, T, T);

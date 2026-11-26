@@ -118,7 +118,10 @@ function vacWantsUpdate() {
   vacWantIds = ids;
   vacWantGold = gold;
 }
-const vacWants = (d) => !!d && (d.id === 'gold' ? vacWantGold : vacWantIds.has(d.id));
+// (owner, Nov 26 2026: "the special event items got vacuumed, players never got them") a GM's special-event item
+// (uid 'ev<event>_<n>', specialevent.js) is for the players: no Warp Pod takes it
+const vacEvent = (d) => typeof d.uid === 'string' && /^ev\d/.test(d.uid);
+const vacWants = (d) => !!d && !vacEvent(d) && (d.id === 'gold' ? vacWantGold : vacWantIds.has(d.id));
 canTakeDrop = ((prev) =>
   function (d) {
     return vacWants(d) ? false : prev(d);
@@ -150,6 +153,7 @@ function vacTick() {
   for (const d of drops) {
     if (d.mg || d.stored || d.age < VAC_MIN_AGE || (d.outT && now - d.outT < OUT_MS)) continue;
     if (typeof isKeyId === 'function' && isKeyId(d.id)) continue; // (a dropped World Key: only a player picks it up)
+    if (vacEvent(d)) continue; // (a special-event item: only a player picks it up)
     if ((typeof dropHidden === 'function' && dropHidden(d)) || (typeof dropShutIn === 'function' && dropShutIn(d))) continue;
     const pool = d.id === 'gold' ? coins : items.filter((m) => m.id === d.id && m.room >= d.qty);
     let best = null,
@@ -202,7 +206,7 @@ setInterval(vacTick, VAC_TICK_MS);
     const want = fg[p.i] === VAC_COIN_T ? 'gold' : (vacuums.get(p.i) || {}).id;
     for (const u of v.u.slice(0, VAC_PER_TICK * 2)) {
       const k = drops.findIndex((d) => d.uid === u);
-      if (k < 0 || drops[k].id !== want) continue;
+      if (k < 0 || drops[k].id !== want || vacEvent(drops[k])) continue;
       vacFly(drops.splice(k, 1)[0], p.i);
     }
   };

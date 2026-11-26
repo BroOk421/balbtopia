@@ -3,60 +3,93 @@
 // Same style as HD_DECO / HD_TEX: dark outline, light from the top left, 1 px shading and texture.
 // Every sprite keeps its 32x32 size and the geometry other code relies on (glass windows, lock box).
 
-// ---------- locks: a padlock in a dark box (Gold Lock gold, Crystal Lock icy, Shadow Lock purple-black) ----------
+// ---------- locks: a padlock on its own, as big as the tile (Gold Lock gold, Crystal Lock icy, Shadow Lock purple-black) ----------
+// (owner, Nov 26 2026: "take away the block look, just the lock, as big as a tile, with a flat top" + a picture) the
+// dark box is gone (the background shows around the lock), the body fills the tile's width, and the shackle is a
+// squared arch: two straight legs and a flat top bar with rounded corners.
 const HD_LOCKS = {};
-function lockSprite(kind = 'world_lock') {
-  if (HD_LOCKS[kind]) return HD_LOCKS[kind];
-  const C = LOCK_COLORS[kind] || LOCK_COLORS.world_lock;
-  const c = hdCanvas((x, { P, R, E, RR }) => {
-    // the box: outline, bevelled frame, sunken middle with corner rivets
-    R(0, 0, 32, 32, C.K);
-    R(1, 1, 30, 30, C.B);
-    R(1, 1, 30, 1, hdMix(C.B, '#ffffff', 0.25));
-    R(1, 1, 1, 30, hdMix(C.B, '#ffffff', 0.15));
-    R(1, 30, 30, 1, hdMix(C.B, '#000000', 0.35));
-    R(30, 1, 1, 30, hdMix(C.B, '#000000', 0.3));
-    R(3, 3, 26, 26, hdMix(C.b, '#000000', 0.35)); // groove
-    R(4, 4, 24, 24, C.b);
-    for (let j = 4; j < 28; j++)
-      for (let i = 4; i < 28; i++) if (hdNoise(i, j, 9) < 0.05) P(i, j, hdMix(C.b, C.B, 0.6));
-    R(4, 4, 24, 1, hdMix(C.b, '#000000', 0.3)); // shadow under the frame's top
-    for (const [i, j] of [[2, 2], [28, 2], [2, 28], [28, 28]]) {
-      R(i, j, 2, 2, hdMix(C.B, '#000000', 0.45));
-      P(i, j, hdMix(C.B, '#ffffff', 0.45));
-    }
-    // shackle: a thick arc, lit on the left
-    for (let j = 5; j < 16; j++)
-      for (let i = 8; i < 24; i++) {
-        const dx = i + 0.5 - 16,
-          dy = Math.max(0, 12 - (j + 0.5)),
-          d = Math.hypot(dx, dy);
-        if (d > 7.5 || d < 3.5) continue;
-        P(i, j, d > 6.6 || d < 4.4 ? C.K : dx < -1.5 ? hdMix(C.G, '#ffffff', 0.5) : dx > 2 ? hdMix(C.G, '#000000', 0.35) : C.G);
-      }
-    // body
-    RR(6, 14, 20, 14, 2, C.K);
-    RR(7, 15, 18, 12, 1, C.Y);
-    R(7, 15, 18, 1, C.W); // lit top edge
-    R(7, 16, 1, 10, hdMix(C.Y, C.W, 0.5)); // lit left side
-    R(23, 16, 2, 10, C.O); // shaded right side
-    R(8, 24, 16, 2, C.O); // shaded bottom
-    R(8, 26, 16, 1, hdMix(C.O, '#000000', 0.3));
-    for (let k = 0; k < 3; k++) P(9 + k, 18 - k, C.W); // shine
-    P(9, 19, C.W);
-    // keyhole: a round hole over a slot that widens downwards, with a lit lower rim
-    E(16, 19, 2.2, 2.2, C.K);
-    R(15, 20, 2, 2, C.K);
-    R(14, 22, 4, 2, C.K);
-    R(14, 24, 4, 1, hdMix(C.Y, C.W, 0.4));
-  });
-  // gems: a little sparkle on the diamond kinds
-  if (kind !== 'world_lock') {
+// (owner, Nov 26 2026) the locks are the owner's own pictures: www/assets/locks/<name>.png and <name>_key.png (the
+// World Key still in the lock). keyIn: the key hasn't been taken (keys.js, Net.keyOut). The Red / Blue area locks
+// have no World Key, so they always show theirs. Until a picture has loaded (only right at the start), the drawn
+// padlock below stands in and isn't kept.
+const LOCK_PNG = { world_lock: 'gold_lock', diamond_lock: 'crystal_lock', black_diamond_lock: 'shadow_lock', red_lock: 'red_lock', blue_lock: 'blue_lock' };
+for (const k in LOCK_PNG) for (const sfx of ['', '_key']) A['lockpng_' + LOCK_PNG[k] + sfx] = 'assets/locks/' + LOCK_PNG[k] + sfx + '.png';
+function lockSprite(kind = 'world_lock', keyIn = true) {
+  if (!LOCK_PNG[kind]) kind = 'world_lock';
+  const area = kind === 'red_lock' || kind === 'blue_lock';
+  if (area) keyIn = true;
+  const ck = keyIn ? kind + ':key' : kind;
+  if (HD_LOCKS[ck]) return HD_LOCKS[ck];
+  const im = IMG['lockpng_' + LOCK_PNG[kind] + (keyIn ? '_key' : '')];
+  if (im && im.complete && im.naturalWidth) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
     const x = c.getContext('2d');
-    x.fillStyle = kind === 'diamond_lock' ? '#ffffff' : '#d8ccff';
-    for (const [i, j] of [[25, 6], [24, 7], [26, 7], [25, 8], [6, 22], [5, 23], [7, 23], [6, 24]]) x.fillRect(i, j, 1, 1);
+    x.imageSmoothingEnabled = false;
+    x.drawImage(im, 0, 0, 32, 32);
+    return (HD_LOCKS[ck] = c);
   }
-  return (HD_LOCKS[kind] = c);
+  if (area && typeof alockSprite === 'function') return alockSprite(kind);
+  return paintPadlock(LOCK_COLORS[kind] || LOCK_COLORS.world_lock, keyIn);
+}
+// the padlock picture, shared by every lock (the Red and Blue area locks too, alocks.js).
+// C: K outline, G shackle steel, Y body, W light, O shade; key: a green key stuck in the keyhole
+function paintPadlock(C, key = false) {
+  return hdCanvas((x, { P, R, E, RR }) => {
+    // inside a rounded rectangle (pixel centres)
+    const inRR = (i, j, rx, ry, rw, rh, r) => {
+      const dx = Math.max(rx + r - i - 0.5, i + 0.5 - (rx + rw - r), 0),
+        dy = Math.max(ry + r - j - 0.5, j + 0.5 - (ry + rh - r), 0);
+      return i >= rx && j >= ry && i < rx + rw && j < ry + rh && dx * dx + dy * dy <= r * r;
+    };
+    // shackle (owner: "less metal, a bigger lock", then "thicker, the ends out to the left and right"): low, 24 wide,
+    // legs and flat top bar 4 px
+    const SX = 4,
+      SW = 24,
+      SY = 1,
+      SH = 12,
+      ST = 4,
+      shk = (i, j) => inRR(i, j, SX, SY, SW, SH, 3) && !inRR(i, j, SX + ST, SY + ST, SW - 2 * ST, SH, 1);
+    for (let j = SY; j < SY + SH; j++)
+      for (let i = SX; i < SX + SW; i++) {
+        if (!shk(i, j)) continue;
+        const edge = !shk(i - 1, j) || !shk(i + 1, j) || !shk(i, j - 1) || !shk(i, j + 1);
+        const lit = i < SX + ST || j === SY + 1,
+          dark = i >= SX + SW - ST && j > SY + 2;
+        P(i, j, edge ? C.K : lit ? hdMix(C.G, '#ffffff', 0.5) : dark ? hdMix(C.G, '#000000', 0.35) : C.G);
+      }
+    // body: the whole tile's width and most of its height
+    RR(1, 8, 30, 23, 3, C.K);
+    RR(2, 9, 28, 21, 2, C.Y);
+    R(3, 9, 26, 2, C.W); // lit top band
+    R(3, 11, 26, 1, hdMix(C.Y, C.W, 0.4));
+    R(2, 12, 1, 15, hdMix(C.Y, C.W, 0.5)); // lit left side
+    R(27, 11, 2, 17, C.O); // shaded right side
+    R(4, 26, 24, 3, C.O); // shaded bottom
+    R(5, 29, 22, 1, hdMix(C.O, '#000000', 0.3));
+    for (let k = 0; k < 4; k++) P(5 + k, 17 - k, C.W); // shine
+    P(5, 18, C.W);
+    // keyhole: a round hole over a slot that widens downwards, with a lit lower rim
+    E(16, 16, 3, 3, C.K);
+    R(15, 17, 2, 4, C.K);
+    R(14, 20, 4, 3, C.K);
+    R(14, 23, 4, 1, hdMix(C.Y, C.W, 0.4));
+    if (key) {
+      // the green key: its shaft goes into the keyhole, the round bow (with a hole) hangs below it
+      const KG = '#3ec44a',
+        KL = '#a4f27e',
+        KD = '#1d7a2a';
+      R(15, 15, 2, 8, KG);
+      P(15, 15, KL);
+      P(15, 16, KL);
+      E(16, 25, 5, 4.6, C.K);
+      E(16, 25, 4, 3.6, KG);
+      E(14.8, 23.9, 1.8, 1.4, KL); // lit top left
+      R(19, 24, 1, 3, KD); // shaded right and bottom
+      R(14, 28, 4, 1, KD);
+      E(16, 25, 1.7, 1.6, C.K); // the hole
+    }
+  });
 }
 
 // ---------- doors: a frame, two raised panels, hinges and a gold knob ----------
