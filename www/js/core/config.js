@@ -10,6 +10,7 @@ function boot() {
   // (Nov 23 2026: the pictures are the first 70% of the bar, then bootflow.js's server / update steps)
   if (bar && bootTotal) bar.style.width = Math.max(4, Math.round(70 * (1 - pending / bootTotal))) + '%';
   if (--pending === 0) {
+    setTimeout(loadLazySkins, 0); // the other skins, now that the rest is in
     const go = () => {
       try {
         ready();
@@ -42,11 +43,53 @@ function bootRelease(t0 = performance.now()) {
   }
   document.body.classList.remove('booting');
   document.body.classList.add('booted'); // fades the loading screen out
+  if (typeof bfLandFlash === 'function') bfLandFlash(); // (Nov 26 2026) the three white blinks, then the log in pop-up
   setTimeout(() => document.body.classList.remove('booted'), 450);
+}
+// (owner, Nov 26 2026: "the loading takes too long") the loading only waits for the pictures of SKIN_KEEP and of the
+// skin you used last time (localStorage SKIN_LAST_KEY); the other skins' ~50 pictures each load right after, in the
+// background (LAZY_SKIN). Until a skin's pictures are all in, a character with it is drawn with SKIN_STANDIN's skin
+// (render/skinwait.js), so nothing ever draws or keeps a copy of a half-loaded skin.
+const SKIN_KEEP = ['porcelain', 'peach', 'honey'], // (peach: photo_wear's reference frames; honey: the wallet head)
+  SKIN_LAST_KEY = 'balbtopia.skin';
+const LAZY_SKIN = {}; // skin -> [keys still to load]
+const skinReady = (s) => !(LAZY_SKIN[s] && LAZY_SKIN[s].length);
+// a picture of one skin: it lives in assets/character/<skin>/
+function skinOfKey(k) {
+  const m = /^assets\/character\/([a-z]+)\//.exec(A[k] || '');
+  return m && SKINS.includes(m[1]) ? m[1] : null;
+}
+function loadLazySkins() {
+  for (const s in LAZY_SKIN)
+    for (const k of [...LAZY_SKIN[s]]) {
+      const im = IMG[k],
+        done = () => {
+          const l = LAZY_SKIN[s],
+            i = l.indexOf(k);
+          if (i >= 0) l.splice(i, 1);
+          if (!l.length && typeof skinLoaded === 'function') skinLoaded(s);
+        };
+      im.onload = done;
+      im.onerror = () => {
+        console.error('Missing image: ' + A[k]);
+        done();
+      };
+      im.src = A[k];
+    }
 }
 function loadAssets() {
   loadFarming();
+  let last = '';
+  try {
+    last = localStorage.getItem(SKIN_LAST_KEY) || '';
+  } catch (e) {}
   for (const k in A) {
+    const sk = skinOfKey(k);
+    if (sk && !SKIN_KEEP.includes(sk) && sk !== last) {
+      (LAZY_SKIN[sk] = LAZY_SKIN[sk] || []).push(k);
+      IMG[k] = new Image(); // (there already, loaded after the rest: loadLazySkins)
+      continue;
+    }
     pending++;
     bootTotal++;
     const im = new Image();

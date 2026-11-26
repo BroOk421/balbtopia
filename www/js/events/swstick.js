@@ -31,8 +31,22 @@ SW_STICK.innerHTML = '<span class="swarr l">◀</span><span class="swarr r">▶<
     'body.swplay .pad.l > button{display:none}body.swplay .swstick{display:block}body.swplay .pad.r{display:none !important}';
   document.head.appendChild(st);
 }
-let swPtr = null;
+let swPtr = null,
+  swO = { x: 0, y: 0 }; // (Nov 26 2026) where "the middle" is now, from the base's centre (it follows the thumb)
+// (owner, Nov 26 2026: "on Android you shouldn't have to bring it back to the centre to go up; wherever you point it, it
+// should just go") - the middle follows the thumb when it goes past the edge, so turning round or going up from a
+// side is a short move, not back across the middle; - held up = jumps again each time you land (no re-pushing).
 function swSet(dx, dy = 0) {
+  dx -= swO.x;
+  dy -= swO.y;
+  const far = Math.hypot(dx, dy);
+  if (far > SW_R) {
+    const k = (far - SW_R) / far;
+    swO.x += dx * k;
+    swO.y += dy * k;
+    dx -= dx * k;
+    dy -= dy * k;
+  }
   // the thumb stays inside the round base
   const len = Math.hypot(dx, dy),
     k = len > SW_R ? SW_R / len : 1;
@@ -48,6 +62,7 @@ function swSet(dx, dy = 0) {
 }
 function swRelease() {
   swPtr = null;
+  swO = { x: 0, y: 0 };
   SW_STICK.classList.remove('on');
   $('swThumb').style.transform = '';
   keys.ArrowLeft = keys.ArrowRight = keys.ArrowUp = keys.ArrowDown = false;
@@ -81,3 +96,7 @@ setInterval(() => {
   for (const id of ['pl', 'pr', 'pj']) if ($(id)) $(id).classList.remove('on');
   keys.Space = false;
 }, 150);
+// held up: a new jump each time you are on the ground again (only on the ground: no air jumps used by it)
+setInterval(() => {
+  if (swPtr !== null && keys.ArrowUp && P.ground && !P.dead) P.buf = 0.12;
+}, 50);

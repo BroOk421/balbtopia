@@ -2208,8 +2208,35 @@ document.body.appendChild(rvbKillsEl);
 `;
   document.head.appendChild(st);
 }
+// (owner, Nov 26 2026: "take the list off the side; it shows only when the time at the top centre is tapped, with an
+// x, in the middle, in a row: red left, blue right") hidden until the clock is tapped; tap again or x to close
+let rvbKillsOpen = false;
+rvbHud.style.pointerEvents = 'auto';
+rvbHud.style.cursor = 'pointer';
+rvbHud.title = 'Tap for the kills';
+rvbHud.addEventListener('click', () => {
+  if (rvb.ph === 'play' || rvb.ph === 'end') rvbKillsOpen = !rvbKillsOpen;
+});
+rvbKillsEl.addEventListener('click', (e) => {
+  if (e.target.closest('.kx')) rvbKillsOpen = false;
+});
+{
+  const st = document.createElement('style');
+  st.textContent = `
+#rvbKills{left:50%;top:50%;transform:translate(-50%,-50%);flex-direction:row;align-items:flex-start;gap:14px;pointer-events:auto;font-size:12px;max-height:84vh;padding:30px 16px 16px;border-radius:10px;background:rgba(6,12,30,.9);border:3px solid #10285c;box-shadow:0 8px 28px rgba(0,0,0,.55)}
+#rvbKills .kt{min-width:210px;max-height:calc(84vh - 50px);overflow:auto;gap:4px;padding:6px 7px}
+#rvbKills .kh{font-size:12px;padding:2px 4px 5px}
+#rvbKills .kr{padding:5px 6px;gap:12px}
+#rvbKills .kr span{max-width:160px}
+#rvbKills .kx{position:absolute;top:5px;right:7px;width:26px;height:26px;border:0;border-radius:5px;background:#c0303c;color:#fff;font:11px var(--pixel);cursor:pointer;line-height:26px;padding:0}
+@media (orientation: landscape) and (max-height: 520px){#rvbKills{top:50%;font-size:10px;padding-top:26px}#rvbKills .kh{font-size:10px}#rvbKills .kt{min-width:170px}#rvbKills .kr{padding:3px 5px}}
+`;
+  document.head.appendChild(st);
+}
 setInterval(() => {
-  const show = rvbOn() && $('start').hidden && (rvb.ph === 'play' || rvb.ph === 'end') && (rvbW.red.length || rvbW.blue.length);
+  const playing = rvbOn() && $('start').hidden && (rvb.ph === 'play' || rvb.ph === 'end') && (rvbW.red.length || rvbW.blue.length);
+  if (!playing) rvbKillsOpen = false;
+  const show = playing && rvbKillsOpen;
   let h = '';
   if (show) {
     const team = (names, t, label) => {
@@ -2221,7 +2248,7 @@ setInterval(() => {
       const tot = names.reduce((s, n) => s + (RVB_KILLS.get(lc(n)) || 0), 0);
       return `<div class="kt ${t}"><div class="kh"><span>${label}</span><span>${tot} KILLS</span></div>${rows}</div>`;
     };
-    h = team(rvbW.red, 'r', 'RED') + team(rvbW.blue, 'b', 'BLUE');
+    h = '<button class="kx" type="button" aria-label="Close">X</button>' + team(rvbW.red, 'r', 'RED') + team(rvbW.blue, 'b', 'BLUE');
   }
   rvbSet(rvbKillsEl, h, !!show);
 }, 250);

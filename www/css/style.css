@@ -5457,3 +5457,114 @@ body.noblur .wload {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* ---------- announcement banner (announce.js, Nov 26 2026, the owner's art): his title picture centred over a band
+   across the screen (his RECTANGLE: black 51 %), the message in it; fades in moving up, out moving down ---------- */
+.annc {
+  position: fixed;
+  z-index: 6;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(24px);
+}
+.annc[hidden] {
+  display: none;
+}
+.annc.in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+.annc.out {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.45s ease-in, transform 0.45s ease-in;
+}
+.annc-t {
+  display: block;
+  max-width: 92vw;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+.annc-b {
+  align-self: stretch;
+  min-height: 56px;
+  box-sizing: border-box;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.51);
+}
+.annc-m {
+  max-width: 900px;
+  color: #fff;
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.3;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+.annc-m b {
+  font-weight: 800;
+}
+@media (max-width: 700px) {
+  .annc-b {
+    min-height: 46px;
+  }
+  .annc-m {
+    font-size: 14px;
+  }
+}
+
+/* (owner, Nov 26 2026: "the same height and width as the other pop-ups, responsive on Android too") NEWS, its editor,
+   ANNOUNCEMENT and SPECIAL EVENT: the Shop's width and height (--shopH, winsize.js, once the Shop has been open; else
+   400 px), never past the screen; what doesn't fit scrolls inside */
+#newsList.win,
+#newsEdit.win,
+#annEdit.win,
+#spEdit.win,
+#spPick.win {
+  box-sizing: border-box;
+  width: min(calc(100vw - 150px), 560px);
+  height: min(calc(84vh - 14px), var(--shopH, 400px));
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  /* (a fixed height: the grid's rows keep their own height and the window scrolls, instead of squashing a list to 0) */
+  grid-auto-rows: max-content;
+  align-content: start;
+}
+
+/* (owner, Nov 26 2026: "no loading") the loading screen shows only the logo, the lights and the walkers (no step text,
+   no bar), and goes straight away; then the white blinks (bootflow.js bfLandFlash) and the log in pop-up */
+#boot #bootTxt,
+#boot .bootbar {
+  display: none;
+}
+body.booted #boot {
+  transition-duration: 0.2s;
+}
+.landflash {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+body.landflash #authBox {
+  visibility: hidden;
+}
+/* (owner, Nov 26 2026: "the how-many pop-up is behind; put it over so it can be pressed") a dialog opened from the
+   GM's NEWS / ANNOUNCEMENT / SPECIAL EVENT windows (they're later in the page at the same z-index) comes in front */
+#dlg.dlg-top {
+  z-index: 12;
+}

@@ -12,7 +12,8 @@
 // become Moon Sand with the wall the tiles round them have. Moons are rebuilt for the current event because
 // moonevent.js's tag is now 'MOONEV3:' (was 'MOONEV2:').
 // (owner, Nov 22 2026 build n: "instead of 200 make it 50") 50 at most, the floating ones included
-const MOON_ROCK_MAX = 50;
+// (owner, Nov 26 2026: "make it 100 asteroids") 100: 90 in the ground + the floating ones' 10
+const MOON_ROCK_MAX = 100;
 buildMoon = ((prev) =>
   function (name = worldName, ev = typeof mevNowInfo === 'function' ? mevNowInfo().ev : 0, ...more) {
     const r = prev(name, ev, ...more);

@@ -18,7 +18,7 @@
 // Server side: supabase/schema.sql app_status / gm_maintenance; by hand supabase/admin/maintenance.sql.
 // Loaded right after config.js.
 // ===== boot flow =====
-const BF_STEP_MS = 150, // each step shows at least this long (so it can be read; Nov 24 2026: was 380, loading was slow)
+const BF_STEP_MS = 0, // each step shows at least this long (Nov 26 2026, owner: "no loading, it takes too long": 0; was 150, 380)
   BF_MAINT_POLL = 15, // s, maintenance panel: check again
   BF_GAME_POLL = 30, // s, in a world: check app_status
   BF_NET_MS = 7000; // ms, a server / update check gives up after this
@@ -387,3 +387,33 @@ function bfSceneStart() {
 }
 let bfSceneSaved = null;
 bfSceneStart();
+
+// (owner, Nov 26 2026: "the 3 white flicks of the rare prize: do that on the landing page, THEN the log in page shows;
+// no loading") when the loading screen goes, the screen blinks white like the rare prize (rareprize.js RARE_FX.blinks:
+// quick, quick, slow) and the log in pop-up comes in after the two quick ones (body.landflash hides it till then)
+const BF_FLASH = [
+  [0, 170, 0.8],
+  [230, 170, 0.7],
+  [470, 1100, 0.65],
+];
+function bfLandFlash() {
+  const el = document.createElement('div');
+  el.className = 'landflash';
+  document.body.appendChild(el);
+  document.body.classList.add('landflash');
+  const t0 = performance.now(),
+    end = Math.max(...BF_FLASH.map(([a, ms]) => a + ms));
+  const step = () => {
+    const e = performance.now() - t0;
+    let a = 0;
+    for (const [b0, ms, k] of BF_FLASH) {
+      const u = (e - b0) / ms;
+      if (u >= 0 && u < 1) a = Math.max(a, k * (1 - u) * (1 - u));
+    }
+    el.style.opacity = a;
+    if (e >= 420) document.body.classList.remove('landflash');
+    if (e < end) requestAnimationFrame(step);
+    else el.remove();
+  };
+  requestAnimationFrame(step);
+}

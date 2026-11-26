@@ -89,14 +89,14 @@ const newsEl = (id, cls, html) => {
     e.className = 'win ' + cls;
     e.hidden = true;
     e.setAttribute('role', 'dialog');
-    (document.getElementById('ui') || document.body).appendChild(e);
+    (document.getElementById('ui') || document.getElementById('wrap') || document.body).appendChild(e); // (Nov 26 2026: in #wrap with the other windows, so a dialog can come in front)
   }
   if (html !== undefined) e.innerHTML = html;
   return e;
 };
-const newsAnyOpen = () => ['newsPaper', 'newsList', 'newsEdit'].some((id) => document.getElementById(id) && !document.getElementById(id).hidden);
+const newsAnyOpen = () => ['newsPaper', 'newsList', 'newsEdit', 'annEdit', 'spEdit'].some((id) => document.getElementById(id) && !document.getElementById(id).hidden);
 function newsCloseAll() {
-  for (const id of ['newsPaper', 'newsList', 'newsEdit']) {
+  for (const id of ['newsPaper', 'newsList', 'newsEdit', 'annEdit', 'spEdit']) { // (annEdit: announcements.js)
     const e = document.getElementById(id);
     if (e) e.hidden = true;
   }
@@ -130,7 +130,7 @@ async function openNewsPaper(n, back) {
 }
 async function openNewsList() {
   newsCloseAll();
-  const el = newsEl('newsList', 'newslist', '<header><h2>NEWS</h2><button class="x" id="nlX" aria-label="Close">X</button></header><ul class="nl-ul"><li class="nl-empty">Loading...</li></ul><div class="nl-btns"></div>');
+  const el = newsEl('newsList', 'newslist', '<header class="nl-head"><h2>NEWS</h2><div class="nl-btns"></div><button class="x" id="nlX" aria-label="Close">X</button></header><ul class="nl-ul"><li class="nl-empty">Loading...</li></ul>');
   el.hidden = false;
   el.querySelector('#nlX').onclick = () => (el.hidden = true);
   const gm = typeof isGM === 'function' && isGM();
@@ -325,7 +325,9 @@ showPlayBox = ((prev) =>
     '.np-body{font-size:14px;line-height:1.5;white-space:normal;word-wrap:break-word;columns:1}',
     '.np-btns{display:flex;justify-content:center;gap:10px;margin-top:12px}',
     // the list
-    '.win.newslist{z-index:7;width:min(92vw,420px)}',
+    '.win.newslist{z-index:7;width:min(94vw,560px)}',
+    // (owner, Nov 26 2026) the GM's buttons up top beside NEWS, the X on the right
+    '.nl-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.nl-head h2{margin:0}.nl-head .x{margin-left:auto}.nl-head .nl-btns{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}.nl-head .nl-btns .btn{padding:6px 9px;font-size:9px}.nl-head .nl-btns + .x{margin-left:0}',
     '.nl-ul{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:6px;max-height:50vh;overflow:auto}',
     '.nl-ul li{display:flex;gap:6px;align-items:stretch}',
     '.nl-row{flex:1;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;padding:8px;border-radius:4px;' +

@@ -227,7 +227,7 @@ function moonWorldsFix(name) {
     // random places, for the next event") the Moon is built again when an event starts AND once it is over (':c'), each
     // time with its own seed, so what players broke is back and the asteroids are somewhere else
     const info = mevNowInfo(),
-      v = 'MOONEV5:' + info.ev + (info.open ? '' : ':c'); // (2: build k, the pad's shelves at the side; 3: build l, at most 200 asteroids; 4: Nov 22 2026 build n, at most 50: moonstay.js)
+      v = 'MOONEV6:' + info.ev + (info.open ? '' : ':c'); // (6: Nov 26 2026, 100 asteroids; 2: build k, the pad's shelves at the side; 3: build l, at most 200 asteroids; 4: Nov 22 2026 build n, at most 50: moonstay.js)
     if (worldRV !== v) {
       trees.clear();
       signs.clear();

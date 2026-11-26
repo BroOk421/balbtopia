@@ -5675,3 +5675,210 @@ on conflict (item) do update set cls = excluded.cls;
 
 -- (Nov 25 2026 q, owner: "the bow, pamalo and boomerang seedable, not in the mall") out of the Shop (rows of build p).
 delete from public.shop_prices where item in ('wooden_boomerang', 'hunter_bow', 'pamalo');
+
+-- =====================================================================================================
+-- (Nov 26 2026) OWN REALTIME SERVER (rt-server/, run on the owner's PC). Optional: with no server running the game
+-- uses Supabase Realtime exactly as before. Safe to run more than once.
+-- The server carries world:NAME, build:NAME:LOCKV and lobby (the busy ones). chat:NAME and inbox:UID stay on
+-- Supabase (the database itself sends on them: send_chat, lobby_send).
+-- rt_check: the same rules as the realtime.messages policies above, for the server to ask with the player's own
+-- login (so auth.uid() is the player): may they listen on / send to this topic?
+create or replace function public.rt_check(p_topic text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare recv boolean; snd boolean;
+begin
+  if auth.uid() is null or public.is_banned() or coalesce(p_topic, '') = '' then
+    return jsonb_build_object('recv', false, 'send', false);
+  end if;
+  recv := (p_topic like 'world:%' or p_topic like 'build:%' or p_topic = 'lobby')
+    and not public.world_banned(split_part(p_topic, ':', 2));
+  snd := recv and (p_topic like 'world:%' or p_topic = 'lobby' or (p_topic like 'build:%' and public.can_send_build(p_topic)));
+  return jsonb_build_object('recv', recv, 'send', snd, 'id', auth.uid());
+end $$;
+
+-- where the server is. The server writes its address here when it starts (and every minute while it runs), with
+-- the secret from its config.json; the game reads it on login (rt_url) and only uses it if it is fresh.
+-- Set the secret ONCE in the SQL editor (any long random text, the same as "secret" in rt-server/config.json):
+--   update public.rt_server set secret_hash = encode(extensions.digest('YOUR-SECRET', 'sha256'), 'hex');
+create extension if not exists pgcrypto with schema extensions;
+create table if not exists public.rt_server (
+  id int primary key default 1 check (id = 1),
+  url text,
+  secret_hash text,
+  updated_at timestamptz
+);
+insert into public.rt_server (id) values (1) on conflict (id) do nothing;
+alter table public.rt_server enable row level security;
+revoke all on public.rt_server from anon, authenticated;
+create or replace function public.rt_set_url(p_secret text, p_url text)
+returns boolean language plpgsql security definer set search_path = public, extensions as $$
+declare h text;
+begin
+  select secret_hash into h from public.rt_server where id = 1;
+  if h is null or h = '' or h <> encode(extensions.digest(coalesce(p_secret, ''), 'sha256'), 'hex') then
+    raise exception 'wrong secret' using errcode = '42501';
+  end if;
+  if p_url is not null and p_url !~ '^wss?://[A-Za-z0-9.:/_-]{1,200}$' then raise exception 'bad url'; end if;
+  update public.rt_server set url = p_url, updated_at = case when p_url is null then null else now() end where id = 1;
+  return true;
+end $$;
+grant execute on function public.rt_set_url(text, text) to anon, authenticated;
+-- the address if the server checked in during the last 3 minutes, else null (then: Supabase Realtime)
+create or replace function public.rt_url()
+returns text language sql stable security definer set search_path = public as $$
+  select url from public.rt_server where id = 1 and updated_at > now() - interval '3 minutes'
+$$;
+
+-- =====================================================================================================
+-- (Nov 26 2026) the GM's ANNOUNCEMENT banners (www/js/ui/announcements.js + announce.js): a line of text shown to
+-- every player at a set time (now or later) as the ANOUNCEMENT banner under the chat, for 5 seconds. Players read the
+-- ones due soon every 30 s. (Not the Mailbox's "announcements" table: that one is the GM's updates.) Safe to re-run.
+create table if not exists public.gm_banners (
+  id bigint generated always as identity primary key,
+  body text not null,
+  show_at timestamptz not null default now(),
+  by_name text,
+  created_at timestamptz not null default now()
+);
+create index if not exists gm_banners_show_at on public.gm_banners (show_at);
+alter table public.gm_banners enable row level security;
+revoke all on public.gm_banners from anon, authenticated;
+grant select on public.gm_banners to authenticated;
+drop policy if exists "gm_banners: read" on public.gm_banners;
+create policy "gm_banners: read" on public.gm_banners for select to authenticated using (true);
+create or replace function public.post_banner(p_body text, p_at timestamptz)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare b text; nid bigint;
+begin
+  if not public.is_gm() then raise exception 'Only the GM can make announcements' using errcode = '42501'; end if;
+  b := left(btrim(regexp_replace(coalesce(p_body, ''), '[[:cntrl:]]', ' ', 'g')), 200);
+  if b = '' then raise exception 'Write the announcement first' using errcode = 'P0001'; end if;
+  if p_at is not null and p_at > now() + interval '60 days' then raise exception 'That is too far away' using errcode = 'P0001'; end if;
+  insert into public.gm_banners (body, show_at, by_name) values (b, greatest(coalesce(p_at, now()), now()), public.my_name()) returning id into nid;
+  delete from public.gm_banners where show_at < now() - interval '7 days';
+  return nid;
+end $$;
+create or replace function public.delete_banner(p_id bigint)
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_gm() then raise exception 'Only the GM can do that' using errcode = '42501'; end if;
+  delete from public.gm_banners where id = p_id;
+  return 'ok';
+end $$;
+revoke execute on function public.post_banner(text, timestamptz), public.delete_banner(bigint) from public, anon;
+grant execute on function public.post_banner(text, timestamptz), public.delete_banner(bigint) to authenticated;
+
+-- =====================================================================================================
+-- (Nov 26 2026) the GM's SPECIAL EVENTS (www/js/ui/specialevent.js): the GM picks worlds and items; everyone online
+-- gets the SPECIAL EVENT banner; in each picked world the items float on random free tiles for players to pick up.
+-- The first game that is in the world (or comes into it within a day) claims it (claim_gm_event: only one wins)
+-- and puts the drops there for everyone (its drops are checked against the event: gm_event_ok). Safe to re-run.
+create table if not exists public.gm_events (
+  id bigint generated always as identity primary key,
+  worlds text[] not null,
+  items jsonb not null, -- [{id, q}]
+  body text not null default '',
+  by_name text,
+  created_at timestamptz not null default now()
+);
+create index if not exists gm_events_created on public.gm_events (created_at);
+alter table public.gm_events enable row level security;
+revoke all on public.gm_events from anon, authenticated;
+grant select on public.gm_events to authenticated;
+drop policy if exists "gm_events: read" on public.gm_events;
+create policy "gm_events: read" on public.gm_events for select to authenticated using (true);
+create table if not exists public.gm_event_done (
+  event_id bigint not null references public.gm_events (id) on delete cascade,
+  world text not null,
+  by_id uuid,
+  at timestamptz not null default now(),
+  primary key (event_id, world)
+);
+alter table public.gm_event_done enable row level security;
+revoke all on public.gm_event_done from anon, authenticated;
+create or replace function public.post_gm_event(p_worlds text[], p_items jsonb, p_body text)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare w text[]; it jsonb := '[]'::jsonb; x jsonb; total int := 0; nid bigint;
+begin
+  if not public.is_gm() then raise exception 'Only the GM can start a special event' using errcode = '42501'; end if;
+  select coalesce(array_agg(distinct upper(v)), '{}') into w from unnest(coalesce(p_worlds, '{}')) v where upper(v) ~ '^[A-Z0-9]{1,16}$';
+  if coalesce(array_length(w, 1), 0) = 0 then raise exception 'Pick at least one world' using errcode = 'P0001'; end if;
+  if array_length(w, 1) > 20 then raise exception 'At most 20 worlds' using errcode = 'P0001'; end if;
+  for x in select * from jsonb_array_elements(case when jsonb_typeof(p_items) = 'array' then p_items else '[]' end) loop
+    if coalesce(x ->> 'id', '') ~ '^[a-z0-9_]{1,40}$' and public.jnum(x -> 'q') between 1 and 400 then
+      it := it || jsonb_build_array(jsonb_build_object('id', x ->> 'id', 'q', public.jnum(x -> 'q')::int));
+      total := total + public.jnum(x -> 'q')::int;
+    end if;
+  end loop;
+  if jsonb_array_length(it) = 0 then raise exception 'Put at least one item in the slots' using errcode = 'P0001'; end if;
+  if total > 400 then raise exception 'At most 400 items in all' using errcode = 'P0001'; end if;
+  insert into public.gm_events (worlds, items, body, by_name)
+  values (w, it, left(btrim(regexp_replace(coalesce(p_body, ''), '[[:cntrl:]]', ' ', 'g')), 200), public.my_name()) returning id into nid;
+  return nid;
+end $$;
+-- the first game in the world to ask puts the drops there (true = you)
+create or replace function public.claim_gm_event(p_id bigint, p_world text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare e public.gm_events;
+begin
+  if auth.uid() is null or public.is_banned() then return false; end if;
+  select * into e from public.gm_events where id = p_id and created_at > now() - interval '1 day';
+  if not found or not (upper(p_world) = any (e.worlds)) then return false; end if;
+  insert into public.gm_event_done (event_id, world, by_id) values (p_id, upper(p_world), auth.uid()) on conflict do nothing;
+  return found;
+end $$;
+-- is this event (a day old at most) for this world, and was it already put there? {ok, done}
+create or replace function public.gm_event_ok(p_id bigint, p_world text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'ok', exists (select 1 from public.gm_events where id = p_id and created_at > now() - interval '1 day' and upper(p_world) = any (worlds)),
+    'done', exists (select 1 from public.gm_event_done where event_id = p_id and world = upper(p_world)))
+$$;
+revoke execute on function public.post_gm_event(text[], jsonb, text), public.claim_gm_event(bigint, text), public.gm_event_ok(bigint, text) from public, anon;
+grant execute on function public.post_gm_event(text[], jsonb, text), public.claim_gm_event(bigint, text), public.gm_event_ok(bigint, text) to authenticated;
+-- (Nov 26 2026 f, owner: "the special event only lasts a while, 1 or 3 minutes; the items go after that") how long
+-- (seconds); its items are taken away by the games after created_at + dur_s, and a world can't be claimed after it.
+alter table public.gm_events add column if not exists dur_s integer not null default 180;
+create or replace function public.post_gm_event(p_worlds text[], p_items jsonb, p_body text, p_dur integer)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare nid bigint;
+begin
+  if coalesce(p_dur, 0) < 10 or p_dur > 3600 then raise exception 'The time must be 10 seconds to 60 minutes' using errcode = 'P0001'; end if;
+  nid := public.post_gm_event(p_worlds, p_items, p_body);
+  update public.gm_events set dur_s = p_dur where id = nid;
+  return nid;
+end $$;
+create or replace function public.claim_gm_event(p_id bigint, p_world text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare e public.gm_events;
+begin
+  if auth.uid() is null or public.is_banned() then return false; end if;
+  select * into e from public.gm_events where id = p_id and created_at + make_interval(secs => dur_s) > now();
+  if not found or not (upper(p_world) = any (e.worlds)) then return false; end if;
+  insert into public.gm_event_done (event_id, world, by_id) values (p_id, upper(p_world), auth.uid()) on conflict do nothing;
+  return found;
+end $$;
+revoke execute on function public.post_gm_event(text[], jsonb, text, integer) from public, anon;
+grant execute on function public.post_gm_event(text[], jsonb, text, integer) to authenticated;
+-- (Nov 26 2026 l, owner: "after the time, a banner with how many were got, out of how many") how many were put in
+-- each world and how many were still lying there at the end (the games in the world say so; the lowest is kept)
+alter table public.gm_event_done add column if not exists total_n integer;
+alter table public.gm_event_done add column if not exists left_n integer;
+create or replace function public.gm_event_result(p_id bigint, p_world text, p_total integer, p_left integer)
+returns boolean language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or public.is_banned() then return false; end if;
+  update public.gm_event_done
+    set total_n = case when p_total between 0 and 400 and (total_n is null or by_id = auth.uid()) then p_total else total_n end,
+        left_n = case when p_left between 0 and 400 then least(coalesce(left_n, p_left), p_left) else left_n end
+    where event_id = p_id and world = upper(p_world);
+  return found;
+end $$;
+-- {world: {total, left}} for an event (worlds nobody claimed are missing)
+create or replace function public.gm_event_results(p_id bigint)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_object_agg(world, jsonb_build_object('total', total_n, 'left', left_n)), '{}'::jsonb)
+  from public.gm_event_done where event_id = p_id
+$$;
+revoke execute on function public.gm_event_result(bigint, text, integer, integer), public.gm_event_results(bigint) from public, anon;
+grant execute on function public.gm_event_result(bigint, text, integer, integer), public.gm_event_results(bigint) to authenticated;

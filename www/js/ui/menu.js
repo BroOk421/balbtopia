@@ -4,7 +4,7 @@
 let xp = 0, // XP inside the current level
   level = 1,
   playDays = []; // dates played, like '2026-10-15'
-const settings = { vibrate: true, coords: true, zoom: 0, sound: true }; // zoom: camera steps closer than the farthest view
+const settings = { vibrate: true, coords: true, zoom: 0, sound: true, music: true }; // sound = sound effects; music = the background music (Nov 26 2026) // zoom: camera steps closer than the farthest view
 
 // XP needed to go from level lv to lv+1 (owner, Oct 24 2026: slower, and it keeps growing): 1 XP = 1 block broken.
 // Level 2 needs 30 blocks, level 10 about 140, level 50 about 1,020, level 100 about 2,970; level 100 in all ~117,000.
@@ -147,7 +147,8 @@ function worldsTab(el) {
 function settingsTab(el) {
   // (no Walk style any more: everyone walks with strides, owner Oct 22 2026)
   el.innerHTML = `<div class="setscroll">
-    <label class="set"><span>Sound</span><input type="checkbox" id="sSnd" /></label>
+    <label class="set"><span>Music</span><input type="checkbox" id="sMus" /></label>
+    <label class="set"><span>Sound effects</span><input type="checkbox" id="sSnd" /></label>
     <label class="set"><span>Vibration ${Native.isApp ? '' : '<small>(phone app)</small>'}</span><input type="checkbox" id="sVib" /></label>
     ${gfxSettingsHtml()}
     <div class="set"><span>Account <span class="acct">${playerName}</span></span>
@@ -163,6 +164,13 @@ function settingsTab(el) {
     settings.sound = snd.checked;
     savePlayer();
     if (snd.checked) Sfx.play('pickup');
+  };
+  // (owner, Nov 26 2026: "Music and SFX options in settings, on and off")
+  const mus = el.querySelector('#sMus');
+  mus.checked = settings.music !== false;
+  mus.onchange = () => {
+    settings.music = mus.checked;
+    savePlayer();
   };
   vib.checked = settings.vibrate;
   vib.onchange = () => {

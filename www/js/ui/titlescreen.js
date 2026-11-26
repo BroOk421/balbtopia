@@ -147,7 +147,8 @@ const TMUS_BPM = 76,
   // (owner, Nov 22 2026 build y: "use the landing page's music in the game too, but quiet") in a world the same loop
   // plays at this volume (the landing page's TMUS_VOL there); the landing music button (landinglinks.js) turns it off
   // in both places, the Sound setting too
-  TMUS_GAME_VOL = 0.05;
+  // (owner, Nov 26 2026: "the background music a bit louder") 0.09 (was 0.05)
+  TMUS_GAME_VOL = 0.09;
 // where the music plays now: 'land' (the landing page), 'game' (in a world), or null
 function tmusMode() {
   if (document.body.classList.contains('landing')) return 'land';
@@ -222,7 +223,8 @@ function tmusSchedule() {
   const mode = tmusMode(),
     want =
       !!mode &&
-      !(typeof settings !== 'undefined' && settings.sound === false) &&
+      // (Nov 26 2026) its own Music switch in Settings (settings.music), apart from Sound effects
+      !(typeof settings !== 'undefined' && settings.music === false) &&
       (typeof landMusicOn !== 'function' || landMusicOn()) &&
       !(mode === 'game' && typeof pianoMusicOn === 'function' && pianoMusicOn()), // (build z: a Piano is playing)
     vol = mode === 'game' ? TMUS_GAME_VOL : TMUS_VOL;

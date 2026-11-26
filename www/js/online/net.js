@@ -59,6 +59,7 @@ const Net = (() => {
   } catch (e) {
     console.error('Supabase setup failed', e);
   }
+  if (sb && typeof RT !== 'undefined') RT.init(sb); // (Nov 26 2026) own realtime server, rt.js
   const N = { online: !!sb, why, sb, me: null, remotes: new Map(), worldList: [], loading: false, secure: false, gm: false };
   // Supabase accounts need an email; players only pick a username, so we make one up from it
   const emailOf = (u) => u.toLowerCase() + '@players.balbtopia.app';
@@ -219,6 +220,7 @@ const Net = (() => {
       await dropChannel(ch);
       await dropChannel(bch);
       ch = bch = null;
+      if (typeof RT !== 'undefined') RT.reset(); // (Nov 26 2026) the lobby too, on the own server
       await sb.auth.signOut();
     } catch (e) {}
   };
@@ -398,6 +400,8 @@ const Net = (() => {
   // make sure a channel that never got in is gone too) before making a new one
   async function dropChannel(c) {
     if (!c) return;
+    // (Nov 26 2026) world / build / lobby are rt.js stand-ins (own server or Supabase underneath)
+    if (c.isRT) return c.unsubscribe();
     try {
       await sb.removeChannel(c);
     } catch (e) {}
@@ -418,7 +422,7 @@ const Net = (() => {
     bJoined = false;
     await dropChannel(old);
     if (seq !== buildSeq || !privRT || !sb || !N.me || name !== joinedName) return;
-    const b = sb.channel('build:' + name + ':' + (lockV[name] | 0), chOpts(false));
+    const b = RT.channel('build:' + name + ':' + (lockV[name] | 0), chOpts(false));
     bch = b;
     onBuild(b, true);
     b.on('broadcast', { event: 'lockv' }, () => checkLockV(name));
@@ -509,7 +513,7 @@ const Net = (() => {
     });
   };
   function openWorld(name, seq) {
-    const c = sb.channel('world:' + name, chOpts(true));
+    const c = RT.channel('world:' + name, chOpts(true));
     ch = c;
     if (privRT) {
       joinBuild(name);
@@ -1516,7 +1520,7 @@ const Net = (() => {
   };
   function joinLobbyCh() {
     if (!sb || !N.me || lobby) return;
-    const c = sb.channel('lobby', chOpts(true));
+    const c = RT.channel('lobby', chOpts(true));
     lobby = c;
     for (const ev of LOBBY_EVENTS)
       c.on('broadcast', { event: ev }, ({ payload }) => {
@@ -1659,6 +1663,63 @@ const Net = (() => {
   N.annDelete = async (id) => {
     const { error } = await sb.rpc('delete_announcement', { p_id: id });
     return error ? (error.code === 'P0001' || error.code === '42501' ? error.message : N.dbError(error)) : null;
+  };
+  // (Nov 26 2026) the GM's ANNOUNCEMENT banners (schema.sql gm_banners; ui/announcements.js)
+  const bannerErr = (error) =>
+    error.code === 'PGRST202' || error.code === '42883' || error.code === 'PGRST205' || error.code === '42P01'
+      ? 'The server needs an update for announcements (run schema.sql)'
+      : error.code === 'P0001' || error.code === '42501'
+        ? error.message
+        : N.dbError(error);
+  // the ones to show from `from` (ms) on, and (GM) the ones still waiting
+  N.bannersDue = async (fromMs, toMs) => {
+    if (!sb || !N.me) return null;
+    const { data, error } = await sb.from('gm_banners').select('id,body,show_at').gte('show_at', new Date(fromMs).toISOString()).lte('show_at', new Date(toMs).toISOString()).order('show_at').limit(50);
+    if (error) return null;
+    return (data || []).map((b) => ({ id: +b.id, body: b.body, at: Date.parse(b.show_at) || 0 }));
+  };
+  N.bannerPost = async (body, atMs) => {
+    const { error } = await sb.rpc('post_banner', { p_body: body, p_at: atMs ? new Date(atMs).toISOString() : null });
+    return error ? bannerErr(error) : null;
+  };
+  N.bannerDelete = async (id) => {
+    const { error } = await sb.rpc('delete_banner', { p_id: id });
+    return error ? bannerErr(error) : null;
+  };
+  // (Nov 26 2026) the GM's SPECIAL EVENTS (schema.sql gm_events; ui/specialevent.js)
+  const gmEvRow = (e) => ({ id: +e.id, worlds: e.worlds || [], items: e.items || [], body: e.body || '', at: Date.parse(e.created_at) || 0, dur: (+e.dur_s || 180) * 1000 });
+  N.gmEventsSince = async (fromMs, world) => {
+    if (!sb || !N.me) return null;
+    let q = sb.from('gm_events').select('id,worlds,items,body,created_at,dur_s').gte('created_at', new Date(fromMs).toISOString());
+    if (world) q = q.contains('worlds', [world]);
+    const { data, error } = await q.order('id').limit(50);
+    return error ? null : (data || []).map(gmEvRow);
+  };
+  N.gmEventPost = async (worlds, items, body, durS) => {
+    const { error } = await sb.rpc('post_gm_event', { p_worlds: worlds, p_items: items, p_body: body || '', p_dur: durS });
+    return error ? bannerErr(error) : null;
+  };
+  N.gmEventClaim = async (id, world) => {
+    const { data, error } = await sb.rpc('claim_gm_event', { p_id: id, p_world: world });
+    return !error && data === true;
+  };
+  N.gmEventOk = async (id, world) => {
+    const { data, error } = await sb.rpc('gm_event_ok', { p_id: id, p_world: world });
+    return error || !data ? null : data;
+  };
+  N.gmEventResult = async (id, world, total, left) => {
+    const { error } = await sb.rpc('gm_event_result', { p_id: id, p_world: world, p_total: total == null ? -1 : total, p_left: left == null ? -1 : left });
+    return !error;
+  };
+  N.gmEventResults = async (id) => {
+    const { data, error } = await sb.rpc('gm_event_results', { p_id: id });
+    return error || !data ? null : data;
+  };
+  // how many players are in each world now (the server's world_counts), fresh
+  N.worldCountsNow = async () => {
+    if (!sb || !N.me) return null;
+    const { data, error } = await sb.rpc('world_counts');
+    return error || !Array.isArray(data) ? null : data.map((r) => ({ world: String(r.world || ''), n: +r.n || 0 }));
   };
   // a look at another world's saved data without joining it or touching the save cache (Question Door, qdoor.js)
   N.peekWorld = async (name) => {

@@ -13,7 +13,7 @@
          no other inline script can -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'sha256-vvt4KWwuNr51XfE5m+hzeNEGhiOfZzG97ccfqGsPwvE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'"
+      content="default-src 'self'; script-src 'self' 'sha256-vvt4KWwuNr51XfE5m+hzeNEGhiOfZzG97ccfqGsPwvE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.trycloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'"
     />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#1c1033" />
@@ -332,6 +332,7 @@
     <script src="js/render/blockybody.js"></script>
     <script src="js/ui/ui.js"></script>
     <script src="js/gameplay/farming.js"></script>
+    <script src="js/online/rt.js"></script>
     <script src="js/online/net.js"></script>
     <script src="js/world/lock.js"></script>
     <script src="js/online/social.js"></script>
@@ -497,6 +498,9 @@
     <script src="js/ui/starterpack.js"></script>
     <script src="js/ui/shopstyle.js"></script>
     <script src="js/ui/winsize.js"></script>
+    <script src="js/ui/announce.js"></script>
+    <script src="js/ui/announcements.js"></script>
+    <script src="js/ui/specialevent.js"></script>
     <script src="js/blocks/blocks64i.js"></script>
     <script src="js/items/harvfuel.js"></script>
     <script src="js/blocks/wallsigns.js"></script>
@@ -525,6 +529,7 @@
     <script src="js/ui/guide.js"></script>
     <script src="js/ui/hudbtns.js"></script>
     <script src="js/core/gone.js"></script>
+    <script src="js/render/skinwait.js"></script>
     <script src="js/core/main.js"></script>
   </body>
 </html>

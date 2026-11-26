@@ -1,0 +1,9 @@
+{
+  "port": 8787,
+  "supabaseUrl": "https://YOUR-PROJECT.supabase.co",
+  "supabaseAnonKey": "THE SAME anon / publishable KEY AS IN .env",
+  "secret": "ANY LONG RANDOM TEXT (the same one you put in the SQL editor)",
+  "tunnel": "quick",
+  "cloudflared": "cloudflared",
+  "publicUrl": ""
+}

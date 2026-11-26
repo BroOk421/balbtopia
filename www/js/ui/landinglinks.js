@@ -74,7 +74,7 @@ $('llMusic').onclick = () => {
   landMusicShow();
   // (the click counts as the tap browsers want before any sound)
   if (landMusic && typeof Sfx !== 'undefined' && Sfx.unlock) Sfx.unlock();
-  if (landMusic && typeof settings !== 'undefined' && settings.sound === false) toast('Sound is OFF: turn it on in OPTIONS to hear the music');
+  if (landMusic && typeof settings !== 'undefined' && settings.music === false) toast('Music is OFF: turn it on in Settings to hear the music');
   if (typeof tmusSchedule === 'function') tmusSchedule();
 };
 LAND_LINKS.querySelectorAll('[data-link]').forEach(

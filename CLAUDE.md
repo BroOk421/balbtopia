@@ -5892,3 +5892,110 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   data/farming.json): Boomerang = Red Block + Wood Block, Bow = Death Spikes + Wooden Platform, Pamalo = Rock + Wood
   Block (tree 360 s, seed chance 0.3, as weapons.js). Obsidian Cleaver stays in the Shop. schema.sql: their
   shop_prices rows removed (+ a delete at the end).
+
+## 2026-11-26 a — own realtime server (owner: "run the realtime on my own PC")
+- rt-server/ (Node 18+, `ws`): server.js, start.bat (restarts it), config.example.json -> config.json (gitignored),
+  README.md (Tagalog setup steps). Carries world:NAME, build:NAME:LOCKV and lobby. chat:NAME and inbox:UID stay on
+  Supabase (the database sends on them: send_chat / lobby_send).
+  - Login: auth/v1/user with the player's token. Each join: rpc rt_check(topic) with that token (same rules as the
+    realtime.messages policies: banned, world bans, can_send_build) -> recv / send. Sends without `send` dropped.
+  - Presence keyed by the login's user id (can't be faked). 80 msgs/s per connection, 512 KB per message, ping 25 s.
+  - Address: "tunnel": "quick" spawns cloudflared (cloudflared.exe in the folder, or on PATH) and writes the
+    trycloudflare wss:// address to Supabase (rt_set_url, with the secret) every minute; Ctrl+C writes null.
+    Or "publicUrl" (named tunnel / own domain), or RT_URL in .env (make-config.js -> online-config.js).
+- schema.sql: rt_check, rt_server table (secret_hash; the owner sets it once in the SQL editor), rt_set_url, rt_url
+  (only if checked in within 3 minutes).
+- www/js/online/rt.js (before net.js): RT.channel = a stand-in with the Supabase channel API net.js uses (on,
+  subscribe, send, track, untrack, presenceState, unsubscribe). On subscribe it picks: own server (RT_URL, or rt_url;
+  must log in within 5 s) or a real sb.channel with every handler moved over. Refused topic -> Supabase. Lost: retries
+  (1, 2, 4, 8 s); not back in 20 s -> all stand-ins to Supabase for the session. RT.reset() on sign out.
+  net.js: world / build / lobby use RT.channel; dropChannel unsubscribes stand-ins; RT.init(sb).
+- Tested in Node with a fake Supabase: presence, broadcasts, build send rights, banned -> Supabase, server down at
+  start -> Supabase, server restarted -> rejoined (SUBSCRIBED again), server gone -> Supabase.
+
+## 2026-11-26 b
+- index.html CSP connect-src now has wss://*.trycloudflare.com (build a's own realtime server was blocked by it: the
+  Node tests didn't load the page). A named tunnel / own domain must be added there too (rt-server/README.md).
+- ui/announce.js + style.css .annc (DRAFT, owner to approve the look): announce(kind, text, title?) shows a 100 px
+  banner under the chat for 5 s (ANNC.ms), queued: 'announce' blue ANNOUNCEMENT!, 'rare' rainbow CONGRATS!, 'event'
+  gold SPECIAL EVENT!; the title's gradient flows and it pulses. Not called from anywhere yet.
+
+## 2026-11-26 c
+- Banner redone with the owner's art (art-source/ui/annc_*_full.png -> www/assets/ui/annc_{announcement,event,special}
+  .png at 0.4, shown at ANNC.scale 0.6): his title centred over a full-width band (his RECTANGLE: black 51 %), the
+  text in it ([words] coloured: announce yellow, event green). Fades in moving up, out moving down after 5 s. Under the
+  chat. Gong sound (assets/sfx/gong.mp3; Sfx gong; see 26 d). His title says
+  "ANOUNCEMENT" (his spelling). 'special' isn't used yet (owner: "stay muna").
+- WORLD_EVENTS (announce.js): entering SPLASHWARS / MOONEVENT shows the EVENT banner.
+- ui/announcements.js: GM -> NEWS -> "+ ANNOUNCE": text (200), Now / Later (datetime), Preview, a Waiting list with x.
+  schema.sql gm_banners + post_banner / delete_banner (GM); Net.bannersDue / bannerPost / bannerDelete. Players poll
+  every 30 s and time each one; up to 60 s late still shows; seen ids in localStorage.
+- Moons: MOON_ROCK_MAX 100 (moonstay.js), moonevent.js tag MOONEV6 (moons rebuilt once for it).
+- rvb.js: the kills list (#rvbKills) is hidden; tapping the top clock (#rvbHud) opens it centred, RED | BLUE side by
+  side, X closes; closes itself when the round isn't playing.
+- swstick.js: the stick's middle follows the thumb past the edge (swO), so turning / going up from a side is a short
+  move; held up re-jumps each time you're on the ground (P.buf, ground only).
+
+## 2026-11-26 d
+- Gong = the owner's file (art-source/sfx/gong-original.mp3, 8 kHz mono) -> www/assets/sfx/gong.mp3 (loudnorm -16
+  LUFS, 44.1 kHz, fade at the end). The made one (gong_make.py) is gone.
+- Background music louder in worlds: TMUS_GAME_VOL 0.09 (was 0.05).
+- Settings: "Music" (settings.music: the landing / game background loop, titlescreen.js tmusSchedule) and "Sound
+  effects" (settings.sound, as before; it no longer stops the music). The landing page's music button stays too.
+- Splash Wars kills panel bigger (12 px text, 210 px columns, bigger X).
+
+## 2026-11-26 e — the GM's SPECIAL EVENT
+- ui/specialevent.js: NEWS header (GM): + NEW, + ANNOUNCE, SPECIAL EVENT, then X on the right (news.js .nl-head).
+  The SPECIAL EVENT box (also a tab in the ANNOUNCEMENT box): worlds with players in each (Net.worldCountsNow =
+  world_counts; tick, or type a name), 8 item slots (name from a list + amount; 400 in all), optional message, START.
+- Everyone: SPECIAL EVENT banner (poll gm_events every 30 s, up to 90 s late). In a picked world the first game to
+  ask claims it (claim_gm_event) and puts every item, one per drop, on random tiles with no block (fg 0; drops float),
+  uid 'ev<event>_<n>', sends them 20 / 0.5 s, saves the world. Others accept 'ev' drops from anywhere once
+  gm_event_ok says the event is for this world; takes of ones not seen yet are remembered (spTaken). A world nobody is
+  in gets them when someone comes in within a day.
+- schema.sql: gm_events, gm_event_done, post_gm_event (GM; 20 worlds, 400 items), claim_gm_event, gm_event_ok.
+
+## 2026-11-26 f
+- Special event duration: the box has 1 / 3 / 5 min buttons + minutes (1-60). schema.sql gm_events.dur_s,
+  post_gm_event(worlds, items, body, dur) (4 args), claim_gm_event refuses after created_at + dur_s. Games drop the
+  event's items when its time is up (spEnds; sweep every 1 s, then saveWorld), also old 'ev' drops of no event they
+  read (spKnown), not fresh ones from another game (d.spLive, then it reads the event to learn its end). The banner
+  says "for N minutes". Clock: the server's created_at against the phone's clock.
+- NEWS / news editor / ANNOUNCEMENT / SPECIAL EVENT windows: the Shop's width (min(100vw - 150px, 560px)) and height
+  (--shopH or 400 px, at most 84vh - 14px), contents scroll inside (style.css end).
+
+## 2026-11-26 g
+- Special event slots are buttons: tap -> spPicker (every item like the GM bag: GM_TABS / itemCat tabs + search, 240
+  icons at most, search for more) -> askQty (1-400) -> the slot shows icon, name, xN; its x empties it. No more text
+  inputs / datalist.
+- The fixed-height windows (style.css end) get grid-auto-rows: max-content so a list in them isn't squashed to 0.
+
+## 2026-11-26 h
+- Special event items only on a tile with a floor under it (solidAt or isPlat below, not lava; the tile itself
+  empty), still random among those. Tested: 40 drops, all on floors, 29 rows / 35 columns.
+
+## 2026-11-26 i
+- Special event: 4 slots (SP.slots), each a square bag cell (.cell: icon, the amount in the corner `.n`, + when
+  empty, a round x to empty it). The picked duration button is lit. Default text: "lying around" (not floating).
+
+## 2026-11-26 j — faster start
+- config.js loadAssets: the loading waits only for the non-skin pictures + SKIN_KEEP (porcelain, peach, honey) + the
+  last skin used (localStorage balbtopia.skin, saved by render/skinwait.js): 310 pictures instead of 622. The other
+  skins (assets/character/<skin>/) load right after (LAZY_SKIN, loadLazySkins); skinReady(s).
+- render/skinwait.js (last before main.js): drawCharacter draws a not-yet-loaded skin as its SKIN_STANDIN (tan /
+  brown / deep -> honey, Subscriber skins -> porcelain) so no cache keeps half-loaded pictures; skinLoaded(s) clears
+  OUTFIT, ARMS, BLOCKY_ARM, PXW_*, TOPLESS_CACHE, TEE_ARMS, HAIR_LIFT keys with that skin.
+- bootflow.js: BF_STEP_MS 0; the loading screen shows no step text / bar (style.css end), fades in 0.2 s; then
+  bfLandFlash: three white blinks (rare prize timing) and the log in pop-up after the two quick ones (body.landflash).
+
+## 2026-11-26 k
+- news.js newsEl puts its windows (NEWS, editor, ANNOUNCEMENT, SPECIAL EVENT, the item picker) in #wrap like the
+  other windows (they were on body, above #wrap's whole layer, so #dlg - inside #wrap - could never come in front).
+  The special event's how-many dialog gets #dlg.dlg-top (z-index 12) while open. Tested with real clicks.
+
+## 2026-11-26 l
+- Special event result: 6 s after the time is up, everyone who knew the event (start banner) gets the SPECIAL EVENT
+  banner "Time's up! [got / total] items were grabbed. You got [n]!" (n = your pickups, counted on Net.takeDrop).
+  The claimer reports total (gm_event_result after spPlace), the games in the world report how many were still lying
+  there at the end (lowest kept); gm_event_results(id) sums the worlds. schema.sql: gm_event_done.total_n / left_n.
+- Duration: 30 sec / 1 / 3 / 5 min buttons + min and sec boxes (10 s to 60 min); spMins says "1 minute 30 seconds".

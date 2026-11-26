@@ -75,6 +75,10 @@ if (!otaBase && process.env.GITHUB_REPOSITORY) {
   otaBase = repo.toLowerCase() === (owner + '.github.io').toLowerCase() ? `https://${owner.toLowerCase()}.github.io/` : `https://${owner.toLowerCase()}.github.io/${repo}/`;
 }
 if (otaBase && !otaBase.endsWith('/')) otaBase += '/';
+// (Nov 26 2026) the own realtime server's fixed address (wss://...), for a named tunnel / own domain. Empty: the game
+// asks Supabase where it is (rt-server writes it there), and uses Supabase Realtime when none is up.
+const rtUrl = (process.env.RT_URL || env.RT_URL || '').trim();
+if (rtUrl && !/^wss?:\/\//.test(rtUrl)) console.warn('! RT_URL should start with wss:// (got "' + rtUrl + '")');
 
 function looksSecret(k) {
   if (k.startsWith('sb_secret_')) return true;
@@ -99,6 +103,7 @@ const SUPABASE_FN_RESET = ${JSON.stringify(fnReset)};
 const WEB_BUILD = ${JSON.stringify(webBuild)};
 const WEB_TIME = ${webTime};
 const OTA_BASE = ${JSON.stringify(otaBase)};
+const RT_URL = ${JSON.stringify(rtUrl)};
 `,
 );
 if (url && !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url))
