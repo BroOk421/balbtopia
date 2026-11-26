@@ -6027,3 +6027,7 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   - `PXW_PANTS_OVER` (warrior_loincloth) draws the pants after the shirt. The abs reach one row into the waist, so the loincloth's belt now shows as in the file.
 - No schema change.
 - rt-server/.gitignore now uses `config.json*` and `cloudflared*`. Windows hid the extension, so the files were really config.json.json and cloudflared.exe.exe, and the old names didn't match them. cloudflared.exe.exe got pushed (52.9 MB). Take it out with `git rm --cached`.
+- The APK build failed because Maven Central answered "429 Too Many Requests" (rate limit). Changes to android.yml:
+  - Gradle cache via setup-java `cache: gradle`.
+  - An init script (~/.gradle/init.d/mirror.gradle) puts Google's Maven Central mirror first for every project and buildscript.
+  - assembleDebug gets up to 3 tries, 60s apart.

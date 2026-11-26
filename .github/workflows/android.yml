@@ -28,6 +28,21 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          # (Nov 26 2026) keeps the downloaded Gradle libraries between builds: fewer downloads from Maven Central
+          cache: gradle
+
+      # (Nov 26 2026, build failed: Maven Central answered "429 Too Many Requests" for every library) Google's copy of
+      # Maven Central is asked FIRST for every project and buildscript; Maven Central stays as the fallback
+      - name: Use Google's Maven Central mirror
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/mirror.gradle <<'G'
+          def mirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+          allprojects {
+            buildscript { repositories { maven { url mirror } } }
+            repositories { maven { url mirror } }
+          }
+          G
 
       - name: Install
         run: npm ci
@@ -88,7 +103,13 @@ jobs:
         run: |
           chmod +x android/gradlew
           cd android
-          ./gradlew assembleDebug
+          # (Nov 26 2026) a busy download server can fail one try: up to 3 tries, a minute apart
+          for i in 1 2 3; do
+            ./gradlew assembleDebug && exit 0
+            echo "::warning::build try $i failed, trying again in 60s"
+            sleep 60
+          done
+          exit 1
 
       - uses: actions/upload-artifact@v4
         with:
