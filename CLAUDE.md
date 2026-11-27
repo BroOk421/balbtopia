@@ -31,7 +31,7 @@ The scripts are grouped in folders; the table below gives bare file names, each 
 | `gameplay/` | farming, fishing, fish, coins, blast, quests, music, concert |
 | `blocks/` | seasonbush (Nov 25 2026 d, right after events/rareprize.js), blocks, treetrunk (Nov 22 2026 s, right after cyberblocks), blocks64, blocks64b-h, art64, steel, letters, cyberblocks, furniture, bushes, sponge, gates, holosign, hologram, vend, vacuum, display, board, mailbox, qdoor, atm, elevator, bounce, beds, graves, joinblocks, liven, bath, backgrounds2, blockfit, blowers, traps, lasers, pushers, ice, bouncedir, machines, vacuumhose, factoryplate, spikeflip, blocks64i, wallsigns |
 | `wear/` | salbabida (Nov 25 2026 i, right after pixelwear.js), wear, clothes, tees, scarves, capes (back in Nov 22 2026 l, right after scarves), photo_wear, dyes, sets, spacesuit, wrist (rings only), prismtrail, scarfreaper, hatfit, musicset, pixelwear (Nov 22 2026: oldman, capes, baby, wingsopen, crystalwings, goldwings, fire_eyes, vampire_face, backfit deleted; afro, diaper, floaties, hairstyles, pirate, topless were unloaded leftovers, deleted) |
-| `items/` | pxswords (Nov 25 2026, right after rodknife.js), autumnstick + balloon (Nov 25 2026 d, right after pxswords.js), reaperscythe, scythes (all scythes again since Nov 22 2026 j), weapons2 (Water Gun + the 6 scythes), autumnbeam (Autumn Scythe laser, loaded again in j), handfx (water shots), pets, pets_art, rides, megagun (build p, after asteroids.js), umbrella, glovepunch, harvfuel, rodknife (Nov 22 2026: weapons.js, autumnbeam.js deleted) |
+| `items/` | pxswords (Nov 25 2026, right after rodknife.js), autumnstick + balloon (Nov 25 2026 d, right after pxswords.js), reaperscythe, scythes (all scythes again since Nov 22 2026 j), weapons2 (Water Gun + the 6 scythes), autumnbeam (Autumn Scythe laser, loaded again in j), handfx (water shots), pets, pets_art, rides, aserides (Nov 27 2026, right after rides.js), megagun (build p, after asteroids.js), umbrella, glovepunch, harvfuel, rodknife (Nov 22 2026: weapons.js, autumnbeam.js deleted) |
 | `render/` | render, shadow, portrait, remotefx, seasonnature (Nov 25 2026 e, right after softstroke.js) (+ wear/backfit.js loaded again right after softstroke.js since Nov 22 2026 l) |
 | `ui/` | guide (Nov 22 2026 za, right before core/gone.js), winsize (Nov 25 2026 b, right after shopstyle.js), ui, menu, hotbar, uisize, popguard, landing, shop, flags, news, eventnews (after rvb.js), factorypack, musicpack, hudcard, titlescreen, landinglinks, achievements (Nov 13 2026, right before main.js) (chatbar.js removed Nov 10 2026) |
 | `art/` | hand-drawn pixel art tables (was `hd/`; includes `classic_tex.js` / `classic_deco.js`) |
@@ -6095,3 +6095,91 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 - Owner said vacuumed event items never reached players. Item Warp Pods were sucking up event drops of their item.
   - vacuum.js `vacEvent` (uid ev*) is skipped by pods.
   - specialevent.js canTakeDrop: event drops can be taken at once by anyone in any world (the locked-world wait doesn't apply). A GM can never take them (dropHint says so).
+
+## 2026-11-27 a: owner's .aseprite rides + Frost Horns (NOT in the Shop), new clown.aseprite
+- Owner: "add mo nga ito sa game pero wag mo ilagay sa shop"; rides: "sundin mo lang yung pagkakalagay sa aseprite yung
+  layers"; icons: "ilagay mo yung mismong icon nila na buo" (the bag icon = his whole picture); parachute + nimbus:
+  "nalipad parang sa carpet, taas mo pa yung lipad".
+- items/aserides.js (right after rides.js): `ASE_RIDES` kind 'ase', `noShop`: Wheelchair `ride_wheelchair` (x1.2, on
+  the ground), Witch's Broom `ride_nimbus` and Red Parachute `ride_parachute` (x1.45, `flap`, hover 14 world px + bob,
+  higher than the carpet's 8; the parachute also eases your fall to `ASE_CHUTE_FALL` 70 px/s). Names by Claude.
+  - His files' body is the game's sitting pose (same silhouette as sit_look.aseprite; only his leg colours differ), so
+    the rider is rest.js drawResting with a rest that exists only while drawing (`SEATS.__ase` 0, seat worked out from
+    the ride's lowest row `low` on the ground + hover): own skin, clothes, hair, held tool, emotes.
+  - art-source/rides/aseride_cut.py <root> splits the ride layers by his order: before every body layer -> `_back.png`;
+    after 'shape' -> `_front.png` (only what still shows in his picture: the broom under the near leg / front sleeve);
+    between body layers before 'shape' (parachute 'line') -> front where it lies on the body, else back. Prints
+    w/h/bx/by/low/high for ASE_RIDES. `_icon.png` = his whole picture (mirrored like the pixel wear icons).
+  - The name tag / bubble are drawn after the front layer and lifted over the ride's top (`high`), so the canopy doesn't cover them.
+- Frost Horns `frost_horns` (HAT slot since 2026-11-28 a, Epic, not sold): art-source/wear/pixel/hat/horn-1.aseprite, 10 frames x 100 ms.
+  pixelwear_cut.py `COMBINE` (his 'horn' + 'fx' glow + 'line' shine blended into one picture 'hornset', every frame:
+  idle.png, idle_f1..f9.png; PXW_ANIM now draws with PXW_SIDE), icon = his whole first frame (pixelwear.js
+  `PXW_OWN_ICON`: not the Mannequin's head; the fallback icon canvas grows past 32 px). PXW_LIST extra `{ noShop: true }`
+  = no SHOP entry.
+- Jester Hat re-cut from his updated hat/clown.aseprite (taller: PXW_TOP jester_hat 30 -> 90, side 18).
+- schema.sql: item_info rows for the 4 new items (no shop_prices). RE-RUN schema.sql. A GM gives them (not sold).
+- Tested offline (Chrome): all 3 rides both ways, on the ground / flying, with hairs and the horns; parachute fall
+  speed 70; icons; no errors.
+
+## 2026-11-28 a: Frost Horns -> hat, Witch's Broom under the hand
+- Owner sent horn-1.aseprite again WITHOUT the hair ("tinanggal ko yung buhok, yung horn dapat sa hat"): Frost Horns is a
+  HAT now (file moved to art-source/wear/pixel/hat/, re-cut; COMBINE = ('hornset', ['horn', 'fx', 'line'])).
+  "ganun lang din gawin mo sa horn" (like the Banana / Orange Suit): it stays where he drew it on the head, NOT lifted
+  onto the hair: NEW hat flag `noLift` (hatfit.js: no hairLift, no ponytail fitting), the worn hair still shows.
+  Icon = his whole first frame (bald character + horns). Banana / Orange Suit: unchanged (owner said keep them; a
+  try moving them to the Hair slot was put back).
+- Witch's Broom ("sa nimbus dapat yung hand nasa harap tyaka yung weapon naka overlap sa nimbus"): `underHand` in
+  ASE_RIDES: the broom (front layer) is drawn from inside drawResting just before the front sleeve (blockySleeves
+  wrapped during the rider's draw), so the front hand and a held weapon are over it. aseride_cut.py `UNDER_HAND`
+  (nimbus): his 'sleeve right' is left out when working out what of the broom shows, so it runs on under the hand.
+- Tested offline: broom with Silver Blade both ways, horns with Messy Mop / Fluffy Afro / bob / bald, on rides, the suits.
+
+## 2026-11-28 b: Emote button
+- Owner: "yung mga command na emotions ... lagay ka ng isang icon na parang modal, pag click lilitaw yung list ng icon
+  ng emotions, pag click sa isa tyaka gagana ... sa baba ng menu mo ilagay, lagyan mo ng mga icons"; "5 columns".
+- NEW ui/emotebtn.js (right after hudbtns.js): `#emoBtn` under the menu button (inside `.topr`, so it zooms with it;
+  same opacity / corners / colour settings vars as hudbtns.js), opens `#emoPanel` (5 columns): Thumbs Up /nice, Love,
+  Wow /omg, Cry, Sleep, Dance, Silly /facejoke, Troll; tapping one runs social.js `chatCommand('/' + k)` (the same as
+  typing it) and closes the panel; the one going on now has a gold edge. Tap outside / Esc closes. Pixel icons painted
+  in code (`EMO_BTN_ICONS`, 13 x 13 maps, faces on one round yellow face `emoFace`). Hidden on the landing screen.
+- Tested offline at 1100 x 700 and a phone 740 x 360: Love and Dance start, the panel closes.
+
+## 2026-11-28 c: bow aim / reach, /angry, dance squat, Devil Horns
+- Hunter's Bow (bow.js): the front arm follows the pointer ONLY while you hold the break down (`ptr.down`) or a shot is
+  going on (c.punch); let go = it hangs like any held weapon ("tyaka lang siya mag direksyon sa mouse kapag diniinan
+  yung break at titira, kapag tumigil babalik sa idle"). Reach `BOW.reach` 4 tiles each way (was 5): "4 tile lang".
+- /angry (owner's expressions/angry.aseprite, one frame on a 48 x 50 canvas): art-source/character/expr_angry_cut.py
+  (reuses expr_cry_omg_cut.py's readers / fit / skin tones; finds the body by default_look's silhouette) ->
+  <skin>/expr_angry.png for every skin. emotes.js EMO_MS angry 3000 ms, EMO_CODE 6 (older clients ignore it),
+  drawEmoFace draws it like /omg. blockybody.js preloads it; social.js help lists /angry; emotebtn.js: Angry button
+  (red-browed pixel face) after Cry (9 buttons, 5 columns).
+- /dance (jump.js) squat from his dance.aseprite: 5 frames of 100 ms, the body from the hips up goes down 0, 1, 2, 1, 0
+  of his pixels with the feet planted (`DANCE_SQUAT`, `DANCE_SQUAT_MS`, hips line sprite row `DANCE_HIP_ROW` 29).
+  Drawn in two passes: legs (below the hips line, no name tag / bubble), then the rest lower by the squat, clipped at
+  the moved hips line. Turning left / right, arms, breathing: unchanged ("left at right parin, add mo lang yung taas baba").
+- Devil Horns `devil_horns` (devil.aseprite, 9 frames, dark purple, purple glow) and Azure Devil Horns `azure_horns`
+  (devil2.aseprite, 11 frames, blue): hats like the Frost Horns (COMBINE glow + horn + line, PXW_ANIM, PXW_TOP 90,
+  `noShop`, `noLift`, PXW_OWN_ICON). Names by Claude. schema.sql item_info rows (RE-RUN).
+- Tested offline: /angry from the panel (code 6), both horns, the dance frames, bow reach 4 (5 is out), bow arm idle ->
+  aims while held -> idle after.
+
+## 2026-11-28 d: bow string + arrow start, his tree, no tile growth bar, Fish Tank fixes
+- Hunter's Bow: his new bow.aseprite (layer now 'bow', a string across row 23) re-cut (pxsword_cut.py EXTRA reads
+  layer 'bow'). bow.js `bowFrom(c, tx, ty)`: the arrow leaves from the arrow ON the bow (`BOW_MID` [2, 30] frame px
+  from the front shoulder, arm hanging), turned with the arm toward the spot like blockyTarget (was a fixed spot low
+  by the hand). Checked on screen in 4 directions.
+- Trees (farming.js treeSprite): HIS tree (art-source/trees/tree.aseprite, 32 x 32, a pine with a brown trunk) for every
+  seed: his greys A / B / C -> the seed's SEED_COLOR dark / main / light, trunk browns kept (`TREE_ART32`; old TREE_ART
+  unused). No growth bar on the tile any more (the standing-on-it bubble still shows the name / time / bar).
+- Fish Tank (fish.js): wrenching the TANK opens nothing now (only the Fish Tank Lid opens its window; wrenchBlock true
+  only for the lid; the "take the fish out first" toast says the lid).
+- Fish Tank BUG (owner's video: walking moved the fish; others saw them elsewhere): `aquaGroup` was cut at 400 tiles
+  counted from the tile asked, and drawAquariums asks from the first tank tile on screen, so a big tank changed (tiles,
+  order) with the camera and every fish path (picked from the group) jumped. Now the whole tank, sorted, cached per
+  tile (`AQ_COMP`) until the tank tiles change (`aquaComps` signature, once a frame). drawAquariums clips / draws the
+  glass only for tiles on screen. Tested: a 3,150-tile tank is one group from any tile; fish positions at the same
+  clock are identical from two camera spots (so every player sees the same).
+
+## 2026-11-28 e
+- Hunter's Bow reach (owner: "start bilang ng 4 sa tile san nakatayo yung character"): 4 tiles COUNTING your own tile =
+  `BOW.reach` 3 past it each way (build c's 4 counted 5 with yours). Pickaxe for comparison: REACH 2 = 3 with yours.

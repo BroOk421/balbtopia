@@ -1042,7 +1042,7 @@ function chatCommand(text) {
   if (!CHAT_CMDS[cmd]) {
     toast(
       (cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') +
-        'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll, /dance, /nice, /love, /omg, /cry, /sleep' +
+        'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll, /dance, /nice, /love, /omg, /cry, /angry, /sleep' +
         (isGM() ? '. GM: /gban NAME reason, /gunban NAME, /cheats, /maint on [minutes] [message], /maint off' : ''),
     );
     return false;

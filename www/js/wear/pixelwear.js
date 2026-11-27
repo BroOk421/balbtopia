@@ -131,6 +131,15 @@ const PXW_LIST = [
   ['warrior_abs', 'Warrior Abs', 'shirt', 'Rare', 5000, 'No armour needed: a battle-hard bare chest.'],
   ['warrior_loincloth', 'Warrior Loincloth', 'pants', 'Uncommon', 3000, 'A red warrior loincloth with a brown belt.'],
   ['warrior_sandals', 'Warrior Sandals', 'feet', 'Uncommon', 2500, 'Brown strapped warrior sandals.'],
+  // (owner, Nov 27 2026: horn-1.aseprite, "wag mo ilagay sa shop") two blue horns whose shine runs up them and glow
+  // now and then (10 frames of 100 ms, PXW_ANIM); NOT sold (noShop); name by Claude. Nov 28: his new file has no hair,
+  // "yung horn dapat sa hat": a Hat; "ganun lang din gawin mo sa horn" (like the fruit suits): it stays where he drew
+  // it on the head, not lifted onto the hair (hatfit.js `noLift`), the worn hair still showing under it
+  ['frost_horns', 'Frost Horns', 'hat', 'Epic', 0, 'Two icy blue horns that shimmer and glow.', { noShop: true, noLift: true }],
+  // (owner, Nov 28 2026: devil.aseprite 9 frames, devil2.aseprite 11 frames) two more like them: not sold, not lifted
+  // onto the hair; names by Claude
+  ['devil_horns', 'Devil Horns', 'hat', 'Epic', 0, 'Two dark curled devil horns with a shine and a purple glow.', { noShop: true, noLift: true }],
+  ['azure_horns', 'Azure Devil Horns', 'hat', 'Epic', 0, 'Two blue curled devil horns that shimmer and glow.', { noShop: true, noLift: true }],
 ];
 // ---------- the bare default character (owner, Nov 25 2026: "the default character has no sando and no pants: make
 // the blue shorts and the white sando wearables") ----------
@@ -157,7 +166,7 @@ function pxwBareFor(key, eq) {
 const PXW_PANTS_OVER = new Set(['warrior_loincloth']);
 const PXW_BARE_UNDER = { warrior_abs: 'shirt', six_pack_abs: 'shirt', caveman_fur: 'shirt', warrior_loincloth: 'pants' };
 // pictures taller than the frame at the top (pixelwear_meta.json "top": the afro's file has 5 more rows over the head)
-const PXW_TOP = { fluffy_afro: 30, banana_suit: 30, orange_suit: 30, jester_hat: 30, spartan_helmet: 90, golden_spartan_helmet: 90, warrior_helmet: 90 };
+const PXW_TOP = { fluffy_afro: 30, banana_suit: 30, orange_suit: 30, jester_hat: 90, spartan_helmet: 90, golden_spartan_helmet: 90, warrior_helmet: 90, frost_horns: 90, devil_horns: 90, azure_horns: 90 };
 // (Nov 26 2026) pictures wider than the usual 40 px each side (pixelwear_meta.json "side": a plume, a jester hat)
 const PXW_SIDE = { jester_hat: 18, golden_spartan_helmet: 42, spartan_helmet: 42 };
 const PXW = {}; // id -> { slot, sk }
@@ -188,11 +197,14 @@ const PXW_ART_SLOTS = ['face', 'hair', 'hat', 'neck', 'stache']; // drawn over t
 // wins over the joke / angry / emote faces), with this piece's own picture (blankFace wrapper at the end of this file);
 // hair, beards and hats still go over it
 const PXW_BODY_FACE = new Set(['blank_face']);
+// (owner, Nov 27 2026: "ilagay mo yung mismong icon nila na buo") pieces whose bag icon is his own whole picture
+// (icon.png: the character wearing it, as in his file), not the Mannequin's head
+const PXW_OWN_ICON = new Set(['frost_horns', 'devil_horns', 'azure_horns']);
 for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
   PXW[id] = { slot, sk: PXW_SKINNED.has(id) };
   const isArt = PXW_ART_SLOTS.includes(slot) && !PXW_BODY_FACE.has(id);
   addWear({ id, name, slot, shop: true, px: true, rarity, desc, ...(isArt ? { art: id } : PXW_BODY_FACE.has(id) ? { blank: true } : {}), ...(extra || {}) });
-  SHOP.push({ id, gold, cat: 'wear' });
+  if (!(extra && extra.noShop)) SHOP.push({ id, gold, cat: 'wear' }); // (noShop: an item that isn't sold)
   // the bag / Shop icon: the piece alone (icon.png, 1 px art), fitted in whole pixels
   const ic = new Image();
   let icon = null;
@@ -207,16 +219,18 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
       if (icon) return icon;
       // (owner, Nov 23 2026) the piece worn by the Mannequin, cut to its part of the body (pxwMannIcon); until the
       // Mannequin's pictures are in, the piece alone as before
-      const m = pxwMannIcon(id);
+      const m = PXW_OWN_ICON.has(id) ? null : pxwMannIcon(id);
       if (m) return (icon = m);
       const c = document.createElement('canvas');
-      c.width = c.height = 32;
+      // (a whole-figure icon, PXW_OWN_ICON, may be taller than 32: the canvas grows to hold it)
+      const N = Math.max(32, (ic.naturalWidth || 0) + 2, (ic.naturalHeight || 0) + 2);
+      c.width = c.height = N;
       if (!ic.complete || !ic.naturalWidth) return c;
       const x = c.getContext('2d'),
-        k = Math.max(1, Math.floor(30 / Math.max(ic.naturalWidth, ic.naturalHeight)));
+        k = Math.max(1, Math.floor((N - 2) / Math.max(ic.naturalWidth, ic.naturalHeight)));
       x.imageSmoothingEnabled = false;
-      x.drawImage(ic, Math.floor((32 - ic.naturalWidth * k) / 2), Math.floor((32 - ic.naturalHeight * k) / 2), ic.naturalWidth * k, ic.naturalHeight * k);
-      return PXW_ICON_PART[slot] && !PXW_BODY_FACE.has(id) ? c : (icon = c); // (kept only when no Mannequin icon is coming)
+      x.drawImage(ic, Math.floor((N - ic.naturalWidth * k) / 2), Math.floor((N - ic.naturalHeight * k) / 2), ic.naturalWidth * k, ic.naturalHeight * k);
+      return PXW_ICON_PART[slot] && !PXW_BODY_FACE.has(id) && !PXW_OWN_ICON.has(id) ? c : (icon = c); // (kept only when no Mannequin icon is coming)
     },
   });
   if (isArt)
@@ -230,14 +244,14 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
     };
 }
 // (Nov 25 2026) animated eye pieces: frame f of ANIM_N (wear.js wearArt) = idle.png (0) or idle_f<f>.png
-const PXW_ANIM = { shifty_eyes: [100, 7] };
+const PXW_ANIM = { shifty_eyes: [100, 7], frost_horns: [100, 10], devil_horns: [100, 9], azure_horns: [100, 11] }; // (frost_horns: Nov 27 2026, a hat since Nov 28)
 for (const [id, [ms, n]] of Object.entries(PXW_ANIM)) {
   ANIM_N[id] = [ms, n];
   WEAR_ART[id] = ({ x, f }) => {
     const im = pxwImg(id, f ? 'idle_f' + f : 'idle');
     if (!im) return;
     x.imageSmoothingEnabled = false;
-    x.drawImage(im, -PXW_PAD, -(PXW_TOP[id] || 0));
+    x.drawImage(im, -PXW_PAD - (PXW_SIDE[id] || 0), -(PXW_TOP[id] || 0));
   };
   for (let f = 1; f < n; f++) pxwImg(id, 'idle_f' + f);
 }

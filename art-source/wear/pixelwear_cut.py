@@ -96,6 +96,15 @@ ITEMS = {
     'tshirt/shirt-1.aseprite': 'gold_trim_jacket', 'tshirt/shirt-2.aseprite': 'crimson_trim_jacket',
     'tshirt/shirt-3.aseprite': 'silver_trim_jacket', 'tshirt/shirt-4.aseprite': 'caveman_fur',
     'hair/messy-hair.aseprite': 'messy_mop',
+    # (owner, Nov 27 2026: horn-1.aseprite, 10 frames of 100 ms) two blue horns; Nov 28 his new file has no hair
+    # ("tinanggal ko yung buhok, yung horn dapat sa hat"): a HAT. Its 'horn', 'fx' (a soft glow, frames 7-9) and
+    # 'line' (the shine running up the horns) layers together are ONE picture (COMBINE), every frame its own
+    # (idle.png, idle_f1..f9.png: pixelwear.js PXW_ANIM)
+    'hat/horn-1.aseprite': 'frost_horns',
+    # (owner, Nov 28 2026: devil.aseprite 9 frames, devil2.aseprite 11 frames of 100 ms) two more horn hats like it:
+    # 'glow' (a soft glow, the last frames), 'horn', 'line' (the shine) blended (COMBINE)
+    'hat/devil.aseprite': 'devil_horns',
+    'hat/devil2.aseprite': 'azure_horns',
     # (owner, Nov 25 2026: "the default character has no sando and no shorts: make the blue shorts and the white sando
     # wearables") bare/default_bare.aseprite = his default_look without them. The body frames stay as they were (with
     # them): pixelwear.js paints these two hidden pieces over an EMPTY shirt / pants slot instead (per skin tone):
@@ -317,6 +326,29 @@ def shift(a, dx, dy):
 SIDE_MAX = 11  # columns past the body each side a head piece may have (pixelwear.js draws them in its 110 px art pad)
 HAT_OPEN = {'banana_suit': 'inside', 'orange_suit': 'inside', 'spartan_helmet': 'inside', 'golden_spartan_helmet': 'inside', 'warrior_helmet': 'inside', 'jester_hat': 'below'}
 HAT_EXTRA = {'spartan_helmet': ['sleeve left']}  # head pieces partly drawn on another layer (see the hat branch)
+COMBINE = {'frost_horns': ('hornset', ['horn', 'fx', 'line']), 'devil_horns': ('hornset', ['glow', 'horn', 'line']),
+           'azure_horns': ('hornset', ['glow', 'horn', 'line'])}  # items made of several of his layers (in his order):
+# (the name the blended layer gets, his layers)
+
+
+def blend(layers):
+    """his layers drawn over each other (normal blending: the 'fx' glow is see-through)"""
+    out = np.zeros(layers[0].shape, float)
+    for l in layers:
+        a = l.astype(float) / 255
+        al = a[..., 3:]
+        out[..., :3] = a[..., :3] * al + out[..., :3] * (1 - al)
+        out[..., 3:] = al + out[..., 3:] * (1 - al)
+    rgb = np.where(out[..., 3:] > 0, out[..., :3] / np.maximum(out[..., 3:], 1e-6), 0)
+    return (np.concatenate([rgb, out[..., 3:]], axis=2) * 255).round().clip(0, 255).astype(np.uint8)
+
+
+def combine(iid, cels):
+    for D in (cels, WIDE):
+        if D:
+            D[COMBINE[iid][0]] = blend([D[n] for n in COMBINE[iid][1] if n in D])
+
+
 SIDE = [(0, 0)]  # this item's (left, right) extra columns
 WIDE = {}  # the last aligned file's layers with those side columns ('_side': (left, right))
 
@@ -386,6 +418,8 @@ for f, iid in ITEMS.items():
     else:
         frames, L = read_frames(SRC + f)
         cels = align(dict(frames[0]), f)
+        if iid in COMBINE:
+            combine(iid, cels)
         if 'tshirt' not in cels and 'shirt' in cels and f.startswith('tshirt/'):
             cels['tshirt'] = cels['shirt']  # (Nov 25 2026 files name the layer 'shirt')
     cat = f.split('/')[0]
@@ -577,6 +611,8 @@ for f, iid in ITEMS.items():
                  else next(n for n, v in reversed(L) if v and n not in BODY_LAYERS and n in cels) if cat == 'hat' else 'Scarf' if cat == 'scarf'
                  else next(n for n, v in L if v and n.startswith('Cap') and n in cels) if cat == 'cap'
                  else next(n for n, v in L if v and n.startswith('hair') and n in cels))
+        if iid in COMBINE:
+            lname = COMBINE[iid][0]  # (the blended layer)
         if iid in HAT_EXTRA and lname in WIDE:
             # (Nov 26 2026: spartan.aseprite has its red crest on the 'sleeve left' layer) what those layers have that the
             # bare body's same layer doesn't is part of the piece too
@@ -595,7 +631,7 @@ for f, iid in ITEMS.items():
         icon = cels[lname].copy()
         # (Nov 26 2026) a head piece reaching past the body's 32 columns (a helmet's plume, a jester hat): the wider
         # layer (WIDE), with the bare body under it padded by those columns
-        if cat == 'hat' and lname in WIDE and WIDE['_side'] != (0, 0):
+        if (cat == 'hat' or iid in COMBINE) and lname in WIDE and WIDE['_side'] != (0, 0):
             Lx, Rx = WIDE['_side']
             wl = WIDE[lname]
             if wl[:, :Lx, 3].any() or wl[:, wl.shape[1] - Rx:, 3].any():
@@ -609,6 +645,23 @@ for f, iid in ITEMS.items():
                 icon = wl.copy()
                 SIDE[0] = (int(l_), int(r_))
                 print('  ', iid, 'reaches past the body:', l_, 'left,', r_, 'right')
+        if iid in COMBINE:
+            # (owner, Nov 27 2026: "ilagay mo yung mismong icon nila na buo") the bag icon = his whole first frame,
+            # the character with the horns, as in his file (pixelwear.js PXW_OWN_ICON: not the Mannequin's head)
+            icon = blend([cels[n] for n, v in L if v and n in cels])
+        if iid in COMBINE and len(frames) > 1:  # (frost_horns) every frame, cut to the same columns as frame 0
+            l_, r_ = SIDE[0]
+            for k in range(1, len(frames)):
+                ck = align(dict(frames[k]), f)
+                combine(iid, ck)
+                if WIDE:
+                    Lx = WIDE['_side'][0]
+                    wl = WIDE[lname][:, Lx - l_:Lx + 32 + r_]
+                    ub = tall_under(wl[:, l_:l_ + 32], body)
+                    ub = np.concatenate([np.zeros((ub.shape[0], l_, 4), np.uint8), ub, np.zeros((ub.shape[0], r_, 4), np.uint8)], axis=1)
+                    poses['idle_f%d' % k] = piece(wl, ub)
+                else:
+                    poses['idle_f%d' % k] = piece(ck[lname], tall_under(ck[lname], body))
         if cat == 'eye' and len(frames) > 1:  # an animated eye piece: every frame its own picture
             # (owner, Nov 25 2026 n: "a black rectangle stroke, there shouldn't be one") the WHOLE eyes layer every frame,
             # not only what differs from the body: a part-picture's soft edges (the game draws smoothed) let the body's

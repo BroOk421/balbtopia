@@ -692,7 +692,7 @@
    "idle"
   ],
   "side": 18,
-  "top": 30
+  "top": 90
  },
  "spartan_helmet": {
   "cat": "hat",
@@ -753,5 +753,56 @@
   "poses": [
    "idle"
   ]
+ },
+ "frost_horns": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle",
+   "idle_f1",
+   "idle_f2",
+   "idle_f3",
+   "idle_f4",
+   "idle_f5",
+   "idle_f6",
+   "idle_f7",
+   "idle_f8",
+   "idle_f9"
+  ],
+  "top": 90
+ },
+ "devil_horns": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle",
+   "idle_f1",
+   "idle_f2",
+   "idle_f3",
+   "idle_f4",
+   "idle_f5",
+   "idle_f6",
+   "idle_f7",
+   "idle_f8"
+  ],
+  "top": 90
+ },
+ "azure_horns": {
+  "cat": "hat",
+  "sk": false,
+  "poses": [
+   "idle",
+   "idle_f1",
+   "idle_f10",
+   "idle_f2",
+   "idle_f3",
+   "idle_f4",
+   "idle_f5",
+   "idle_f6",
+   "idle_f7",
+   "idle_f8",
+   "idle_f9"
+  ],
+  "top": 90
  }
 }

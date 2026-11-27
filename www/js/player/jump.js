@@ -221,7 +221,14 @@ let jumpTop = 0;
 const DANCE_MS = 1100, // two bounces
   DANCE_BEATS = 4, // bounces facing one way before turning (DANCE_MS / 2 each)
   DANCE_BREATH = 0.05, // (owner: "it looks dead, make him breathe while dancing") how much taller he gets each breath
-  DANCE_BOB = 0; // how high each bounce (tiles); 0 = no bounce (owner: "remove the jumping")
+  DANCE_BOB = 0, // how high each bounce (tiles); 0 = no bounce (owner: "remove the jumping")
+  // (owner, Nov 28 2026, dance.aseprite: "yung kamay ganun parin, ang maiiba lang tumataas baba na siya, sundan mo lang
+  // yung mismong frames niya; left at right parin") his 5 frames of 100 ms: the body from the hips up goes down 0, 1,
+  // 2, 1, 0 of his pixels while the feet stay on the ground (the top rows of the legs are covered: the hips widen,
+  // as in his file). The hips line: sprite row 29 (his legs are the bottom 6 rows of 35).
+  DANCE_SQUAT = [0, 1, 2, 1, 0],
+  DANCE_SQUAT_MS = 100,
+  DANCE_HIP_ROW = 29;
 function danceShift(st) {
   const t = now - (st.danceT || 0),
     beat = DANCE_MS / 2,
@@ -259,8 +266,40 @@ drawCharacter = ((prev) =>
       g.translate(fx, fy);
       g.scale(1 - DANCE_BREATH * 0.5 * d.br, 1 + DANCE_BREATH * d.br);
       g.translate(-fx, -fy);
+      const sq = DANCE_SQUAT[Math.floor((now - (st.danceT || 0)) / DANCE_SQUAT_MS) % DANCE_SQUAT.length];
       try {
-        res = prev(c, ox, oy + d.y * Z);
+        if (!sq) res = prev(c, ox, oy + d.y * Z);
+        else {
+          // two passes: the legs where they are (below the hips line), then the rest drawn lower by sq of his pixels
+          // (cut at the hips line moved down with it). Screen numbers before the breathing scale (the clip goes
+          // through the same scale: fine, it is about the feet).
+          const px = (6 * CHAR_H * Z) / FR.h,
+            top = Math.round(oy + d.y * Z + (c.y + c.h - CHAR_H + FOOT_SINK) * Z),
+            hip = top + (4 + 6 * DANCE_HIP_ROW) * (CHAR_H * Z / FR.h),
+            down = Math.round(sq * px);
+          // (the legs pass draws no name tag / chat bubble: those go on with the second pass only)
+          const oT = drawNameTag,
+            oB = drawBubble;
+          drawNameTag = () => 0;
+          drawBubble = () => {};
+          g.save();
+          g.beginPath();
+          g.rect(-1e5, hip, 2e5, 1e5);
+          g.clip();
+          try {
+            prev(c, ox, oy + d.y * Z);
+          } finally {
+            g.restore();
+            drawNameTag = oT;
+            drawBubble = oB;
+          }
+          g.save();
+          g.beginPath();
+          g.rect(-1e5, -1e5, 2e5, 1e5 + hip + down);
+          g.clip();
+          res = prev(c, ox, oy + d.y * Z + down);
+          g.restore();
+        }
       } finally {
         g.restore();
         c._dance = false;

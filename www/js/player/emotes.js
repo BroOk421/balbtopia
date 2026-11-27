@@ -19,8 +19,9 @@
 // to 9 o'clock and back (blockyTarget wrapper at the end); same net code 1
 // (owner, Nov 21 2026) /cry: his crying face (expressions/cry.aseprite, 11 frames of 100 ms: the eyes go sad, tears
 // roll down), played once and then the tears again (frames CRY_LOOP..) until it ends; net code 5
-const EMO_MS = { nice: 2600, love: 4200, omg: 3000, sleep: Infinity, cry: 4000 },
-  EMO_CODE = { nice: 1, love: 2, omg: 3, sleep: 4, cry: 5 },
+// (owner, Nov 28 2026) /angry: his angry face (expressions/angry.aseprite -> expr_angry.png, expr_angry_cut.py); net code 6
+const EMO_MS = { nice: 2600, love: 4200, omg: 3000, sleep: Infinity, cry: 4000, angry: 3000 },
+  EMO_CODE = { nice: 1, love: 2, omg: 3, sleep: 4, cry: 5, angry: 6 },
   // (owner, Nov 21 2026: "even while walking, /cry or any command, like /troll, the face and the hands keep going")
   // only /sleep stops when you move (it lasts until you wake up); the others go on while you walk, jump, punch
   EMO_STILL = { sleep: 1 }, // these stop when you move
@@ -456,8 +457,8 @@ function drawEmoFace(c, top, sc, dy) {
     }
     return;
   }
-  if (k === 'omg' || k === 'cry') {
-    const n = k === 'omg' ? 'expr_omg' : 'expr_cry_' + String(cryFrame(el)).padStart(2, '0'),
+  if (k === 'omg' || k === 'cry' || k === 'angry') {
+    const n = k === 'omg' ? 'expr_omg' : k === 'angry' ? 'expr_angry' : 'expr_cry_' + String(cryFrame(el)).padStart(2, '0'),
       im = typeof blockyImg === 'function' ? blockyImg(c.skin, n) || blockyImg('porcelain', n) : null;
     if (im) g.drawImage(im, (-FR.w * sc * Z) / 2, top + dy * sc * Z, FR.w * sc * Z, FR.h * sc * Z);
     return;

@@ -98,7 +98,9 @@ drawWorn = ((prev) =>
     const eq = (c && c.equipped) || {},
       hat = WEAR_BY_ID[eq.hat],
       hairOn = eq.hair && !(hat && hat.hideHair) && !(WEAR_BY_ID[eq.shirt] && WEAR_BY_ID[eq.shirt].hideHair),
-      lift = hat && hairOn ? hairLift(eq.hair, prev) : 0;
+      // (`noLift`, Nov 28 2026, the Frost Horns: "ganun lang din gawin mo sa horn", like the fruit suits) a hat that
+      // stays where it was drawn on the head, the hair still showing: no lift, none of the ponytail fitting
+      lift = hat && hairOn && !hat.noLift ? hairLift(eq.hair, prev) : 0;
     if (hat && HAT_NO_HAIR.has(eq.hair)) {
       const a = Object.create(c);
       a.equipped = { ...eq, hat: null };
@@ -106,7 +108,7 @@ drawWorn = ((prev) =>
     }
     // a ponytail / bun on top (owner): the ponytail is hidden (the hair is cut off above the hat's brim line) and the
     // hat is bigger, moved a little back and leaning back with the curve of the head
-    if (hat && hairOn && HAT_ON_TAIL.has(eq.hair) && HAT_FIT_BALD !== null) {
+    if (hat && hairOn && !hat.noLift && HAT_ON_TAIL.has(eq.hair) && HAT_FIT_BALD !== null) {
       const tip = hairTip(eq.hair, prev),
         a = Object.create(c),
         b = Object.create(c),

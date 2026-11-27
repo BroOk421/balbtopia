@@ -76,7 +76,7 @@ ITEMS = [('sword.aseprite', 'silver_blade', 'front'), ('sword-effect.aseprite', 
 # rows of his canvas that belong to the item (the rest is something else: the bow file's arrow, rows 0-9)
 ROWS = {'hunter_bow': (10, None)}
 # extra pictures cut out of a file: (file, layer, rows, out name) - the Hunter's Bow's arrow (items/bow.js shoots it)
-EXTRA = [('bow.aseprite', 'boomerang', (0, 10), 'bow_arrow')]
+EXTRA = [('bow.aseprite', 'bow', (0, 10), 'bow_arrow')]  # (Nov 28 2026: his new file names the layer 'bow' and has the string, row 23)
 CORE = {'void_cleaver': ('effect-blade',)}  # (Nov 25 2026 l: only the effect-blade glows)
 for f, iid, arm in ITEMS:
     frames, L = read(HERE + f)

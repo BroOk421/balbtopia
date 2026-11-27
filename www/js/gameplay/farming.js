@@ -222,13 +222,51 @@ const TREE_ART = [
   '......TTTT......',
   '.....TT..TT.....',
 ];
+// (owner, Nov 28 2026: tree.ase, "ibahin mo na itsura, etong ginawa mo gawin mo pero yung mga kulay ng bawat trees i apply
+// mo") HIS tree (art-source/trees/tree.aseprite, 32 x 32 at 1 px): his three greys become the seed's own colours
+// (SEED_COLOR [main, dark, light]): A (his outline grey) = dark, B = main, C (his lightest) = light; his trunk
+// browns (D, E, F) stay as he drew them.
+const TREE_ART32 = [
+  '...............AA...............',
+  '..............AAAA..............',
+  '.............AABBAA.............',
+  '............AABBBBAA............',
+  '............ACCCBBBA............',
+  '...........AACCCCCBAA...........',
+  '...........ACCBCCCCCA...........',
+  '..........AABBBBCCCCAA..........',
+  '.........AABBBBBBCCCCAA.........',
+  '........AABBBBBBCCCCCCAA........',
+  '........ABBBBBCCCCCCCCBA........',
+  '.......AACCCCCCCCCCCCBBAA.......',
+  '.......ACCCCCCCCCCCCCCBBA.......',
+  '.......ACCCCCCCCCCBBBBCBA.......',
+  '......AACCCCCCCBBBBBCCBBAA......',
+  '......ACCCBBBBBBBBBBBBBBBA......',
+  '.....AACCCCBBBBBBBBBBBBBBAA.....',
+  '.....ABBCCCCBBBBCCBBBBBBBCA.....',
+  '....AABBBBCCCCCCCCCBBBBBCCAA....',
+  '....ABBBBBCCCCCCCCCCCCCCCCCA....',
+  '...ABBBBBBBCCBBBCCCCCCCCCCCCA...',
+  '...ABBBBBBBBBBBBCCCCCCCCCCCCA...',
+  '....AAAABBBBBBBCCCCCCCCCAAAA....',
+  '.......AAAAAAACCCCAAAAAAA.......',
+  '.............AAAAAA.............',
+  '..............DEFD..............',
+  '..............DDFD..............',
+  '..............DFED..............',
+  '.............DEFEFD.............',
+  '............FFFFDFFD............',
+  '...........FEDEFFDEDD...........',
+  '..........DDDEDFEDDEDD..........',
+];
 const TREES = {};
 function treeSprite(seed) {
   if (TREES[seed]) return TREES[seed];
   const [m, d, l] = SEED_COLOR[seed];
   const c = document.createElement('canvas');
   c.width = c.height = 32;
-  drawPixels(c.getContext('2d'), TREE_ART, { K: '#1a0f0a', M: m, D: d, L: l, T: '#6b4424' }, 2);
+  drawPixels(c.getContext('2d'), TREE_ART32, { A: d, B: m, C: l, D: '#664936', E: '#705340', F: '#7a5842' }, 1); // (his tree; TREE_ART is the old one)
   return (TREES[seed] = c);
 }
 function drawTrees(ox, oy, T) {
@@ -265,13 +303,9 @@ function drawTrees(ox, oy, T) {
           fs,
         );
       }
-    } else {
-      // growth bar while young
-      g.fillStyle = 'rgba(20,10,30,.6)';
-      g.fillRect(px + T * 0.15, py + T * 0.04, T * 0.7, Z * 2);
-      g.fillStyle = '#9be36b';
-      g.fillRect(px + T * 0.15, py + T * 0.04, T * 0.7 * p, Z * 2);
     }
+    // (owner, Nov 28 2026: "wag mo na ilagay yung progress bar na duration, ok na yung pop up lang") no growth bar on
+    // the tile any more: how long is left shows in the bubble when you stand on the tree (drawTreeBubble)
   }
 }
 

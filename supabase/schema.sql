@@ -5940,3 +5940,12 @@ grant execute on function public.gm_event_result(bigint, text, integer, integer)
 -- (Nov 26 2026 m) the new wearables' bag classes (hourly caps). Safe to re-run.
 insert into public.item_info (item, cls) values ('banana_suit', 'rare'), ('orange_suit', 'rare'), ('jester_hat', 'rare'), ('spartan_helmet', 'epic'), ('golden_spartan_helmet', 'epic'), ('smiling_mask', 'rare'), ('warrior_helmet', 'rare'), ('warrior_abs', 'rare'), ('warrior_loincloth', 'uncommon'), ('warrior_sandals', 'uncommon')
 on conflict (item) do update set cls = excluded.cls;
+
+-- (Nov 27 2026 a) not sold (no shop_prices rows): Frost Horns (hair) and the Wheelchair, Witch's Broom, Red Parachute
+-- rides; their bag classes (hourly caps). Safe to re-run.
+insert into public.item_info (item, cls) values ('frost_horns', 'epic'), ('ride_wheelchair', 'rare'), ('ride_nimbus', 'legendary'), ('ride_parachute', 'epic')
+on conflict (item) do update set cls = excluded.cls;
+
+-- (Nov 28 2026 c) Devil Horns, Azure Devil Horns: hats, not sold (no shop_prices rows); bag classes. Safe to re-run.
+insert into public.item_info (item, cls) values ('devil_horns', 'epic'), ('azure_horns', 'epic')
+on conflict (item) do update set cls = excluded.cls;

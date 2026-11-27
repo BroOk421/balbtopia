@@ -844,11 +844,42 @@ function setAqua(i, list) {
   if (l.length) aquas.set(i, l);
   else aquas.delete(i);
 }
-// the whole tank tile i belongs to (touching aquarium tiles), at most 400 tiles
+// the whole tank tile i belongs to (touching aquarium tiles)
+// (owner, Nov 28 2026, video: walking moved the fish; others saw them elsewhere) it was cut at 400 tiles counted from
+// the tile asked about, and the drawing asks from the first tank tile ON SCREEN: a big tank was a different "tank"
+// (other tiles, other order) whenever the camera moved, so every fish's path (picked from the group's tiles) jumped,
+// and each player had his own. Now the WHOLE tank, its tiles in index order, the same from any tile, for everyone:
+// worked out once and kept (`AQ_COMP`, tile -> its tank) until the tank tiles change (`aquaComps`: a quick signature of
+// every tank tile, checked once a frame).
+const AQ_COMP = new Map();
+let AQ_SIG = null,
+  AQ_SIG_AT = -1;
+function aquaComps() {
+  if (AQ_SIG_AT !== now) {
+    AQ_SIG_AT = now;
+    let n = 0,
+      h = 0;
+    for (let i = 0; i < bg.length; i++)
+      if (isAquaAt(i)) {
+        n++;
+        h = (Math.imul(h, 31) + i) | 0;
+      }
+    const sig = WW + ':' + n + ':' + h;
+    if (sig !== AQ_SIG) {
+      AQ_SIG = sig;
+      AQ_COMP.clear();
+    }
+  }
+  return AQ_COMP;
+}
 function aquaGroup(i) {
+  if (!isAquaAt(i)) return [i];
+  const comps = aquaComps(),
+    had = comps.get(i);
+  if (had) return had;
   const out = [i],
     seen = new Set(out);
-  for (let k = 0; k < out.length && out.length < 400; k++) {
+  for (let k = 0; k < out.length; k++) {
     const x = out[k] % WW,
       y = (out[k] / WW) | 0;
     for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
@@ -860,6 +891,8 @@ function aquaGroup(i) {
       }
     }
   }
+  out.sort((a, b) => a - b);
+  for (const j of out) comps.set(j, out);
   return out;
 }
 const aquaFish = (group) => group.flatMap((i) => (aquas.get(i) || []).map((id, k) => ({ i, k, id })));
@@ -973,7 +1006,8 @@ function openAquarium(i, keepScroll) {
   }
   if (keepScroll) box.scrollTop = keepScroll;
 }
-// clicks: wrench = the tank's window; a fish in hand = put it in; a tank with fish can't be broken
+// clicks: wrench the LID = the tank's window (not the tank, Nov 28 2026); a fish in hand = put it in through the lid;
+// a tank with fish can't be broken
 act = ((prev) =>
   function () {
     if (P.dead || doorTrip || fishing) return prev();
@@ -994,11 +1028,9 @@ act = ((prev) =>
       return aquaPut(tank, hand, i);
     }
     if (!isAquaAt(i) || fg[i]) return prev(); // a block on the tank: that block, as usual
-    if (hand === 'wrench') {
-      if (Net.playerAt(ptr.x, ptr.y)) return prev();
-      if (!inWrenchReach(t.x, t.y)) return prev();
-      return openAquarium(i);
-    }
+    // (owner, Nov 28 2026: "yung wrench dapat walang ganun na nalabas, dun lang sa fish tank lid") wrenching the tank
+    // itself opens nothing: its window is on the lid only
+    if (hand === 'wrench') return prev();
     if (!inReach(t.x, t.y)) return prev();
     if (FISH_BY[hand]) {
       if (pressUsed === pressN) return;
@@ -1008,7 +1040,7 @@ act = ((prev) =>
     if (aquaFish(aquaGroup(i)).some((f) => f.i === i)) {
       if (now - farWrenchT > 1500) {
         farWrenchT = now;
-        toast('Take the fish out first (wrench the Fish Tank)');
+        toast('Take the fish out first (wrench the Fish Tank Lid)');
       }
       return startPunch(ptr.x, ptr.y);
     }
@@ -1016,7 +1048,7 @@ act = ((prev) =>
   })(act);
 wrenchBlock = ((prev) =>
   function (x, y) {
-    return prev(x, y) || (inW(x, y) && ((isAquaAt(at(x, y)) && !fg[at(x, y)]) || isLidT(fg[at(x, y)])));
+    return prev(x, y) || (inW(x, y) && isLidT(fg[at(x, y)])); // (the lid only since Nov 28 2026, not the tank)
   })(wrenchBlock);
 const _onShowA = Net.onShow;
 Net.onShow = (p) => {
@@ -1129,7 +1161,13 @@ function drawAquariums(ox, oy, T) {
       // the fish, clipped to the tank's tiles
       g.save();
       g.beginPath();
-      for (const i of group) g.rect(ox + (i % WW) * T, oy + ((i / WW) | 0) * T, T, T);
+      // (a big tank can be thousands of tiles: only the ones on screen go into the clip and get their glass)
+      const vis = (i) => {
+        const tx = i % WW,
+          ty = (i / WW) | 0;
+        return tx >= vx0 && tx <= vx1 && ty >= vy0 && ty <= vy1;
+      };
+      for (const i of group) if (vis(i)) g.rect(ox + (i % WW) * T, oy + ((i / WW) | 0) * T, T, T);
       g.clip();
       g.imageSmoothingEnabled = true; // (the fish pictures are drawn smaller than they are)
       // (owner, Nov 3 2026: animals must not stick out of the tank) the tank's size: a fish is drawn no bigger than fits
@@ -1206,6 +1244,7 @@ function drawAquariums(ox, oy, T) {
       g.restore();
       // the glass over the fish
       for (const i of group) {
+        if (!vis(i)) continue;
         const tx = i % WW,
           ty = (i / WW) | 0,
           open = (nx, ny) => !inW(nx, ny) || !set.has(at(nx, ny)),
