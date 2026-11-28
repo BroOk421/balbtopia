@@ -712,9 +712,12 @@ setInterval(() => {
 // only after the event do their weather machines come back" / "the event is on but the worlds still don't have the moon
 // event's background: that's what I meant, gone only after the event": while the event is open EVERY world shows the
 // Moon's space backdrop, over any weather machine; once it closes each world shows its own machine / backdrop again.
+// (owner, Nov 28 2026: "kahit ongoing yung moon event yung sa mga world hindi na dapat mag iba yung background ... sa
+// mismong moon na lang") now ONLY the Moons themselves (worldBg 'moon', moon.js) are forced to it during the event;
+// every other world keeps its own backdrop / weather machine while the event is on.
 currentWeather = ((prev) =>
   function () {
-    if (!inWorld || !mevOpenNow()) return prev();
+    if (!inWorld || !mevOpenNow() || worldBg !== 'moon') return prev();
     const f = flashT;
     prev();
     // the machine's weather is kept out: no rain / snow / sand over the space and no rain sound (render.js uses

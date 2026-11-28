@@ -6301,3 +6301,45 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
   needs ONE new APK install; the live site alone can't get the mic on an old APK.
 - Tested in headless Chromium with a fake mic: 9 chunks in 2 s (3200 samples, 2136 b64 chars each), played back as
   another player, button on / off, emote panel under the mic button.
+
+## 2026-11-28 o: others see your fishing; Dice / Roulette / Lucky Color / Torch usable without access; Moon backdrop only on the Moons
+- Fishing (owner: others didn't see the cast and the catch): fish.js `fishNetSend` sends every change of `fishing.st`
+  as world event `fsh` { s: out|wait|bite|back|catch|off, x, y, b, w, c, sw (1 cast swing, 2 reel swing) }
+  (net.js Net.sendFish, othersHere only); fishSwing no longer sends a punch (it puffed / cracked the tile under the
+  water on others' screens). `Net.onFish` sets `r.fish`; `drawRemoteFishing` steps it (out -> wait / back, back /
+  catch end) and draws it with the same `drawLineOf` as yours (bait, rings, "!", the fish flying to them). Their rod:
+  bare while out, the tip noted per player (`rTips`, fish.js drawImage hook + rodknife.js blockyTool), the hold pose,
+  swing (`punch.dur` / `rev`: net.js N.tick now ends a remote punch at `dur || PUNCH_TIME`) and bend on a bite
+  (rodknife.js). Position message `fs` [x, y, bait, bite] while the line is in the water (late joiners; a missing
+  `off` clears after 1.5 s). `fishPos` is a function again (rodknife.js wraps it). Break effects of others were
+  already shown (remotefx.js).
+- NEW blocks/publicuse.js (after gameblocks.js): `PUBLIC_USE_IDS` dice_block, roulette_block, colour_roll_block,
+  torch. actions.js act calls `publicUse(i)` right before canEdit: a player WITHOUT access gets the job (toggleAnim:
+  roll / spin / torch on-off), never a crack or break, no "locked" toast. Sent as world event `use` { i, f, v }
+  (Net.sendUse; the build channel refuses visitors); receivers apply it only to those blocks (water bit kept),
+  Net.tookTile keeps it out of diffTiles, a receiver with access saves the world (visitor saves never change tiles).
+- Moon event (owner: "sa mismong moon na lang yun na background"): moonevent.js currentWeather wrapper only forces the
+  space backdrop where worldBg === 'moon' (the Moons); every other world keeps its own backdrop / weather machine.
+- Tested offline: a fake remote's cast / bite / catch drawn, own cast sends out + wait; in a locked world 4 dice
+  clicks = 1 roll, 0 damage, torch on / off, dirt not hit, a `use` for dirt ignored.
+
+## 2026-11-28 p: Starter Week, /facejoke removed, mute voice / block players
+- /facejoke removed (owner): social.js chatCommand only /troll now (help list too), emotebtn.js panel without
+  "Silly". render.js keeps drawing `jk: 1` from old builds (harmless).
+- STARTER WEEK (NEW www/js/ui/starterweek.js, after voice.js; name and look by Claude): 7 gifts, ONE per Manila day
+  you come in, a missed day loses nothing: Pickaxe, Worm x10, Gold Lock, Fishing Rod, 5,000 gold, 5,000 gold,
+  1 Balb Coin (`STARTER_GIFTS`). Pop-up `#stwPop` (gold-framed card, red ribbon, progress bar, 4 + 3 grid with day 7
+  a wide purple GRAND GIFT; one row of 7 on a landscape phone) opens by itself when a gift is ready (login, every world
+  entered, when no other window shows) until claimed; gift button `#stwBtn` in #hudLeft (red dot when ready). After
+  the 7th both are gone. Claim -> card stamp -> the gift flies to you (flyers). Online: schema.sql STARTER WEEK
+  (`starter_week` table, `starter_status()`, `claim_starter(p_n)`: items via bag_add like Shop buys, then Bag.pull;
+  gold / bc into the wallet), only accounts made on / after `starter_since()` 2026-11-28 +08 (and GMs).
+  **RUN supabase/admin/2026-11-28_starter_week.sql (or re-run schema.sql).** Offline: localStorage per name.
+  Tested on local Postgres 16 (whole schema.sql loads): 7 claims, same day refused, skipped days fine, wrong day
+  refused, 8th refused, old account refused; bag pickaxe 1 / worm 10 / world_lock 1 / fishing_rod 1, gold 10,000, bc 1.
+- MUTE / BLOCK (NEW www/js/ui/blockmute.js, after starterweek.js): player menu buttons Mute voice / Block (red, asks
+  first); chat panel name pop-up (gPlayer) gets Mute voice and a permanent Block / Unblock (was 10 min). Muted: voice
+  not played (voice.js voiceIn -> `vcHush`), chat head still shows. Blocked: no world chat / bubble (Net.onChat), no
+  shout / friend / private lines (globalchat.js gMuted also checks `isBlockedName`), no DMs (gotDM), no voice and no
+  chat head. Saved in the player save: settings.blocked / settings.vmute [{ id, n }]; Menu -> Settings lists both
+  with UNBLOCK / UNMUTE.

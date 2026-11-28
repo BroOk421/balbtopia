@@ -110,6 +110,7 @@ function tugNow() {
   return { up: TUG_KEYS[0][1], bend: TUG_KEYS[0][2], yank: false };
 }
 function rodBend(c) {
+  if (c && c.id && c.fish && c.fish.st === 'bite') return 2.6 + 1.4 * Math.sin(now / 85); // (Nov 28 2026) another player's bite
   if (typeof fishing === 'undefined' || !fishing || fishing.st !== 'bite' || !isMeDrawn(c)) return 0;
   const mg = fishing.mg;
   if (!mg) return 2.6 + 1.4 * Math.sin(now / 85);
@@ -142,7 +143,12 @@ blockyTool = ((prev) =>
       }
     } else g.drawImage(im, 0, 0);
     // your own rod: where its tip is on the screen, for fish.js's line (rodTip)
-    if (h.tip && typeof rodTipScr !== 'undefined' && isMeDrawn(c)) {
+    if (h.tip && typeof rodTipScr !== 'undefined' && c && c.id && c.fish && typeof rTips !== 'undefined') {
+      // (Nov 28 2026) another player fishing: their tip, for their line (fish.js rRodTip)
+      const pt = g.getTransform().transformPoint(new DOMPoint(h.tip[0], h.tip[1] + B));
+      if (g.canvas === cv) rTips.set(c.id, { p: { x: pt.x, y: pt.y }, t: now });
+      else rodTipOff = { cv: g.canvas, x: pt.x, y: pt.y, who: c.id };
+    } else if (h.tip && typeof rodTipScr !== 'undefined' && isMeDrawn(c)) {
       const pt = g.getTransform().transformPoint(new DOMPoint(h.tip[0], h.tip[1] + B));
       if (g.canvas === cv) {
         rodTipScr = { x: pt.x, y: pt.y };
@@ -164,6 +170,11 @@ function rodSwingAngle(pu) {
 }
 blockyTarget = ((prev) =>
   function (c, s, top, sc, dy) {
+    // (Nov 28 2026) another player fishing: the same swing and hold as yours (their state from fish.js Net.onFish)
+    if (c && c.id && c.fish && isRod(c.hand)) {
+      if (c.punch && c.punch.dur) return { back: 0, front: rodSwingAngle(c.punch), direct: true };
+      if (c.fish.st !== 'back' && c.fish.st !== 'catch' && !c.punch && !c.place) return { back: c.walking ? prev(c, s, top, sc, dy).back : 0, front: ROD_HOLD };
+    }
     const rod = c && isRod(c.hand) && isMeDrawn(c);
     if (rod && c.punch && c.punch.dur) return { back: 0, front: rodSwingAngle(c.punch), direct: true };
     // tug of war (owner, Nov 24 2026): the fish winning drags the arm down towards the water, jerking; you winning

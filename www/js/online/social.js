@@ -976,7 +976,7 @@ let chatBusy = false;
 async function sendChat(raw) {
   const text = String(raw || '').trim().slice(0, CHAT_MAX);
   if (!text || chatBusy) return false;
-  if (text[0] === '/') return chatCommand(text); // /pull, /kick, /ban, /facejoke, /troll: never sent as chat
+  if (text[0] === '/') return chatCommand(text); // /pull, /kick, /ban, /troll: never sent as chat
   // (owner, Nov 13 2026) nobody chats in the LOBBY, only /commands (globalchat.js gSend says so first; server send_chat)
   if (typeof inWorld !== 'undefined' && inWorld && worldName === LOBBY_WORLD) return toast('No chatting in the LOBBY: only /commands (/help)'), false;
   if (chatWait()) return toast('Too fast! Wait ' + chatWait() + 's before chatting again'), false;
@@ -1025,7 +1025,7 @@ function chatCommand(text) {
   const [cmd0, ...rest] = text.slice(1).trim().split(/\s+/),
     cmd = lc(cmd0 || ''),
     arg = rest.join(' ');
-  // /facejoke and /troll: a face for a few seconds (render.js jokeFace); anyone, anywhere, not in the chat list
+  // /troll: a face for a few seconds (/facejoke removed: owner, Nov 28 2026) (render.js jokeFace); anyone, anywhere, not in the chat list
   // /dance: dance on the spot (jump.js) until you move
   if (cmd === 'dance') {
     P.dance = !P.dance;
@@ -1034,8 +1034,8 @@ function chatCommand(text) {
   }
   // /thumbsup, /love, /omg, /sleep (emotes.js); others see them too
   if (typeof emoteCommand === 'function' && emoteCommand(cmd)) return true;
-  if (cmd === 'facejoke' || cmd === 'troll') {
-    P.jokeKind = cmd === 'troll' ? 'troll' : 'wacky';
+  if (cmd === 'troll') {
+    P.jokeKind = 'troll';
     P.jokeUntil = now + JOKE_MS;
     return true;
   }
@@ -1048,7 +1048,7 @@ function chatCommand(text) {
   if (!CHAT_CMDS[cmd]) {
     toast(
       (cmd && cmd !== 'help' ? 'Unknown command /' + cmd + '. ' : '') +
-        'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /facejoke, /troll, /dance, /nice, /love, /omg, /cry, /angry, /sleep' +
+        'Commands: ' + Object.keys(CHAT_CMDS).map((c) => '/' + c + ' NAME').join(', ') + ', /troll, /dance, /nice, /love, /omg, /cry, /angry, /sleep' +
         (isGM() ? '. GM: /gban NAME reason, /gunban NAME, /cheats, /maint on [minutes] [message], /maint off' : ''),
     );
     return false;

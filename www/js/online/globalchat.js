@@ -65,7 +65,7 @@ let gmute = {};
 try {
   gmute = JSON.parse(localStorage.getItem(GMUTE_KEY) || '{}') || {};
 } catch (e) {}
-const gMuted = (name) => (gmute[lc(name)] || 0) > Date.now();
+const gMuted = (name) => (gmute[lc(name)] || 0) > Date.now() || (typeof isBlockedName === 'function' && isBlockedName(name)); // (+ blocked for good: ui/blockmute.js)
 function gMute(name) {
   gmute[lc(name)] = Date.now() + GMUTE_MS;
   for (const k in gmute) if (gmute[k] < Date.now()) delete gmute[k];

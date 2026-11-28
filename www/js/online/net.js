@@ -551,6 +551,10 @@ const Net = (() => {
     c.on('broadcast', { event: 'bubgive' }, ({ payload }) => N.onBub && N.onBub(payload));
     // (Nov 28 2026) voice chat: a chunk of someone's voice (ui/voice.js plays it)
     c.on('broadcast', { event: 'vc' }, ({ payload }) => payload && N.onVoice && N.onVoice(payload));
+    // (Nov 28 2026) a Dice / Roulette / Lucky Color Block / Torch used by anyone, access or not (blocks/publicuse.js)
+    c.on('broadcast', { event: 'use' }, ({ payload }) => payload && N.onUse && N.onUse(payload));
+    // (Nov 28 2026) another player's fishing: cast, bite, catch, reel in (gameplay/fish.js draws their line)
+    c.on('broadcast', { event: 'fsh' }, ({ payload }) => payload && N.onFish && N.onFish(N.remotes.get(payload.id), payload));
     c.on('broadcast', { event: 'p' }, ({ payload }) => onPos(payload))
       .on('broadcast', { event: 'punch' }, ({ payload }) => {
         const r = N.remotes.get(payload.id);
@@ -820,6 +824,7 @@ const Net = (() => {
       emo,
       jet: !!p.jt, // (Nov 28 2026) Rocket Jetpack firing (pxpowers.js)
       vc: !!p.vc, // (Nov 28 2026) voice chat mic on (ui/voice.js draws the chat head)
+      fs: Array.isArray(p.fs) ? p.fs : null, // (Nov 28 2026) their line in the water (fish.js, for players who came in late)
       seen: now,
     });
     if (!r.walking) r.walkPh = 0;
@@ -882,6 +887,7 @@ const Net = (() => {
       em: typeof emoToNet === 'function' ? emoToNet() : undefined, // emote (/thumbsup, /love, /omg, /sleep: emotes.js)
       jt: P.jetOn ? 1 : undefined, // the Rocket Jetpack is firing (wear/pxpowers.js)
       vc: typeof voiceOn === 'function' && voiceOn() ? 1 : undefined, // (Nov 28 2026) voice chat mic on: chat head (ui/voice.js)
+      fs: typeof fishNet === 'function' ? fishNet() : undefined, // (Nov 28 2026) our line in the water [x, y, bait, bite] (fish.js)
     };
     if (!force && !othersHere() && now - beatT < SOLO_BEAT * 1000) return; // alone: heartbeat only
     const j = JSON.stringify(p);
@@ -942,6 +948,22 @@ const Net = (() => {
     if (N.me && othersHere()) send('vc', p);
   };
   N.sendPosNow = () => inWorld && sendPos(true);
+  // (Nov 28 2026) blocks/publicuse.js: on the WORLD channel (a player without access can't send on the build one)
+  N.sendUse = (i, f, v) => {
+    if (N.me && othersHere()) send('use', { i, f, v });
+  };
+  // a tile changed by a message, not by us: into the snapshot so diffTiles doesn't send it as ours
+  N.tookTile = (i) => {
+    if (snapFg && i >= 0 && i < fg.length) {
+      snapFg[i] = fg[i];
+      snapBg[i] = bg[i];
+      snapVari[i] = vari[i];
+    }
+  };
+  // (Nov 28 2026) our fishing line for others (gameplay/fish.js fishNetSend)
+  N.sendFish = (m) => {
+    if (N.me && othersHere()) send('fsh', { ...m, id: N.me.id });
+  };
   N.sendDie = () => {
     if (N.me && othersHere()) send('die', { id: N.me.id });
   };
@@ -1339,7 +1361,7 @@ const Net = (() => {
       r.x += (r.tx - r.x) * k;
       r.y += (r.ty - r.y) * k;
       if (r.walking) r.walkPh += dt * (typeof walkRate === 'function' ? walkRate(r.vx || 160) : 10); // strides for everyone, as fast as they walk
-      if (r.punch && (r.punch.t += dt) >= PUNCH_TIME) {
+      if (r.punch && (r.punch.t += dt) >= (r.punch.dur || PUNCH_TIME)) { // (a fishing swing is longer: fish.js)
         // (build p) a gun keeps pointing at the last spot a while between shots (asteroids.js GUN_AIM_HOLD)
         if (typeof GUN_IDS !== 'undefined' && GUN_IDS.has(r.hand) && (r.punch.hold = (r.punch.hold || 0) + dt) < GUN_AIM_HOLD) r.punch.t = 0.45 * PUNCH_TIME;
         else r.punch = null;

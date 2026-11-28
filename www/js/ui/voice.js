@@ -246,6 +246,7 @@ function voiceIn(m) {
   if (!m || typeof m.id !== 'string' || typeof m.d !== 'string' || m.d.length > 40000) return;
   if (typeof Net !== 'undefined' && Net.me && m.id === Net.me.id) return;
   const r = typeof Net !== 'undefined' && Net.remotes ? Net.remotes.get(m.id) : null;
+  if (typeof vcHush === 'function' && vcHush(m.id)) return void (r && !(typeof isBlocked === 'function' && isBlocked(m.id, r.name)) && (r.vcAt = now)); // muted: no sound (blocked: no chat head either), ui/blockmute.js
   if (r) r.vcAt = now;
   if (typeof inWorld !== 'undefined' && !inWorld) return;
   const n = Math.min(+m.n | 0, VOICE.rate); // at most a second

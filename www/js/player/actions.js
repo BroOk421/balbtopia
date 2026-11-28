@@ -314,6 +314,8 @@ function act() {
       shake = Math.max(shake, 2.5);
       return;
     }
+    // (owner, Nov 28 2026) Dice / Roulette / Lucky Color Block / Torch: without access you may still use them, never break them
+    if (fg[i] && typeof publicUse === 'function' && publicUse(i)) return;
     if ((fg[i] || bg[i]) && !canEdit(false, i)) return;
     // a Vending Machine with items or Gold Locks inside can't be broken
     if (isVendT(fg[i]) && vendBusy(i)) {

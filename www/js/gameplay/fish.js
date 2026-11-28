@@ -85,14 +85,18 @@ toolSprite = ((prev) =>
     const im = prev(id);
     return fishMeDraw && isRod(id) && im ? rodBare(id, im) : im;
   })(toolSprite);
+let fishTipWho = null; // (Nov 28 2026) drawing ANOTHER player whose line is out: their id (their rod tip is noted for them)
 drawCharacter = ((prev) =>
   function (c, ox, oy) {
-    if (!fishing || !isMeDrawn(c)) return prev(c, ox, oy);
+    const other = c && c.id && c.fish;
+    if (!other && (!fishing || !isMeDrawn(c))) return prev(c, ox, oy);
     fishMeDraw = true;
+    fishTipWho = other ? c.id : null;
     try {
       return prev(c, ox, oy);
     } finally {
       fishMeDraw = false;
+      fishTipWho = null;
     }
   })(drawCharacter);
 
@@ -444,7 +448,8 @@ let rodTipScr = null,
   fishO = { x: 0, y: 0 };
 // (the character is often drawn on shadow.js's own canvas first and then copied onto the screen: the tip found
 // there is carried over when that canvas is copied)
-let rodTipOff = null; // { cv, x, y }: the tip on an off-screen canvas, waiting for it to be copied to the screen
+let rodTipOff = null; // { cv, x, y, who }: the tip on an off-screen canvas, waiting for it to be copied to the screen
+const rTips = new Map(); // (Nov 28 2026) other players' rod tips on screen: id -> { p, t }
 {
   const di = CanvasRenderingContext2D.prototype.drawImage;
   const onScreen = (ctx, x, y) => {
@@ -456,13 +461,20 @@ let rodTipOff = null; // { cv, x, y }: the tip on an off-screen canvas, waiting 
       const [dx, dy, dw = im.width, dh = im.height] = a,
         p = onScreen(this, dx + (29.5 / 32) * dw, dy + (4.5 / 32) * dh);
       if (this.canvas === cv) {
-        rodTipScr = p;
-        rodTipT = now;
-      } else rodTipOff = { cv: this.canvas, x: p.x, y: p.y };
+        if (fishTipWho) rTips.set(fishTipWho, { p, t: now });
+        else {
+          rodTipScr = p;
+          rodTipT = now;
+        }
+      } else rodTipOff = { cv: this.canvas, x: p.x, y: p.y, who: fishTipWho };
     } else if (rodTipOff && im === rodTipOff.cv && this.canvas === cv && a.length === 8) {
       const [sx, sy, sw, sh, dx, dy, dw, dh] = a;
-      rodTipScr = onScreen(this, dx + ((rodTipOff.x - sx) * dw) / sw, dy + ((rodTipOff.y - sy) * dh) / sh);
-      rodTipT = now;
+      const q = onScreen(this, dx + ((rodTipOff.x - sx) * dw) / sw, dy + ((rodTipOff.y - sy) * dh) / sh);
+      if (rodTipOff.who) rTips.set(rodTipOff.who, { p: q, t: now });
+      else {
+        rodTipScr = q;
+        rodTipT = now;
+      }
       rodTipOff = null;
     }
     return di.call(this, im, ...a);
@@ -490,7 +502,8 @@ function fishSwing(wx, wy, rev) {
   const cx = P.x + P.w / 2;
   if (Math.abs(wx - cx) > 2) P.face = wx > cx ? 1 : -1;
   P.punch = { t: 0, x: wx, y: wy, dur: SWING_MS, rev: !!rev };
-  Net.sendPunch(wx, wy);
+  fishSwingNext = rev ? 2 : 1; // (Nov 28 2026) goes out with the fishing message (fishNetSend), not as a punch: a punch
+  // made others' screens puff / crack the tile under the water
 }
 // the tile is the top of a body of water: water here, none above it
 function waterSurface(x, y) {
@@ -534,9 +547,10 @@ function reel() {
 }
 // where the float is now
 function fishPos() {
-  const F = fishing,
-    tip = rodTip(),
-    u = Math.max(0, Math.min(1, (now - F.t0) / (F.st === 'out' ? CAST_MS : F.st === 'back' ? BACK_MS : CATCH_MS)));
+  return fishPosOf(fishing, rodTip()); // (rodknife.js wraps this one: the tug of war)
+}
+function fishPosOf(F, tip) {
+  const u = Math.max(0, Math.min(1, (now - F.t0) / (F.st === 'out' ? CAST_MS : F.st === 'back' ? BACK_MS : CATCH_MS)));
   if (F.st === 'out') return { x: tip.x + (F.x - tip.x) * u, y: tip.y + (F.y - tip.y) * u - 4 * u * (1 - u) * 34 };
   if (F.st === 'back' || F.st === 'catch') {
     const fx = F.fromX ?? F.x,
@@ -577,10 +591,12 @@ function stepFishing() {
 function drawFishing(ox, oy) {
   fishO = { x: ox, y: oy };
   stepFishing();
-  const F = fishing;
-  if (!F) return;
-  const tip = rodTip(),
-    p = fishPos(),
+  fishNetSend();
+  drawRemoteFishing(ox, oy);
+  if (fishing) drawLineOf(fishing, rodTip(), ox, oy);
+}
+function drawLineOf(F, tip, ox, oy) {
+  const p = F === fishing ? fishPos() : fishPosOf(F, tip),
     tx = ox + tip.x * Z,
     ty = oy + tip.y * Z,
     bx = ox + p.x * Z,
@@ -595,6 +611,7 @@ function drawFishing(ox, oy) {
   g.stroke();
   if (F.st === 'catch') {
     // the fish on the line, flying to you
+    if (!F.f || !ITEMS[F.f.id]) return void g.restore(); // (another player's catch we don't know)
     const fb = FISH_BY[F.f.id],
       s = (fb ? Math.min(fishLen(F.f.id) * 1.2, 44) : 12) * Z; // (flying to you: at most 44 px long)
     g.imageSmoothingEnabled = !!fb;
@@ -734,6 +751,102 @@ enterWorldNow = ((prev) =>
     fishing = null;
     return prev(name);
   })(enterWorldNow);
+
+// ---------- other players see your fishing (owner, Nov 28 2026: "yung animation ng ibang player hindi nakikita yung pag
+// bato at pag take ng fish") ----------
+// Every change of `fishing.st` goes out as 'fsh' { s: out | wait | bite | back | catch | off, x, y, b (bait), w (cast
+// on water), c (what was caught), sw (the arm's swing: 1 cast down, 2 reel up) } (net.js Net.sendFish, only with
+// others here). Their screens play the same: the slow swing (punch with dur / rev, net.js N.tick honours dur), the
+// bait flying out on its arc, bobbing with rings, the "!" bite, the fish flying along the line to them, or the line
+// coming back. Their rod is drawn bare and the line starts at its tip (rTips). A line already in the water is also in
+// the position message (`fs` [x, y, bait, bite]) for players who come in later.
+let fishSent = '',
+  fishSwingNext = 0;
+function fishNetSend() {
+  const F = fishing,
+    st = F ? F.st : 'off';
+  if (st === fishSent) return;
+  fishSent = st;
+  if (typeof Net === 'undefined' || !Net.sendFish) return void (fishSwingNext = 0);
+  const m = { s: st };
+  if (F) {
+    m.x = Math.round(F.x);
+    m.y = Math.round(F.y);
+    if (F.bait) m.b = F.bait;
+    if (st === 'out' && F.water) m.w = 1;
+    if (st === 'catch' && F.f) m.c = F.f.id;
+  }
+  if (fishSwingNext) m.sw = fishSwingNext;
+  fishSwingNext = 0;
+  Net.sendFish(m);
+}
+function fishNet() {
+  const F = fishing;
+  return F && (F.st === 'wait' || F.st === 'bite') ? [Math.round(F.x), Math.round(F.y), F.bait || 0, F.st === 'bite' ? 1 : 0] : undefined;
+}
+const rFishNear = (r) => Math.hypot(r.x - P.x, r.y - P.y) < TS * 12;
+function rRodTip(r) {
+  const s = rTips.get(r.id);
+  if (s && now - s.t < 60) return { x: (s.p.x - fishO.x) / Z, y: (s.p.y - fishO.y) / Z };
+  return { x: r.x + (r.w || P.w) / 2 + (r.face || 1) * 12, y: r.y + (r.h || P.h) - 5 };
+}
+if (typeof Net !== 'undefined')
+  Net.onFish = (r, m) => {
+    if (!r || !m || !inWorld) return;
+    const x = +m.x,
+      y = +m.y,
+      ok = Number.isFinite(x) && Number.isFinite(y) && Math.hypot(x - r.tx, y - r.ty) < (FISH_RANGE + 3) * TS;
+    if (m.s !== 'off' && !ok) return;
+    if (m.sw === 1 || m.sw === 2) {
+      const cx = r.x + (r.w || P.w) / 2;
+      if (Math.abs(x - cx) > 2) r.face = x > cx ? 1 : -1;
+      r.punch = { t: 0, x, y, dur: SWING_MS, rev: m.sw === 2 };
+      r.place = null;
+    }
+    const cur = r.fish,
+      from = cur && (cur.st === 'wait' || cur.st === 'bite' || cur.st === 'out') ? fishPosOf(cur, rRodTip(r)) : null,
+      bait = typeof m.b === 'string' && BAIT_INFO[m.b] ? m.b : null,
+      base = { x, y, bait, msgAt: now };
+    if (m.s === 'out') {
+      r.fish = { ...base, st: 'out', t0: now + THROW_AT * 1000, water: !!m.w };
+      if (rFishNear(r)) Sfx.play('jump', 0.3);
+    } else if (m.s === 'wait') r.fish = { ...base, st: 'wait', t0: now };
+    else if (m.s === 'bite') {
+      r.fish = { ...base, st: 'bite', t0: now };
+      if (rFishNear(r)) Sfx.play('water', 0.35);
+    } else if (m.s === 'catch' || m.s === 'back') {
+      r.fish = { ...base, st: m.s, t0: now, fromX: from ? from.x : x, fromY: from ? from.y : y, f: m.s === 'catch' && typeof m.c === 'string' ? { id: m.c } : null };
+      if (m.s === 'catch' && rFishNear(r)) Sfx.play('water', 0.5);
+    } else r.fish = null;
+  };
+function drawRemoteFishing(ox, oy) {
+  if (typeof Net === 'undefined' || !Net.remotes) return;
+  for (const r of Net.remotes.values()) {
+    if (!r) continue;
+    // came in late: their line is already in the water (position message)
+    if (!r.fish && Array.isArray(r.fs) && !r.dead) {
+      const [x, y, b, bite] = r.fs;
+      if (Number.isFinite(+x) && Number.isFinite(+y)) r.fish = { st: bite ? 'bite' : 'wait', t0: now, x: +x, y: +y, bait: BAIT_INFO[b] ? b : null, msgAt: now };
+    }
+    const F = r.fish;
+    if (!F) continue;
+    if (r.dead || !isRod(r.hand)) {
+      r.fish = null;
+      continue;
+    }
+    if (F.st === 'out' && now - F.t0 >= CAST_MS) {
+      if (F.water) Object.assign(F, { st: 'wait', t0: now });
+      else Object.assign(F, { st: 'back', t0: now, fromX: F.x, fromY: F.y });
+    } else if ((F.st === 'back' && now - F.t0 >= BACK_MS) || (F.st === 'catch' && now - F.t0 >= CATCH_MS)) { // (a bite lasts as long as their catch bar: it ends with their message, or `fs` gone below)
+      r.fish = null;
+      continue;
+    } else if ((F.st === 'wait' || F.st === 'bite') && !r.fs && now - F.msgAt > 1500) {
+      r.fish = null; // their position says the line is out of the water (an 'off' that went missing)
+      continue;
+    }
+    drawLineOf(F, rRodTip(r), ox, oy);
+  }
+}
 
 // ---------- the swing (owner, Nov 3 2026) ----------
 // A fishing swing is one slow swing (punch.dur). Casting uses the normal tool swing (raised behind, then DOWN onto the

@@ -2,7 +2,7 @@
 // click lilitaw yung mga list ng icon ng emotions, pag click sa isa tyaka gagana ... sa baba ng menu mo ilagay, lagyan
 // mo ng mga icons"): a button right UNDER the menu button (top right, inside `.topr` so it zooms with it); tapping it
 // opens a small panel of the emotes (5 columns, owner), each a pixel icon + its name; tapping one does what its chat command does
-// (social.js chatCommand: /nice, /love, /omg, /cry, /angry, /sleep, /dance, /facejoke, /troll) and closes the panel. The one
+// (social.js chatCommand: /nice, /love, /omg, /cry, /angry, /sleep, /dance, /troll; /facejoke removed Nov 28 2026) and closes the panel. The one
 // going on now is outlined. Tap the button again / anywhere else = close. Icons painted here (`EMO_BTN_ICONS`, 13 x 13
 // pixel maps, the faces on one round yellow face). Loaded after hudbtns.js (same opacity / corners settings).
 // ===== emote button =====
@@ -14,7 +14,6 @@ const EMO_BTN_LIST = [
   ['angry', 'Angry'], // (Nov 28 2026)
   ['sleep', 'Sleep'],
   ['dance', 'Dance'],
-  ['facejoke', 'Silly'],
   ['troll', 'Troll'],
 ];
 // palette: o outline, y face, Y face shade, k dark, w white, r red, R dark red, p pink, b blue, B light blue, s skin,
@@ -225,7 +224,7 @@ for (const [k, name] of EMO_BTN_LIST) {
 // which emote is going on now (outlined in the panel)
 function emoBtnActive(k) {
   if (k === 'dance') return !!P.dance;
-  if (k === 'facejoke' || k === 'troll') return P.jokeUntil > now && P.jokeKind === (k === 'troll' ? 'troll' : 'wacky');
+  if (k === 'troll') return P.jokeUntil > now && P.jokeKind === 'troll';
   return !!(P.emo && P.emo.k === k);
 }
 function emoBtnMark() {
