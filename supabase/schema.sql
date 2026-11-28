@@ -1233,6 +1233,21 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('warrior_abs', 1, 5000, true, 0),
   ('warrior_loincloth', 1, 3000, true, 0),
   ('warrior_sandals', 1, 2500, true, 0),
+  -- (Nov 28 2026) pixelwear.js: owner's eye1 / eye2 / girlhair / hair2 / hawaiian / hawaiian2 / flyingboots / jetpack
+  ('blackout_shades', 1, 2500, true, 0),
+  ('crimson_shades', 1, 2500, true, 0),
+  ('emo_bangs', 1, 5000, true, 0),
+  ('scene_shag', 1, 5000, true, 0),
+  ('teal_aloha_shirt', 1, 3000, true, 0),
+  ('teal_board_shorts', 1, 2000, true, 0),
+  ('teal_beach_sandals', 1, 1500, true, 0),
+  ('teal_beach_specs', 1, 2500, true, 0),
+  ('red_aloha_shirt', 1, 3000, true, 0),
+  ('red_board_shorts', 1, 2000, true, 0),
+  ('red_beach_sandals', 1, 1500, true, 0),
+  ('red_beach_specs', 1, 2500, true, 0),
+  ('sky_boots', 1, 15000, true, 0),
+  ('rocket_jetpack', 1, 20000, true, 0),
   ('white_sando', 1, 200, true, 0), -- (Nov 25 2026) the old default look, now items
   ('navy_shorts', 1, 200, true, 0),
   ('silver_blade', 1, 8000, true, 0), -- pxswords.js (Nov 25 2026)
@@ -1316,7 +1331,7 @@ insert into public.shop_prices (item, qty, gold, tracked, bc) values
   ('pet_jade_dragon', 1, 100000, true, 0)
 on conflict (item, qty) do update set gold = excluded.gold, tracked = excluded.tracked, bc = excluded.bc;
 -- anything no longer in the game's Shop list stops being sold
-delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('royal_silk_scarf', 1), ('prism_ring', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('midnight_tee', 1), ('brown_tee', 1), ('gray_tee', 1), ('green_tee', 1), ('orange_tee', 1), ('pink_tee', 1), ('red_tee', 1), ('smiley_tee', 1), ('black_button_polo', 1), ('white_button_polo', 1), ('charcoal_open_shirt', 1), ('white_open_shirt', 1), ('red_open_shirt', 1), ('black_kung_fu_shirt', 1), ('white_kung_fu_shirt', 1), ('black_shorts', 1), ('blue_shorts', 1), ('lime_shorts', 1), ('orange_shorts', 1), ('red_shorts', 1), ('white_shorts', 1), ('black_sneakers', 1), ('charcoal_sneakers', 1), ('retro_sneakers', 1), ('black_flip_flops', 1), ('gray_flip_flops', 1), ('green_flip_flops', 1), ('orange_flip_flops', 1), ('red_flip_flops', 1), ('black_shades', 1), ('green_shades', 1), ('yellow_shades', 1), ('burst_fade', 1), ('wild_fade', 1), ('wild_side_part', 1), ('red_wild_fade', 1), ('red_side_part', 1), ('bob_cut', 1), ('good_boy_cut', 1), ('silver_wild_fade', 1), ('golden_bob_cut', 1), ('cloud_sole_sneakers', 1), ('shadow_hood', 1), ('shadow_robe', 1), ('gray_hoodie', 1), ('black_silk_scarf', 1), ('crimson_silk_scarf', 1), ('trucker_cap', 1), ('black_beanie', 1), ('frog_hood', 1), ('six_pack_abs', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('handlebar_mustache', 1), ('gentleman_mustache', 1), ('button_mustache', 1), ('silver_walrus_mustache', 1), ('grandpa_beard', 1), ('lumberjack_beard', 1), ('bold_eyeliner', 1), ('shifty_eyes', 1), ('brown_neat_cut', 1), ('black_neat_cut', 1), ('red_neat_cut', 1), ('black_wolf_cut', 1), ('messy_wolf_cut', 1), ('red_wolf_cut', 1), ('emo_fringe', 1), ('hime_cut', 1), ('flipped_bob', 1), ('cherry_space_buns', 1), ('professor_tufts', 1), ('frost_spikes', 1), ('onyx_shades', 1), ('blank_face', 1), ('rocker_mohawk', 1), ('fluffy_afro', 1), ('gold_trim_jacket', 1), ('crimson_trim_jacket', 1), ('silver_trim_jacket', 1), ('caveman_fur', 1), ('messy_mop', 1), ('banana_suit', 1), ('orange_suit', 1), ('jester_hat', 1), ('spartan_helmet', 1), ('golden_spartan_helmet', 1), ('smiling_mask', 1), ('warrior_helmet', 1), ('warrior_abs', 1), ('warrior_loincloth', 1), ('warrior_sandals', 1), ('white_sando', 1), ('navy_shorts', 1), ('silver_blade', 1), ('prism_blade', 1), ('void_cleaver', 1), ('obsidian_cleaver', 1), ('red_balloon', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_astronaut', 1), ('starter_pack', 1), ('set_music', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('golden_wings', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
+delete from public.shop_prices where (item, qty) not in (values ('name_changer', 1), ('world_transfer', 1), ('beach_blast', 1), ('world_lock', 1), ('red_lock', 1), ('blue_lock', 1), ('atm_machine', 1), ('door_mover', 1), ('signal_jammer', 1), ('punch_jammer', 1), ('snow_weather_machine', 1), ('sunny_weather_machine', 1), ('rain_weather_machine', 1), ('desert_weather_machine', 1), ('blackout_weather_machine', 1), ('disco_weather_machine', 1), ('halloween_weather_machine', 1), ('night_weather_machine', 1), ('clear_world', 1), ('vending_machine', 1), ('item_vacuum', 1), ('coin_vacuum', 1), ('hologram_board', 1), ('hologram_sign', 1), ('shovel', 1), ('diamond_pickaxe', 1), ('black_diamond_pickaxe', 1), ('royal_silk_scarf', 1), ('prism_ring', 1), ('ride_horse', 1), ('ride_truck', 1), ('ride_car', 1), ('ride_harvester', 1), ('ride_carpet', 1), ('autumn_chest', 1), ('midnight_tee', 1), ('brown_tee', 1), ('gray_tee', 1), ('green_tee', 1), ('orange_tee', 1), ('pink_tee', 1), ('red_tee', 1), ('smiley_tee', 1), ('black_button_polo', 1), ('white_button_polo', 1), ('charcoal_open_shirt', 1), ('white_open_shirt', 1), ('red_open_shirt', 1), ('black_kung_fu_shirt', 1), ('white_kung_fu_shirt', 1), ('black_shorts', 1), ('blue_shorts', 1), ('lime_shorts', 1), ('orange_shorts', 1), ('red_shorts', 1), ('white_shorts', 1), ('black_sneakers', 1), ('charcoal_sneakers', 1), ('retro_sneakers', 1), ('black_flip_flops', 1), ('gray_flip_flops', 1), ('green_flip_flops', 1), ('orange_flip_flops', 1), ('red_flip_flops', 1), ('black_shades', 1), ('green_shades', 1), ('yellow_shades', 1), ('burst_fade', 1), ('wild_fade', 1), ('wild_side_part', 1), ('red_wild_fade', 1), ('red_side_part', 1), ('bob_cut', 1), ('good_boy_cut', 1), ('silver_wild_fade', 1), ('golden_bob_cut', 1), ('cloud_sole_sneakers', 1), ('shadow_hood', 1), ('shadow_robe', 1), ('gray_hoodie', 1), ('black_silk_scarf', 1), ('crimson_silk_scarf', 1), ('trucker_cap', 1), ('black_beanie', 1), ('frog_hood', 1), ('six_pack_abs', 1), ('golden_aura', 1), ('red_aura', 1), ('dark_diamond_aura', 1), ('diamond_aura', 1), ('white_aura', 1), ('handlebar_mustache', 1), ('gentleman_mustache', 1), ('button_mustache', 1), ('silver_walrus_mustache', 1), ('grandpa_beard', 1), ('lumberjack_beard', 1), ('bold_eyeliner', 1), ('shifty_eyes', 1), ('brown_neat_cut', 1), ('black_neat_cut', 1), ('red_neat_cut', 1), ('black_wolf_cut', 1), ('messy_wolf_cut', 1), ('red_wolf_cut', 1), ('emo_fringe', 1), ('hime_cut', 1), ('flipped_bob', 1), ('cherry_space_buns', 1), ('professor_tufts', 1), ('frost_spikes', 1), ('onyx_shades', 1), ('blank_face', 1), ('rocker_mohawk', 1), ('fluffy_afro', 1), ('gold_trim_jacket', 1), ('crimson_trim_jacket', 1), ('silver_trim_jacket', 1), ('caveman_fur', 1), ('messy_mop', 1), ('banana_suit', 1), ('orange_suit', 1), ('jester_hat', 1), ('spartan_helmet', 1), ('golden_spartan_helmet', 1), ('smiling_mask', 1), ('warrior_helmet', 1), ('warrior_abs', 1), ('warrior_loincloth', 1), ('warrior_sandals', 1), ('blackout_shades', 1), ('crimson_shades', 1), ('emo_bangs', 1), ('scene_shag', 1), ('teal_aloha_shirt', 1), ('teal_board_shorts', 1), ('teal_beach_sandals', 1), ('teal_beach_specs', 1), ('red_aloha_shirt', 1), ('red_board_shorts', 1), ('red_beach_sandals', 1), ('red_beach_specs', 1), ('sky_boots', 1), ('rocket_jetpack', 1), ('white_sando', 1), ('navy_shorts', 1), ('silver_blade', 1), ('prism_blade', 1), ('void_cleaver', 1), ('obsidian_cleaver', 1), ('red_balloon', 1), ('piano', 1), ('genie_teapot', 1), ('microphone', 1), ('set_astronaut', 1), ('starter_pack', 1), ('set_music', 1), ('angel_wings', 1), ('tiny_angel_wings', 1), ('tiny_devil_wings', 1), ('vampire_wings', 1), ('tiny_vampire_wings', 1), ('golden_wings', 1), ('seraph_wings', 1), ('demon_wings', 1), ('phoenix_wings', 1), ('crystal_wings', 1), ('fairy_wings', 1), ('shadow_wings', 1), ('celestial_wings', 1), ('dragon_wings', 1), ('leaf_wings', 1), ('galaxy_wings', 1), ('hero_cape', 1), ('blue_hero_cape', 1), ('forest_cape', 1), ('vampire_cape', 1), ('royal_cape', 1), ('galaxy_cape', 1), ('golden_cape', 1), ('garden_scythe', 1), ('golden_scythe', 1), ('flame_scythe', 1), ('death_scythe', 1), ('furious_scythe', 1), ('reaper_scythe', 1), ('set_fishing', 1), ('set_stage', 1), ('set_factory', 1), ('pet_puppy', 1), ('pet_kitten', 1), ('pet_bunny', 1), ('pet_chick', 1), ('pet_piglet', 1), ('pet_turtle', 1), ('pet_bee', 1), ('pet_sprout_slime', 1), ('pet_penguin', 1), ('pet_parrot', 1), ('pet_panda', 1), ('pet_fox', 1), ('pet_husky', 1), ('pet_arctic_fox', 1), ('pet_bat', 1), ('pet_jellyfish', 1), ('pet_shark', 1), ('pet_snow_owl', 1), ('pet_farmer_cat', 1), ('pet_lion', 1), ('pet_green_dragon', 1), ('pet_ice_dragon', 1), ('pet_unicorn', 1), ('pet_phoenix', 1), ('pet_trex', 1), ('pet_cyborg', 1), ('pet_shadow_dragon', 1), ('pet_bone_dragon', 1), ('pet_glacier_dragon', 1), ('pet_pearl_dragon', 1), ('pet_jade_dragon', 1));
 
 create table if not exists public.owned_items (
   player_id uuid not null references auth.users (id) on delete cascade,
@@ -5949,3 +5964,65 @@ on conflict (item) do update set cls = excluded.cls;
 -- (Nov 28 2026 c) Devil Horns, Azure Devil Horns: hats, not sold (no shop_prices rows); bag classes. Safe to re-run.
 insert into public.item_info (item, cls) values ('devil_horns', 'epic'), ('azure_horns', 'epic')
 on conflict (item) do update set cls = excluded.cls;
+
+-- (Nov 28 2026 f) the owner's new pieces (14 sold above; Laser Visor not sold: grown, Red Laser Gate + Steel Block);
+-- bag classes. Safe to re-run.
+insert into public.item_info (item, cls) values ('blackout_shades', 'uncommon'), ('crimson_shades', 'uncommon'), ('emo_bangs', 'rare'), ('scene_shag', 'rare'), ('teal_aloha_shirt', 'uncommon'), ('teal_board_shorts', 'uncommon'), ('teal_beach_sandals', 'common'), ('teal_beach_specs', 'uncommon'), ('red_aloha_shirt', 'uncommon'), ('red_board_shorts', 'uncommon'), ('red_beach_sandals', 'common'), ('red_beach_specs', 'uncommon'), ('sky_boots', 'epic'), ('rocket_jetpack', 'epic'), ('laser_visor', 'uncommon'), ('laser_visor_seed', 'uncommon')
+on conflict (item) do update set cls = excluded.cls;
+
+-- ---------- (Nov 28 2026) a GM's items in a TRADE (owner: "kapag may pahintulot ng gm at binigay ... kahit sa trade") ----------
+-- A GM's bag isn't kept on the server, but trade_lack / trade_move asked is_gm() = the player who CONFIRMED last: when
+-- the player confirmed last, the GM "didn't have" the items (trade failed) or 0 of them moved. Now they ask whether
+-- the GIVING side is a GM (`is_gm_id`): a GM always has enough ITEMS, and the items a GM gives aren't taken from his
+-- (unkept) bag or Shop count; the player gets all of them. Gold is checked and moved as before. (give_item / gift_send already let a GM give anything.)
+create or replace function public.is_gm_id(p_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.gms g join public.usernames u on lower(u.name) = lower(g.name) where u.id = p_id)
+$$;
+revoke execute on function public.is_gm_id(uuid) from public, anon, authenticated;
+create or replace function public.trade_lack(p_id uuid, p_give jsonb)
+returns text language plpgsql volatile security definer set search_path = public as $$
+declare k text; q bigint; have bigint;
+begin
+  perform public.bag_init(p_id);
+  for k, q in select key, public.jnum(value) from jsonb_each(p_give) loop
+    if k = 'gold' then
+      select gold into have from public.wallets where id = p_id;
+      if coalesce(have, 0) < q then return 'Not enough gold for this trade'; end if;
+    elsif k like 'wkey\_%' then
+      null; -- World Keys: world_keys (give_world_key)
+    elsif not public.is_gm_id(p_id) then -- (a GM always has enough ITEMS; gold is counted as before)
+      if public.is_tracked(k) then
+        select qty into have from public.owned_items where player_id = p_id and item = k;
+        if coalesce(have, 0) < q then return 'Not enough ' || k || ' for this trade'; end if;
+      end if;
+      if public.bag_qty(p_id, k) < q then return 'Not enough ' || k || ' for this trade'; end if;
+    end if;
+    have := null;
+  end loop;
+  return null;
+end $$;
+create or replace function public.trade_move(a uuid, b uuid, p_give jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare k text; q bigint; gm boolean := public.is_gm_id(a);
+begin
+  perform public.bag_init(a);
+  perform public.bag_init(b);
+  for k, q in select key, public.jnum(value) from jsonb_each(p_give) loop
+    if k = 'gold' then
+      update public.wallets set gold = gold - q where id = a;
+      update public.wallets set gold = gold + q where id = b;
+    elsif k not like 'wkey\_%' then
+      if public.is_tracked(k) then
+        if not gm then perform public.add_owned(a, k, -q); end if;
+        perform public.add_owned(b, k, q);
+      end if;
+      if not gm then
+        q := least(q, public.bag_qty(a, k));
+        perform public.bag_add(a, k, -q);
+      end if;
+      perform public.bag_add(b, k, q);
+    end if;
+  end loop;
+end $$;
+revoke execute on function public.trade_lack(uuid, jsonb), public.trade_move(uuid, uuid, jsonb) from public, anon, authenticated;

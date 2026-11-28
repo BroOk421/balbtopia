@@ -710,7 +710,9 @@ act = ((prev) =>
       water = hasWater(i);
     // a block, tree, door, another player: the rod punches like before
     // (owner, Nov 24 2026) a background with no water on it: the rod punches it too (it couldn't be broken holding a rod)
-    if ((fg[i] && !(water && BLOCK[fg[i]].solid === false)) || (bg[i] && !water) || trees.has(i) || isDoorTile(t.x, t.y) || Net.bodyAt(ptr.x, ptr.y)) return prev();
+    // (owner, Nov 28 2026: "kapag may bg hindi na break, dapat nag brebreak din kahit naka rod") a background UNDER
+    // water too, except at the very top of the water (where the line is cast): it said "cast at the very top" instead
+    if ((fg[i] && !(water && BLOCK[fg[i]].solid === false)) || (bg[i] && (!water || !waterSurface(t.x, t.y))) || trees.has(i) || isDoorTile(t.x, t.y) || Net.bodyAt(ptr.x, ptr.y)) return prev();
     if (pressUsed === pressN) return; // the same press held down: one cast
     pressUsed = pressN;
     const pt = playerTile();

@@ -11,7 +11,7 @@
 // - Names, prices and rarity picked by Claude. Shop WEAR tab; schema.sql shop_prices + keep list + item_info rows.
 // Loaded after oldman.js.
 // ===== pixel wear =====
-const PXW_SKINNED = new Set(['bare_chest', 'bare_legs', 'black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs', 'blank_face', 'gold_trim_jacket', 'crimson_trim_jacket', 'silver_trim_jacket', 'caveman_fur', 'warrior_abs', 'warrior_loincloth']);
+const PXW_SKINNED = new Set(['bare_chest', 'bare_legs', 'black_button_polo', 'white_button_polo', 'charcoal_open_shirt', 'white_open_shirt', 'red_open_shirt', 'black_kung_fu_shirt', 'white_kung_fu_shirt', 'six_pack_abs', 'blank_face', 'gold_trim_jacket', 'crimson_trim_jacket', 'silver_trim_jacket', 'caveman_fur', 'warrior_abs', 'warrior_loincloth', 'teal_aloha_shirt', 'red_aloha_shirt', 'teal_board_shorts', 'red_board_shorts']);
 const PXW_LIST = [
   // t-shirts
   ['midnight_tee', 'Midnight Tee', 'shirt', 'Common', 800, 'A plain dark navy t-shirt.'],
@@ -140,6 +140,25 @@ const PXW_LIST = [
   // onto the hair; names by Claude
   ['devil_horns', 'Devil Horns', 'hat', 'Epic', 0, 'Two dark curled devil horns with a shine and a purple glow.', { noShop: true, noLift: true }],
   ['azure_horns', 'Azure Devil Horns', 'hat', 'Epic', 0, 'Two blue curled devil horns that shimmer and glow.', { noShop: true, noLift: true }],
+  // (owner, Nov 28 2026: "eto add mo lahat, isipan mo na ng mga name"; names / prices by Claude) eye1 / eye2,
+  // girlhair / hair2, the two Hawaiian outfits (4 pieces each), flying boots, jetpack: sold in the Shop
+  ['blackout_shades', 'Blackout Shades', 'face', 'Uncommon', 2500, 'Thick black shades with a wide bridge.'],
+  ['crimson_shades', 'Crimson Shades', 'face', 'Uncommon', 2500, 'Thick red-tinted shades with a wide bridge.'],
+  ['emo_bangs', 'Emo Bangs', 'hair', 'Rare', 5000, 'Long black hair swept over one eye.'],
+  ['scene_shag', 'Scene Shag', 'hair', 'Rare', 5000, 'A choppy black shag with spiky bangs.'],
+  ['teal_aloha_shirt', 'Teal Aloha Shirt', 'shirt', 'Uncommon', 3000, 'An open teal Hawaiian shirt with yellow flowers over a white tee.'],
+  ['teal_board_shorts', 'Teal Board Shorts', 'pants', 'Uncommon', 2000, 'Teal beach shorts.'],
+  ['teal_beach_sandals', 'Teal Beach Sandals', 'feet', 'Common', 1500, 'Teal strap sandals for the beach.'],
+  ['teal_beach_specs', 'Teal Beach Specs', 'face', 'Uncommon', 2500, 'Teal-framed glasses with light lenses.'],
+  ['red_aloha_shirt', 'Red Aloha Shirt', 'shirt', 'Uncommon', 3000, 'An open dark red Hawaiian shirt with yellow flowers over a white tee.'],
+  ['red_board_shorts', 'Red Board Shorts', 'pants', 'Uncommon', 2000, 'Dark red beach shorts.'],
+  ['red_beach_sandals', 'Red Beach Sandals', 'feet', 'Common', 1500, 'Dark red strap sandals for the beach.'],
+  ['red_beach_specs', 'Red Beach Specs', 'face', 'Uncommon', 2500, 'Dark red-framed glasses with tinted lenses.'],
+  ['sky_boots', 'Sky Boots', 'feet', 'Epic', 15000, 'Dark boots with a blue glow that pulses round your feet. You float high over the ground, bobbing, and can jump once more in the air.', { airJump: true }],
+  ['rocket_jetpack', 'Rocket Jetpack', 'back', 'Epic', 20000, 'A green jetpack. Hold Jump to fly up on its flame until the fuel runs out; it refills after a while.', { art: 'rocket_jetpack' }],
+  // (owner, same day: "yung sa laser ... gawin mo yan na yung recipe, tapos steel, medyo uncommon, wag mo lagay sa
+  // shop"; his updated file: a gray visor) a gray visor with a red laser across: NOT sold, grown from a tree: Red Laser Gate + Steel Block (PXW_SEED)
+  ['laser_visor', 'Laser Visor', 'face', 'Uncommon', 0, 'A gray visor with a red laser beam glowing across the eyes.', { noShop: true }],
 ];
 // ---------- the bare default character (owner, Nov 25 2026: "the default character has no sando and no pants: make
 // the blue shorts and the white sando wearables") ----------
@@ -166,7 +185,7 @@ function pxwBareFor(key, eq) {
 const PXW_PANTS_OVER = new Set(['warrior_loincloth']);
 const PXW_BARE_UNDER = { warrior_abs: 'shirt', six_pack_abs: 'shirt', caveman_fur: 'shirt', warrior_loincloth: 'pants' };
 // pictures taller than the frame at the top (pixelwear_meta.json "top": the afro's file has 5 more rows over the head)
-const PXW_TOP = { fluffy_afro: 30, banana_suit: 30, orange_suit: 30, jester_hat: 90, spartan_helmet: 90, golden_spartan_helmet: 90, warrior_helmet: 90, frost_horns: 90, devil_horns: 90, azure_horns: 90 };
+const PXW_TOP = { fluffy_afro: 30, banana_suit: 30, orange_suit: 30, jester_hat: 90, spartan_helmet: 90, golden_spartan_helmet: 90, warrior_helmet: 90, frost_horns: 90, devil_horns: 90, azure_horns: 90, blackout_shades: 90, crimson_shades: 90, laser_visor: 90, emo_bangs: 90, scene_shag: 90, teal_beach_specs: 90, red_beach_specs: 90, rocket_jetpack: 48 };
 // (Nov 26 2026) pictures wider than the usual 40 px each side (pixelwear_meta.json "side": a plume, a jester hat)
 const PXW_SIDE = { jester_hat: 18, golden_spartan_helmet: 42, spartan_helmet: 42 };
 const PXW = {}; // id -> { slot, sk }
@@ -243,8 +262,21 @@ for (const [id, name, slot, rarity, gold, desc, extra] of PXW_LIST) {
       x.drawImage(im, -PXW_PAD - (PXW_SIDE[id] || 0), -(PXW_TOP[id] || 0));
     };
 }
+// (Nov 28 2026) pieces grown from a tree (like pxswords.js): the seed, its tree, the recipe (also in farming.json)
+const PXW_SEED = { laser_visor: { rec: ['red_laser_gate', 'steel_block'], col: ['#8a8f98', '#4a4f58', '#ff4a2a'] } };
+for (const [id, { rec, col }] of Object.entries(PXW_SEED)) {
+  const w = ITEMS[id];
+  w.desc += ' ' + w.name + ' = ' + rec.map((r) => (ITEMS[r] ? ITEMS[r].name : r)).join(' + ') + '.';
+  ITEMS[id + '_seed'] = { name: w.name + ' Seed', kind: 'seed', from: id, desc: 'Plant it on top of a block to grow a ' + w.name + ' Tree.', rarity: w.rarity };
+  SEED_COLOR[id] = col;
+  TREE_TIME[id] = 360;
+  SEED_CHANCE[id] = 0.3;
+  const key = [...rec].sort().join('+');
+  if (SPLICE[key] && SPLICE[key] !== id) console.error('pixelwear.js: recipe already used: ' + key);
+  SPLICE[key] = id;
+}
 // (Nov 25 2026) animated eye pieces: frame f of ANIM_N (wear.js wearArt) = idle.png (0) or idle_f<f>.png
-const PXW_ANIM = { shifty_eyes: [100, 7], frost_horns: [100, 10], devil_horns: [100, 9], azure_horns: [100, 11] }; // (frost_horns: Nov 27 2026, a hat since Nov 28)
+const PXW_ANIM = { shifty_eyes: [100, 7], frost_horns: [100, 10], devil_horns: [100, 9], azure_horns: [100, 11], rocket_jetpack: [100, 3] }; // (rocket_jetpack: a back piece, drawn behind the body by wear.js drawBehind) // (frost_horns: Nov 27 2026, a hat since Nov 28)
 for (const [id, [ms, n]] of Object.entries(PXW_ANIM)) {
   ANIM_N[id] = [ms, n];
   WEAR_ART[id] = ({ x, f }) => {
@@ -541,6 +573,10 @@ function pxwFringeHole(id, lift) {
 }
 const PXW_GLOW = { royal_silk_scarf: true };
 for (const id in PXW_GLOW) pxwImg(id, 'glow');
+// (Nov 28 2026: flyingboots.aseprite) the Sky Boots' blue glow round the feet: his 'effects' layers, 7 frames of 100 ms
+// (glow_f0..6.png, frame size), drawn over the feet
+const PXW_FEET_GLOW = { sky_boots: 7 };
+for (const id in PXW_FEET_GLOW) for (let f = 0; f < PXW_FEET_GLOW[id]; f++) pxwImg(id, 'glow_f' + f);
 let PXW_HAIR_CV = null;
 for (const id of PXW_HOOD) for (const p of ['hood_idle', 'hood_nohair', 'hood_hole']) pxwImg(id, p);
 addEventListener('DOMContentLoaded', () => {
@@ -555,6 +591,15 @@ addEventListener('DOMContentLoaded', () => {
         g.globalAlpha = a0 * (0.55 + 0.35 * Math.sin(now / 420));
         g.drawImage(glow, (-FR.w / 2 - PXW_PAD) * k, top + dy * k, glow.width * k, glow.height * k);
         g.globalAlpha = a0;
+      }
+      const fg = PXW_FEET_GLOW[eq.feet] ? pxwImg(eq.feet, 'glow_f' + (Math.floor(now / 100) % PXW_FEET_GLOW[eq.feet])) : null;
+      if (fg) {
+        // (crisp, like his file: the glow fades in / out by its own frames' cel opacity, pixelwear_cut.py)
+        const k = sc * Z,
+          sm = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(fg, (-FR.w / 2 - PXW_PAD) * k, top + dy * k, fg.width * k, fg.height * k);
+        g.imageSmoothingEnabled = sm;
       }
       const isHood = PXW_HOOD.has(eq.shirt),
         isCap = !isHood && PXW_CAP_HAIR.has(eq.hat),

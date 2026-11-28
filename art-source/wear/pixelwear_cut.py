@@ -123,6 +123,23 @@ ITEMS = {
     'set/warrior.aseprite#helmet': 'warrior_helmet', 'set/warrior.aseprite#armor': 'warrior_abs',
     'set/warrior.aseprite#pants': 'warrior_loincloth', 'set/warrior.aseprite#boots': 'warrior_sandals',
 }
+# (owner, Nov 28 2026: "eto add mo lahat, isipan mo na ng mga name"; names by Claude)
+ITEMS.update({
+    'shades/eye1.aseprite#eyestyle': 'blackout_shades', 'shades/eye2.aseprite#eyestyle': 'crimson_shades',
+    'shades/laser_eye.aseprite#laser': 'laser_visor',  # ('laser' + 'Layer' blended)
+    'hair/girlhair.aseprite': 'emo_bangs', 'hair/hair2.aseprite': 'scene_shag',
+    # the two Hawaiian outfits: four pieces each (shirt = 'polo' + 'polosleeves*' over the arms; 'short'; 'sandals';
+    # 'eyestyle' glasses)
+    'set/hawaiian.aseprite#aloha': 'teal_aloha_shirt', 'set/hawaiian.aseprite#alohashorts': 'teal_board_shorts',
+    'set/hawaiian.aseprite#alohasandals': 'teal_beach_sandals', 'set/hawaiian.aseprite#eyestyle': 'teal_beach_specs',
+    'set/hawaiian2.aseprite#aloha': 'red_aloha_shirt', 'set/hawaiian2.aseprite#alohashorts': 'red_board_shorts',
+    'set/hawaiian2.aseprite#alohasandals': 'red_beach_sandals', 'set/hawaiian2.aseprite#eyestyle': 'red_beach_specs',
+    # flying boots: 'flying shoes' = the shoes; 'effects back' + 'effects front' (7 frames, a blue glow pulsing round
+    # the feet) = glow_f0..6.png at frame size (pixelwear.js PXW_FEET_GLOW draws them over the feet)
+    'shoes/flyingboots.aseprite#flyboots': 'sky_boots',
+    # jetpack: a BACK piece (behind the body), 3 frames (the flame), the whole layer every frame
+    'back/jetpack.aseprite#jet': 'rocket_jetpack',
+})
 BODY_LAYERS = {'sleeve left', 'shape', 'short', 'sando', 'sleeve right', 'mouth', 'nose', 'eyes', 'eyebrows'}
 
 
@@ -144,12 +161,16 @@ def read_frames(path):
                 nl = struct.unpack_from('<H', b, 16)[0]
                 L.append((b[18:18 + nl].decode(), bool(fl & 1)))
             elif ct == 0x2005:
-                li, x, y, _, c = struct.unpack_from('<HhhBH', b, 0)
+                li, x, y, cop, c = struct.unpack_from('<HhhBH', b, 0)
                 if c in (0, 2):
                     w, h = struct.unpack_from('<HH', b, 16)
                     raw = b[20:] if c == 0 else zlib.decompress(b[20:])
                     a = np.zeros((H, W, 4), np.uint8)
                     a[y:y + h, x:x + w] = np.frombuffer(raw, np.uint8)[:w * h * 4].reshape(h, w, 4)
+                    # (Nov 28 2026: flyingboots fades its glow in and out with the CEL opacity, 0 / 27 / 104 / 255 per
+                    # frame; it was ignored, so the glow was full in every frame) the cel's opacity on its alpha
+                    if cop < 255:
+                        a[..., 3] = (a[..., 3].astype(int) * cop // 255).astype(np.uint8)
                     cels[L[li][0]] = a
                 elif c == 1:
                     cels[L[li][0]] = frames[struct.unpack_from('<H', b, 16)[0]][L[li][0]]
@@ -353,6 +374,13 @@ SIDE = [(0, 0)]  # this item's (left, right) extra columns
 WIDE = {}  # the last aligned file's layers with those side columns ('_side': (left, right))
 
 
+# (Nov 28 2026) files whose body has one more leg row than the default (flyingboots, jetpack: the shape 14..42):
+# the best match put the body 1 row too high and cut the feet off; the file row of the body's top that puts its
+# bottom row on the game's bottom row
+FEET_ALIGN = {'shoes/flyingboots.aseprite': 8, 'back/jetpack.aseprite': 8}
+LAST_ALIGN = {}  # the last bigger-canvas align: its padded layers and where the body starts in them
+
+
 def align(cels, name):
     """(owner, Nov 20 2026: in the scarf files he moved the BODY 4 px left) every layer is moved by how far the file's
     'shape' (the bare body) is from the default body's, so each piece sits on the game's character as in his file"""
@@ -374,6 +402,8 @@ def align(cels, name):
         S2 = cels['shape'][oy:oy + H0, ox:ox + W0, 3] > 0
         _, dx, dy = max(((np.sum(shift(S2, dx, dy) & D) - np.sum(shift(S2, dx, dy) ^ D), dx, dy) for dy in range(-8, 9) for dx in range(-10, 11)))
         ox, oy = ox - dx, oy - dy
+        if name in FEET_ALIGN:  # (his body there is 1 row longer: put its FEET on the game's feet)
+            oy = FEET_ALIGN[name]
         X, Y = ox + P, oy + P
         for k, v in padded.items():
             lost = v[:, :X, 3].any() or v[:, X + W0:, 3].any() or v[Y + H0:, :, 3].any()
@@ -384,6 +414,8 @@ def align(cels, name):
         top = max(0, oy)  # rows above the body kept (the file's own)
         WIDE.update({k: v[Y - top:Y + H0, X - SIDE_MAX:X + W0 + SIDE_MAX] for k, v in padded.items()})
         WIDE['_side'] = (SIDE_MAX, SIDE_MAX)
+        LAST_ALIGN.clear()
+        LAST_ALIGN.update(padded=padded, X=X, Y=Y)  # (Nov 28 2026: for rows UNDER the feet, the Sky Boots' glow)
         print('  ', name, 'canvas', 'body at', ox, oy, '->', top, 'rows above the normal top')
         return {k: v[Y - top:Y + H0, X:X + W0] for k, v in padded.items()}
     best = max(((np.sum(shift(S, dx, dy) & D) - np.sum(shift(S, dx, dy) ^ D), dx, dy) for dy in range(-8, 9) for dx in range(-10, 11)))
@@ -481,6 +513,31 @@ for f, iid in ITEMS.items():
         cat = 'pants'
     elif part == 'helmet':
         cat = 'hat'
+    elif part == 'aloha':  # (Nov 28 2026) his polo, its sleeves over the arm layers
+        cat = 'tshirt'
+        cels['tshirt'] = cels['polo']
+        for nm, ov in (('sleeve left', 'polosleevesleft'), ('sleeve right', 'polosleevesright')):
+            t = cels[nm].copy()
+            m = cels[ov][..., 3] > 0
+            t[m] = cels[ov][m]
+            cels[nm] = t
+    elif part == 'alohashorts':
+        cat = 'pants'
+        cels['pants'] = cels['short']
+    elif part == 'alohasandals':
+        cat = 'shoes'
+        cels['shoes'] = cels['sandals']
+    elif part == 'flyboots':
+        cat = 'shoes'
+        cels['shoes'] = cels['flying shoes']
+    elif part == 'eyestyle':
+        cat = 'shades'
+        cels['shades'] = cels['eyestyle']
+    elif part == 'laser':
+        cat = 'shades'
+        cels['shades'] = blend([cels[n] for n in ('laser', 'Layer') if n in cels])
+    elif part == 'jet':
+        cat = 'back'
     elif part == 'hood':  # the hood: the mask layer above the shoulders, drawn like a hat
         cat = 'hat'
         m = cels['mask'].copy()
@@ -605,7 +662,7 @@ for f, iid in ITEMS.items():
         icon[brow_m & (icon[..., 3] > 0), :3] = mouth_col
     else:  # shades / hair / hood: drawn by WEAR_ART over the head in every pose (the head is in the same place in all)
         # (hair: the visible layer whose name starts with 'hair': girl-hair uses 'hair2', goodboy-hair 'hair2 Copy')
-        lname = ('shades' if cat == 'shades' else 'eyes' if cat == 'eye'
+        lname = ('jetpack' if cat == 'back' else 'shades' if cat == 'shades' else 'eyes' if cat == 'eye'
                  else next(n for n, v in L if v and n not in BODY_LAYERS and n in cels) if cat == 'stache'
                  else 'hood' if cat == 'hat' and 'hood' in cels
                  else next(n for n, v in reversed(L) if v and n not in BODY_LAYERS and n in cels) if cat == 'hat' else 'Scarf' if cat == 'scarf'
@@ -671,6 +728,25 @@ for f, iid in ITEMS.items():
             for k in range(1, len(frames)):
                 ck = align(dict(frames[k]), f)
                 poses['idle_f%d' % k] = full(ck[lname])
+    if cat == 'back':  # (Nov 28 2026: the jetpack) behind the body: his WHOLE layer, every frame
+        full = lambda e: (e.copy(), np.zeros(e.shape[:2], bool))
+        poses = {'idle': full(cels[lname])}
+        for k in range(1, len(frames)):
+            poses['idle_f%d' % k] = full(align(dict(frames[k]), f)[lname])
+        icon = cels[lname].copy()
+    if part == 'flyboots':  # the glow round the feet, every frame
+        # (owner: "naputol yung glow, kumpleto dapat") his glow goes GLOW_BELOW rows under the feet: the picture is
+        # the body's 35 rows + those, from the body's top (frame px; taller than the frame at the bottom)
+        GLOW_BELOW = 6
+        for k in range(len(frames)):
+            align(dict(frames[k]), f)
+            pd, X, Y = LAST_ALIGN['padded'], LAST_ALIGN['X'], LAST_ALIGN['Y']
+            gl = blend([pd[n][Y:Y + 35 + GLOW_BELOW, X:X + 32] for n in ('effects back', 'effects front') if n in pd])
+            big = np.array(Image.fromarray(gl).resize((32 * S, gl.shape[0] * S), Image.NEAREST))[:, ::-1]
+            out = np.zeros((FH + GLOW_BELOW * S, FW + 2 * PAD, 4), np.uint8)
+            x0 = (FW - 32 * S) // 2 + PAD
+            out[214 - 35 * S:214 - 35 * S + big.shape[0], x0:x0 + big.shape[1]] = big
+            Image.fromarray(out).save(d + '/glow_f%d.png' % k)
     if part == 'hoodie':
         for nm, a in (('hood_idle', cels['mask']), ('hood_nohair', nohair_hood), ('hood_hole', hole_rgba)):
             save_pose(d, nm, fit(a), np.zeros((FH, FW + 2 * PAD), bool), False)

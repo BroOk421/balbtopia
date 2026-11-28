@@ -804,5 +804,136 @@
    "idle_f9"
   ],
   "top": 90
+ },
+ "crimson_shades": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 90
+ },
+ "laser_visor": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 90
+ },
+ "emo_bangs": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 90
+ },
+ "scene_shag": {
+  "cat": "hair",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 90
+ },
+ "teal_aloha_shirt": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "teal_board_shorts": {
+  "cat": "pants",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "teal_beach_sandals": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "teal_beach_specs": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 90
+ },
+ "red_aloha_shirt": {
+  "cat": "tshirt",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "red_board_shorts": {
+  "cat": "pants",
+  "sk": true,
+  "poses": [
+   "idle",
+   "sit"
+  ]
+ },
+ "red_beach_sandals": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "red_beach_specs": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 90
+ },
+ "sky_boots": {
+  "cat": "shoes",
+  "sk": false,
+  "poses": [
+   "idle",
+   "sit",
+   "up",
+   "walk0",
+   "walk1"
+  ]
+ },
+ "rocket_jetpack": {
+  "cat": "back",
+  "sk": false,
+  "poses": [
+   "idle",
+   "idle_f1",
+   "idle_f2"
+  ],
+  "top": 48
+ },
+ "blackout_shades": {
+  "cat": "shades",
+  "sk": false,
+  "poses": [
+   "idle"
+  ],
+  "top": 90
  }
 }

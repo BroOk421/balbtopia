@@ -1151,8 +1151,10 @@ function stepToolFx(dt) {
 // laser from the eyes to where you punched (drawn by render.js while the punch lasts)
 // face items that turned punches into a laser reaching one tile further (Laser Eyes, Red Visor): deleted Nov 22 2026;
 // the hooks stay for the callers (render.js, rides.js, rest.js, actions.js, net.js, handfx.js)
+// (Nov 28 2026) the Laser Visor brings the hooks back: wear/pxpowers.js draws the beam (drawLaser)
 function drawLaser(c, cx, top, sc, ox, oy) {}
-const laserFace = (eq) => false;
+const LASER_FACES = new Set(['laser_visor']);
+const laserFace = (eq) => !!(eq && LASER_FACES.has(eq.face));
 // ---------- icons ----------
 const WEAR_ICON = {};
 function wearIcon(id) {

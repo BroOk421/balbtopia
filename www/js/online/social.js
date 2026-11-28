@@ -573,7 +573,10 @@ const giftRoom = (id, n) =>
   isGM() || n <= inv.filter((s) => s.id === id).reduce((r, s) => r + Math.max(0, MAXSTACK - s.qty), 0) + Math.max(0, bagSize() - bagCount()) * MAXSTACK;
 async function sendGift(o, id, qty) {
   if (!Net.people.has(o.id)) return toast(o.name + ' is offline');
-  if (have(id) < qty) return toast('You only have ' + have(id));
+  // (Nov 28 2026) a GM gives only what was bought (ui/gmbag.js): the GM-tagged catalogue stays
+  const rh = typeof gmRealHave === 'function' ? gmRealHave : have;
+  if (isGM() && rh(id) < qty) return toast(typeof GM_NO_GIVE === 'string' ? GM_NO_GIVE : 'You only have ' + rh(id));
+  if (rh(id) < qty) return toast('You only have ' + rh(id));
   let eid = null;
   if (giftHeld(id))
     try {
@@ -581,13 +584,13 @@ async function sendGift(o, id, qty) {
     } catch (e) {
       return toast("Can't send that: " + e.message);
     }
-  if (have(id) < qty) {
+  if (rh(id) < qty) {
     if (eid) Wallet.rpc('gift_back', { p_id: eid }).catch(() => {});
-    return toast('You only have ' + have(id));
+    return toast('You only have ' + rh(id));
   }
   const gid = Math.random().toString(36).slice(2, 10);
   if (eid && (typeof Bag !== 'undefined' && Bag.on())) Bag.pull(); // (the server took them out of your bag)
-  else takeN(id, qty);
+  else (typeof gmTakeReal === 'function' ? gmTakeReal(takeN) : takeN)(id, qty);
   pendingGifts.set(gid, {
     id,
     qty,
@@ -778,7 +781,9 @@ $('tAdd').onclick = () => {
   pickItem('Add to trade', (id, qty) => {
     const x = T.mine.find((m) => m.id === id),
       total = (x ? x.qty : 0) + qty;
-    if (total > have(id)) return toast('You only have ' + have(id));
+    const rh = typeof gmRealHave === 'function' ? gmRealHave : have; // (a GM: bought items only, ui/gmbag.js)
+    if (isGM() && total > rh(id)) return toast(typeof GM_NO_GIVE === 'string' ? GM_NO_GIVE : 'You only have ' + rh(id));
+    if (total > rh(id)) return toast('You only have ' + rh(id));
     if (x) x.qty = total;
     else T.mine.push({ id, qty });
     offerChanged();
@@ -803,7 +808,7 @@ const TRADE_WAIT_MS = 20000;
 async function tryFinishTrade() {
   if (!T || T.settling || !T.myOk || !T.theirOk || T.theirSig !== sigOf(T.theirs, T.mine)) return;
   for (const x of T.mine)
-    if (have(x.id) < x.qty) {
+    if ((typeof gmRealHave === 'function' ? gmRealHave : have)(x.id) < x.qty) {
       Net.lsend('trade_cancel', T.with, {});
       return endTrade("You don't have the items anymore. Trade cancelled");
     }
@@ -835,7 +840,8 @@ function applyTrade(t, w) {
   // asked for again (bag.js)
   const srv = !!w && (typeof Bag !== 'undefined' && Bag.on()),
     here = (x) => !(w && x.id === 'gold') && !(srv && !isKeyId(x.id));
-  for (const x of t.mine) if (here(x)) takeN(x.id, x.qty);
+  const take = typeof gmTakeReal === 'function' ? gmTakeReal(takeN) : takeN; // (a GM: from bought stacks, ui/gmbag.js)
+  for (const x of t.mine) if (here(x)) take(x.id, x.qty);
   for (const x of t.mine) if (isKeyId(x.id)) giveKeyTo(keyWorld(x.id), t.with); // World Keys move on the server too
   for (const x of t.theirs) if (here(x)) giveN(x.id, x.qty);
   if (srv) Bag.pull();

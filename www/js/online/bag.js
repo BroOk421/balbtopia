@@ -37,7 +37,7 @@ const Bag = (() => {
   function local() {
     const m = new Map(),
       add = (id, n) => !skip(id) && n > 0 && m.set(id, (m.get(id) || 0) + n);
-    for (const s of inv) if (s) add(s.id, s.qty | 0);
+    for (const s of inv) if (s && !(gm && s.gm)) add(s.id, s.qty | 0); // (a GM's catalogue stacks aren't real: ui/gmbag.js)
     for (const k in equipped) if (equipped[k]) add(equipped[k], 1);
     for (const [id, n] of stash) add(id, n);
     return m;
@@ -87,14 +87,29 @@ const Bag = (() => {
       }
   }
   // make the bag = server + what changed here since `snap`
+  const retried = new Set(),
+    RETRY_MS = 2500;
   function apply(d, snap) {
     if (!d || typeof d.items !== 'object') return;
     const S = new Map(Object.entries(d.items).map(([k, v]) => [k, +v || 0])),
       L = local(),
       ids = new Set([...S.keys(), ...L.keys(), ...snap.keys()]);
     let changed = false;
+    // (Nov 28 2026, owner: a GM's drop picked up at once was refused) a Shop-only item the server refused is kept
+    // ONE more time and asked again RETRY_MS later (the GM's game may not have told the server about it yet); a
+    // second refusal takes it away as before
+    const refused = d.refused || {},
+      gone = []; // refused a second time: taken away (the toast below names them)
+    let retry = false;
     for (const id of ids) {
       if (skip(id)) continue;
+      if (refused[id] && !retried.has(id)) {
+        retried.add(id);
+        retry = true;
+        continue;
+      }
+      if (refused[id]) gone.push(id);
+      retried.delete(id);
       const target = Math.max(0, (S.get(id) || 0) + ((L.get(id) || 0) - (snap.get(id) || 0))),
         cur = L.get(id) || 0;
       if (target > cur) addLocal(id, target - cur), (changed = true);
@@ -108,12 +123,13 @@ const Bag = (() => {
     }
     heldN = h;
     Bag.held = d.held || {};
-    if (d.refused && Object.keys(d.refused).length) {
+    if (retry) setTimeout(() => on && sync(true), RETRY_MS);
+    if (gone.length) {
       console.warn('bag: the server refused', d.refused);
       // (Nov 24 2026) say so instead of the item silently going away
       if (now - refusedNote > 8000) {
         refusedNote = now;
-        const ids = Object.keys(d.refused),
+        const ids = gone,
           nm = (id) => (ITEMS[id] ? ITEMS[id].name : id);
         toast(nm(ids[0]) + (ids.length > 1 ? ' and ' + (ids.length - 1) + ' more' : '') + " couldn't go into your bag: the server has no record of it (Shop item)");
       }
@@ -230,6 +246,42 @@ const Bag = (() => {
   };
   setInterval(() => on && now - lastT >= BAG_EVERY - 50 && sync(false), 500);
   setInterval(() => gm && gmLost(), BAG_EVERY);
+  // (Nov 28 2026, owner: "nawawala talaga kapag floating drop ng gm tapos kinuha ng player") a GM's drop never leaves
+  // the GM's bag (ui.js askDrop: a GM's items never run out, it calls spawnItemDrop straight), so gmLost's
+  // before / after count never saw it and the server's pool never got it: the player who picked it up had it refused
+  // and it vanished. Now every drop of a GM is told to the server AT ONCE with its exact amount (queued while one is
+  // on its way, retried on a failure), so it can be picked up.
+  const gmQ = {};
+  let gmQBusy = false;
+  async function gmDropSend() {
+    if (gmQBusy || !Object.keys(gmQ).length) return;
+    gmQBusy = true;
+    const delta = { ...gmQ };
+    for (const k in delta) delete gmQ[k];
+    try {
+      await Wallet.rpc('bag_gm_lost', { p_delta: delta });
+    } catch (e) {
+      console.warn('bag: gm drop', e && e.message);
+      if (!/function|does not exist|schema cache|GM only/i.test((e && e.message) || ''))
+        for (const k in delta) gmQ[k] = (gmQ[k] || 0) + delta[k]; // (back in the queue: next try)
+    } finally {
+      gmQBusy = false;
+      if (Object.keys(gmQ).length) setTimeout(gmDropSend, 1000);
+    }
+  }
+  addEventListener('DOMContentLoaded', () => {
+    spawnItemDrop = ((prev) =>
+      function (id, q, ...a) {
+        const r = prev(id, q, ...a);
+        if (gm && ITEMS[id] && !ITEMS[id].key && q > 0) {
+          // what really left the bag (dropItem / dropFromSlot) is seen by gmLost's count: only the rest is sent here
+          gmBase.set(id, Math.min(gmBase.get(id) || 0, have(id)));
+          gmQ[id] = (gmQ[id] || 0) + Math.floor(q);
+          gmDropSend();
+        }
+        return r;
+      })(spawnItemDrop);
+  });
   addEventListener('pagehide', () => (on ? sync(false) : gm && gmLost()));
   return {
     on: () => on,
@@ -237,6 +289,7 @@ const Bag = (() => {
     sync,
     pull: () => sync(true), // the server moved something: ask for the bag now
     lockConvert,
+    gmRebase: () => gm && (gmBase = local()), // (ui/gmbag.js: an old GM save's stacks just became the catalogue)
     stash,
     held: {},
     local,

@@ -1452,6 +1452,9 @@
     },
     "pamalo": {
       "growSeconds": 360
+    },
+    "laser_visor": {
+      "growSeconds": 360
     }
   },
   "splices": [
@@ -6269,6 +6272,15 @@
       "result": "pamalo",
       "source": "balbtopia",
       "note": "Pamalo = Rock + Wood Block (Nov 25 2026 q, pxswords.js PXS_SEED)"
+    },
+    {
+      "seeds": [
+        "red_laser_gate",
+        "steel_block"
+      ],
+      "result": "laser_visor",
+      "source": "balbtopia",
+      "note": "Laser Visor = Red Laser Gate + Steel Block (Balbtopia recipe, Nov 28 2026; owner: the laser items + steel)"
     }
   ],
   "notInGameYet": [

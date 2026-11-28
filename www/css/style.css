@@ -42,6 +42,12 @@ canvas {
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
+  /* (Nov 28 2026, owner: "basta diniinan yung mismong inventory or sa settings na may mga dropdown ma dradrag na")
+     only the game's own canvas keeps every touch; the little picture canvases in the bag, dropdowns, lists... let a
+     finger on them scroll the list (they were touch-action: none, so a drag had to start between the slots) */
+  touch-action: pan-x pan-y;
+}
+#c {
   touch-action: none;
 }
 kbd {
@@ -5567,4 +5573,27 @@ body.landflash #authBox {
    GM's NEWS / ANNOUNCEMENT / SPECIAL EVENT windows (they're later in the page at the same z-index) comes in front */
 #dlg.dlg-top {
   z-index: 12;
+}
+/* (owner, Nov 28 2026) phone walk / jump buttons: one long row across the screen, 15px from each side (◀ ▶ on the
+   left, ▲ on the right), just above the dock, riding up with the inventory when it is dragged open (ui/dock.js
+   sets --padLift = the dock's height) */
+.touch .pad {
+  bottom: calc((8px + var(--padLift, 0px)) / var(--btnz, 1));
+  z-index: 21;
+}
+.touch .pad.l {
+  left: calc(15px / var(--btnz, 1));
+  width: calc((100vw - 40px) * 0.6 / var(--btnz, 1));
+}
+.touch .pad.r {
+  right: calc(15px / var(--btnz, 1));
+  width: calc((100vw - 40px) * 0.4 / var(--btnz, 1));
+}
+.touch .pad button,
+.touch .pad.r button {
+  flex: 1;
+  width: auto;
+  height: 58px;
+  border-radius: 14px;
+  font-size: 20px;
 }

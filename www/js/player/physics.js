@@ -110,7 +110,8 @@ function step(dt) {
   P.coyote = P.ground ? 0.09 : Math.max(0, P.coyote - dt);
   P.buf = Math.max(0, P.buf - dt);
   // Angel Wings: extra jumps in the air, given back when you land
-  if (P.ground) P.airJ = (WEAR_BY_ID[equipped.back] || {}).wings || (WEAR_BY_ID[equipped.back] || {}).cape ? WING_JUMPS : typeof rideAirJumps === 'function' ? rideAirJumps() : 0; // any wings or cape (capes: owner, Oct 31 2026)
+  // (Nov 28 2026: Sky Boots / Rocket Jetpack, `airJump` on a back or feet piece) one more air jump, like wings
+  if (P.ground) P.airJ = (WEAR_BY_ID[equipped.back] || {}).wings || (WEAR_BY_ID[equipped.back] || {}).cape || (WEAR_BY_ID[equipped.back] || {}).airJump || (WEAR_BY_ID[equipped.feet] || {}).airJump ? WING_JUMPS : typeof rideAirJumps === 'function' ? rideAirJumps() : 0; // any wings or cape (capes: owner, Oct 31 2026)
   if (P.buf > 0 && P.coyote <= 0 && !P.ground && P.airJ > 0) {
     P.airJ--;
     P.buf = 0;

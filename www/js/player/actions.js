@@ -24,7 +24,7 @@ let farWrenchT = -1e9;
 // a square of REACH tiles around that tile (up, down, left and right)
 function inReach(tx, ty) {
   const p = playerTile(),
-    r = REACH + (laserFace(equipped) ? 1 : 0); // Red Visor / Laser Eyes reach one tile further
+    r = REACH; // (the old Red Visor / Laser Eyes reached one tile further; the Laser Visor, Nov 28 2026, doesn't)
   return Math.abs(tx - p.x) <= r && Math.abs(ty - p.y) <= r;
 }
 // the fist shoots out to the clicked point and grows (bare hands, no pickaxe yet)

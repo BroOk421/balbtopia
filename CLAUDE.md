@@ -6183,3 +6183,95 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 ## 2026-11-28 e
 - Hunter's Bow reach (owner: "start bilang ng 4 sa tile san nakatayo yung character"): 4 tiles COUNTING your own tile =
   `BOW.reach` 3 past it each way (build c's 4 counted 5 with yours). Pickaxe for comparison: REACH 2 = 3 with yours.
+
+## 2026-11-28 f: 15 new pixel wear pieces (owner's files; names / prices by Claude)
+- Owner: "eto add mo lahat, isipan mo na ng mga name"; laser: "gawin mo yan na yung recipe, tapos steel, medyo
+  uncommon, wag mo lagay sa shop" (+ an updated laser_eye.aseprite: gray visor).
+- pixelwear.js PXW_LIST (Shop, wear): Blackout Shades `blackout_shades` (shades/eye1; NOTE `onyx_shades` already
+  existed: a first cut overwrote its folder, restored from the original), Crimson Shades (eye2), Emo Bangs (girlhair),
+  Scene Shag (hair2), Teal / Red Aloha Shirt, Board Shorts, Beach Sandals, Beach Specs (set/hawaiian, hawaiian2: 4
+  pieces each; shirts and shorts skinned), Sky Boots `sky_boots` (shoes/flyingboots, Epic 15k), Rocket Jetpack
+  `rocket_jetpack` (back/jetpack, Epic 20k). schema.sql shop_prices + keep list + item_info. RE-RUN schema.sql.
+- Laser Visor `laser_visor` (shades/laser_eye, 'laser' + 'Layer' blended), Uncommon, NOT sold: grown from a tree,
+  Red Laser Gate + Steel Block (pixelwear.js `PXW_SEED`: seed item, SEED_COLOR, TREE_TIME 360, SPLICE; farming.json
+  tree + splice). item_info for it and its seed.
+- pixelwear_cut.py: parts 'aloha' (polo + polosleeves over the arm layers), 'alohashorts', 'alohasandals', 'flyboots'
+  (+ glow_f0..6.png from 'effects back' + 'effects front'), 'eyestyle' / 'laser' (shades), 'jet' (new cat 'back': the
+  whole layer every frame). `FEET_ALIGN`: flyingboots / jetpack bodies are 1 leg row longer, aligned by the feet.
+- Sky Boots glow: pixelwear.js `PXW_FEET_GLOW` (7 frames x 100 ms, drawn over the feet in the drawWorn wrapper).
+  Jetpack: WEAR_ART via PXW_ANIM (3 frames), drawn behind the body by wear.js drawBehind; PXW_TOP 48.
+- `airJump` on a back / feet piece (Sky Boots, Rocket Jetpack): one more jump in the air like wings (physics.js).
+- Tested offline: every piece worn (both ways for the jetpack), air jump with the boots, the recipe, not in the Shop.
+
+## 2026-11-28 g: what the Rocket Jetpack, Sky Boots, Laser Visor do (NEW wear/pxpowers.js, after aserides.js)
+- Rocket Jetpack: his frame 0 (no flame) unused; HOLD Jump > `JET.delay` 0.2 s = fly up (vy to -`JET.up` 300,
+  `JET.acc` 2600), frames 1-2 flicker; fuel `JET.fuel` 2.5 s; empty -> `JET.cool` 6 s, then full; part-used fuel
+  comes back on the ground (`JET.back` 0.4 /s). Fuel / wait bar over your head when not full. net.js sends `jt`
+  (firing) -> remote `jet`. No extra air jump any more (its `airJump` taken off). Placement: backfit.js moved EVERY
+  back item down 41 frame px for the old body; `px` pieces are left alone now (the jetpack sat 7 rows too low).
+- Sky Boots: the wearer floats `SKYB.hover` 14 world px (carpet 8) bobbing `SKYB.bob` 1.5 (sin, `ms` 520) with a soft
+  ground shadow, drawn like a ride (drawCharacter wrapper lifts oy); not while sitting / riding / swimming. Glow:
+  his 7 frames (PXW_FEET_GLOW). Keeps the one extra air jump.
+- Laser Visor: wear.js `laserFace` is real again (`LASER_FACES`: laser_visor) and pxpowers.js `drawLaser` draws a red
+  beam (glow + core + hit spark) from the middle of the visor's red line (`LASER_EYE` [21, 85] frame px; owner: "sa gitna ng horizontal red") to the punch spot, for every punch
+  (also seated / riding: their hooks); the laser sound plays. NO extra reach (actions.js inReach no longer adds 1).
+  The front arm (+ what it holds) is raised to `LASER_ARM` (-0.62 PI: a sword points up) while you hold break or a
+  punch lasts, hangs again after (blockyTarget wrapped on DOMContentLoaded: outside the swords' own swing).
+- Tested offline: jetpack fly (1.87 fuel left after 0.7 s), empty -> 5.4 s wait, back on the ground; boots hover +
+  glow; visor beam + raised Silver Blade, idle after letting go; jetpack placement matches his file.
+
+## 2026-11-28 h
+- Sky Boots glow (owner's recording of his file): flyingboots.aseprite fades its 'effects' layers with the CEL opacity
+  (0, 27, 104, 255, 255, 104, 27 per frame); pixelwear_cut.py read_frames now applies a cel's opacity to its alpha
+  (no other pixel-wear file uses cel opacity: checked). Re-cut: glow_f0 is empty, f3 / f4 strongest (the boots go
+  blue). Drawn without smoothing (crisp like his file).
+- Rocket Jetpack: no fuel bar over the head (owner: "wag mo na lagyan ng progress bar sa taas").
+
+## 2026-11-28 i: Sky Boots glow under the feet, arms still while floating
+- Glow (owner: "naputol yung glow sa ilalim, kumpleto dapat"): his effects go 3 rows under the feet, which the cut
+  dropped (pieces stop at the body's bottom). pixelwear_cut.py `LAST_ALIGN` keeps the padded layers of the last
+  bigger-canvas align; 'flyboots' builds glow_f*.png from the body's top down to `GLOW_BELOW` 6 rows under the feet
+  (picture 251 px tall: 36 px more than the frame, drawn from the same top so it hangs below).
+- Arms (owner: "kapag nakagamit yun hindi nag swing yung kamay kapag naglakad", read as: on the boots the arms should
+  not swing, like riding): pxpowers.js blockyTarget wrapper: walking on Sky Boots = arms down (punching / placing /
+  jumping / the Laser Visor's raised arm still move them).
+
+## 2026-11-28 j: GM gives / drops / trades, scrolling on phones, rods break backgrounds, long phone pads, guide sort
+- GM items given to players (owner: a GM's dropped / given / traded item was refused as "not bought in the shop"):
+  a GM's bag is not kept by the server, so trades judged the GM by the CALLER. New `is_gm_id(uuid)`; `trade_lack`
+  skips the item checks for a GM side (gold still checked) and `trade_move` does not take items from a GM's bag but
+  gives the receiver the full amount. **RUN supabase/admin/2026-11-28_gm_trade.sql (or re-run schema.sql).**
+  bag.js: a GM's drop is reported to the drop pool AT ONCE (dropItem wrapper -> gmLost), and an item the server
+  refuses is retried once after 2.5 s before it is taken away (the pickup could race the pool update).
+- Scrolling (owner: "kailangan pa i-touch yung hindi slots para ma-drag"): the global `canvas{touch-action:none}`
+  blocked drags that start on an icon canvas (bag slots, dropdowns). Now `canvas{touch-action:pan-x pan-y}` and
+  only the game canvas `#c` is `none`.
+- Rods: holding a fishing rod, a background tile now breaks (only a water surface casts the line).
+- Phone pads (owner: longer, 15px from each side, ride up with the inventory): `.touch .pad.l` (◀ ▶, 60%) and
+  `.pad.r` (▲, 40%) make one row across the screen 15px from each edge, 58px tall, 8px above the dock. dock.js
+  sets `--padLift` = the dock's height (ResizeObserver), so the row sits above the hotbar and follows the drawer
+  frame by frame as it is dragged / slides open and shut. Divided by `--btnz` (Settings button size zoom).
+- Guide ITEMS tab: SORT chips A-Z / RARITY (highest first) / GOLD (Shop gold price, dearest first; not sold = last);
+  tapping the chip that is on flips the order (▼ / ▲). The card shows a Gold row for things the Shop sells.
+
+## 2026-11-28 k: a GM's floating drop really reaches the player who picks it up
+- Owner: "nawawala talaga kapag floating drop ng gm tapos kinuha ng player". Cause: a GM's drop never leaves the GM's
+  bag (ui.js askDrop -> spawnItemDrop straight: a GM's items never run out), so bag.js gmLost (before / after count)
+  never saw anything lost and `bag_pool` never got it; the player's bag_sync was refused for the Shop-only item and
+  it vanished. Now bag.js wraps spawnItemDrop: in GM mode every drop is sent to `bag_gm_lost` AT ONCE with its exact
+  amount (queued while one is on its way, put back and retried on a network error), and gmBase is lowered to what
+  is left so gmLost never counts it twice. (The dropItem wrapper of build j is gone.) Server side checked on local
+  Postgres: bag_gm_lost {atm_machine: 2} then the player's bag_sync {atm_machine: 2} = given, nothing refused.
+
+## 2026-11-28 l: GM catalogue vs bought items; guide GOLD = gold dropped
+- New www/js/ui/gmbag.js (after online/bag.js). A GM's free catalogue stacks are tagged `gm: true` (old GM saves:
+  every stack becomes the catalogue once, then Bag.gmRebase so it isn't "lost"), show a gold "GM" tag top left (bag
+  + hotbar), Info adds "(not tradable)", and can't be dropped / traded / gifted (toast GM_NO_GIVE). What a GM buys
+  in the Shop (free), picks up or is given goes on SEPARATE untagged stacks (never merged into the catalogue): those
+  are real, run out, and are the only ones a GM can drop / trade / gift (social.js uses gmRealHave + gmTakeReal;
+  a drop goes into the server pool at once, bag.js). Placing / using takes the hand's stack, else the catalogue
+  first. Wearing remembers the source in `settings.gmRealEq` (slot -> id): a catalogue item taken off goes back to
+  the catalogue (no free real copy). bag.js local() skips catalogue stacks in GM mode.
+- Guide GOLD sort (owner: the one that gives / drops the most gold on top): gGoldDrop(id) = per 1,000: chance of a
+  coin drop x average goldDropAmount + average treeGold, worked out once with fixed rolls (Math.random stubbed
+  briefly); nothing = last. The card shows "Gold drop ~N per 1,000 breaks" and the Shop price as "Shop".

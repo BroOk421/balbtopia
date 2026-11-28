@@ -816,6 +816,7 @@ const Net = (() => {
       bubPop: p.bg === 3, // (Nov 25 2026) popped, falling with the gum on the mouth
       rvbCd: !!p.rc, // (events/rvb.js) still dead, counting down to come back
       emo,
+      jet: !!p.jt, // (Nov 28 2026) Rocket Jetpack firing (pxpowers.js)
       seen: now,
     });
     if (!r.walking) r.walkPh = 0;
@@ -876,6 +877,7 @@ const Net = (() => {
       dn: P.dance ? 1 : undefined, // dancing (/dance, jump.js)
       bg: P.bub ? (P.bub.inf !== undefined ? 2 : 1) : P.bubPop ? 3 : undefined, // floating on a Bubble Gum bubble, 2 = swelling to pop, 3 = popped, falling (bubblegum.js)
       em: typeof emoToNet === 'function' ? emoToNet() : undefined, // emote (/thumbsup, /love, /omg, /sleep: emotes.js)
+      jt: P.jetOn ? 1 : undefined, // the Rocket Jetpack is firing (wear/pxpowers.js)
     };
     if (!force && !othersHere() && now - beatT < SOLO_BEAT * 1000) return; // alone: heartbeat only
     const j = JSON.stringify(p);

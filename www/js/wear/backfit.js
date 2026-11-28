@@ -25,7 +25,9 @@ drawBehind = ((prev) =>
     }
   })(drawBehind);
 // is `id` the back item of the character being drawn behind?
-const bfBack = (id) => !!(BF_CHAR && id && (BF_CHAR.equipped || {}).back === id);
+// (Nov 28 2026: the Rocket Jetpack sat 7 rows too low) pixel pieces (`px`, pixelwear.js) are cut from his files for
+// the blocky body already: not moved
+const bfBack = (id) => !!(BF_CHAR && id && (BF_CHAR.equipped || {}).back === id && !(typeof WEAR_BY_ID !== 'undefined' && WEAR_BY_ID[id] && WEAR_BY_ID[id].px));
 // (owner, Nov 25 2026 k: "raise the Tiny Vampire Wings a bit, and the glowing crystal wings, and the wings") every
 // pair of wings a little higher than the shoulder line (frame px; a frame px = 41/215 world px), those two more; the
 // Tiny Devil Wings stay where they were (owner: "the tiny devil wings are fine")

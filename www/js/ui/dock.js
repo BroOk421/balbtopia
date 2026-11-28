@@ -86,11 +86,16 @@ const DOCK_MAX_H = () => Math.round(Math.min(window.innerHeight * 0.52, DOCK_PC(
     invW.style.transition = anim ? 'height ' + DOCK_MS + 'ms ' + (h < from ? EASE_CLOSE : EASE_OPEN) : 'none';
     invW.style.height = h + 'px';
     invW.scrollTop = 0; // (focusing a slot while it grew scrolled the drawer itself)
+    padLift();
     clearTimeout(shutT);
     if (h > 0) dock.classList.add('open');
     else if (anim) shutT = setTimeout(() => h === 0 && dock.classList.remove('open'), DOCK_MS);
     else dock.classList.remove('open');
   };
+  // (owner, Nov 28 2026) on a phone the walk / jump buttons are one long row ABOVE the dock (handle + hotbar, and the
+  // drawer when it is out): they ride up with it as it is dragged / slides open, frame by frame, and back down
+  const padLift = () => document.body.style.setProperty('--padLift', Math.round(dock.getBoundingClientRect().height) + 'px');
+  if (window.ResizeObserver) new ResizeObserver(padLift).observe(dock);
   const open = () => {
     if (invW.hidden) toggleInv();
     setH(DOCK_MAX_H(), true);

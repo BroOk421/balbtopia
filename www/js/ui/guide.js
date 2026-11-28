@@ -13,7 +13,7 @@
 // show up by themselves. Loaded right before core/gone.js (deleted items are taken out of ITEMS there, before the
 // guide ever opens).
 // ===== guide =====
-const GUIDE = { tab: 'items', kind: 'all', q: '', sel: null };
+const GUIDE = { tab: 'items', kind: 'all', q: '', sel: null, sort: 'az', desc: false };
 const guideEl = document.createElement('section');
 guideEl.id = 'guide';
 guideEl.className = 'guide';
@@ -42,6 +42,7 @@ document.body.appendChild(guideEl);
 #guide .gchips{display:flex;gap:5px;flex-wrap:wrap}
 #guide .gchips button{font:8px var(--pixel);padding:6px 8px;border-radius:5px;border:2px solid var(--night);background:var(--slot);color:var(--muted);cursor:pointer}
 #guide .gchips button.on{background:var(--glow);color:#fff}
+#guide .gsort{align-items:center}
 #guide .ggrid{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:5px;align-content:start;padding-right:2px}
 #guide .gcell{aspect-ratio:1;border-radius:6px;border:2px solid var(--night);background:var(--slot);display:grid;place-items:center;cursor:pointer;padding:0}
 #guide .gcell.on{border-color:var(--sun);box-shadow:0 0 0 2px var(--sun)}
@@ -127,6 +128,63 @@ function gItems() {
     })
     .sort((a, b) => gName(a).localeCompare(gName(b), 'en', { sensitivity: 'base' }));
 }
+// (owner, Nov 28 2026) the ITEMS list can be sorted: A-Z, RARITY (highest first) or GOLD (the most gold dropped
+// first, gGoldDrop; things that drop none go last); tapping the sort that is on again turns it the other way round
+const GSORT = [
+  ['az', 'A-Z'],
+  ['rarity', 'RARITY'],
+  ['gold', 'GOLD'],
+];
+const gGold = (id) => {
+  const s = SHOP.find((o) => o.id === id);
+  return s && s.gold > 0 ? s.gold : -1;
+};
+const gRarN = (id) => gRarity(id).n || 0;
+// (owner, Nov 28 2026: "yung sa gold dapat yung pinaka malakas mag bigay o mag drop ng gold yun yung mapupunta sa
+// taas") the GOLD sort = how much gold breaking it drops: the chance of a coin drop x the average drop (farming.js
+// coinDropChance / goldDropAmount, worked out once with fixed rolls) + what its ripe tree gives (treeGold), per 1,000
+const gGoldMemo = new Map();
+function gGoldDrop(id) {
+  if (gGoldMemo.has(id)) return gGoldMemo.get(id);
+  let v = 0;
+  const it = ITEMS[id];
+  if (it && (it.kind === 'block' || it.kind === 'background') && typeof coinDropChance === 'function') {
+    const rnd = Math.random,
+      N = 64;
+    let k = 0;
+    Math.random = () => ((k++ * 0.6180339887) % 1); // (even rolls spread over 0..1: the same answer every time)
+    try {
+      const pb = typeof blockDropChance === 'function' ? blockDropChance(id) : 0,
+        ps = typeof seedDropChance === 'function' ? seedDropChance(id) : 0,
+        pc = pb >= 1 ? 0 : Math.max(0, Math.min(coinDropChance(id), 1 - pb - ps));
+      let sum = 0;
+      if (pc > 0) for (let n = 0; n < N; n++) sum += goldDropAmount(id) || 0;
+      let tree = 0;
+      if (ITEMS[id + '_seed'] && typeof treeGold === 'function') for (let n = 0; n < N; n++) tree += treeGold(id) || 0;
+      v = 1000 * (pc * (sum / N) + tree / N);
+    } catch (e) {
+      v = 0;
+    } finally {
+      Math.random = rnd;
+    }
+  }
+  gGoldMemo.set(id, v);
+  return v;
+}
+function gSorted(list) {
+  const az = (a, b) => gName(a).localeCompare(gName(b), 'en', { sensitivity: 'base' }),
+    d = GUIDE.desc ? -1 : 1;
+  if (GUIDE.sort === 'az') return GUIDE.desc ? list.slice().reverse() : list;
+  const key = GUIDE.sort === 'gold' ? (id) => gGoldDrop(id) || -1 : gRarN,
+    k = new Map(list.map((id) => [id, key(id)]));
+  return list.slice().sort((a, b) => {
+    const x = k.get(a),
+      y = k.get(b);
+    if (GUIDE.sort === 'gold' && (x < 0 || y < 0) && x !== y) return x < 0 ? 1 : -1; // (drops no gold: always last)
+    return x !== y ? (y - x) * d : az(a, b);
+  });
+}
+const gSortLabel = (k, l) => l + (GUIDE.sort === k ? (k === 'az' ? (GUIDE.desc ? ' ▲' : ' ▼') : GUIDE.desc ? ' ▲' : ' ▼') : '');
 // the seed combines that make `id` / that use `id`
 const gRecipesOf = (id) => Object.entries(SPLICE).filter(([, r]) => r === id).map(([k]) => k.split('+'));
 const gUsedIn = (id) => Object.entries(SPLICE).filter(([k]) => k.split('+').includes(id)).map(([k, r]) => [k.split('+'), r]);
@@ -256,6 +314,8 @@ function gCard(id) {
   if (stove.length) dl += `<dt>Stove</dt><dd>${stove.map((s) => s.need.map(([x, q]) => gRef(x, q)).join(' + ') + ' = ' + s.n + (s.note ? '<br><span class="gnote">' + gEsc(s.note) + '</span>' : '')).join('<br>')}</dd>`;
   if (used.length) dl += `<dt>Used in</dt><dd>${used.slice(0, 24).map(([[a, c], r]) => gRef(r) + ' <span class="gnote">(' + gEsc(gName(a === id ? c : a)) + ')</span>').join('<br>')}${used.length > 24 ? '<br>…' : ''}</dd>`;
   if (!recs.length && !stove.length && SHOP.some((s) => s.id === id)) dl += `<dt>Get it</dt><dd>In the Shop</dd>`;
+  if (gGold(id) > 0) dl += `<dt>Shop</dt><dd>${gGold(id).toLocaleString('en')} gold</dd>`;
+  if (gGoldDrop(id) > 0) dl += `<dt>Gold drop</dt><dd>~${Math.round(gGoldDrop(id)).toLocaleString('en')} per 1,000 breaks</dd>`;
   return `<div class="gtop"><div class="gbig"><i data-big="${gEsc(id)}"></i></div><div><h3>${gEsc(it.name)}</h3><div class="grar r-${gEsc(tier)}">${gEsc(tier)}</div></div></div>
     <p>${gEsc(it.desc || '')}</p><dl>${dl}</dl>`;
 }
@@ -276,12 +336,13 @@ function guideRender() {
   if (t === 'items') {
     body.innerHTML = `<div class="gcol"><input class="gsearch" id="guideQ" type="search" placeholder="Search blocks and items" value="${gEsc(GUIDE.q)}">
       <div class="gchips">${GKIND.map(([k, l]) => `<button type="button" data-k="${k}" class="${GUIDE.kind === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="gchips gsort" id="guideSort"><span class="gcount">SORT</span>${GSORT.map(([k, l]) => `<button type="button" data-s="${k}" class="${GUIDE.sort === k ? 'on' : ''}">${gSortLabel(k, l)}</button>`).join('')}</div>
       <div class="gcount" id="guideN"></div><div class="ggrid" id="guideGrid"></div></div><div class="gcard" id="guideCard"></div>`;
     const grid = $('guideGrid'),
       card = $('guideCard'),
       draw = () => {
         const q = GUIDE.q.trim().toLowerCase(),
-          list = gItems().filter((id) => (GUIDE.kind === 'all' || gKindOf(ITEMS[id]) === GUIDE.kind) && (!q || gName(id).toLowerCase().includes(q)));
+          list = gSorted(gItems().filter((id) => (GUIDE.kind === 'all' || gKindOf(ITEMS[id]) === GUIDE.kind) && (!q || gName(id).toLowerCase().includes(q))));
         $('guideN').textContent = list.length + ' items';
         grid.innerHTML = '';
         const frag = document.createDocumentFragment();
@@ -302,6 +363,17 @@ function guideRender() {
     gShowCard(card, GUIDE.sel);
     $('guideQ').oninput = (e) => {
       GUIDE.q = e.target.value;
+      draw();
+    };
+    $('guideSort').onclick = (e) => {
+      const k = e.target.closest('button');
+      if (!k) return;
+      if (GUIDE.sort === k.dataset.s) GUIDE.desc = !GUIDE.desc;
+      else (GUIDE.sort = k.dataset.s), (GUIDE.desc = false);
+      for (const x of $('guideSort').querySelectorAll('button')) {
+        x.classList.toggle('on', x === k);
+        x.textContent = gSortLabel(x.dataset.s, GSORT.find((o) => o[0] === x.dataset.s)[1]);
+      }
       draw();
     };
     body.querySelector('.gchips').onclick = (e) => {
