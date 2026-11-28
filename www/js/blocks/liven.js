@@ -703,7 +703,7 @@ drawCharacter = ((prev) =>
     if (!m || !c.name || c.say || c.dead) return m;
     const mine = !c.id && c.name === playerName,
       show = c.hand === 'wrench' || c.wr || (mine ? chatTyping() : !!c.typing);
-    if (show) {
+    if (show && !(typeof vcTalking === 'function' && vcTalking(c))) { // (the voice chat head replaces it, ui/voice.js)
       const pic = talkMark(),
         w = pic.width * Z,
         h = pic.height * Z;

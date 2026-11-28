@@ -6275,3 +6275,29 @@ pads) shows while the ~130 scripts and the pictures load; landing.js only hides 
 - Guide GOLD sort (owner: the one that gives / drops the most gold on top): gGoldDrop(id) = per 1,000: chance of a
   coin drop x average goldDropAmount + average treeGold, worked out once with fixed rolls (Math.random stubbed
   briefly); nothing = last. The card shows "Gold drop ~N per 1,000 breaks" and the Shop price as "Shop".
+
+## 2026-11-28 m: phone pads round again, phone inventory wider with bigger slots
+- Owner: "yung button ang hahaba, balik mo sa pagiging bilog ... yung inventory yung ihaba tapos medyo lakihan yung mga
+  slots". Build j's long pad row was a misread: removed (style.css `.touch .pad` block, dock.js `padLift` /
+  `--padLift`), so ◀ ▶ ▲ are the old round 58 / 66 px buttons in the bottom corners again.
+- dock.css (end): `.touch .dock.open` spans the screen less 15 px each side (safe areas too), grid
+  `minmax(52px, 1fr)` gap 5 (slots ~55 px on an 844 px wide phone, were 41). PC keeps build zd.
+
+## 2026-11-28 n: voice chat (NEW www/js/ui/voice.js, after ui/emotebtn.js)
+- Owner: a speech voice button under the Emotes button; talk, a chat head with 3 animated dots shows while talking;
+  one tap ON, tap again OFF (picked: real voice chat, everyone in the world hears).
+- `#vcBtn` (mic pixel icon, red + pulsing while ON) right under `#emoBtn` in .topr; `#emoPanel` moved down to 100px
+  so it opens under the mic button. OFF on: tap, leaving the world / landing, app to background (visibilitychange).
+- Sending: getUserMedia (echo cancel / noise suppression / AGC) -> ScriptProcessor -> 16 kHz mono -> IMA ADPCM 4-bit
+  (~8 KB/s), chunks `VOICE.chunkMs` 200 ms (own rt-server) / `chunkMsSb` 400 ms (RT.mode 'sb': Supabase counts
+  messages), only while talking (`VOICE.vad` RMS 0.012 + `hangMs` 450). net.js: `Net.sendVoice` -> world event `vc`
+  { id, q, n, p, i, d(base64) } only when othersHere(); `Net.onVoice` = voiceIn; `vc` flag in the position message
+  (remote `r.vc`); `Net.sendPosNow()` on mic on / off.
+- Playing: one AudioContext, per speaker a GainNode, `VOICE.jitter` 0.18 s buffer, loudness by distance (full within
+  12 tiles, 0.25 from 45). Not tied to Settings -> Sound.
+- Chat head: drawCharacter wrapper (`VC_HEAD` 18x12 pixel bubble, 3 dots in a wave, faster while sound comes);
+  liven.js hides its small typing / wrench mark while it shows (`vcTalking`).
+- Android: AndroidManifest.xml RECORD_AUDIO + MODIFY_AUDIO_SETTINGS (Capacitor's WebChromeClient asks at runtime):
+  needs ONE new APK install; the live site alone can't get the mic on an old APK.
+- Tested in headless Chromium with a fake mic: 9 chunks in 2 s (3200 samples, 2136 b64 chars each), played back as
+  another player, button on / off, emote panel under the mic button.

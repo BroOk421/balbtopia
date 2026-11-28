@@ -5574,26 +5574,3 @@ body.landflash #authBox {
 #dlg.dlg-top {
   z-index: 12;
 }
-/* (owner, Nov 28 2026) phone walk / jump buttons: one long row across the screen, 15px from each side (◀ ▶ on the
-   left, ▲ on the right), just above the dock, riding up with the inventory when it is dragged open (ui/dock.js
-   sets --padLift = the dock's height) */
-.touch .pad {
-  bottom: calc((8px + var(--padLift, 0px)) / var(--btnz, 1));
-  z-index: 21;
-}
-.touch .pad.l {
-  left: calc(15px / var(--btnz, 1));
-  width: calc((100vw - 40px) * 0.6 / var(--btnz, 1));
-}
-.touch .pad.r {
-  right: calc(15px / var(--btnz, 1));
-  width: calc((100vw - 40px) * 0.4 / var(--btnz, 1));
-}
-.touch .pad button,
-.touch .pad.r button {
-  flex: 1;
-  width: auto;
-  height: 58px;
-  border-radius: 14px;
-  font-size: 20px;
-}

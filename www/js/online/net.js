@@ -549,6 +549,8 @@ const Net = (() => {
     c.on('broadcast', { event: 'vacc' }, ({ payload }) => N.onVacc && N.onVacc(payload));
     // (Nov 25 2026) a player blew a Bubble Gum bubble on another (bubblegum.js; only the one it is `to` floats)
     c.on('broadcast', { event: 'bubgive' }, ({ payload }) => N.onBub && N.onBub(payload));
+    // (Nov 28 2026) voice chat: a chunk of someone's voice (ui/voice.js plays it)
+    c.on('broadcast', { event: 'vc' }, ({ payload }) => payload && N.onVoice && N.onVoice(payload));
     c.on('broadcast', { event: 'p' }, ({ payload }) => onPos(payload))
       .on('broadcast', { event: 'punch' }, ({ payload }) => {
         const r = N.remotes.get(payload.id);
@@ -817,6 +819,7 @@ const Net = (() => {
       rvbCd: !!p.rc, // (events/rvb.js) still dead, counting down to come back
       emo,
       jet: !!p.jt, // (Nov 28 2026) Rocket Jetpack firing (pxpowers.js)
+      vc: !!p.vc, // (Nov 28 2026) voice chat mic on (ui/voice.js draws the chat head)
       seen: now,
     });
     if (!r.walking) r.walkPh = 0;
@@ -878,6 +881,7 @@ const Net = (() => {
       bg: P.bub ? (P.bub.inf !== undefined ? 2 : 1) : P.bubPop ? 3 : undefined, // floating on a Bubble Gum bubble, 2 = swelling to pop, 3 = popped, falling (bubblegum.js)
       em: typeof emoToNet === 'function' ? emoToNet() : undefined, // emote (/thumbsup, /love, /omg, /sleep: emotes.js)
       jt: P.jetOn ? 1 : undefined, // the Rocket Jetpack is firing (wear/pxpowers.js)
+      vc: typeof voiceOn === 'function' && voiceOn() ? 1 : undefined, // (Nov 28 2026) voice chat mic on: chat head (ui/voice.js)
     };
     if (!force && !othersHere() && now - beatT < SOLO_BEAT * 1000) return; // alone: heartbeat only
     const j = JSON.stringify(p);
@@ -932,6 +936,12 @@ const Net = (() => {
   N.sendMoved = () => {
     if (N.me) send('moved', {});
   };
+  // (Nov 28 2026) voice chat (ui/voice.js): a voice chunk to the world, only when someone else is here; the mic going
+  // on / off sends the position at once so the chat head shows / goes on others' screens without waiting
+  N.sendVoice = (p) => {
+    if (N.me && othersHere()) send('vc', p);
+  };
+  N.sendPosNow = () => inWorld && sendPos(true);
   N.sendDie = () => {
     if (N.me && othersHere()) send('die', { id: N.me.id });
   };

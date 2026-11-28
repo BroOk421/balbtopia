@@ -320,3 +320,14 @@ body.landing #dock {
     padding: 10px 4px;
   }
 }
+/* (owner, Nov 28 2026 m: "yung inventory yung ihaba tapos medyo lakihan yung mga slots") on phones / touch screens
+   the open inventory spans the screen less 15 px each side (like the PC one, build zd), with bigger slots; the walk /
+   jump pads are round again (build j's long pad row removed) */
+.touch .dock.open {
+  width: calc(100vw - 30px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  max-width: none;
+}
+.touch .dock .dmain .grid {
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)) !important;
+  gap: 5px;
+}
